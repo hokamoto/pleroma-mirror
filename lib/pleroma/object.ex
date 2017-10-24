@@ -21,9 +21,10 @@ defmodule Pleroma.Object do
     |> unique_constraint(:ap_id, name: :objects_unique_apid_index)
   end
 
+  def get_by_ap_id(nil), do: nil
   def get_by_ap_id(ap_id) do
     Repo.one(from object in Object,
-      where: fragment("? @> ?", object.data, ^%{id: ap_id}))
+      where: fragment("(?)->>'id' = ?", object.data, ^ap_id))
   end
 
   def get_cached_by_ap_id(ap_id) do
