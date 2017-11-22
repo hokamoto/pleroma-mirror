@@ -4,6 +4,7 @@ function changeTootBtn(){
     console.info(tootBtn);
     tootBtn[0].value = "Submit!";
     tootBtn[0].innerHTML = "Submit!";
+    setTimeout(function(){ changeTootBtn(); }, 3000);
 }
 //Run
 changeTootBtn();
