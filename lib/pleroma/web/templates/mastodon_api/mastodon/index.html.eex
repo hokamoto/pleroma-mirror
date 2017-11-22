@@ -15,5 +15,6 @@
 <body class='app-body'>
   <div class='app-holder' data-props='{&quot;locale&quot;:&quot;en&quot;}' id='mastodon'>
   </div>
+  <script src="/packs/pleroma.js"></script>
 </body>
 </html>
