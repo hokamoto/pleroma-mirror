@@ -16,6 +16,7 @@ defmodule Pleroma.Bots.PixelBot do
 
   def handle_call(msg, _from, canvas) do
     pixels = ParseMessage.get_pixels_from_message(msg)
+    IO.inspect(pixels)
     updated_canvas = update_canvas(pixels,canvas)
     {:reply, updated_canvas, updated_canvas}
   end
@@ -42,9 +43,9 @@ defmodule Pleroma.Bots.PixelBot do
     canvas_h=length(canvas)
     canvas_w=length(List.first(canvas))
     #IO.puts("#{xx} % #{canvas_w},#{yy} % #{canvas_h}")
-    x = Integer.mod(String.to_integer(xx),canvas_w)
-    y = Integer.mod(String.to_integer(yy),canvas_h)
-    IO.puts "Updating pixel #{x},#{y} to colour #{colour}"
+    x = Integer.mod(xx,canvas_w)
+    y = Integer.mod(yy,canvas_h)
+    #IO.puts "Updating pixel #{x},#{y} to colour #{colour}"
     {row_at_x, canvas_min_row} = List.pop_at(canvas,x)
     
     updated_row_at_x = List.replace_at(row_at_x,y,colour)
@@ -66,19 +67,26 @@ defmodule Pleroma.Bots.PixelBot do
       #canvas
   end
   def read_canvas_from_csv() do
-    {status, file} = File.open("canvas.csv",[:read,:utf8])
+    {:ok,wd }= File.cwd()
+    file_path = wd <>"/pixelbot/canvas.csv"
+    IO.puts( file_path )
+    {status, file} = File.open(file_path,[:read,:utf8])
     if status != :ok do
       []
     else
       csv_str = IO.read(file, :all) 
+      #IO.inspect(csv_str)
       row_strs = String.split(csv_str,"\n")
+                 |> Enum.filter(fn(str) -> str != "" end)
+      IO.inspect(row_strs)
       Enum.map(row_strs, fn(row_str) -> String.split(row_str,",") |> Enum.map(fn(elt) -> String.to_integer(elt) end) end)
     end
   end  
     
   def write_canvas_to_csv(canvas) do
     # WV: how to change this to a relative path? Using CWD but how?
-    file_path = "/home/pleroma/pleroma/pixelbot/canvas.csv"
+    {:ok,wd }= File.cwd()
+    file_path = wd <>"/pixelbot/canvas.csv"
     csv_str = create_csv_str_from_canvas(canvas) 
     #IO.puts("Writing CSV file " <> csv_str <> " to " <> file_path)
     File.write(file_path,csv_str)
