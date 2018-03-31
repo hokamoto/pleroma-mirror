@@ -1,4 +1,5 @@
 defmodule Pleroma.Web.ActivityPub.ActivityPubController do
+  use GenServer
   use Pleroma.Web, :controller
   alias Pleroma.{User, Repo, Object, Activity}
   alias Pleroma.Web.ActivityPub.{ObjectView, UserView, Transmogrifier}
@@ -7,7 +8,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
 
   require Logger
 
-  action_fallback :errors
+  action_fallback(:errors)
 
   def user(conn, %{"nickname" => nickname}) do
     with %User{} = user <- User.get_cached_by_nickname(nickname),
@@ -27,18 +28,86 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     end
   end
 
+  def following(conn, %{"nickname" => nickname, "page" => page}) do
+    with %User{} = user <- User.get_cached_by_nickname(nickname),
+         {:ok, user} <- Pleroma.Web.WebFinger.ensure_keys_present(user) do
+      {page, _} = Integer.parse(page)
+
+      conn
+      |> put_resp_header("content-type", "application/activity+json")
+      |> json(UserView.render("following.json", %{user: user, page: page}))
+    end
+  end
+
+  def following(conn, %{"nickname" => nickname}) do
+    with %User{} = user <- User.get_cached_by_nickname(nickname),
+         {:ok, user} <- Pleroma.Web.WebFinger.ensure_keys_present(user) do
+      conn
+      |> put_resp_header("content-type", "application/activity+json")
+      |> json(UserView.render("following.json", %{user: user}))
+    end
+  end
+
+  def followers(conn, %{"nickname" => nickname, "page" => page}) do
+    with %User{} = user <- User.get_cached_by_nickname(nickname),
+         {:ok, user} <- Pleroma.Web.WebFinger.ensure_keys_present(user) do
+      {page, _} = Integer.parse(page)
+
+      conn
+      |> put_resp_header("content-type", "application/activity+json")
+      |> json(UserView.render("followers.json", %{user: user, page: page}))
+    end
+  end
+
+  def followers(conn, %{"nickname" => nickname}) do
+    with %User{} = user <- User.get_cached_by_nickname(nickname),
+         {:ok, user} <- Pleroma.Web.WebFinger.ensure_keys_present(user) do
+      conn
+      |> put_resp_header("content-type", "application/activity+json")
+      |> json(UserView.render("followers.json", %{user: user}))
+    end
+  end
+
+  def outbox(conn, %{"nickname" => nickname, "max_id" => max_id}) do
+    with %User{} = user <- User.get_cached_by_nickname(nickname),
+         {:ok, user} <- Pleroma.Web.WebFinger.ensure_keys_present(user) do
+      conn
+      |> put_resp_header("content-type", "application/activity+json")
+      |> json(UserView.render("outbox.json", %{user: user, max_id: max_id}))
+    end
+  end
+
+  def outbox(conn, %{"nickname" => nickname}) do
+    outbox(conn, %{"nickname" => nickname, "max_id" => nil})
+  end
+
   # TODO: Ensure that this inbox is a recipient of the message
   def inbox(%{assigns: %{valid_signature: true}} = conn, params) do
     Federator.enqueue(:incoming_ap_doc, params)
     json(conn, "ok")
   end
 
+# WV this is where I could hook in a "bot" to create PNGs from coordinates
+# WV What I have is: I can detect the nickname and get the content
+# WV The content is HTML so I'd need some additional parsing before I can use my own parser
+# WV But what I want to do is of course put this functionality somewhere else and if possible make it asynchronous
+# WV Maybe like here: https://milmazz.uno/article/2016/09/03/asynchronous-tasks-with-elixir/
   def inbox(conn, params) do
     headers = Enum.into(conn.req_headers, %{})
-    if !(String.contains?(headers["signature"] || "", params["actor"])) do
-      Logger.info("Signature not from author, relayed message, ignoring.")
+    if Map.has_key?(params,"nickname") and Map.has_key?(params,"object") and Map.has_key?(params["object"],"content") do
+    if params["nickname"] == "pixelbot" do
+      content =  params["object"]["content"]
+      Logger.warn("Content: " <> content )
+      GenServer.call(Pleroma.Bots.PixelBot,content)
     else
-      Logger.info("Signature error.")
+        Logger.warn("Nickname: <" <> params["nickname"]<>">")
+    end
+    end
+    if !String.contains?(headers["signature"] || "", params["actor"]) do
+      Logger.info("Signature not from author, relayed message, fetching from source")
+      ActivityPub.fetch_object_from_id(params["object"]["id"])
+    else
+      Logger.info("Signature error")
       Logger.info("Could not validate #{params["actor"]}")
       Logger.info(inspect(conn.req_headers))
     end

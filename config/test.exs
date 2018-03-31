@@ -9,18 +9,16 @@ config :pleroma, Pleroma.Web.Endpoint,
 # Print only warnings and errors during test
 config :logger, level: :warn
 
-config :pleroma, Pleroma.Upload,
-  uploads: "test/uploads"
+config :pleroma, Pleroma.Upload, uploads: "test/uploads"
 
 # Configure your database
 config :pleroma, Pleroma.Repo,
   adapter: Ecto.Adapters.Postgres,
-  username: "postgres",
-  password: "postgres",
+  username: "pleroma",
+  password: "pleroma",
   database: "pleroma_test",
   hostname: System.get_env("DB_HOST") || "localhost",
   pool: Ecto.Adapters.SQL.Sandbox
-
 
 # Reduce hash rounds for testing
 config :comeonin, :pbkdf2_rounds, 1

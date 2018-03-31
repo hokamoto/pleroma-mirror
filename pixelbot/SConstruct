@@ -1,0 +1,13 @@
+import os
+
+WD = os.environ['PWD']
+CSV_PATH_MACRO='-DCSV_PATH=\\"'+WD+'/canvas.csv\\"'
+PNG_PATH_MACRO='-DPNG_PATH=\\"'+WD+'/../priv/static/pixelbot/canvas.png\\"'
+CC='gcc' #os.environ['CC']
+LDFLAGS=[]
+INCPATHS=[]
+LIBPATHS=[]
+LIBS=['z','png16']
+env=Environment(LINK=CC,CFLAGS=["-Wall",CSV_PATH_MACRO,PNG_PATH_MACRO],LINKFLAGS=LDFLAGS,CPPPATH=INCPATHS,LIBPATH=LIBPATHS, CC=CC)
+
+env.Program('create_png_from_csv', ['create_png_from_csv.c' ],LIBS=LIBS)
