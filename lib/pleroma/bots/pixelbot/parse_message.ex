@@ -50,9 +50,14 @@ defmodule Pleroma.Bots.PixelBot.ParseMessage do
     #IO.inspect( String.split(String.trim(pixels_str),"<br />") )
     # TEST
     if Regex.match?(~r/\d+[,\s]\d+[,\s]/,pixels_str) do
-      regex_parse(pixels_str)
-    else
-      parse_compact(pixels_str)
+      pixels_str_trimmed = Regex.replace(~r/^.*?(\d)/,pixels_str,"\\1")
+      regex_parse(pixels_str_trimmed)
+    else 
+      if Regex.match?(~r/[0-9A-Fa-f]{6}[0-7]/,pixels_str) do
+        parse_compact(pixels_str)
+      else
+        []
+      end
     end
     #[{1,1,2},{2,2,3},{3,3,4}]
   end
@@ -69,7 +74,7 @@ defmodule Pleroma.Bots.PixelBot.ParseMessage do
     else
       String.split(String.trim(text),br_capt["br"])
     end
-    #IO.inspect(maybe_pixels)
+    IO.inspect(maybe_pixels)
     res = Enum.filter(maybe_pixels,fn(x) -> x != "" end)
     |> Enum.map( fn(line) -> Regex.scan(regex, line) end)    #
     #IO.inspect(res)

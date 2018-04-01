@@ -113,10 +113,10 @@ void populate_png_from_csv(int* ncols, int* nrows, unsigned char* csv_store) {
         for(int j=0;j<*ncols;j++) {
             int color = csv_store[j+*ncols*i] - 48; // now this has to go to 0 or 255 for R/G/B and 255 for A
             //printf("%d %d %d\n",i,j,color);
-            row_pointers[i][j*4+0]=255*(color & 4);
-            row_pointers[i][j*4+1]=255*(color & 2);
-            row_pointers[i][j*4+2]=255*(color & 1);
-            row_pointers[i][j*4+3]=255;
+            row_pointers[j][i*4+0]=255*(color & 4);
+            row_pointers[j][i*4+1]=255*(color & 2);
+            row_pointers[j][i*4+2]=255*(color & 1);
+            row_pointers[j][i*4+3]=255;
         }
     }
     free(csv_store);
