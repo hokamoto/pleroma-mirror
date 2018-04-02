@@ -1,0 +1,9 @@
+  #git remote add upstream  https://git.pleroma.social/pleroma/pleroma.git
+  git fetch upstream
+  git merge upstream/develop
+  git diff --name-only --diff-filter=U >> fix_conflicts.pl
+  vi fix_conflicts.pl 
+  perl fix_conflicts.pl 
+  git diff --name-only --diff-filter=U 
+  git commit -a
+  git push
