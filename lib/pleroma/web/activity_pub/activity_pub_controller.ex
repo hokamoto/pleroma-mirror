@@ -1,5 +1,5 @@
 defmodule Pleroma.Web.ActivityPub.ActivityPubController do
-  use GenServer
+  use GenServer, :cast
   use Pleroma.Web, :controller
   alias Pleroma.{User, Repo, Object, Activity}
   alias Pleroma.Web.ActivityPub.{ObjectView, UserView, Transmogrifier}
@@ -94,14 +94,23 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
 # WV Maybe like here: https://milmazz.uno/article/2016/09/03/asynchronous-tasks-with-elixir/
   def inbox(conn, params) do
     headers = Enum.into(conn.req_headers, %{})
-    if Map.has_key?(params,"nickname") and Map.has_key?(params,"object") and Map.has_key?(params["object"],"content") do
-    if params["nickname"] == "pixelbot" do
-      content =  params["object"]["content"]
-      Logger.warn("Content: " <> content )
-      GenServer.call(Pleroma.Bots.PixelBot,content)
+    #  IO.inspect(params)
+    if is_map(params) do
+      if Map.has_key?(params,"nickname") and Map.has_key?(params,"object") and Map.has_key?(params["object"],"content") do
+        if params["nickname"] == "pixelbot" do
+          if is_map(params["object"]) do
+            content =  params["object"]["content"]
+            Logger.warn("Content: " <> content )
+            GenServer.cast(Pleroma.Bots.PixelBot,content)
+          else
+            Logger.warn("params[\"object\"] is not a map" )
+          end
+        else
+          Logger.warn("Nickname: <" <> params["nickname"]<>">")
+        end
+      end
     else
-        Logger.warn("Nickname: <" <> params["nickname"]<>">")
-    end
+      IO.inspect(params)
     end
     if !String.contains?(headers["signature"] || "", params["actor"]) do
       Logger.info("Signature not from author, relayed message, fetching from source")

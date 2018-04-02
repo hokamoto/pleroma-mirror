@@ -1,3 +1,6 @@
+# Message parser for the PixelBot
+# Parses Mastodon/Pleroma message for 2 types of pixel formats
+# WV
 defmodule Pleroma.Bots.PixelBot.ParseMessage do
 
   @colour_map %{
