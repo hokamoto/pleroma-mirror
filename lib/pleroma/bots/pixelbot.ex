@@ -16,14 +16,16 @@ defmodule Pleroma.Bots.PixelBot do
 
   def handle_call(msg, _from, canvas) do
     pixels = ParseMessage.get_pixels_from_message(msg)
-    IO.inspect(pixels)
+    #IO.inspect(pixels)
     updated_canvas = update_canvas(pixels,canvas)
     {:reply, updated_canvas, updated_canvas}
   end
 
   def handle_cast( msg, canvas) do
     pixels = ParseMessage.get_pixels_from_message(msg)
-    {:noreply, update_canvas(pixels,canvas)}
+    #IO.inspect(pixels)
+    updated_canvas = update_canvas(pixels,canvas)
+    {:noreply, updated_canvas}
   end
 
   def update_canvas(pixels,canvas) do
