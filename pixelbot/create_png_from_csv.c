@@ -1,3 +1,4 @@
+// CSV to PNG, based on:
 /*
  * A simple libpng example program
  * http://zarb.org/~gc/html/libpng.html
@@ -15,7 +16,7 @@
  * of the X11 license.
  *
  */
-
+// This code Copyright 2017 Wim Vanderbauwhede
 #include <stdlib.h>
 #include <stdio.h>
 #include <png.h>
@@ -27,7 +28,7 @@ png_bytep *row_pointers;
 
 void prepare_png(int* width, int* height) {
 
-// Allocate space and read the image into the data structure row_pointers
+// Allocate space 
   row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * (*height));
   for(int y = 0; y < (*height); y++) {
     row_pointers[y] = (png_byte*)malloc(sizeof(png_bytep) * (*width) * 4 ); // XXX RGBA XXX
@@ -119,14 +120,33 @@ void populate_png_from_csv(int* ncols, int* nrows, unsigned char* csv_store) {
             row_pointers[j][i*4+3]=255;
         }
     }
-    free(csv_store);
+    //free(csv_store);
+}
+
+void populate_scaled_png_from_csv(int* ncols, int* nrows, int width, int height, unsigned char* csv_store) {
+    for(int i=0;i<*nrows;i++) {
+      for(int ii =0;ii<height/(*nrows);ii++) {
+        for(int j=0;j<*ncols;j++) {
+            int color = csv_store[j+*ncols*i] - 48; // now this has to go to 0 or 255 for R/G/B and 255 for A
+            //printf("%d %d %d\n",i,j,color);
+            for(int jj=0;jj<width/(*ncols);jj++){
+            //printf("%d %d %d\n",i*width/(*ncols)+ii,j*height/(*nrows)+jj,color);
+            row_pointers[j*height/(*nrows)+jj][(i*width/(*ncols)+ii)*4+0]=255*(color & 4);
+            row_pointers[j*height/(*nrows)+jj][(i*width/(*ncols)+ii)*4+1]=255*(color & 2);
+            row_pointers[j*height/(*nrows)+jj][(i*width/(*ncols)+ii)*4+2]=255*(color & 1);
+            row_pointers[j*height/(*nrows)+jj][(i*width/(*ncols)+ii)*4+3]=255*(color );
+            }
+        }
+    }
+    }
 }
 
 int main(int argc, char *argv[]) {
 
   const char* csv_file=CSV_PATH;//"/home/pleroma/pleroma/pixelbot/canvas.csv";
   const char* png_file=PNG_PATH;//"/home/pleroma/pleroma/priv/static/pixelbot/canvas.png";
-  //const char* png_file="canvas.png";
+  const char* png512_file=PNG512_PATH;//"/home/pleroma/pleroma/priv/static/pixelbot/canvas_512x512.png";
+
   unsigned char* csv_store=(unsigned char*)malloc(512*512) ; // XXX could be better XXX
   int ncols[1]={0};
   int nrows[1]={0};
@@ -137,6 +157,14 @@ int main(int argc, char *argv[]) {
   prepare_png(&width,&height);
   populate_png_from_csv(ncols,nrows,csv_store);
   write_png_file(png_file);
+
+  width=512;
+  height=512;
+  prepare_png(&width,&height);
+  populate_scaled_png_from_csv(ncols,nrows,width,height,csv_store);
+  write_png_file(png512_file);
+
+  free(csv_store);
 
   return 0;
 }
