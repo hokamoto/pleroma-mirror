@@ -26,7 +26,9 @@ defmodule Pleroma.Bots.PixelBot do
     pixels = ParseMessage.get_pixels_from_message(msg)
     IO.inspect(pixels)
     updated_canvas = update_canvas(pixels,canvas)
-    PostStatus.pixelbot_post_status()
+    if length( pixels ) > 0 do
+      PostStatus.pixelbot_post_status()
+    end
     {:noreply, updated_canvas}
   end
 
