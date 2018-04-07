@@ -24,11 +24,8 @@ defmodule Pleroma.Bots.PixelBot do
 
   def handle_cast( msg, canvas) do
     pixels = ParseMessage.get_pixels_from_message(msg)
-    #IO.inspect(pixels)
+    IO.inspect(pixels)
     updated_canvas = update_canvas(pixels,canvas)
-    #nickname="pixelbot"
-    #user = Pleroma.User.get_cached_by_nickname(nickname)
-    # IO.puts("PIXELBOT says: #{user}")
     PostStatus.pixelbot_post_status()
     {:noreply, updated_canvas}
   end
@@ -105,7 +102,10 @@ defmodule Pleroma.Bots.PixelBot do
   end
 
   def create_png_via_system_call() do
-    System.cmd("/home/pleroma/pleroma/pixelbot/create_png_from_csv",[])
+    {:ok,wd }= File.cwd()
+    file_path = wd <>"/pixelbot/create_png_from_csv"
+    #IO.inspect(file_path)
+    System.cmd(file_path,[])
   end
 
 end
