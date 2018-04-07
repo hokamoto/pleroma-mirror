@@ -45,38 +45,53 @@ defmodule Pleroma.Bots.PixelBot.ParseMessage do
     #
     # First remove the header
     # Thenremove everything up to </span>
-    msg_chunks=String.split(msg,"</span>")
-    msg_body = List.last(msg_chunks)
+    #msg_chunks=String.split(msg,"</span>")
+    #msg_body = List.last(msg_chunks)
     #pixels_str=String.slice(msg_body,0..-5)
-    pixels_str = Regex.replace(~r/\<\/p\>$/,msg_body,"")
-    #IO.puts("<"<>pixels_str<>">" )
+    # Strip everything not a digit until the end of the line
+    # This is broken because of the colour names. 
+    IO.puts("'"<>msg<>"'" )
     #IO.inspect( String.split(String.trim(pixels_str),"<br />") )
-    # TEST
-    if Regex.match?(~r/\d+[,\s]\d+[,\s]/,pixels_str) do
-      pixels_str_trimmed = Regex.replace(~r/^.*?(\d)/,pixels_str,"\\1")
-      regex_parse(pixels_str_trimmed)
-    else 
-      if Regex.match?(~r/[0-9A-Fa-f]{6}[0-7]/,pixels_str) do
-        parse_compact(pixels_str)
-      else
-        []
-      end
-    end
-    #[{1,1,2},{2,2,3},{3,3,4}]
+    
+    { trad,compact} = parse_triplets(msg)
+    trad_parsed = if length(trad) != 0 do regex_parse(trad) else [] end
+    compact_parsed = if length(compact) != 0 do parse_compact(Enum.join(trad,"")) else [] end
+    trad_parsed ++ compact_parsed
+
+#    # Check the format
+#    if Regex.match?(~r/\d+[,\s]\d+[,\s]/,msg) do
+#      # Remove anything after a triplet until the end
+#      pixels_str = Regex.replace(~r/(\d+[,\s]\d+[,\s](?:[RGBCMYKW]|[0-7]|red|green|blue|cyan|magenta|yellow|white|black))\W+[^\d]+$/,msg,"\\1")
+#    IO.puts("remove trailing <"<>pixels_str<>">" )
+#      # Remove anything from start until we encounter a digit
+#      pixels_str_trimmed = Regex.replace(~r/^.*?(\d)/,pixels_str,"\\1")
+#    IO.puts("remove leading <"<>pixels_str_trimmed<>">" )
+#      regex_parse(pixels_str_trimmed)
+#    else 
+#      if Regex.match?(~r/[0-9A-Fa-f]{6}[0-7]/,msg) do
+#        pixels_str = Regex.replace(~r/(\d).+$/,msg,"\\1")
+#        pixels_str_trimmed = Regex.replace(~r/^.*?([01])/,pixels_str,"\\1")
+#    IO.puts("<"<>pixels_str_trimmed<>">" )
+#        parse_compact(pixels_str_trimmed)
+#      else
+#        []
+#      end
+#    end
+    
   end
   # So what I need is to parse some formats like this:
   # \d+ \d+ \w+ or \d+\d+ \d or allow commas too, one per line
   # The regex supports <int X><space or comma><int Y><space or comma><colour names, single-char abbrev or numerical value><newline>
   # If the regex fails I'm not sure what happens
-  def regex_parse(text) do
+  def regex_parse(maybe_pixels) do
     regex = ~r/^\s*(\d+)\s*[,\s]\s*(\d+)\s*[,\s]\s*(\d|[CMYKRGBW]|[a-z]{3,})\s*$/i
-    br_capt = Regex.named_captures(~r/(?<br>\<br\s*\/?\>)/, text)
-    #IO.inspect(br_capt)
-    maybe_pixels = if is_nil(br_capt) do
-      [text]
-    else
-      String.split(String.trim(text),br_capt["br"])
-    end
+    #br_capt = Regex.named_captures(~r/(?<br>\<br\s*\/?\>)/, text)
+    ##IO.inspect(br_capt)
+    #maybe_pixels = if is_nil(br_capt) do
+    #  [text]
+    #else
+    #  String.split(String.trim(text),br_capt["br"])
+    #end
     IO.inspect(maybe_pixels)
     res = Enum.filter(maybe_pixels,fn(x) -> x != "" end)
     |> Enum.map( fn(line) -> Regex.scan(regex, line) end)    #
@@ -148,6 +163,72 @@ defmodule Pleroma.Bots.PixelBot.ParseMessage do
     |> IO.puts
   end
 
+def fsm_parse_chunk_on_tags(text,state, chunks,chunk) do
+  if length(text) == 0 do chunks
+  else
+    [c | cs ] = text      
+    {nstate,nchunks,nchunk} = if c == "<" do                       
+      { 0 , chunks++[chunk],[]}
+    else  
+      if c == ">" do
+        {1,chunks,[]}
+      else
+        {state,chunks,chunk}
+      end
+    end 
+    if nstate == 0 do
+      # it's a tag, skip it
+      fsm_parse_chunk_on_tags(cs,nstate,nchunks,nchunk)
+    else
+      # it's not a tag, append to chunk
+      if c != ">" do
+        fsm_parse_chunk_on_tags(cs,nstate,nchunks,nchunk++[c])
+      else
+        fsm_parse_chunk_on_tags(cs,nstate,nchunks,nchunk)
+      end
+    end
+  end
+end
+
+
+  def parse_triplets_OLD(text) do
+    fsm_parse_chunk_on_tags(text,0,[],[])
+       |> Enum.filter( fn(lst) -> length(lst) >= 5  end )
+       |> Enum.map(fn(lst) -> Enum.join(lst,"") end)
+       |> Enum.filter( fn(str) -> Regex.match?(~r/^\s*\d+[,\s]\d+[,\s](?:\d|[CMYKRGBW]|[a-z]{3,})|(?:[0-9A-Fa-f]{6}[0-7])+$/, str ) end)
+  end
+
+  # This returns a tuple of lists, one for "trad" , the other for "compact"
+  def parse_triplets(msg) do
+    text = String.split(msg,"")
+    strs = fsm_parse_chunk_on_tags(text,0,[],[])
+           |> Enum.filter( fn(lst) -> length(lst) >= 5  end )
+           |> Enum.map(fn(lst) -> Enum.join(lst,"") end)
+    strs_trad= Enum.filter( strs, fn(str) -> Regex.match?(~r/^\s*\d+[,\s]\d+[,\s](?:\d|[CMYKRGBW]|[a-z]{3,})\s*$/, str ) end)
+    strs_compact= Enum.filter( strs, fn(str) -> Regex.match?(~r/^\s*(?:[0-9A-Fa-f]{6}[0-7])+\s*$/, str ) end)
+                  |> Enum.map(fn(str) -> String.trim(str) end )
+    {strs_trad,strs_compact}
+  end
+  
+
+  #msg11="<a>bB<c>dD1<e>ff"
+
+  #msg1="<span class=\"h-card\"><a href=\"https://pynq.limited.systems/users/pixelbot\" class=\"u-url mention\">@<span>pixelbot</span></a></span>1aa2bb3<br>4 5 red<br />12 13 magenta</p>"
+
+  #msg21=""
+
+  #msg2="<p><span class=\"h-card\"><a href=\"https://pynq.limited.systems/users/pixelbot\" class=\"u-url mention\">@<span>pixelbot</span></a></span> <br />0 0 M<br />0 1 M<br />0 2 M<br />0 3 M<br />1 0 M<br />2 0 M<br />1 1 C<br />1 2 C<br />2 1 C<br />2 2 C<br />1 3 M<br />2 3 M<br />3 0 M<br />3 1 M<br />3 2 M<br />3 3 M</p> "
+
+  #text1 =  String.split(msg1,"")
+
+  #text2 =  String.split(msg2,"")
+
+#IO.inspect(text1)
+
+#res1 = Test.parse_triplets(text1)
+#IO.inspect(res1)
+#res2 = Test.parse_triplets(text2)
+#IO.inspect(res2)
 end # of ParseMessage
 #
 #msg1 = "<p><span class=\"h-card\"><a href=\"https://pynq.limited.systems/users/pixelbot\" class=\"u-url mention\">@<span>pixelbot</span></a></span> 1f41a420ff0ff11aa1bb3</p>"

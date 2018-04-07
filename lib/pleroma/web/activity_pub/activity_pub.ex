@@ -409,6 +409,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   end
 
   def publish(actor, activity) do
+    #IO.inspect(activity)
     followers =
       if actor.follower_address in activity.recipients do
         {:ok, followers} = User.get_followers(actor)

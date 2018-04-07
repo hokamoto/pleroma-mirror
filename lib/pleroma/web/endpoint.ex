@@ -11,8 +11,9 @@ defmodule Pleroma.Web.Endpoint do
   #
   # You should set gzip to true if you are running phoenix.digest
   # when deploying your static files in production.
-  plug Plug.Static,
-    at: "/media", from: "uploads", gzip: false
+  plug(Plug.Static, at: "/media", from: Pleroma.Upload.upload_path(), gzip: false)
+  #plug Plug.Static,
+  #  at: "/media", from: "uploads", gzip: false
   plug Plug.Static,
     at: "/pixelbot", from: :pleroma,
     only: ~w(canvas.html canvas.png)
@@ -35,7 +36,8 @@ defmodule Pleroma.Web.Endpoint do
     Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
-    json_decoder: Jason
+    json_decoder: Jason,
+    length: Application.get_env(:pleroma, :instance) |> Keyword.get(:upload_limit)
   )
 
   plug(Plug.MethodOverride)

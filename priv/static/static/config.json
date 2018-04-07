@@ -1,6 +1,6 @@
 {
   "theme": "pleroma-dark",
-  "background": "/static/aurora_borealis.jpg",
+  "background": "/static/bg.jpg",
   "logo": "/static/logo.png",
   "defaultPath": "/main/all",
   "chatDisabled": false,

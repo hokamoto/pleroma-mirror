@@ -7,9 +7,101 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
   alias Pleroma.Web.TwitterAPI.TwitterAPI
   alias Pleroma.Web.TwitterAPI.Representers.ObjectRepresenter
   alias Pleroma.Activity
+  alias Pleroma.Object
+  alias Pleroma.User
+  alias Pleroma.Repo
   alias Pleroma.Formatter
 
+  import Ecto.Query
+
+  defp query_context_ids([]), do: []
+
+  defp query_context_ids(contexts) do
+    query = from(o in Object, where: fragment("(?)->>'id' = ANY(?)", o.data, ^contexts))
+
+    Repo.all(query)
+  end
+
+  defp query_users([]), do: []
+
+  defp query_users(user_ids) do
+    query = from(user in User, where: user.ap_id in ^user_ids)
+
+    Repo.all(query)
+  end
+
+  defp collect_context_ids(activities) do
+    contexts =
+      activities
+      |> Enum.reject(& &1.data["context_id"])
+      |> Enum.map(fn %{data: data} ->
+        data["context"]
+      end)
+      |> Enum.filter(& &1)
+      |> query_context_ids()
+      |> Enum.reduce(%{}, fn %{data: %{"id" => ap_id}, id: id}, acc ->
+        Map.put(acc, ap_id, id)
+      end)
+  end
+
+  defp collect_users(activities) do
+    activities
+    |> Enum.map(fn activity ->
+      case activity.data do
+        data = %{"type" => "Follow"} ->
+          [data["actor"], data["object"]]
+
+        data ->
+          [data["actor"]]
+      end ++ activity.recipients
+    end)
+    |> List.flatten()
+    |> Enum.uniq()
+    |> query_users()
+    |> Enum.reduce(%{}, fn user, acc ->
+      Map.put(acc, user.ap_id, user)
+    end)
+  end
+
+  defp get_context_id(%{data: %{"context_id" => context_id}}, _) when not is_nil(context_id),
+    do: context_id
+
+  defp get_context_id(%{data: %{"context" => nil}}, _), do: nil
+
+  defp get_context_id(%{data: %{"context" => context}}, options) do
+    cond do
+      id = options[:context_ids][context] -> id
+      true -> TwitterAPI.context_to_conversation_id(context)
+    end
+  end
+
+  defp get_context_id(_, _), do: nil
+
+  defp get_user(ap_id, opts) do
+    cond do
+      user = opts[:users][ap_id] ->
+        user
+
+      String.ends_with?(ap_id, "/followers") ->
+        nil
+
+      ap_id == "https://www.w3.org/ns/activitystreams#Public" ->
+        nil
+
+      true ->
+        User.get_cached_by_ap_id(ap_id)
+    end
+  end
+
   def render("index.json", opts) do
+    context_ids = collect_context_ids(opts.activities)
+    users = collect_users(opts.activities)
+
+    opts =
+      opts
+      |> Map.put(:context_ids, context_ids)
+      |> Map.put(:users, users)
+
     render_many(
       opts.activities,
       ActivityView,
@@ -19,7 +111,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
   end
 
   def render("activity.json", %{activity: %{data: %{"type" => "Delete"}} = activity} = opts) do
-    user = User.get_cached_by_ap_id(activity.data["actor"])
+    user = get_user(activity.data["actor"], opts)
     created_at = activity.data["published"] |> Utils.date_to_asctime()
 
     %{
@@ -39,11 +131,11 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
   end
 
   def render("activity.json", %{activity: %{data: %{"type" => "Follow"}} = activity} = opts) do
-    user = User.get_cached_by_ap_id(activity.data["actor"])
+    user = get_user(activity.data["actor"], opts)
     created_at = activity.data["published"] || DateTime.to_iso8601(activity.inserted_at)
     created_at = created_at |> Utils.date_to_asctime()
 
-    followed = User.get_cached_by_ap_id(activity.data["object"])
+    followed = get_user(activity.data["object"], opts)
     text = "#{user.nickname} started following #{followed.nickname}"
 
     %{
@@ -62,7 +154,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
   end
 
   def render("activity.json", %{activity: %{data: %{"type" => "Announce"}} = activity} = opts) do
-    user = User.get_by_ap_id(activity.data["actor"])
+    user = get_user(activity.data["actor"], opts)
     created_at = activity.data["published"] |> Utils.date_to_asctime()
     announced_activity = Activity.get_create_activity_by_object_ap_id(activity.data["object"])
 
@@ -80,14 +172,14 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
       "uri" => "tag:#{activity.data["id"]}:objectType=note",
       "created_at" => created_at,
       "retweeted_status" => retweeted_status,
-      "statusnet_conversation_id" => conversation_id(announced_activity),
+      "statusnet_conversation_id" => get_context_id(announced_activity, opts),
       "external_url" => activity.data["id"],
       "activity_type" => "repeat"
     }
   end
 
   def render("activity.json", %{activity: %{data: %{"type" => "Like"}} = activity} = opts) do
-    user = User.get_cached_by_ap_id(activity.data["actor"])
+    user = get_user(activity.data["actor"], opts)
     liked_activity = Activity.get_create_activity_by_object_ap_id(activity.data["object"])
 
     created_at =
@@ -115,8 +207,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
         "activity.json",
         %{activity: %{data: %{"type" => "Create", "object" => object}} = activity} = opts
       ) do
-    actor = get_in(activity.data, ["actor"])
-    user = User.get_cached_by_ap_id(actor)
+    user = get_user(activity.data["actor"], opts)
 
     created_at = object["published"] |> Utils.date_to_asctime()
     like_count = object["like_count"] || 0
@@ -126,11 +217,11 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
 
     attentions =
       activity.recipients
-      |> Enum.map(fn ap_id -> User.get_cached_by_ap_id(ap_id) end)
+      |> Enum.map(fn ap_id -> get_user(ap_id, opts) end)
       |> Enum.filter(& &1)
       |> Enum.map(fn user -> UserView.render("show.json", %{user: user, for: opts[:for]}) end)
 
-    conversation_id = conversation_id(activity)
+    conversation_id = get_context_id(activity, opts)
 
     tags = activity.data["object"]["tag"] || []
     possibly_sensitive = activity.data["object"]["sensitive"] || Enum.member?(tags, "nsfw")
@@ -173,13 +264,5 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
       "activity_type" => "post",
       "possibly_sensitive" => possibly_sensitive
     }
-  end
-
-  defp conversation_id(activity) do
-    with context when not is_nil(context) <- activity.data["context"] do
-      TwitterAPI.context_to_conversation_id(context)
-    else
-      _e -> nil
-    end
   end
 end

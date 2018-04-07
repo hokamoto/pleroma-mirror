@@ -3,6 +3,7 @@
 defmodule Pleroma.Bots.PixelBot do
   use GenServer
   alias Pleroma.Bots.PixelBot.ParseMessage  
+  alias Pleroma.Bots.PixelBot.PostStatus
   def start_link(state) do
     GenServer.start_link(__MODULE__, state, name: __MODULE__)
   end
@@ -25,6 +26,10 @@ defmodule Pleroma.Bots.PixelBot do
     pixels = ParseMessage.get_pixels_from_message(msg)
     #IO.inspect(pixels)
     updated_canvas = update_canvas(pixels,canvas)
+    #nickname="pixelbot"
+    #user = Pleroma.User.get_cached_by_nickname(nickname)
+    # IO.puts("PIXELBOT says: #{user}")
+    PostStatus.pixelbot_post_status()
     {:noreply, updated_canvas}
   end
 

@@ -494,6 +494,10 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       if Regex.match?(~r/https?:/, query) do
         with {:ok, activities} <- OStatus.fetch_activity_from_url(query) do
           activities
+          |> Enum.filter(fn
+            %{data: %{"type" => "Create"}} -> true
+            _ -> false
+          end)
         else
           _e -> []
         end
@@ -514,11 +518,17 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
     statuses = Repo.all(q) ++ fetched
 
+    tags =
+      String.split(query)
+      |> Enum.uniq()
+      |> Enum.filter(fn tag -> String.starts_with?(tag, "#") end)
+      |> Enum.map(fn tag -> String.slice(tag, 1..-1) end)
+
     res = %{
       "accounts" => AccountView.render("accounts.json", users: accounts, for: user, as: :user),
       "statuses" =>
         StatusView.render("index.json", activities: statuses, for: user, as: :activity),
-      "hashtags" => []
+      "hashtags" => tags
     }
 
     json(conn, res)

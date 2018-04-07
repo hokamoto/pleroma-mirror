@@ -27,7 +27,8 @@ config :logger, :console,
 
 config :mime, :types, %{
   "application/xrd+xml" => ["xrd+xml"],
-  "application/activity+json" => ["activity+json"]
+  "application/activity+json" => ["activity+json"],
+  "application/ld+json" => ["activity+json"]
 }
 
 config :pleroma, :websub, Pleroma.Web.Websub
@@ -49,6 +50,7 @@ config :pleroma, :instance,
   name: "Pleroma",
   email: "example@example.com",
   limit: 5000,
+  upload_limit: 16_000_000,
   registrations_open: true,
   federating: true
 
@@ -66,6 +68,11 @@ config :pleroma, :bot,
 config :ecto, json_library: Jason
 
 config :phoenix, :format_encoders, json: Jason
+
+config :pleroma, :gopher,
+  enabled: false,
+  ip: {0, 0, 0, 0},
+  port: 9999
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

@@ -144,7 +144,7 @@ defmodule Pleroma.Formatter do
     @emoji
   end
 
-  @link_regex ~r/https?:\/\/[\w\.\/?=\-#%&@~\(\)]+[\w\/]/u
+  @link_regex ~r/https?:\/\/[\w\.\/?=\-#\+%&@~\(\)]+[\w\/]/u
 
   def html_escape(text) do
     Regex.split(@link_regex, text, include_captures: true)
@@ -189,7 +189,9 @@ defmodule Pleroma.Formatter do
 
     subs =
       subs ++
-        Enum.map(mentions, fn {match, %User{ap_id: ap_id}, uuid} ->
+        Enum.map(mentions, fn {match, %User{ap_id: ap_id, info: info}, uuid} ->
+          ap_id = info["source_data"]["url"] || ap_id
+
           short_match = String.split(match, "@") |> tl() |> hd()
           {uuid, "<span><a href='#{ap_id}'>@<span>#{short_match}</span></a></span>"}
         end)

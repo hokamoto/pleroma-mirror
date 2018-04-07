@@ -20,6 +20,7 @@ defmodule Pleroma.Application do
                          limit: 2500
                        ]]),
       worker(Pleroma.Web.Federator, []),
+      worker(Pleroma.Gopher.Server, []),
       worker(Pleroma.Stats, []),
     ]
     ++ if Mix.env == :test, do: [], else: [worker(Pleroma.Web.Streamer, [])]

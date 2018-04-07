@@ -60,6 +60,7 @@ defmodule Pleroma.Web.CommonAPI do
   @instance Application.get_env(:pleroma, :instance)
   @limit Keyword.get(@instance, :limit)
   def post(user, %{"status" => status} = data) do
+    IO.inspect( user == Repo.get(User, 2599))
     visibility = get_visibility(data)
 
     with status <- String.trim(status),
@@ -102,6 +103,9 @@ defmodule Pleroma.Web.CommonAPI do
           object: object,
           additional: %{"cc" => cc}
         })
+    IO.puts("------------------------")
+    IO.inspect(object)
+    IO.puts("------------------------")
 
       User.increase_note_count(user)
       res
