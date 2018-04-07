@@ -115,17 +115,20 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
       #IO.inspect(params)
       :nok
     end
-    Logger.info("HERE!")
+    
+    sig_ok = with %{assigns: %{valid_signature: true}} <- conn do :ok end
     if !String.contains?(headers["signature"] || "", params["actor"]) do
       Logger.info("Signature not from author, relayed message, fetching from source")
       ActivityPub.fetch_object_from_id(params["object"]["id"])
     else
+      if sig_ok != :ok do
       Logger.info("Signature error")
       Logger.info("Could not validate #{params["actor"]}")
       Logger.info(inspect(conn.req_headers))
       # WV: do it anyway
       Logger.warn("IGNORING Signature error")
       #
+      end
       Federator.enqueue(:incoming_ap_doc, params)
     end
 
