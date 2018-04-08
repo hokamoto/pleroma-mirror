@@ -103,9 +103,9 @@ defmodule Pleroma.Web.CommonAPI do
           object: object,
           additional: %{"cc" => cc}
         })
-    IO.puts("------------------------")
-    IO.inspect(object)
-    IO.puts("------------------------")
+        #IO.puts("------------------------")
+        #IO.inspect(object)
+        #IO.puts("------------------------")
 
       User.increase_note_count(user)
       res

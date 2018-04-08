@@ -24,7 +24,7 @@ defmodule Pleroma.Bots.PixelBot do
 
   def handle_cast( msg, canvas) do
     pixels = ParseMessage.get_pixels_from_message(msg)
-    IO.inspect(pixels)
+    #IO.inspect(pixels)
     updated_canvas = update_canvas(pixels,canvas)
     if length( pixels ) > 0 do
       PostStatus.pixelbot_post_status()
@@ -75,7 +75,7 @@ defmodule Pleroma.Bots.PixelBot do
   def read_canvas_from_csv() do
     {:ok,wd }= File.cwd()
     file_path = wd <>"/pixelbot/canvas.csv"
-    IO.puts( file_path )
+    #IO.puts( file_path )
     {status, file} = File.open(file_path,[:read,:utf8])
     if status != :ok do
       []

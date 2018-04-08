@@ -1,8 +1,11 @@
 defmodule Pleroma.Web.ActivityPub.ActivityPubController do
-  use GenServer, :cast
+  #use GenServer, :cast
+  #import GenServer, only: [cast: 2]
   use Pleroma.Web, :controller
-  alias Pleroma.{User, Repo, Object, Activity}
-  alias Pleroma.Web.ActivityPub.{ObjectView, UserView, Transmogrifier}
+  #alias Pleroma.{User, Repo, Object, Activity}
+  alias Pleroma.{User, Object }
+  #alias Pleroma.Web.ActivityPub.{ObjectView, UserView, Transmogrifier}
+  alias Pleroma.Web.ActivityPub.{ObjectView, UserView }
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.Federator
 
@@ -95,7 +98,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
   def inbox(conn, params) do
     headers = Enum.into(conn.req_headers, %{})
     #  IO.inspect(params)
-    res = if is_map(params) and Map.has_key?(params,"nickname") and Map.has_key?(params,"object") do
+    if is_map(params) and Map.has_key?(params,"nickname") and Map.has_key?(params,"object") do
         if params["nickname"] == "pixelbot" do
           if is_map(params["object"]) and Map.has_key?(params["object"],"content") do
             content =  params["object"]["content"]
@@ -103,7 +106,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
             GenServer.cast(Pleroma.Bots.PixelBot,content)
             :ok
           else
-            Logger.warn("params[\"object\"] is not a map" )
+            #Logger.warn("params[\"object\"] is not a map" )
             #IO.inspect(params)
             :nok
           end

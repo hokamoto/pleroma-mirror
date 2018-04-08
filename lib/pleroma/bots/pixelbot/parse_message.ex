@@ -50,7 +50,7 @@ defmodule Pleroma.Bots.PixelBot.ParseMessage do
     #pixels_str=String.slice(msg_body,0..-5)
     # Strip everything not a digit until the end of the line
     # This is broken because of the colour names. 
-    IO.puts("'"<>msg<>"'" )
+    #IO.puts("'"<>msg<>"'" )
     
     { trad,compact} = parse_triplets(msg)
     trad_parsed = if length(trad) != 0 do regex_parse(trad) else [] end
@@ -91,7 +91,7 @@ defmodule Pleroma.Bots.PixelBot.ParseMessage do
     #else
     #  String.split(String.trim(text),br_capt["br"])
     #end
-    IO.inspect(maybe_pixels)
+    #IO.inspect(maybe_pixels)
     res = Enum.filter(maybe_pixels,fn(x) -> x != "" end)
     |> Enum.map( fn(line) -> Regex.scan(regex, line) end)    #
     #IO.inspect(res)
