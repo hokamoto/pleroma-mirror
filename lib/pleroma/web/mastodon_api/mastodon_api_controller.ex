@@ -102,13 +102,14 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   @instance Application.get_env(:pleroma, :instance)
+  @mastodon_api_level "2.3.3"
 
   def masto_instance(conn, _params) do
     response = %{
       uri: Web.base_url(),
       title: Keyword.get(@instance, :name),
       description: "A Pleroma instance, an alternative fediverse server",
-      version: Keyword.get(@instance, :version),
+      version: "#{@mastodon_api_level} (compatible; #{Keyword.get(@instance, :version)})",
       email: Keyword.get(@instance, :email),
       urls: %{
         streaming_api: String.replace(Web.base_url(), ["http", "https"], "wss")
@@ -507,13 +508,15 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       from(
         a in Activity,
         where: fragment("?->>'type' = 'Create'", a.data),
+        where: "https://www.w3.org/ns/activitystreams#Public" in a.recipients,
         where:
           fragment(
             "to_tsvector('english', ?->'object'->>'content') @@ plainto_tsquery('english', ?)",
             a.data,
             ^query
           ),
-        limit: 20
+        limit: 20,
+        order_by: [desc: :inserted_at]
       )
 
     statuses = Repo.all(q) ++ fetched
@@ -603,35 +606,37 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
               "video\/mp4"
             ]
           },
-          settings: %{
-            onboarded: true,
-            home: %{
-              shows: %{
-                reblog: true,
-                reply: true
-              }
-            },
-            notifications: %{
-              alerts: %{
-                follow: true,
-                favourite: true,
-                reblog: true,
-                mention: true
+          settings:
+            Map.get(user.info, "settings") ||
+              %{
+                onboarded: true,
+                home: %{
+                  shows: %{
+                    reblog: true,
+                    reply: true
+                  }
+                },
+                notifications: %{
+                  alerts: %{
+                    follow: true,
+                    favourite: true,
+                    reblog: true,
+                    mention: true
+                  },
+                  shows: %{
+                    follow: true,
+                    favourite: true,
+                    reblog: true,
+                    mention: true
+                  },
+                  sounds: %{
+                    follow: true,
+                    favourite: true,
+                    reblog: true,
+                    mention: true
+                  }
+                }
               },
-              shows: %{
-                follow: true,
-                favourite: true,
-                reblog: true,
-                mention: true
-              },
-              sounds: %{
-                follow: true,
-                favourite: true,
-                reblog: true,
-                mention: true
-              }
-            }
-          },
           push_subscription: nil,
           accounts: accounts,
           custom_emojis: mastodon_emoji,
@@ -645,6 +650,19 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     else
       conn
       |> redirect(to: "/web/login")
+    end
+  end
+
+  def put_settings(%{assigns: %{user: user}} = conn, %{"data" => settings} = _params) do
+    with new_info <- Map.put(user.info, "settings", settings),
+         change <- User.info_changeset(user, %{info: new_info}),
+         {:ok, _user} <- User.update_and_set_cache(change) do
+      conn
+      |> json(%{})
+    else
+      e ->
+        conn
+        |> json(%{error: inspect(e)})
     end
   end
 
