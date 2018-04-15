@@ -15,11 +15,8 @@ defmodule Pleroma.Web.Endpoint do
   #plug Plug.Static,
   #  at: "/media", from: "uploads", gzip: false
   plug Plug.Static,
-    at: "/pixelbot", from: :pleroma,
-    only: ~w(canvas.html canvas.png)
-  plug Plug.Static,
     at: "/", from: :pleroma,
-    only: ~w(index.html static pixelbot finmoji emoji packs sounds images instance sw.js)
+    only: ~w(index.html static finmoji emoji packs sounds images instance sw.js)
 
 
   # Code reloading can be explicitly enabled under the
