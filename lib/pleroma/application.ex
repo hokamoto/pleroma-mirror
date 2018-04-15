@@ -25,7 +25,7 @@ defmodule Pleroma.Application do
     ]
     ++ if Mix.env == :test, do: [], else: [worker(Pleroma.Web.Streamer, [])]
     ++ if !chat_enabled(), do: [], else: [worker(Pleroma.Web.ChatChannel.ChatChannelState, [])]
-    ]
+    
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options
