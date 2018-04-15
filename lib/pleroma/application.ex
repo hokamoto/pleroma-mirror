@@ -25,9 +25,6 @@ defmodule Pleroma.Application do
     ]
     ++ if Mix.env == :test, do: [], else: [worker(Pleroma.Web.Streamer, [])]
     ++ if !chat_enabled(), do: [], else: [worker(Pleroma.Web.ChatChannel.ChatChannelState, [])]
-   
-    ++ if !bot_enabled(), do: [], else: [
-      worker(Pleroma.Bots.PixelBot, [ get_canvas_size()  ],id: PixelBot),
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
@@ -40,10 +37,4 @@ defmodule Pleroma.Application do
     Application.get_env(:pleroma, :chat, []) |> Keyword.get(:enabled)
   end
 
-  defp bot_enabled do
-    Application.get_env(:pleroma, :bot, []) |> Keyword.get(:enabled)
-  end
-  defp get_canvas_size do
-    Application.get_env(:pleroma, :bot, []) |> Keyword.get(:canvas_size)
-  end
 end

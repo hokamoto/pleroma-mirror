@@ -85,54 +85,19 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
   end
 
   # TODO: Ensure that this inbox is a recipient of the message
-  # WV: this does not work for any of my Mastodon accounts!
-  #def inbox(%{assigns: %{valid_signature: true}} = conn, params) do
-  #  Federator.enqueue(:incoming_ap_doc, params)
-  #  json(conn, "ok")
-  #end
+  def inbox(%{assigns: %{valid_signature: true}} = conn, params) do
+    Federator.enqueue(:incoming_ap_doc, params)
+    json(conn, "ok")
+  end
 
-# WV this is where I could hook in a "bot" to create PNGs from coordinates
-# WV What I have is: I can detect the nickname and get the content
-# WV The content is HTML so I'd need some additional parsing before I can use my own parser
-# WV But what I want to do is of course put this functionality somewhere else and if possible make it asynchronous
   def inbox(conn, params) do
     headers = Enum.into(conn.req_headers, %{})
-    #  IO.inspect(params)
-    if is_map(params) and Map.has_key?(params,"nickname") and Map.has_key?(params,"object") do
-        if params["nickname"] == "pixelbot" do
-          if is_map(params["object"]) and Map.has_key?(params["object"],"content") do
-            content =  params["object"]["content"]
-            Logger.warn("Content: " <> content )
-            GenServer.cast(Pleroma.Bots.PixelBot,content)
-            :ok
-          else
-            #Logger.warn("params[\"object\"] is not a map" )
-            #IO.inspect(params)
-            :nok
-          end
-        else
-          Logger.warn("Nickname: <" <> params["nickname"]<>">")
-          :nok
-        end
-    else
-      #IO.inspect(params)
-      :nok
-    end
-    
-    sig_ok = with %{assigns: %{valid_signature: true}} <- conn do :ok end
     if !String.contains?(headers["signature"] || "", params["actor"]) do
       Logger.info("Signature not from author, relayed message, fetching from source")
       ActivityPub.fetch_object_from_id(params["object"]["id"])
     else
-      if sig_ok != :ok do
       Logger.info("Signature error")
       Logger.info("Could not validate #{params["actor"]}")
-      Logger.info(inspect(conn.req_headers))
-      # WV: do it anyway
-      Logger.warn("IGNORING Signature error")
-      #
-      end
-      Federator.enqueue(:incoming_ap_doc, params)
     end
 
     json(conn, "ok")
