@@ -8,6 +8,7 @@ defmodule Pleroma.HTTP do
     host = case uri.host do
              "127.0.0.1" -> :localhost
              "localhost" -> :localhost
+             _ -> uri.host
            end
     port = uri.port
     case uri.scheme do
