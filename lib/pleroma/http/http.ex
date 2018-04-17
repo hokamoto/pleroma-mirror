@@ -6,7 +6,7 @@ defmodule Pleroma.HTTP do
   defp parse_proxy_url(url) do
     uri = URI.parse(url)
     case uri.scheme do
-      "socks" -> {:socks5 , uri.host, uri.port}
+      "socks" -> {:socks5, uri.host, uri.port}
       _ -> {:connect , uri.host, uri.port}
     end
   end
