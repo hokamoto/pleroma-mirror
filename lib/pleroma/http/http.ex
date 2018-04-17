@@ -5,7 +5,6 @@ defmodule Pleroma.HTTP do
 
   defp parse_proxy_url(url) do
     uri = URI.parse(url)
-    IO.inspect uri
     host = case uri.host do
              "127.0.0.1" -> :localhost
              "localhost" -> :localhost
