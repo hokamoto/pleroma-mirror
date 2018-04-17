@@ -3,7 +3,7 @@ defmodule Pleroma.HTTP do
 
   require HTTPoison
 
-  defp parse_proxy_url(url) do
+  defp parse_proxy_url(url) when is_binary(url) do
     uri = URI.parse(url)
     host = case uri.host do
              "127.0.0.1" -> :localhost
@@ -15,6 +15,10 @@ defmodule Pleroma.HTTP do
       "socks" -> {:socks5, host, port}
       _ -> {:connect , host, port}
     end
+  end
+
+  defp parse_proxy_url(url) do
+    url
   end
   
   def process_request_options(options) do
