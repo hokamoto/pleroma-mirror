@@ -6,11 +6,14 @@ defmodule Pleroma.HTTP do
   defp parse_proxy_url(url) do
     uri = URI.parse(url)
     IO.inspect uri
-    host = uri.host
+    host = case uri.host do
+             "127.0.0.1" -> :localhost
+             "localhost" -> :localhost
+           end
     port = uri.port
     case uri.scheme do
-      "socks" -> {socks5, host, port}
-      _ -> {connect , host, port}
+      "socks" -> {:socks5, host, port}
+      _ -> {:connect , host, port}
     end
   end
   
