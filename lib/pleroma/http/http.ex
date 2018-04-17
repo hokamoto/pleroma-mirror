@@ -1,13 +1,23 @@
 defmodule Pleroma.HTTP do
   use HTTPoison.Base
 
+  require HTTPoison
+
+  defp parse_proxy_url(url) do
+    uri = URI.parse(url)
+    case uri.protocol do
+      "socks" -> {:socks5 , uri.host, uri.port}
+      _ -> {:connect , uri.host, uri.port}
+    end
+  end
+  
   def process_request_options(options) do
     config = Application.get_env(:pleroma, :http, [])
     proxy = Keyword.get(config, :proxy_url, nil)
 
     case proxy do
       nil -> options
-      _ -> options ++ [proxy: proxy]
+      _ -> options ++ [proxy: parse_proxy_url(proxy)]
     end
   end
 
@@ -20,7 +30,7 @@ defmodule Pleroma.HTTP do
         case Enum.at(item, 1) do
           nil -> Keyword.drop(options, [:proxy])
           "" -> Keyword.drop(options, [:proxy])
-          _ -> Keyword.put(options, :proxy, Enum.at(item, 1))
+          _ -> Keyword.put(options, :proxy, parse_proxy_url(Enum.at(item, 1)))
         end
     end
   end
