@@ -13,7 +13,7 @@ defmodule Pleroma.HTTP do
 
   defp filter_opts_using_proxy_map(url, options, proxy_map) do
     uri = URI.parse(url)
-    item = Enum.find(proxy_map, nil, fn (idx) -> Regex.match?(Enum.at(idx, 0), uri.host) end)
+    item = Enum.find(proxy_map, nil, fn (idx) -> Regex.match?(Regex.compile!(Enum.at(idx, 0)), uri.host) end)
     case item do
       nil -> options
       _ ->
