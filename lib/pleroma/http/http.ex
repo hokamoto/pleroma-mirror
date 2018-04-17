@@ -9,8 +9,8 @@ defmodule Pleroma.HTTP do
     host = uri.host
     port = uri.port
     case uri.scheme do
-      "socks" -> {:socks5, host, port}
-      _ -> {:connect , host, port}
+      "socks" -> {socks5, host, port}
+      _ -> {connect , host, port}
     end
   end
   
