@@ -783,4 +783,15 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
         nil
     end
   end
+
+  def show_tos(conn, _params) do
+      conn
+      |> redirect(to: "/static/terms-of-service.html")
+    else
+      _e ->
+        conn
+        |> put_status(404)
+        |> json(%{error: "Can't find Terms of Service"})
+    end
+  end
 end

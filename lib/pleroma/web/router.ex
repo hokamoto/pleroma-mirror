@@ -292,6 +292,7 @@ defmodule Pleroma.Web.Router do
   scope "/", Pleroma.Web.MastodonAPI do
     pipe_through(:mastodon_html)
 
+    get("/about/more", MastodonAPIController, :show_tos)
     get("/web/login", MastodonAPIController, :login)
     post("/web/login", MastodonAPIController, :login_post)
     get("/web/*path", MastodonAPIController, :index)
