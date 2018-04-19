@@ -787,6 +787,5 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   def show_tos(conn, _params) do
       conn
       |> redirect(to: "/static/terms-of-service.html")
-    end
   end
 end
