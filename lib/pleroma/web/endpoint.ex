@@ -12,10 +12,13 @@ defmodule Pleroma.Web.Endpoint do
   # You should set gzip to true if you are running phoenix.digest
   # when deploying your static files in production.
   plug(Plug.Static, at: "/media", from: Pleroma.Upload.upload_path(), gzip: false)
-  plug Plug.Static,
-    at: "/", from: :pleroma,
-    only: ~w(index.html static finmoji emoji packs sounds images instance sw.js)
 
+  plug(
+    Plug.Static,
+    at: "/",
+    from: :pleroma,
+    only: ~w(index.html static finmoji emoji packs sounds images instance sw.js favicon.png)
+  )
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
