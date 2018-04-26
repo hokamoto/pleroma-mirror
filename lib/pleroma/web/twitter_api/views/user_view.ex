@@ -51,7 +51,9 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
       "statusnet_profile_url" => user.ap_id,
       "cover_photo" => User.banner_url(user) |> MediaProxy.url(),
       "background_image" => image_url(user.info["background"]) |> MediaProxy.url(),
-      "is_local" => user.local
+      "is_local" => user.local,
+      "is_moderator" => user.info["is_moderator"],
+      "is_admin" => user.info["is_admin"]
     }
 
     if assigns[:token] do
