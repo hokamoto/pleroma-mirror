@@ -7,6 +7,7 @@ defmodule Pleroma.Web.Router do
   @federating Keyword.get(@instance, :federating)
   @public Keyword.get(@instance, :public)
   @registrations_open Keyword.get(@instance, :registrations_open)
+  @about_enabled Keyword.get(@instance, :about_enabled)
 
   def user_fetcher(username) do
     {:ok, Repo.get_by(User, %{nickname: username})}
@@ -314,6 +315,13 @@ defmodule Pleroma.Web.Router do
   scope "/proxy/", Pleroma.Web.MediaProxy do
     pipe_through(:remote_media)
     get("/:sig/:url", MediaProxyController, :remote)
+  end
+
+  if @about_enabled do
+    scope "/", Pleroma.Web.Page do
+      get("/about", PageController, :about)
+      get("/about/more", PageController, :about_more)
+    end
   end
 
   scope "/", Fallback do

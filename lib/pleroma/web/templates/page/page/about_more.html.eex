@@ -1,0 +1,5 @@
+<%= render Pleroma.Web.Page.PageView, "about.html" %>
+
+<h3> About - More </h3>
+
+<p> More detailed content can go here. </p>
