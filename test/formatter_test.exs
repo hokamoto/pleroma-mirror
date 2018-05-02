@@ -117,10 +117,22 @@ defmodule Pleroma.FormatterTest do
       text = "Here's a #Test. Maybe these are #working or not. What about #漢字? And #は｡"
 
       expected = [
-        {"#Test", "test"},
+        {"#Test", "Test"},
         {"#working", "working"},
         {"#漢字", "漢字"},
         {"#は", "は"}
+      ]
+
+      assert Formatter.parse_tags(text) == expected
+    end
+
+    test "preserves tag case" do
+      text = "Here's #AnotherTest. Maybe these #areWorkingOrnot. What #aboutThis_Monstrosity?"
+
+      expected = [
+        {"#AnotherTest", "AnotherTest"},
+        {"#areWorkingOrnot", "areWorkingOrnot"},
+        {"#aboutThis_Monstrosity", "aboutThis_Monstrosity"}
       ]
 
       assert Formatter.parse_tags(text) == expected
