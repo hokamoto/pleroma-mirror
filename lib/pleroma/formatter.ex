@@ -5,7 +5,7 @@ defmodule Pleroma.Formatter do
   @tag_regex ~r/\#\w+/u
   def parse_tags(text, data \\ %{}) do
     Regex.scan(@tag_regex, text)
-    |> Enum.map(fn ["#" <> tag = full_tag] -> {full_tag, String.downcase(tag)} end)
+    |> Enum.map(fn ["#" <> tag = full_tag] -> {full_tag, tag} end)
     |> (fn map ->
           if data["sensitive"] in [true, "True", "true", "1"],
             do: [{"#nsfw", "nsfw"}] ++ map,
