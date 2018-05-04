@@ -135,7 +135,7 @@ defmodule Pleroma.Web.Federator do
 
   def enqueue(type, payload, priority \\ 1) do
     if @federating do
-      if Mix.env() == :test do
+      if Application.get_env(:pleroma, :environment) == :test do
         handle(type, payload)
       else
         GenServer.cast(__MODULE__, {:enqueue, type, payload, priority})

@@ -28,7 +28,7 @@ defmodule Pleroma.Object do
   end
 
   def get_cached_by_ap_id(ap_id) do
-    if Mix.env() == :test do
+    if Application.get_env(:pleroma, :environment) == :test do
       get_by_ap_id(ap_id)
     else
       key = "object:#{ap_id}"

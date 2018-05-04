@@ -5,6 +5,9 @@
 # is restricted to this project.
 use Mix.Config
 
+# Make the environment available even when mix is not loaded
+config :pleroma, :environment, Mix.env()
+
 # General application configuration
 config :pleroma, ecto_repos: [Pleroma.Repo]
 

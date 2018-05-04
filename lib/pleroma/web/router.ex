@@ -330,7 +330,7 @@ defmodule Fallback.RedirectController do
   use Pleroma.Web, :controller
 
   def redirector(conn, _params) do
-    if Mix.env() != :test do
+    if Application.get_env(:pleroma, :environment) != :test do
       conn
       |> put_resp_content_type("text/html")
       |> send_file(200, "priv/static/index.html")
