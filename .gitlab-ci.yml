@@ -12,6 +12,7 @@ variables:
 stages:
   - lint
   - test
+  - build
 
 before_script:
   - mix local.hex --force
@@ -29,3 +30,13 @@ unit-testing:
   stage: test
   script:
     - MIX_ENV=test mix test --trace
+
+Debian Stretch:
+  stage: build
+  script:
+    - mix release.init
+    - cp config/prod.secret.exs.env.tmpl config/prod.secret.exs
+    - MIX_ENV=prod mix release
+  artifacts:
+    paths:
+      - _build/
