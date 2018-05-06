@@ -369,21 +369,27 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     targets = Repo.all(q)
     render(conn, AccountView, "relationships.json", %{user: user, targets: targets})
   end
-  #WV: to handle alt text
+
+  # WV: to handle alt text
   def add_description(%{assigns: %{user: _}} = conn, data) do
     # Get the record from the DB and update it
     id = data["id"]
-    img_obj =  Repo.get(Object,id) #Repo.get(Object, uuid)
-    img_data=img_obj.data
-    img_data_with_description = %{ img_data | "name" => data["description"] }# , "description" => data["description"] }
+    # Repo.get(Object, uuid)
+    img_obj = Repo.get(Object, id)
+    img_data = img_obj.data
+    # , "description" => data["description"] }
+    img_data_with_description = %{img_data | "name" => data["description"]}
     # We can now update this and then write it back to the repo
     changeset_description = Ecto.Changeset.change(img_obj, %{data: img_data_with_description})
     {:ok, struct} = Repo.update(changeset_description)
-    img_data_att = img_data_with_description
-                   |> Map.put("id",id)
-                   |> Map.put("description",data["description"])
-      render(conn, StatusView, "attachment.json", %{attachment: img_data_att } )
-  end  
+
+    img_data_att =
+      img_data_with_description
+      |> Map.put("id", id)
+      |> Map.put("description", data["description"])
+
+    render(conn, StatusView, "attachment.json", %{attachment: img_data_att})
+  end
 
   def upload(%{assigns: %{user: _}} = conn, %{"file" => file}) do
     with {:ok, object} <- ActivityPub.upload(file) do
