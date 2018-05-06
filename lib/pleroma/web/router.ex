@@ -121,6 +121,8 @@ defmodule Pleroma.Web.Router do
     get("/notifications/:id", MastodonAPIController, :get_notification)
 
     post("/media", MastodonAPIController, :upload)
+    #WV: alt text
+    put("/media/:id", MastodonAPIController, :add_description)
   end
 
   scope "/api/web", Pleroma.Web.MastodonAPI do

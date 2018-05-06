@@ -16,9 +16,10 @@ defmodule Pleroma.Upload do
       else
         file.content_type
       end
-
+      #WV: Mastodon uses "Document" instead of "Image"
+      #    with "Image", alt text does not work
     %{
-      "type" => "Image",
+      "type" => "Document",
       "url" => [
         %{
           "type" => "Link",
