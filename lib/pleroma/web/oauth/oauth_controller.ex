@@ -23,6 +23,18 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   def create_authorization(conn, %{
         "authorization" =>
           %{
+            "username" => name,
+            "password" => password,
+            "client_id" => client_id,
+            "redirect_uri" => redirect_uri
+          } = params
+      }) do
+    create_authorization(conn, params)
+  end
+
+  def create_authorization(conn, %{
+        "authorization" =>
+          %{
             "name" => name,
             "password" => password,
             "client_id" => client_id,
@@ -78,6 +90,13 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     else
       _error -> json(conn, %{error: "Invalid credentials"})
     end
+  end
+
+  def token_exchange(
+        conn,
+        %{"grant_type" => "password", "username" => name, "password" => password} = params
+      ) do
+    token_exchange(conn, params)
   end
 
   # TODO
