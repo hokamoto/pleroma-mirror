@@ -287,7 +287,8 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenter do
 
     retweeted_xml = to_simple_form(retweeted_activity, retweeted_user, true)
 
-    mentions = activity.recipients |> get_mentions
+    announce_activity = Activity.get_by_ap_id(announce_activity["id"])
+    mentions = announce_activity.recipients |> get_mentions
 
     [
       {:"activity:object-type", ['http://activitystrea.ms/schema/1.0/activity']},

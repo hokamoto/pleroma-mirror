@@ -142,6 +142,51 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenterTest do
     assert clean(expected) == clean(announce_xml)
   end
 
+  test "an unannounce activity" do
+    note = insert(:note_activity)
+    user = insert(:user)
+    object = Object.get_cached_by_ap_id(note.data["object"]["id"])
+
+    {:ok, _announce, _object} = ActivityPub.announce(user, object)
+    {:ok, unannounce, _announce, _object} = ActivityPub.unannounce(user, object)
+
+    unannounce = Repo.get(Activity, unannounce.id)
+
+    note_user = User.get_cached_by_ap_id(note.data["actor"])
+    note = Repo.get(Activity, note.id)
+
+    note_xml =
+      ActivityRepresenter.to_simple_form(note, note_user, true)
+      |> :xmerl.export_simple_content(:xmerl_xml)
+      |> to_string
+
+    expected = """
+    <activity:object-type>http://activitystrea.ms/schema/1.0/activity</activity:object-type>
+    <activity:verb>http://activitystrea.ms/schema/1.0/unshare</activity:verb>
+    <id>#{unannounce.data["id"]}</id>
+    <title>#{user.nickname} unrepeated a notice</title>
+    <content type="html">RT #{note.data["object"]["content"]}</content>
+    <published>#{unannounce.data["published"]}</published>
+    <updated>#{unannounce.data["published"]}</updated>
+    <ostatus:conversation ref="#{unannounce.data["context"]}">#{unannounce.data["context"]}</ostatus:conversation>
+    <link ref="#{unannounce.data["context"]}" rel="ostatus:conversation" />
+    <link rel="self" type="application/atom+xml" href="#{unannounce.data["id"]}"/>
+    <activity:object>
+      #{note_xml}
+    </activity:object>
+    <link rel="mentioned" ostatus:object-type="http://activitystrea.ms/schema/1.0/person" href="#{
+      note.data["actor"]
+    }"/>
+    <link rel="mentioned" ostatus:object-type="http://activitystrea.ms/schema/1.0/collection" href="http://activityschema.org/collection/public"/>
+    """
+
+    unannounce_xml =
+      ActivityRepresenter.to_simple_form(unannounce, user)
+      |> :xmerl.export_simple_content(:xmerl_xml)
+      |> to_string
+
+    assert clean(expected) == clean(unannounce_xml)
+  end
   test "a like activity" do
     note = insert(:note)
     user = insert(:user)
