@@ -52,10 +52,19 @@ config :pleroma, :instance,
   description: "A Pleroma instance, an alternative fediverse server",
   limit: 5000,
   upload_limit: 16_000_000,
-  registrations_open: true,
   federating: true,
-  rewrite_policy: Pleroma.Web.ActivityPub.MRF.NoOpPolicy,
-  public: true
+  public: true,
+  registrations_open: true,
+  chat_enabled: true,
+  rewrite_policy: Pleroma.Web.ActivityPub.MRF.NoOpPolicy
+
+config :pleroma, :fe,
+  theme: "pleroma-dark",
+  background: "/static/aurora_borealis.jpg",
+  logo: "/static/logo.png",
+  redirect_root_no_login: "/main/all",
+  redirect_root_login: "/main/friends",
+  show_instance_panel: true
 
 config :pleroma, :mrf_simple,
   media_removal: [],

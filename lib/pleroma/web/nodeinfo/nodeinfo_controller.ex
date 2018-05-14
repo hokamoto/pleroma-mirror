@@ -43,7 +43,8 @@ defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
       },
       metadata: %{
         nodeName: Keyword.get(@instance, :name),
-        nodeDescription: Keyword.get(@instance, :description)
+        nodeDescription: Keyword.get(@instance, :description),
+        private: !Keyword.get(@instance, :public, true)
       }
     }
 
