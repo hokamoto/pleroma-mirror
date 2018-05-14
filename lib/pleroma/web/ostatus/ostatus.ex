@@ -48,8 +48,14 @@ defmodule Pleroma.Web.OStatus do
                 with {:ok, activity} <- FollowHandler.handle(entry, doc), do: activity
 
               'http://activitystrea.ms/schema/1.0/share' ->
-                with {:ok, activity, retweeted_activity} <- handle_share(entry, doc),
-                     do: [activity, retweeted_activity]
+                with {:ok, activity, retweeted_activity} <- handle_share(entry, doc) do
+                  [activity, retweeted_activity]
+                end
+
+              'http://activitystrea.ms/schema/1.0/unshare' ->
+                with {:ok, activity, retwewted_activity} <- handle_unshare(entry, doc) do
+                  [activity, retweeted_activity]
+                end
 
               'http://activitystrea.ms/schema/1.0/favorite' ->
                 with {:ok, activity, favorited_activity} <- handle_favorite(entry, doc),
@@ -96,6 +102,24 @@ defmodule Pleroma.Web.OStatus do
   def handle_share(entry, doc) do
     with {:ok, retweeted_activity} <- get_or_build_object(entry),
          {:ok, activity} <- make_share(entry, doc, retweeted_activity) do
+      {:ok, activity, retweeted_activity}
+    else
+      e -> {:error, e}
+    end
+  end
+
+  def make_unshare(entry, doc, retweeted_activity) do
+    with {:ok, actor} <- find_make_or_update_user(doc),
+         %Object{} = object <- Object.get_by_ap_id(retweeted_activity.data["object"]["id"]),
+         id when not is_nil(id) <- string_from_xpath("/entry/id", entry),
+         {:ok, activity, _, _object} = ActivityPub.unannounce(actor, object, id, false) do
+      {:ok, activity}
+    end
+  end
+
+  def handle_unshare(entry, doc) do
+    with {:ok, retweeted_activity} <- get_or_build_object(entry),
+         {:ok, activity} <- make_unshare(entry, doc, retweeted_activity) do
       {:ok, activity, retweeted_activity}
     else
       e -> {:error, e}

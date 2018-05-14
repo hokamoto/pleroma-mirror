@@ -187,6 +187,7 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenterTest do
 
     assert clean(expected) == clean(unannounce_xml)
   end
+
   test "a like activity" do
     note = insert(:note)
     user = insert(:user)
