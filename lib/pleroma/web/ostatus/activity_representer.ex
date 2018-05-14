@@ -231,7 +231,6 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenter do
     ] ++ mentions ++ author
   end
 
-  # Only undos of follow for now. Will need to get redone once there are more
   def to_simple_form(
         %{data: %{"type" => "Undo", "object" => %{"type" => "Follow"} = follow_activity}} =
           activity,
@@ -287,8 +286,7 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenter do
 
     retweeted_xml = to_simple_form(retweeted_activity, retweeted_user, true)
 
-    announce_activity = Activity.get_by_ap_id(announce_activity["id"])
-    mentions = announce_activity.recipients |> get_mentions
+    mentions = (announce_activity["to"] ++ announce_activity["cc"]) |> get_mentions
 
     [
       {:"activity:object-type", ['http://activitystrea.ms/schema/1.0/activity']},
