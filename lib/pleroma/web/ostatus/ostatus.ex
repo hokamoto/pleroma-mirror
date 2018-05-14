@@ -53,7 +53,7 @@ defmodule Pleroma.Web.OStatus do
                 end
 
               'http://activitystrea.ms/schema/1.0/unshare' ->
-                with {:ok, activity, retwewted_activity} <- handle_unshare(entry, doc) do
+                with {:ok, activity, retweeted_activity} <- handle_unshare(entry, doc) do
                   [activity, retweeted_activity]
                 end
 
