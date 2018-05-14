@@ -232,7 +232,12 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenter do
   end
 
   # Only undos of follow for now. Will need to get redone once there are more
-  def to_simple_form(%{data: %{"type" => "Undo"}} = activity, user, with_author) do
+  def to_simple_form(
+        %{data: %{"type" => "Undo", "object" => %{"type" => "Follow"} = follow_activity}} =
+          activity,
+        user,
+        with_author
+      ) do
     h = fn str -> [to_charlist(str)] end
 
     updated_at = activity.data["published"]
@@ -240,34 +245,73 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenter do
 
     author = if with_author, do: [{:author, UserRepresenter.to_simple_form(user)}], else: []
 
-    follow_activity =
-      if is_map(activity.data["object"]) do
-        Activity.get_by_ap_id(activity.data["object"]["id"])
-      else
-        Activity.get_by_ap_id(activity.data["object"])
-      end
+    follow_activity = Activity.get_by_ap_id(follow_activity["id"])
 
     mentions = (activity.recipients || []) |> get_mentions
 
-    if follow_activity do
-      [
-        {:"activity:object-type", ['http://activitystrea.ms/schema/1.0/activity']},
-        {:"activity:verb", ['http://activitystrea.ms/schema/1.0/unfollow']},
-        {:id, h.(activity.data["id"])},
-        {:title, ['#{user.nickname} stopped following #{follow_activity.data["object"]}']},
-        {:content, [type: 'html'],
-         ['#{user.nickname} stopped following #{follow_activity.data["object"]}']},
-        {:published, h.(inserted_at)},
-        {:updated, h.(updated_at)},
-        {:"activity:object",
-         [
-           {:"activity:object-type", ['http://activitystrea.ms/schema/1.0/person']},
-           {:id, h.(follow_activity.data["object"])},
-           {:uri, h.(follow_activity.data["object"])}
-         ]},
-        {:link, [rel: 'self', type: ['application/atom+xml'], href: h.(activity.data["id"])], []}
-      ] ++ mentions ++ author
-    end
+    [
+      {:"activity:object-type", ['http://activitystrea.ms/schema/1.0/activity']},
+      {:"activity:verb", ['http://activitystrea.ms/schema/1.0/unfollow']},
+      {:id, h.(activity.data["id"])},
+      {:title, ['#{user.nickname} stopped following #{follow_activity.data["object"]}']},
+      {:content, [type: 'html'],
+       ['#{user.nickname} stopped following #{follow_activity.data["object"]}']},
+      {:published, h.(inserted_at)},
+      {:updated, h.(updated_at)},
+      {:"activity:object",
+       [
+         {:"activity:object-type", ['http://activitystrea.ms/schema/1.0/person']},
+         {:id, h.(follow_activity.data["object"])},
+         {:uri, h.(follow_activity.data["object"])}
+       ]},
+      {:link, [rel: 'self', type: ['application/atom+xml'], href: h.(activity.data["id"])], []}
+    ] ++ mentions ++ author
+  end
+
+  def to_simple_form(
+        %{data: %{"type" => "Undo", "object" => %{"type" => "Announce"} = announce_activity}} =
+          activity,
+        user,
+        with_author
+      ) do
+    h = fn str -> [to_charlist(str)] end
+
+    updated_at = activity.data["published"]
+    inserted_at = activity.data["published"]
+
+    _in_reply_to = get_in_reply_to(activity.data)
+    author = if with_author, do: [{:author, UserRepresenter.to_simple_form(user)}], else: []
+
+    retweeted_activity = Activity.get_create_activity_by_object_ap_id(announce_activity["object"])
+    retweeted_user = User.get_cached_by_ap_id(retweeted_activity.data["actor"])
+
+    retweeted_xml = to_simple_form(retweeted_activity, retweeted_user, true)
+
+    mentions = activity.recipients |> get_mentions
+
+    [
+      {:"activity:object-type", ['http://activitystrea.ms/schema/1.0/activity']},
+      {:"activity:verb", ['http://activitystrea.ms/schema/1.0/unshare']},
+      {:id, h.(activity.data["id"])},
+      {:title, ['#{user.nickname} unrepeated a notice']},
+      {:content, [type: 'html'], ['RT #{retweeted_activity.data["object"]["content"]}']},
+      {:published, h.(inserted_at)},
+      {:updated, h.(updated_at)},
+      {:"ostatus:conversation", [ref: h.(activity.data["context"])],
+       h.(activity.data["context"])},
+      {:link, [ref: h.(activity.data["context"]), rel: 'ostatus:conversation'], []},
+      {:link, [rel: 'self', type: ['application/atom+xml'], href: h.(activity.data["id"])], []},
+      {:"activity:object", retweeted_xml}
+    ] ++ mentions ++ author
+  end
+
+  def to_simple_form(%{data: %{"type" => "Undo"}} = activity, user, with_author) do
+    object = Activity.get_by_ap_id(activity.data["object"]).data
+
+    data = Map.put(activity.data, "object", object)
+    activity = Map.put(activity, :data, data)
+
+    to_simple_form(activity, user, with_author)
   end
 
   def to_simple_form(%{data: %{"type" => "Delete"}} = activity, user, with_author) do
