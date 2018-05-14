@@ -194,6 +194,28 @@ defmodule Pleroma.Web.OStatusTest do
     refute String.contains?(retweeted_activity.data["object"]["content"], "Test account")
   end
 
+  test "handle incoming unretweets - Mastodon, salmon" do
+    incoming = File.read!("test/fixtures/share.xml")
+    {:ok, _} = OStatus.handle_incoming(incoming)
+
+    incoming = File.read!("test/fixtures/unshare.xml")
+    {:ok, [[activity, retweeted_activity]]} = OStatus.handle_incoming(incoming)
+
+    assert activity.data["type"] == "Undo"
+    assert activity.data["object"]["type"] == "Announce"
+
+    assert activity.data["id"] ==
+             "tag:mastodon.social,2017-05-03:objectId=4934453:objectType=Status"
+
+    assert activity.data["object"]["object"] == retweeted_activity.data["object"]["id"]
+    refute activity.local
+
+    assert retweeted_activity.data["type"] == "Create"
+    assert retweeted_activity.data["actor"] == "https://pleroma.soykaf.com/users/lain"
+    refute retweeted_activity.local
+    refute String.contains?(retweeted_activity.data["object"]["content"], "Test account")
+  end
+
   test "handle incoming favorites - GS, websub" do
     capture_log(fn ->
       incoming = File.read!("test/fixtures/favorite.xml")
