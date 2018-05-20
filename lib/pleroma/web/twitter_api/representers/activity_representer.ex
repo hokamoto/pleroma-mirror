@@ -1,4 +1,4 @@
-# THIS MODULE IS DEPRECATED! DON'T USE IT!
+t/web/twitter_api/representers/activity_representer_test.exs THIS MODULE IS DEPRECATED! DON'T USE IT!
 # USE THE Pleroma.Web.TwitterAPI.Views.ActivityView MODULE!
 defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
   use Pleroma.Web.TwitterAPI.Representers.BaseRepresenter
@@ -198,8 +198,7 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
       "tags" => tags,
       "activity_type" => "post",
       "possibly_sensitive" => possibly_sensitive,
-      #WV to make tests pass
-      "visibility" => "public"
+      "visibility" => Pleroma.Web.MastodonAPI.StatusView.get_visibility(object)
     }
   end
 
