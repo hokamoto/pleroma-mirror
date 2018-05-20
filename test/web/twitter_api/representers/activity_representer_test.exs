@@ -155,7 +155,6 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenterTest do
       "activity_type" => "post",
       "possibly_sensitive" => true,
       "uri" => activity.data["object"]["id"],
-      "visibility" => "public"
       "visibility" => "direct"
     }
 

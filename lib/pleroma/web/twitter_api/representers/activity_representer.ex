@@ -1,4 +1,4 @@
-t/web/twitter_api/representers/activity_representer_test.exs THIS MODULE IS DEPRECATED! DON'T USE IT!
+# THIS MODULE IS DEPRECATED! DON'T USE IT!
 # USE THE Pleroma.Web.TwitterAPI.Views.ActivityView MODULE!
 defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
   use Pleroma.Web.TwitterAPI.Representers.BaseRepresenter

@@ -10,6 +10,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   import Ecto.Query
   require Logger
 
+  @desc_max_nchars Application.get_env(:pleroma, :instance)
+                   |> Keyword.get(:image_description_limit)
+
   def create_app(conn, params) do
     with cs <- App.register_changeset(%App{}, params) |> IO.inspect(),
          {:ok, app} <- Repo.insert(cs) |> IO.inspect() do
@@ -372,13 +375,22 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   # WV: to handle alt text
   def add_description(%{assigns: %{user: _}} = conn, data) do
+    # WV: TODO: I'm ignoring focus for now
     # Get the record from the DB and update it
     id = data["id"]
-    # Repo.get(Object, uuid)
     img_obj = Repo.get(Object, id)
     img_data = img_obj.data
-    # , "description" => data["description"] }
-    img_data_with_description = %{img_data | "name" => data["description"]}
+    # To make sure, truncate the description to 420 characters
+    desc = data["description"]
+
+    desc_limited =
+      if String.length(desc) > @desc_max_nchars do
+        String.slice(desc, 0..(@desc_max_nchars - 1))
+      else
+        desc
+      end
+
+    img_data_with_description = %{img_data | "name" => desc_limited}
     # We can now update this and then write it back to the repo
     changeset_description = Ecto.Changeset.change(img_obj, %{data: img_data_with_description})
     {:ok, struct} = Repo.update(changeset_description)
@@ -386,17 +398,40 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     img_data_att =
       img_data_with_description
       |> Map.put("id", id)
-      |> Map.put("description", data["description"])
+      |> Map.put("description", desc_limited)
 
     render(conn, StatusView, "attachment.json", %{attachment: img_data_att})
   end
 
-  def upload(%{assigns: %{user: _}} = conn, %{"file" => file}) do
+  # WV: POST /api/v1/media posts a form with
+  # file   Media to be uploaded (encoded using multipart/form-data)  no
+  # description  A plain-text description of the media, for accessibility (max 420 chars)   yes
+  # focus  Focal point: Two floating points, comma-delimited  yes 
+  # def upload(%{assigns: %{user: _}} = conn, %{"file" => file}) do
+  def upload(%{assigns: %{user: _}} = conn, data) do
+    # WV: TODO: I'm ignoring focus for now
+    %{"file" => file} = data
+
+    desc =
+      if Map.has_key?(data, "description") do
+        data["description"]
+      else
+        ""
+      end
+
+    desc_limited =
+      if String.length(desc) > @desc_max_nchars do
+        String.slice(desc, 0..(@desc_max_nchars - 1))
+      else
+        desc
+      end
+    
     with {:ok, object} <- ActivityPub.upload(file) do
       data =
         object.data
         |> Map.put("id", object.id)
-
+        |> Map.put("name", desc_limited) # overwrites the default from  ActivityPub.upload()
+        |> Map.put("description", desc_limited)
       render(conn, StatusView, "attachment.json", %{attachment: data})
     end
   end
