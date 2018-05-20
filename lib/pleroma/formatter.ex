@@ -200,7 +200,7 @@ defmodule Pleroma.Formatter do
           ap_id = info["source_data"]["url"] || ap_id
 
           short_match = String.split(match, "@") |> tl() |> hd()
-          {uuid, "<span><a href='#{ap_id}'>@<span>#{short_match}</span></a></span>"}
+          {uuid, "<span><a href='#{ap_id}'>@<span>#{to_idna(short_match)}</span></a></span>"}
         end)
 
     {subs, uuid_text}
@@ -233,5 +233,18 @@ defmodule Pleroma.Formatter do
     Enum.reduce(subs, text, fn {uuid, replacement}, result_text ->
       String.replace(result_text, uuid, replacement)
     end)
+  end
+
+  def from_idna(string) when is_binary(string) do
+    string
+    |> to_charlist()
+    |> :idna.from_ascii()
+    |> to_string
+  end
+  def to_idna(string) when is_binary(string) do
+    string
+    |> to_charlist()
+    |> :idna.to_ascii()
+    |> to_string
   end
 end

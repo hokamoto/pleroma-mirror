@@ -46,7 +46,7 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
       "rights" => %{
         "delete_others_notice" => !!user.info["is_moderator"]
       },
-      "screen_name" => user.nickname,
+      "screen_name" => Pleroma.Formatter.to_idna(user.nickname),
       "statuses_count" => user_info[:note_count],
       "statusnet_profile_url" => user.ap_id,
       "cover_photo" => User.banner_url(user) |> MediaProxy.url(),
@@ -74,7 +74,7 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
       "id" => id,
       "ostatus_uri" => ap_id,
       "profile_url" => ap_id,
-      "screen_name" => nickname
+      "screen_name" => Pleroma.Formatter.to_idna(nickname)
     }
   end
 
