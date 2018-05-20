@@ -13,12 +13,13 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     image = User.avatar_url(user) |> MediaProxy.url()
     header = User.banner_url(user) |> MediaProxy.url()
     user_info = User.user_info(user)
+    nickname = Pleroma.Formatter.from_punycode(user.nickname)
 
     %{
       id: to_string(user.id),
       username: hd(String.split(user.nickname, "@")),
-      acct: user.nickname,
-      display_name: user.name || user.nickname,
+      acct: nickname,
+      display_name: user.name || nickname,
       locked: false,
       created_at: Utils.to_masto_date(user.inserted_at),
       followers_count: user_info.follower_count,
@@ -41,7 +42,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   def render("mention.json", %{user: user}) do
     %{
       id: to_string(user.id),
-      acct: user.nickname,
+      acct: Pleroma.Formatter.from_punycode(user.nickname),
       username: hd(String.split(user.nickname, "@")),
       url: user.ap_id
     }

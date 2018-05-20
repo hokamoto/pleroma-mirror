@@ -245,11 +245,10 @@ defmodule Pleroma.Formatter do
   end
 
   def from_user_punycode(string) when is_binary(string) do
-    string = case String.split("@", parts: 2) do 
-      [_, domain] -> domain
-      [domain] -> domain
+    case String.split(string, "@", parts: 2) do 
+      [user, domain] -> "@"<>user<>"@"<>from_punycode(domain)
+      [domain] -> from_punycode(domain)
     end
-    from_punycode(string)
   end
 
 end
