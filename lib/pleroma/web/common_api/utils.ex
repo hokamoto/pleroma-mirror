@@ -1,7 +1,9 @@
 defmodule Pleroma.Web.CommonAPI.Utils do
-  alias Pleroma.{Repo, Object, Formatter, User, Activity}
+  alias Pleroma.{Repo, Object, Formatter, Activity}
   alias Pleroma.Web.ActivityPub.Utils
+  alias Pleroma.User
   alias Calendar.Strftime
+  alias Comeonin.Pbkdf2
 
   # This is a hack for twidere.
   def get_by_id_or_ap_id(id) do
@@ -49,7 +51,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     {[user.follower_address | to], cc}
   end
 
-  def to_for_user_and_mentions(user, mentions, inReplyTo, "direct") do
+  def to_for_user_and_mentions(_user, mentions, inReplyTo, "direct") do
     mentioned_users = Enum.map(mentions, fn {_, %{ap_id: ap_id}} -> ap_id end)
 
     if inReplyTo do
@@ -69,7 +71,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   def make_context(%Activity{data: %{"context" => context}}), do: context
   def make_context(_), do: Utils.generate_context_id()
 
-  def maybe_add_attachments(text, attachments, _no_links = true), do: text
+  def maybe_add_attachments(text, _attachments, _no_links = true), do: text
 
   def maybe_add_attachments(text, attachments, _no_links) do
     add_attachments(text, attachments)
@@ -182,6 +184,15 @@ defmodule Pleroma.Web.CommonAPI.Utils do
       name
     else
       String.slice(name, 0..30) <> "…"
+    end
+  end
+
+  def confirm_current_password(user, params) do
+    with %User{local: true} = db_user <- Repo.get(User, user.id),
+         true <- Pbkdf2.checkpw(params["password"], db_user.password_hash) do
+      {:ok, db_user}
+    else
+      _ -> {:error, "Invalid password."}
     end
   end
 end

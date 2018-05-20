@@ -31,7 +31,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
   end
 
   defp collect_context_ids(activities) do
-    contexts =
+    _contexts =
       activities
       |> Enum.reject(& &1.data["context_id"])
       |> Enum.map(fn %{data: data} ->
@@ -262,7 +262,8 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
       "external_url" => object["external_url"] || object["id"],
       "tags" => tags,
       "activity_type" => "post",
-      "possibly_sensitive" => possibly_sensitive
+      "possibly_sensitive" => possibly_sensitive,
+      "visibility" => Pleroma.Web.MastodonAPI.StatusView.get_visibility(object)
     }
   end
 end

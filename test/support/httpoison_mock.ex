@@ -4,6 +4,18 @@ defmodule HTTPoisonMock do
   def get(url, body \\ [], headers \\ [])
 
   def get(
+        "http://gerzilla.de/.well-known/webfinger?resource=acct:kaniini@gerzilla.de",
+        [Accept: "application/xrd+xml,application/jrd+json"],
+        follow_redirect: true
+      ) do
+    {:ok,
+     %Response{
+       status_code: 200,
+       body: File.read!("test/fixtures/httpoison_mock/kaniini@gerzilla.de.json")
+     }}
+  end
+
+  def get(
         "http://framatube.org/.well-known/webfinger?resource=acct:framasoft@framatube.org",
         [Accept: "application/xrd+xml,application/jrd+json"],
         follow_redirect: true
@@ -367,7 +379,7 @@ defmodule HTTPoisonMock do
 
   def post(
         "https://social.heldscal.la/main/push/hub",
-        {:form, data},
+        {:form, _data},
         "Content-type": "application/x-www-form-urlencoded"
       ) do
     {:ok,
@@ -628,6 +640,18 @@ defmodule HTTPoisonMock do
      }}
   end
 
+  def get(
+        "https://hubzilla.example.org/channel/kaniini",
+        [Accept: "application/activity+json"],
+        _
+      ) do
+    {:ok,
+     %Response{
+       status_code: 200,
+       body: File.read!("test/fixtures/httpoison_mock/kaniini@hubzilla.example.org.json")
+     }}
+  end
+
   def get("https://masto.quad.moe/users/_HellPie", [Accept: "application/activity+json"], _) do
     {:ok,
      %Response{
@@ -711,11 +735,11 @@ defmodule HTTPoisonMock do
      }"}
   end
 
-  def post(url, body, headers) do
+  def post(url, _body, _headers) do
     {:error, "Not implemented the mock response for post #{inspect(url)}"}
   end
 
-  def post(url, body, headers, options) do
+  def post(url, _body, _headers, _options) do
     {:error, "Not implemented the mock response for post #{inspect(url)}"}
   end
 end

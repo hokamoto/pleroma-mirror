@@ -1,5 +1,6 @@
 defmodule Pleroma.Web.Plugs.HTTPSignaturePlug do
   alias Pleroma.Web.HTTPSignatures
+  alias Pleroma.Web.ActivityPub.Utils
   import Plug.Conn
   require Logger
 
@@ -7,12 +8,12 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlug do
     options
   end
 
-  def call(%{assigns: %{valid_signature: true}} = conn, opts) do
+  def call(%{assigns: %{valid_signature: true}} = conn, _opts) do
     conn
   end
 
-  def call(conn, opts) do
-    user = conn.params["actor"]
+  def call(conn, _opts) do
+    user = Utils.normalize_actor(conn.params["actor"])
     Logger.debug("Checking sig for #{user}")
     [signature | _] = get_req_header(conn, "signature")
 

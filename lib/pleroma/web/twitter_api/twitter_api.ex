@@ -1,7 +1,6 @@
 defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
   alias Pleroma.{User, Activity, Repo, Object}
   alias Pleroma.Web.ActivityPub.ActivityPub
-  alias Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter
   alias Pleroma.Web.TwitterAPI.UserView
   alias Pleroma.Web.{OStatus, CommonAPI}
   import Ecto.Query
@@ -10,6 +9,18 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
 
   def create_status(%User{} = user, %{"status" => _} = data) do
     CommonAPI.post(user, data)
+  end
+
+  def delete(%User{} = user, id) do
+    # TwitterAPI does not have an "unretweet" endpoint; instead this is done
+    # via the "destroy" endpoint.  Therefore, we need to handle
+    # when the status to "delete" is actually an Announce (repeat) object.
+    with %Activity{data: %{"type" => type}} <- Repo.get(Activity, id) do
+      case type do
+        "Announce" -> unrepeat(user, id)
+        _ -> CommonAPI.delete(id, user)
+      end
+    end
   end
 
   def follow(%User{} = follower, params) do
@@ -64,15 +75,21 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
     end
   end
 
+  defp unrepeat(%User{} = user, ap_id_or_id) do
+    with {:ok, _unannounce, activity, _object} <- CommonAPI.unrepeat(ap_id_or_id, user) do
+      {:ok, activity}
+    end
+  end
+
   def fav(%User{} = user, ap_id_or_id) do
-    with {:ok, _announce, %{data: %{"id" => id}}} = CommonAPI.favorite(ap_id_or_id, user),
+    with {:ok, _fav, %{data: %{"id" => id}}} = CommonAPI.favorite(ap_id_or_id, user),
          %Activity{} = activity <- Activity.get_create_activity_by_object_ap_id(id) do
       {:ok, activity}
     end
   end
 
   def unfav(%User{} = user, ap_id_or_id) do
-    with {:ok, %{data: %{"id" => id}}} = CommonAPI.unfavorite(ap_id_or_id, user),
+    with {:ok, _unfav, _fav, %{data: %{"id" => id}}} = CommonAPI.unfavorite(ap_id_or_id, user),
          %Activity{} = activity <- Activity.get_create_activity_by_object_ap_id(id) do
       {:ok, activity}
     end
@@ -184,7 +201,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
 
   defp parse_int(_, default), do: default
 
-  def search(user, %{"q" => query} = params) do
+  def search(_user, %{"q" => query} = params) do
     limit = parse_int(params["rpp"], 20)
     page = parse_int(params["page"], 1)
     offset = (page - 1) * limit
@@ -206,7 +223,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
         order_by: [desc: :inserted_at]
       )
 
-    activities = Repo.all(q)
+    _activities = Repo.all(q)
   end
 
   defp make_date do
