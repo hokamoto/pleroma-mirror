@@ -169,7 +169,7 @@ defmodule Pleroma.Formatter do
     subs =
       subs ++
         Enum.map(links, fn {uuid, url} ->
-          {:safe, link} = Phoenix.HTML.Link.link(url, to: url)
+          {:safe, link} = Phoenix.HTML.Link.link(from_punycode(url), to: url)
 
           link =
             link
@@ -200,7 +200,7 @@ defmodule Pleroma.Formatter do
           ap_id = info["source_data"]["url"] || ap_id
 
           short_match = String.split(match, "@") |> tl() |> hd()
-          {uuid, "<span><a href='#{ap_id}'>@<span>#{to_idna(short_match)}</span></a></span>"}
+          {uuid, "<span><a href='#{ap_id}'>@<span>#{from_punycode(short_match)}</span></a></span>"}
         end)
 
     {subs, uuid_text}
@@ -235,16 +235,21 @@ defmodule Pleroma.Formatter do
     end)
   end
 
-  def from_idna(string) when is_binary(string) do
+  def from_punycode("@"<>string), do: from_user_punycode(string)
+
+  def from_punycode(string) do
     string
     |> to_charlist()
     |> :idna.from_ascii()
     |> to_string
   end
-  def to_idna(string) when is_binary(string) do
-    string
-    |> to_charlist()
-    |> :idna.to_ascii()
-    |> to_string
+
+  def from_user_punycode(string) when is_binary(string) do
+    string = case String.split("@", parts: 2) do 
+      [_, domain] -> domain
+      [domain] -> domain
+    end
+    from_punycode(string)
   end
+
 end
