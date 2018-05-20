@@ -425,13 +425,15 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       else
         desc
       end
-    
+
     with {:ok, object} <- ActivityPub.upload(file) do
       data =
         object.data
         |> Map.put("id", object.id)
-        |> Map.put("name", desc_limited) # overwrites the default from  ActivityPub.upload()
+        # overwrites the default from  ActivityPub.upload()
+        |> Map.put("name", desc_limited)
         |> Map.put("description", desc_limited)
+
       render(conn, StatusView, "attachment.json", %{attachment: data})
     end
   end

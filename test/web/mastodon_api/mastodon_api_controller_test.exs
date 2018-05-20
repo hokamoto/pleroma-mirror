@@ -481,6 +481,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       path: Path.absname("test/fixtures/image.jpg"),
       filename: "an_image.jpg"
     }
+
     desc = "Description of the image"
 
     user = insert(:user)
