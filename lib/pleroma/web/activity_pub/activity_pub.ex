@@ -10,8 +10,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   @httpoison Application.get_env(:pleroma, :httpoison)
 
-  @instance Application.get_env(:pleroma, :instance)
-
   def get_recipients(data) do
     (data["to"] || []) ++ (data["cc"] || [])
   end

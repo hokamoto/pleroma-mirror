@@ -67,13 +67,12 @@ defmodule Pleroma.Web.CommonAPI do
 
   def get_visibility(_), do: "public"
 
-  @instance Application.get_env(:pleroma, :instance)
-  @limit Keyword.get(@instance, :limit)
   def post(user, %{"status" => status} = data) do
     visibility = get_visibility(data)
+    limit = Keyword.get(Application.get_env(:pleroma, :instance), :limit)
 
     with status <- String.trim(status),
-         length when length in 1..@limit <- String.length(status),
+         length when length in 1..limit <- String.length(status),
          attachments <- attachments_from_ids(data["media_ids"]),
          mentions <- Formatter.parse_mentions(status),
          inReplyTo <- get_replied_to_activity(data["in_reply_to_status_id"]),

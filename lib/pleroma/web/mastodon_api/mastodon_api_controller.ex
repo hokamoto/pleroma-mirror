@@ -101,22 +101,22 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     end
   end
 
-  @instance Application.get_env(:pleroma, :instance)
   @mastodon_api_level "2.3.3"
 
   def masto_instance(conn, _params) do
+    instance = Application.get_env(:pleroma, :instance)
     response = %{
       uri: Web.base_url(),
-      title: Keyword.get(@instance, :name),
+      title: Keyword.get(instance, :name),
       description: "A Pleroma instance, an alternative fediverse server",
-      version: "#{@mastodon_api_level} (compatible; #{Keyword.get(@instance, :version)})",
-      email: Keyword.get(@instance, :email),
+      version: "#{@mastodon_api_level} (compatible; #{Keyword.get(instance, :version)})",
+      email: Keyword.get(instance, :email),
       urls: %{
         streaming_api: String.replace(Pleroma.Web.Endpoint.static_url(), "http", "ws")
       },
       stats: Stats.get_stats(),
       thumbnail: Web.base_url() <> "/instance/thumbnail.jpeg",
-      max_toot_chars: Keyword.get(@instance, :limit)
+      max_toot_chars: Keyword.get(instance, :limit)
     }
 
     json(conn, response)
@@ -744,7 +744,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
           push_subscription: nil,
           accounts: accounts,
           custom_emojis: mastodon_emoji,
-          char_limit: Keyword.get(@instance, :limit)
+          char_limit: Keyword.get(Application.get_env(:pleroma, :instance), :limit)
         }
         |> Jason.encode!()
 

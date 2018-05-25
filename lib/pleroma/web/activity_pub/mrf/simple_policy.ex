@@ -2,20 +2,16 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
   alias Pleroma.User
   @behaviour Pleroma.Web.ActivityPub.MRF
 
-  @mrf_policy Application.get_env(:pleroma, :mrf_simple)
-
-  @reject Keyword.get(@mrf_policy, :reject)
-  defp check_reject(actor_info, object) do
-    if actor_info.host in @reject do
+  defp check_reject(actor_info, object, config) do
+    if Enum.member?(Keyword.get(config, :reject), actor_info.host) do
       {:reject, nil}
     else
       {:ok, object}
     end
   end
 
-  @media_removal Keyword.get(@mrf_policy, :media_removal)
-  defp check_media_removal(actor_info, object) do
-    if actor_info.host in @media_removal do
+  defp check_media_removal(actor_info, object, config) do
+    if Enum.member?(Keyword.get(config, :media_removal), actor_info.host) do
       child_object = Map.delete(object["object"], "attachment")
       object = Map.put(object, "object", child_object)
       {:ok, object}
@@ -24,12 +20,11 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
     end
   end
 
-  @media_nsfw Keyword.get(@mrf_policy, :media_nsfw)
-  defp check_media_nsfw(actor_info, object) do
+  defp check_media_nsfw(actor_info, object, config) do
     child_object = object["object"]
 
-    if actor_info.host in @media_nsfw and child_object["attachment"] != nil and
-         length(child_object["attachment"]) > 0 do
+    if Enum.member?(Keyword.get(config, :media_nsfw), actor_info.host)
+      and child_object["attachment"] != nil and length(child_object["attachment"]) > 0 do
       tags = (child_object["tag"] || []) ++ ["nsfw"]
       child_object = Map.put(child_object, "tags", tags)
       child_object = Map.put(child_object, "sensitive", true)
@@ -40,9 +35,8 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
     end
   end
 
-  @ftl_removal Keyword.get(@mrf_policy, :federated_timeline_removal)
-  defp check_ftl_removal(actor_info, object) do
-    if actor_info.host in @ftl_removal do
+  defp check_ftl_removal(actor_info, object, config) do
+    if Enum.member?(Keyword.get(config, :federated_timeline_removal), actor_info.host) do
       user = User.get_by_ap_id(object["actor"])
 
       # flip to/cc relationship to make the post unlisted
@@ -73,11 +67,12 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
   @impl true
   def filter(object) do
     actor_info = URI.parse(object["actor"])
+    config = Application.get_env(:pleroma, :mrf_simple)
 
-    with {:ok, object} <- check_reject(actor_info, object),
-         {:ok, object} <- check_media_removal(actor_info, object),
-         {:ok, object} <- check_media_nsfw(actor_info, object),
-         {:ok, object} <- check_ftl_removal(actor_info, object) do
+    with {:ok, object} <- check_reject(actor_info, object, config),
+         {:ok, object} <- check_media_removal(actor_info, object, config),
+         {:ok, object} <- check_media_nsfw(actor_info, object, config),
+         {:ok, object} <- check_ftl_removal(actor_info, object, config) do
       {:ok, object}
     else
       _e -> {:reject, nil}

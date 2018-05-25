@@ -8,6 +8,8 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
 
   require Logger
 
+  plug :only_if_public_instance when action in [:public_timeline, :public_and_external_timeline]
+
   def verify_credentials(%{assigns: %{user: user}} = conn, _params) do
     token = Phoenix.Token.sign(conn, "user socket", user.id)
     render(conn, UserView, "show.json", %{user: user, token: token})
@@ -231,9 +233,15 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   end
 
   def register(conn, params) do
-    with {:ok, user} <- TwitterAPI.register_user(params) do
+    with \
+      true <- Keyword.get(Application.get_env(:pleroma, :instance), :registrations_open),
+      {:ok, user} <- TwitterAPI.register_user(params)
+    do
       render(conn, UserView, "show.json", %{user: user})
     else
+      false ->
+        conn
+        |> json_reply(404, "Registrations are closed")
       {:error, errors} ->
         conn
         |> json_reply(400, Jason.encode!(errors))
@@ -383,5 +391,15 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
 
   defp error_json(conn, error_message) do
     %{"error" => error_message, "request" => conn.request_path} |> Jason.encode!()
+  end
+  plug :only_if_public_instance when action in [:public_timeline, :public_and_external_timeline]
+
+  def only_if_public_instance(conn, _) do
+    if Keyword.get(Application.get_env(:pleroma, :instance), :public) do
+      conn
+    else
+      conn
+      |> forbidden_json_reply("Invalid credentials.")
+    end
   end
 end

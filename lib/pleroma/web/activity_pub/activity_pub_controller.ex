@@ -7,6 +7,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
 
   require Logger
 
+  plug Pleroma.Web.FederatingPlug when action in [:inbox]
+
   action_fallback(:errors)
 
   def user(conn, %{"nickname" => nickname}) do

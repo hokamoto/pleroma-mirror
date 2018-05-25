@@ -59,6 +59,10 @@ defmodule Pleroma.Application do
     Supervisor.start_link(children, opts)
   end
 
+  def get_env(key, default \\ nil) do
+    Application.get_env(:pleroma, key, default)
+  end
+
   defp chat_enabled do
     Application.get_env(:pleroma, :chat, []) |> Keyword.get(:enabled)
   end

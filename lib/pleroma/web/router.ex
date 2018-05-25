@@ -3,11 +3,6 @@ defmodule Pleroma.Web.Router do
 
   alias Pleroma.{Repo, User, Web.Router}
 
-  @instance Application.get_env(:pleroma, :instance)
-  @federating Keyword.get(@instance, :federating)
-  @public Keyword.get(@instance, :public)
-  @registrations_open Keyword.get(@instance, :registrations_open)
-
   def user_fetcher(username) do
     {:ok, Repo.get_by(User, %{nickname: username})}
   end
@@ -186,20 +181,14 @@ defmodule Pleroma.Web.Router do
     get("/statuses/show/:id", TwitterAPI.Controller, :fetch_status)
     get("/statusnet/conversation/:id", TwitterAPI.Controller, :fetch_conversation)
 
-    if @registrations_open do
-      post("/account/register", TwitterAPI.Controller, :register)
-    end
+    post("/account/register", TwitterAPI.Controller, :register)
 
     get("/search", TwitterAPI.Controller, :search)
     get("/statusnet/tags/timeline/:tag", TwitterAPI.Controller, :public_and_external_timeline)
   end
 
   scope "/api", Pleroma.Web do
-    if @public do
-      pipe_through(:api)
-    else
-      pipe_through(:authenticated_api)
-    end
+    pipe_through(:api)
 
     get("/statuses/public_timeline", TwitterAPI.Controller, :public_timeline)
 
@@ -272,13 +261,10 @@ defmodule Pleroma.Web.Router do
     get("/notice/:id", OStatus.OStatusController, :notice)
     get("/users/:nickname/feed", OStatus.OStatusController, :feed)
     get("/users/:nickname", OStatus.OStatusController, :feed_redirect)
-
-    if @federating do
-      post("/users/:nickname/salmon", OStatus.OStatusController, :salmon_incoming)
-      post("/push/hub/:nickname", Websub.WebsubController, :websub_subscription_request)
-      get("/push/subscriptions/:id", Websub.WebsubController, :websub_subscription_confirmation)
-      post("/push/subscriptions/:id", Websub.WebsubController, :websub_incoming)
-    end
+    post("/users/:nickname/salmon", OStatus.OStatusController, :salmon_incoming)
+    post("/push/hub/:nickname", Websub.WebsubController, :websub_subscription_request)
+    get("/push/subscriptions/:id", Websub.WebsubController, :websub_subscription_confirmation)
+    post("/push/subscriptions/:id", Websub.WebsubController, :websub_incoming)
   end
 
   pipeline :activitypub do
@@ -295,24 +281,22 @@ defmodule Pleroma.Web.Router do
     get("/users/:nickname/outbox", ActivityPubController, :outbox)
   end
 
-  if @federating do
-    scope "/", Pleroma.Web.ActivityPub do
-      pipe_through(:activitypub)
-      post("/users/:nickname/inbox", ActivityPubController, :inbox)
-      post("/inbox", ActivityPubController, :inbox)
-    end
+  scope "/", Pleroma.Web.ActivityPub do
+    pipe_through(:activitypub)
+    post("/users/:nickname/inbox", ActivityPubController, :inbox)
+    post("/inbox", ActivityPubController, :inbox)
+  end
 
-    scope "/.well-known", Pleroma.Web do
-      pipe_through(:well_known)
+  scope "/.well-known", Pleroma.Web do
+    pipe_through(:well_known)
 
-      get("/host-meta", WebFinger.WebFingerController, :host_meta)
-      get("/webfinger", WebFinger.WebFingerController, :webfinger)
-      get("/nodeinfo", Nodeinfo.NodeinfoController, :schemas)
-    end
+    get("/host-meta", WebFinger.WebFingerController, :host_meta)
+    get("/webfinger", WebFinger.WebFingerController, :webfinger)
+    get("/nodeinfo", Nodeinfo.NodeinfoController, :schemas)
+  end
 
-    scope "/nodeinfo", Pleroma.Web do
-      get("/:version", Nodeinfo.NodeinfoController, :nodeinfo)
-    end
+  scope "/nodeinfo", Pleroma.Web do
+    get("/:version", Nodeinfo.NodeinfoController, :nodeinfo)
   end
 
   scope "/", Pleroma.Web.MastodonAPI do
