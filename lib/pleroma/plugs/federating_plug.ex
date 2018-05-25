@@ -14,5 +14,4 @@ defmodule Pleroma.Web.FederatingPlug do
       |> send_resp()
     end
   end
-
 end

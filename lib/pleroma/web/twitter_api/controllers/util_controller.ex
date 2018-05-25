@@ -127,6 +127,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilController do
 
   def config(conn, _params) do
     instance = Application.get_env(:pleroma, :instance)
+
     case get_format(conn) do
       "xml" ->
         response = """

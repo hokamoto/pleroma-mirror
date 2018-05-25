@@ -105,6 +105,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def masto_instance(conn, _params) do
     instance = Application.get_env(:pleroma, :instance)
+
     response = %{
       uri: Web.base_url(),
       title: Keyword.get(instance, :name),
