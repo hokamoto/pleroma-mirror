@@ -36,7 +36,8 @@ end
 environment :prod do
   set include_erts: true
   set include_src: false
-  set cookie: :crypto.hash(:sha256, System.get_env("COOKIE")) |> Base.encode16 |> String.to_atom
+  set cookie: :"change-me"
+  set post_start_hook: "rel/hooks/post_start.sh"
 end
 
 # You may define one or more releases in this file.

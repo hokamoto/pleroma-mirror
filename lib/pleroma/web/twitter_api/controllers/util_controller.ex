@@ -158,7 +158,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilController do
   end
 
   def version(conn, _params) do
-    version = Keyword.get(Application.get_env(:pleroma, :version), :version)
+    version = Keyword.get(Application.get_env(:pleroma, :instance), :version)
 
     case get_format(conn) do
       "xml" ->
