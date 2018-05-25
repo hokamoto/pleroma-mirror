@@ -47,7 +47,7 @@ defmodule Pleroma.Web.OStatus do
               'http://activitystrea.ms/schema/1.0/follow' ->
                 with {:ok, activity} <- FollowHandler.handle(entry, doc), do: activity
 
-              'http://activitystrea.ms/schema/1.0/unfollow' ->
+              'http://ostatus.org/schema/1.0/unfollow' ->
                 with {:ok, activity} <- UnfollowHandler.handle(entry, doc), do: activity
 
               'http://activitystrea.ms/schema/1.0/share' ->

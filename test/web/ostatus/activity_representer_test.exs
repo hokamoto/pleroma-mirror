@@ -230,7 +230,7 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenterTest do
 
     expected = """
     <activity:object-type>http://activitystrea.ms/schema/1.0/activity</activity:object-type>
-    <activity:verb>http://activitystrea.ms/schema/1.0/unfollow</activity:verb>
+    <activity:verb>http://ostatus.org/schema/1.0/unfollow</activity:verb>
     <id>#{activity.data["id"]}</id>
     <title>#{follower.nickname} stopped following #{followed.ap_id}</title>
     <content type="html"> #{follower.nickname} stopped following #{followed.ap_id}</content>

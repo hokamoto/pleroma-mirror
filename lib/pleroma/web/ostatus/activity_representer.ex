@@ -250,7 +250,7 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenter do
 
     [
       {:"activity:object-type", ['http://activitystrea.ms/schema/1.0/activity']},
-      {:"activity:verb", ['http://activitystrea.ms/schema/1.0/unfollow']},
+      {:"activity:verb", ['http://ostatus.org/schema/1.0/unfollow']},
       {:id, h.(activity.data["id"])},
       {:title, ['#{user.nickname} stopped following #{follow_activity.data["object"]}']},
       {:content, [type: 'html'],

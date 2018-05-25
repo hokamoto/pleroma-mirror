@@ -42,7 +42,7 @@
  <title>Constance Variable (lambadalambda@social.heldscal.la)'s status on Sunday, 07-May-2017 09:54:49 UTC</title>
  <content type="html">&lt;a href=&quot;https://social.heldscal.la/lambadalambda&quot;&gt;Constance Variable&lt;/a&gt; stopped following &lt;a href=&quot;https://pawoo.net/@pekorino&quot;&gt;ｍｏｎｏ&lt;/a&gt;.</content>
  <link rel="alternate" type="text/html" href="https://social.heldscal.la/notice/2092981"/>
- <activity:verb>http://activitystrea.ms/schema/1.0/unfollow</activity:verb>
+ <activity:verb>http://ostatus.org/schema/1.0/unfollow</activity:verb>
  <published>2017-05-07T09:54:49+00:00</published>
  <updated>2017-05-07T09:54:49+00:00</updated>
  <activity:object>
