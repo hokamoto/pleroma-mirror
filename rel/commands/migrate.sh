@@ -1,2 +1,2 @@
 echo "-*- Running migrations"
-bin/pleroma rpc Elixir.Pleroma.Release.MigrateTask migrate
+bin/pleroma rpc Elixir.Pleroma.CLI.Migrate migrate

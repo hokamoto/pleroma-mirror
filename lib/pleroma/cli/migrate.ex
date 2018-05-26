@@ -1,4 +1,4 @@
-defmodule Pleroma.Release.MigrateTask do
+defmodule Pleroma.CLI.Migrate do
   require Logger
 
   def migrate do

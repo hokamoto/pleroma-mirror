@@ -62,7 +62,9 @@ release :pleroma do
   set post_start_hook: "rel/hooks/post_start.sh"
 
   set commands: [
-    "migrate": "rel/commands/migrate.sh"
+    "migrate": "rel/commands/migrate.sh",
+    "user": "rel/commands/user.sh",
+    "fix-ap-users": "rel/commands/fix-ap-users.sh"
   ]
 
 end
