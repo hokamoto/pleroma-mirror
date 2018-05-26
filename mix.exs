@@ -49,6 +49,7 @@ defmodule Pleroma.Mixfile do
       {:cachex, "~> 3.0"},
       {:httpoison, "~> 1.1.0"},
       {:jason, "~> 1.0"},
+      {:conform, "~> 2.5"},
       {:ex_machina, "~> 2.0", only: :test},
       {:credo, "~> 0.7", only: [:dev, :test]},
       {:mock, "~> 0.3.0", only: :test}

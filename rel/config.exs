@@ -36,8 +36,8 @@ end
 environment :prod do
   set include_erts: true
   set include_src: false
-  set cookie: :"change-me"
-  set post_start_hook: "rel/hooks/post_start.sh"
+  set cookie: :"INSECURE-CHANGE-ME"
+
 end
 
 # You may define one or more releases in this file.
@@ -46,9 +46,24 @@ end
 # will be used by default
 
 release :pleroma do
+  plugin Conform.ReleasePlugin
+
   set version: current_version(:pleroma)
+
   set applications: [
     :runtime_tools,
   ]
+
+  set overlays: [
+    {:copy, "config/pleroma.conf", "pleroma.conf.sample"},
+    {:copy, "<%= output_dir %>/releases/<%= release_version %>/vm.args", "vm.args.sample"},
+  ]
+
+  set post_start_hook: "rel/hooks/post_start.sh"
+
+  set commands: [
+    "migrate": "rel/commands/migrate.sh"
+  ]
+
 end
 
