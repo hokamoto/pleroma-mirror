@@ -17,6 +17,9 @@ config :pleroma, Pleroma.Web.Endpoint,
   http: [port: 4000],
   protocol: "http"
 
+config :pleroma, Pleroma.Repo,
+  adapter: Ecto.Adapters.Postgres
+
 # Do not print debug messages in production
 config :logger, level: :info
 

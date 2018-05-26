@@ -32,14 +32,6 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "pleroma.chat.enabled"
     ],
-    "pleroma.db.adapter": [
-      commented: false,
-      datatype: :atom,
-      default: Ecto.Adapters.Postgres,
-      doc: "Database adapter.",
-      hidden: false,
-      to: "pleroma.Elixir.Pleroma.Repo.adapter"
-    ],
     "pleroma.db.username": [
       commented: false,
       datatype: :binary,

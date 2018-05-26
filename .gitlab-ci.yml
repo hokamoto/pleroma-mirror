@@ -37,4 +37,5 @@ Debian Stretch:
     - MIX_ENV=prod mix release
   artifacts:
     paths:
-      - _build/
+      - _build/rel/pleroma/
+
