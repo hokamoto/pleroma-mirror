@@ -5,5 +5,4 @@ defmodule Mix.Tasks.User do
   def run(args) do
     Pleroma.CLI.User.run(args)
   end
-
 end

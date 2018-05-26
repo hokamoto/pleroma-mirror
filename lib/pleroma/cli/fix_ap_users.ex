@@ -4,6 +4,7 @@ defmodule Pleroma.CLI.FixApUsers do
 
   def run() do
     {:ok, _} = Application.ensure_all_started(:pleroma)
+
     q =
       from(
         u in User,
