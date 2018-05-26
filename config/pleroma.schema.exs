@@ -22,7 +22,6 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       doc: "Upstream HTTP proxy.",
       hidden: false,
-      default: nil,
       to: "pleroma.http.proxy_url"
     ],
     "pleroma.chat.enabled": [
@@ -244,7 +243,6 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
     "pleroma.media_proxy.base_url": [
       commented: true,
       datatype: :binary,
-      default: nil,
       doc: "Media proxy: set another base URL if you're caching on a subdomain",
       hidden: false,
       to: "pleroma.media_proxy.base_url"
