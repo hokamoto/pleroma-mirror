@@ -90,7 +90,9 @@ defmodule Pleroma.FormatterTest do
 
   describe "add_user_links" do
     test "gives a replacement for user links" do
-      text = "@gsimg According to @archaeme, that is @daggsy. Also hello @archaeme@archae.me"
+      text =
+        "@gsimg According to @archaeme, that is @daggsy. Also hello @archaeme@archae.me and @efrh@état.aléatoire.net"
+
       gsimg = insert(:user, %{nickname: "gsimg"})
 
       archaeme =
@@ -100,20 +102,24 @@ defmodule Pleroma.FormatterTest do
         })
 
       archaeme_remote = insert(:user, %{nickname: "archaeme@archae.me"})
+      idna_remote = insert(:user, %{nickname: "efrh@xn--tat-9la.xn--alatoire-c1a.net"})
 
       mentions = Pleroma.Formatter.parse_mentions(text)
 
       {subs, text} = Formatter.add_user_links({[], text}, mentions)
 
-      assert length(subs) == 3
-      Enum.each(subs, fn {uuid, _} -> assert String.contains?(text, uuid) end)
+      assert length(subs) == 4
+
+      Enum.each(subs, fn {uuid, sub} ->
+        assert String.contains?(text, uuid)
+      end)
 
       expected_text =
         "<span><a href='#{gsimg.ap_id}'>@<span>gsimg</span></a></span> According to <span><a href='#{
           "https://archeme/@archaeme"
         }'>@<span>archaeme</span></a></span>, that is @daggsy. Also hello <span><a href='#{
           archaeme_remote.ap_id
-        }'>@<span>archaeme</span></a></span>"
+        }'>@<span>archaeme</span></a></span> and <span><a href='#{idna_remote.ap_id}'>@<span>efrh</span></a></span>"
 
       assert expected_text == Formatter.finalize({subs, text})
     end
@@ -135,7 +141,8 @@ defmodule Pleroma.FormatterTest do
   end
 
   test "it can parse mentions and return the relevant users" do
-    text = "@gsimg According to @archaeme, that is @daggsy. Also hello @archaeme@archae.me and @efrh@état.aléatoire.net"
+    text =
+      "@gsimg According to @archaeme, that is @daggsy. Also hello @archaeme@archae.me and @efrh@état.aléatoire.net"
 
     gsimg = insert(:user, %{nickname: "gsimg"})
     archaeme = insert(:user, %{nickname: "archaeme"})

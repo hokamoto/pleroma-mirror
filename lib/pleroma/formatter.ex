@@ -188,7 +188,9 @@ defmodule Pleroma.Formatter do
     uuid_text =
       mentions
       |> Enum.reduce(text, fn {match, _user, uuid}, text ->
-        String.replace(text, match, uuid)
+        text
+        |> String.replace(match, uuid)
+        |> String.replace(from_user_punycode(match), uuid)
       end)
 
     subs =
@@ -198,8 +200,7 @@ defmodule Pleroma.Formatter do
 
           short_match = String.split(match, "@") |> tl() |> hd()
 
-          {uuid,
-           "<span><a href='#{ap_id}'>@<span>#{from_user_punycode(short_match)}</span></a></span>"}
+          {uuid, "<span><a href='#{ap_id}'>@<span>#{short_match}</span></a></span>"}
         end)
 
     {subs, uuid_text}
@@ -241,10 +242,17 @@ defmodule Pleroma.Formatter do
     |> to_string
   end
 
+  def from_user_punycode("@" <> string) do
+    "@" <> from_user_punycode(string)
+  end
+
   def from_user_punycode(string) when is_binary(string) do
     case String.split(string, "@", parts: 2) do
-      [user, domain] -> user <> "@" <> from_punycode(domain)
-      [user] -> user
+      [user, domain] ->
+        user <> "@" <> from_punycode(domain)
+
+      [user] ->
+        user
     end
   end
 end
