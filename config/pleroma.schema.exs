@@ -144,7 +144,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       default: "0.0.0.0",
       doc: "Web server: bind host.",
       hidden: false,
-      to: "pleroma.Elixir.Pleroma.Web.Endpoint.http.host"
+      to: "pleroma.Elixir.Pleroma.Web.Endpoint.http.ip"
     ],
     "pleroma.http.port": [
       commented: false,
@@ -245,9 +245,9 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       |> :inet.parse_address
       ipaddr
     end,
-    "pleroma.http.ip": fn conf ->
+    "pleroma.Elixir.Pleroma.Web.Endpoint.http.ip": fn conf ->
       IO.puts "pleroma.http.ip transform"
-      [{_, ip}] = Conform.Conf.get(conf, "pleroma.Elixir.Pleroma.Web.Endpoint.http.host")
+      [{_, ip}] = Conform.Conf.get(conf, "pleroma.Elixir.Pleroma.Web.Endpoint.http.ip")
       {:ok, ipaddr} = ip
       |> String.to_charlist
       |> :inet.parse_address
