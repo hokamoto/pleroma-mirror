@@ -194,6 +194,38 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "pleroma.instance.registrations_open"
     ],
+    "pleroma.mrf_simple.media_removal": [
+      commented: true,
+      datatype: [list: :binary],
+      default: [],
+      hidden: false,
+      doc: "MRF Simple: media removal",
+      to: "pleroma.mrf_simple.media_removal"
+    ],
+    "pleroma.mrf_simple.media_nsfw": [
+      commented: true,
+      datatype: [list: :binary],
+      default: [],
+      hidden: false,
+      doc: "MRF Simple: mark media as NSFW",
+      to: "pleroma.mrf_simple.media_nsfw"
+    ],
+    "pleroma.mrf_simple.federated_timeline_removal": [
+      commented: true,
+      datatype: [list: :binary],
+      default: [],
+      hidden: false,
+      doc: "MRF Simple: federated timeline removal",
+      to: "pleroma.mrf_simple.federated_timeline_removal"
+    ],
+    "pleroma.mrf_simple.reject": [
+      commented: true,
+      datatype: [list: :binary],
+      default: [],
+      hidden: false,
+      doc: "MRF Simple: reject incoming activities",
+      to: "pleroma.mrf_simple.reject"
+    ],
     "pleroma.media_proxy.enabled": [
       commented: false,
       datatype: :atom,
@@ -246,7 +278,6 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
   ],
   transforms: [
     "pleroma.gopher.ip": fn conf ->
-      IO.puts "pleroma.gopher.ip transform"
       [{_, ip}] = Conform.Conf.get(conf, "pleroma.gopher.ip")
       {:ok, ipaddr} = ip
       |> String.to_charlist
@@ -254,7 +285,6 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       ipaddr
     end,
     "pleroma.Elixir.Pleroma.Web.Endpoint.http.ip": fn conf ->
-      IO.puts "pleroma.http.ip transform"
       [{_, ip}] = Conform.Conf.get(conf, "pleroma.Elixir.Pleroma.Web.Endpoint.http.ip")
       {:ok, ipaddr} = ip
       |> String.to_charlist
