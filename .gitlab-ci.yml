@@ -34,8 +34,6 @@ unit-testing:
 Debian Stretch:
   stage: build
   script:
-    - mix release.init
-    - cp config/prod.secret.exs.env.tmpl config/prod.secret.exs
     - MIX_ENV=prod mix release
   artifacts:
     paths:

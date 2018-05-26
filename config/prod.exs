@@ -60,4 +60,12 @@ config :logger, level: :info
 
 # Finally import the config/prod.secret.exs
 # which should be versioned separately.
-import_config "prod.secret.exs"
+try do
+  import_config "prod.secret.exs"
+rescue
+  _ ->
+    IO.puts(
+      "!!!! Building without configuration file"
+    )
+end
+
