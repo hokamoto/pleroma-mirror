@@ -23,8 +23,8 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
   defp check_media_nsfw(actor_info, object, config) do
     child_object = object["object"]
 
-    if Enum.member?(Keyword.get(config, :media_nsfw), actor_info.host)
-      and child_object["attachment"] != nil and length(child_object["attachment"]) > 0 do
+    if Enum.member?(Keyword.get(config, :media_nsfw), actor_info.host) and
+         child_object["attachment"] != nil and length(child_object["attachment"]) > 0 do
       tags = (child_object["tag"] || []) ++ ["nsfw"]
       child_object = Map.put(child_object, "tags", tags)
       child_object = Map.put(child_object, "sensitive", true)

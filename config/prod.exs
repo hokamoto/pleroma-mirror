@@ -64,8 +64,5 @@ try do
   import_config "prod.secret.exs"
 rescue
   _ ->
-    IO.puts(
-      "!!!! Building without configuration file"
-    )
+    IO.puts("!!!! Building without configuration file")
 end
-

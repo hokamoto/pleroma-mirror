@@ -9,7 +9,7 @@ defmodule Pleroma.Web.OStatus.OStatusController do
   alias Pleroma.Web.ActivityPub.ActivityPubController
   alias Pleroma.Web.ActivityPub.ActivityPub
 
-  plug Pleroma.Web.FederatingPlug when action in [:salmon_incoming]
+  plug(Pleroma.Web.FederatingPlug when action in [:salmon_incoming])
 
   def feed_redirect(conn, %{"nickname" => nickname} = params) do
     user = User.get_cached_by_nickname(nickname)

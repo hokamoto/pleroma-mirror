@@ -7,5 +7,4 @@ defmodule Pleroma.Release.MigrateTask do
     Ecto.Migrator.run(Pleroma.Repo, path, :up, all: true)
     :ok
   end
-
 end

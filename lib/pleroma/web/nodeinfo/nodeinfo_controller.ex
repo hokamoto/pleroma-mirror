@@ -4,7 +4,7 @@ defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
   alias Pleroma.Stats
   alias Pleroma.Web
 
-  plug Pleroma.Web.FederatingPlug
+  plug(Pleroma.Web.FederatingPlug)
 
   def schemas(conn, _params) do
     response = %{

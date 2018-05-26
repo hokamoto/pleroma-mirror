@@ -132,7 +132,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
     "pleroma.instance.upload_limit": [
       commented: false,
       datatype: :integer,
-      default: 16000000,
+      default: 16_000_000,
       doc: "Instance upload limit.",
       hidden: false,
       to: "pleroma.instance.upload_limit"
@@ -145,7 +145,6 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "pleroma.instance.federating"
     ],
-    # TODO transform
     "pleroma.instance.rewrite_policies": [
       commented: false,
       datatype: [list: :atom],
@@ -258,7 +257,6 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "pleroma.gopher.enabled"
     ],
-    # TODO transform
     "pleroma.gopher.ip": [
       commented: true,
       datatype: :binary,
@@ -274,23 +272,29 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       doc: "Gopher: bind port.",
       hidden: false,
       to: "pleroma.gopher.port"
-    ],
+    ]
   ],
   transforms: [
     "pleroma.gopher.ip": fn conf ->
       [{_, ip}] = Conform.Conf.get(conf, "pleroma.gopher.ip")
-      {:ok, ipaddr} = ip
-      |> String.to_charlist
-      |> :inet.parse_address
+
+      {:ok, ipaddr} =
+        ip
+        |> String.to_charlist()
+        |> :inet.parse_address()
+
       ipaddr
     end,
     "pleroma.Elixir.Pleroma.Web.Endpoint.http.ip": fn conf ->
       [{_, ip}] = Conform.Conf.get(conf, "pleroma.Elixir.Pleroma.Web.Endpoint.http.ip")
-      {:ok, ipaddr} = ip
-      |> String.to_charlist
-      |> :inet.parse_address
+
+      {:ok, ipaddr} =
+        ip
+        |> String.to_charlist()
+        |> :inet.parse_address()
+
       ipaddr
-    end,
+    end
   ],
   validators: []
 ]
