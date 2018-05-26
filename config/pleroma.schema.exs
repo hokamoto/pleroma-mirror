@@ -33,31 +33,6 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "pleroma.chat.enabled"
     ],
-    "pleroma.gopher.enabled": [
-      commented: false,
-      datatype: :atom,
-      default: false,
-      doc: "Enable gopher server.",
-      hidden: false,
-      to: "pleroma.gopher.enabled"
-    ],
-    # TODO transform
-    "pleroma.gopher.ip": [
-      commented: true,
-      datatype: :binary,
-      default: "0.0.0.0",
-      doc: "Gopher: bind IP.",
-      hidden: false,
-      to: "pleroma.gopher.ip"
-    ],
-    "pleroma.gopher.port": [
-      commented: true,
-      datatype: :integer,
-      default: 9999,
-      doc: "Gopher: bind port.",
-      hidden: false,
-      to: "pleroma.gopher.port"
-    ],
     "pleroma.db.adapter": [
       commented: false,
       datatype: :atom,
@@ -117,7 +92,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
     "pleroma.url.host": [
       commented: false,
       datatype: :binary,
-      default: "dev.pigs.social",
+      default: "instance.domain.com",
       doc: "Instance host.",
       hidden: false,
       to: "pleroma.Elixir.Pleroma.Web.Endpoint.url.host"
@@ -149,7 +124,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
     "pleroma.http.port": [
       commented: false,
       datatype: :integer,
-      default: 4008,
+      default: 4000,
       doc: "Web server: bind port.",
       hidden: false,
       to: "pleroma.Elixir.Pleroma.Web.Endpoint.http.port"
@@ -234,7 +209,40 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       doc: "Media proxy: redirect to original URI on failure.",
       hidden: false,
       to: "pleroma.media_proxy.redirect_on_failure"
-    ]
+    ],
+    "pleroma.media_proxy.base_url": [
+      commented: true,
+      datatype: :binary,
+      default: nil,
+      doc: "Media proxy: set another base URL if you're caching on a subdomain",
+      hidden: false,
+      to: "pleroma.media_proxy.base_url"
+    ],
+    "pleroma.gopher.enabled": [
+      commented: false,
+      datatype: :atom,
+      default: false,
+      doc: "Enable gopher server.",
+      hidden: false,
+      to: "pleroma.gopher.enabled"
+    ],
+    # TODO transform
+    "pleroma.gopher.ip": [
+      commented: true,
+      datatype: :binary,
+      default: "0.0.0.0",
+      doc: "Gopher: bind IP.",
+      hidden: false,
+      to: "pleroma.gopher.ip"
+    ],
+    "pleroma.gopher.port": [
+      commented: true,
+      datatype: :integer,
+      default: 9999,
+      doc: "Gopher: bind port.",
+      hidden: false,
+      to: "pleroma.gopher.port"
+    ],
   ],
   transforms: [
     "pleroma.gopher.ip": fn conf ->
