@@ -243,16 +243,17 @@ defmodule Pleroma.User do
   end
 
   def get_cached_by_nickname(nickname) do
+    nickname = nickname_to_ascii(nickname)
     key = "nickname:#{nickname}"
     Cachex.get!(:user_cache, key, fallback: fn _ -> get_or_fetch_by_nickname(nickname) end)
   end
 
   def get_by_nickname(nickname) do
-    Repo.get_by(User, nickname: nickname)
+    Repo.get_by(User, nickname: nickname_to_ascii(nickname))
   end
 
   def get_by_nickname_or_email(nickname_or_email) do
-    case user = Repo.get_by(User, nickname: nickname_or_email) do
+    case user = Repo.get_by(User, nickname: nickname_to_ascii(nickname_or_email)) do
       %User{} -> user
       nil -> Repo.get_by(User, email: nickname_or_email)
     end
@@ -264,6 +265,7 @@ defmodule Pleroma.User do
   end
 
   def fetch_by_nickname(nickname) do
+    nickname = nickname_to_ascii(nickname)
     ap_try = ActivityPub.make_user_from_nickname(nickname)
 
     case ap_try do
@@ -553,6 +555,30 @@ defmodule Pleroma.User do
       get_or_fetch_by_ap_id(uri_or_nickname)
     else
       get_or_fetch_by_nickname(uri_or_nickname)
+    end
+  end
+
+  defp nickname_to_ascii("@" <> nickname) do
+    "@" <> nickname_to_ascii(nickname)
+  end
+
+  defp nickname_to_ascii(nickname) do
+    nickname =
+      nickname
+      |> String.strip()
+
+    case String.split(nickname, "@", parts: 2) do
+      [user, domain] ->
+        domain =
+          domain
+          |> to_charlist()
+          |> :idna.to_ascii()
+          |> to_string()
+
+        user <> "@" <> domain
+
+      [user] ->
+        user
     end
   end
 end
