@@ -14,15 +14,12 @@ defmodule Pleroma.Formatter do
   end
 
   def parse_mentions(text) do
-    # Modified from https://www.w3.org/TR/html5/forms.html#valid-e-mail-address
-    regex =
-      ~r/@[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@?[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*/u
-
-    Regex.scan(regex, text)
-    |> List.flatten()
+    text
+    |> Pleroma.Text.extract()
+    |> Pleroma.Text.mentions()
     |> Enum.uniq()
-    |> Enum.map(fn "@" <> match = full_match ->
-      {full_match, User.get_cached_by_nickname(match)}
+    |> Enum.map(fn user ->
+      {"@" <> user, User.get_cached_by_nickname(user)}
     end)
     |> Enum.filter(fn {_match, user} -> user end)
   end
@@ -200,7 +197,9 @@ defmodule Pleroma.Formatter do
           ap_id = info["source_data"]["url"] || ap_id
 
           short_match = String.split(match, "@") |> tl() |> hd()
-          {uuid, "<span><a href='#{ap_id}'>@<span>#{from_user_punycode(short_match)}</span></a></span>"}
+
+          {uuid,
+           "<span><a href='#{ap_id}'>@<span>#{from_user_punycode(short_match)}</span></a></span>"}
         end)
 
     {subs, uuid_text}
@@ -244,8 +243,8 @@ defmodule Pleroma.Formatter do
 
   def from_user_punycode(string) when is_binary(string) do
     case String.split(string, "@", parts: 2) do
-      [user, domain] -> user<>"@"<>from_punycode(domain)
+      [user, domain] -> user <> "@" <> from_punycode(domain)
+      [user] -> user
     end
   end
-
 end
