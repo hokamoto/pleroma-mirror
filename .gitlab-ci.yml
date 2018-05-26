@@ -33,9 +33,11 @@ unit-testing:
 
 Debian Stretch:
   stage: build
-  script:
-    - MIX_ENV=prod mix release
+  script: |
+    export PLEROMA_VERSION=`cat mix.exs | sed -n -e "s/version: \"\([0-9\.]*\)/\1/p" | tr -d '",' | tr -d ' ' | tr -d "\n"`
+    MIX_ENV=prod mix release
+    mkdir dist; mv _build/prod/rel/pleroma/releases/0.9.0/pleroma.tar.gz dist
   artifacts:
     paths:
-      - _build/rel/pleroma/
+      - dist/pleroma.tar.gz
 
