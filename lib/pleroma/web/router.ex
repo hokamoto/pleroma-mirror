@@ -331,7 +331,7 @@ defmodule Fallback.RedirectController do
     if !@testing do
       conn
       |> put_resp_content_type("text/html")
-      |> send_file(200, "priv/static/index.html")
+      |> send_file(200, Application.app_dir(:pleroma, "priv/static/index.html"))
     end
   end
 end
