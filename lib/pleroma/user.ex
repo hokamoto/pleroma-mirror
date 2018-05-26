@@ -563,22 +563,26 @@ defmodule Pleroma.User do
   end
 
   defp nickname_to_ascii(nickname) do
-    nickname =
+    if Keyword.get(Application.get_env(:pleroma, :instance), :enable_idna) do
+      nickname =
+        nickname
+        |> String.strip()
+
+      case String.split(nickname, "@", parts: 2) do
+        [user, domain] ->
+          domain =
+            domain
+            |> to_charlist()
+            |> :idna.to_ascii()
+            |> to_string()
+
+          user <> "@" <> domain
+
+        [user] ->
+          user
+      end
+    else
       nickname
-      |> String.strip()
-
-    case String.split(nickname, "@", parts: 2) do
-      [user, domain] ->
-        domain =
-          domain
-          |> to_charlist()
-          |> :idna.to_ascii()
-          |> to_string()
-
-        user <> "@" <> domain
-
-      [user] ->
-        user
     end
   end
 end

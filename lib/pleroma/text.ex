@@ -45,6 +45,27 @@ defmodule Pleroma.Text do
     |> Enum.reverse()
   end
 
+  @spec username(String.t()) :: String.t()
+  @doc "Converts an username to IDNA"
+  def username("@" <> string) do
+    "@" <> username(string)
+  end
+
+  def username(string) do
+    if Keyword.get(Application.get_env(:pleroma, :instance), :enable_idna) do
+      case String.split(string, "@", parts: 2) do
+        [user, domain] ->
+          domain = domain |> to_charlist() |> :idna.from_ascii() |> to_string()
+          user <> "@" <> domain
+
+        [user] ->
+          user
+      end
+    else
+      string
+    end
+  end
+
   defp run_extract(text), do: extract(:text, text, [])
 
   # Start mention mode

@@ -190,7 +190,7 @@ defmodule Pleroma.Formatter do
       |> Enum.reduce(text, fn {match, _user, uuid}, text ->
         text
         |> String.replace(match, uuid)
-        |> String.replace(from_user_punycode(match), uuid)
+        |> String.replace(Pleroma.Text.username(match), uuid)
       end)
 
     subs =
@@ -236,23 +236,13 @@ defmodule Pleroma.Formatter do
   end
 
   def from_punycode(string) do
-    string
-    |> to_charlist()
-    |> :idna.from_ascii()
-    |> to_string
-  end
-
-  def from_user_punycode("@" <> string) do
-    "@" <> from_user_punycode(string)
-  end
-
-  def from_user_punycode(string) when is_binary(string) do
-    case String.split(string, "@", parts: 2) do
-      [user, domain] ->
-        user <> "@" <> from_punycode(domain)
-
-      [user] ->
-        user
+    if Keyword.get(Application.get_env(:pleroma, :instance), :enable_idna) do
+      string
+      |> to_charlist()
+      |> :idna.from_ascii()
+      |> to_string
+    else
+      string
     end
   end
 end

@@ -13,7 +13,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     image = User.avatar_url(user) |> MediaProxy.url()
     header = User.banner_url(user) |> MediaProxy.url()
     user_info = User.user_info(user)
-    nickname = Pleroma.Formatter.from_user_punycode(user.nickname)
+    nickname = Pleroma.Text.username(user.nickname)
 
     %{
       id: to_string(user.id),
@@ -42,7 +42,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   def render("mention.json", %{user: user}) do
     %{
       id: to_string(user.id),
-      acct: Pleroma.Formatter.from_user_punycode(user.nickname),
+      acct: Pleroma.Text.username(user.nickname),
       username: hd(String.split(user.nickname, "@")),
       url: user.ap_id
     }
