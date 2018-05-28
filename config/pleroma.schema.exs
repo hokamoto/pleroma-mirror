@@ -94,7 +94,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       default: "https",
       doc: "Instance scheme.",
       hidden: false,
-      to: "pleroma.Elixir.Pleroma.Web.Endpoint.url.schema"
+      to: "pleroma.Elixir.Pleroma.Web.Endpoint.url.scheme"
     ],
     "pleroma.url.port": [
       commented: true,
