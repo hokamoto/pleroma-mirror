@@ -31,6 +31,8 @@ release :pleroma do
     :runtime_tools,
   ]
 
+  set run_erl_env: "RUN_ERL_LOG_MAXSIZE=50000000 RUN_ERL_LOG_GENERATIONS=5"
+
   set vm_args: "rel/templates/vm.args.eex"
 
   set overlays: [
