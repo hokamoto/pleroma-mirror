@@ -7,18 +7,15 @@ defmodule Pleroma.Web.ActivityPub.Utils do
 
   # Some implementations send the actor URI as the actor field, others send the entire actor object,
   # so figure out what the actor's URI is based on what we have.
-  def normalize_actor(actor) do
-    cond do
-      is_binary(actor) ->
-        actor
-
-      is_map(actor) ->
-        actor["id"]
+  def get_ap_id(object) do
+    case object do
+      %{"id" => id} -> id
+      id -> id
     end
   end
 
   def normalize_params(params) do
-    Map.put(params, "actor", normalize_actor(params["actor"]))
+    Map.put(params, "actor", get_ap_id(params["actor"]))
   end
 
   def make_json_ld_header do
@@ -240,11 +237,16 @@ defmodule Pleroma.Web.ActivityPub.Utils do
         activity in Activity,
         where:
           fragment(
-            "? @> ?",
-            activity.data,
-            ^%{type: "Follow", object: followed_id}
+            "? ->> 'type' = 'Follow'",
+            activity.data
           ),
         where: activity.actor == ^follower_id,
+        where:
+          fragment(
+            "? @> ?",
+            activity.data,
+            ^%{object: followed_id}
+          ),
         order_by: [desc: :id],
         limit: 1
       )
@@ -365,11 +367,16 @@ defmodule Pleroma.Web.ActivityPub.Utils do
         activity in Activity,
         where:
           fragment(
-            "? @> ?",
-            activity.data,
-            ^%{type: "Block", object: blocked_id}
+            "? ->> 'type' = 'Block'",
+            activity.data
           ),
         where: activity.actor == ^blocker_id,
+        where:
+          fragment(
+            "? @> ?",
+            activity.data,
+            ^%{object: blocked_id}
+          ),
         order_by: [desc: :id],
         limit: 1
       )

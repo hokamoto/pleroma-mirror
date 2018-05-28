@@ -220,6 +220,15 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     end
   end
 
+  def dm_timeline(%{assigns: %{user: user}} = conn, params) do
+    query = ActivityPub.fetch_activities_query([user.ap_id], %{visibility: "direct"})
+    activities = Repo.all(query)
+
+    conn
+    |> add_link_headers(:user_statuses, activities, user.ap_id)
+    |> render(StatusView, "index.json", %{activities: activities, for: user, as: :activity})
+  end
+
   def get_status(%{assigns: %{user: user}} = conn, %{"id" => id}) do
     with %Activity{} = activity <- Repo.get(Activity, id),
          true <- ActivityPub.visible_for_user?(activity, user) do
@@ -429,7 +438,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def follow(%{assigns: %{user: follower}} = conn, %{"id" => id}) do
     with %User{} = followed <- Repo.get(User, id),
-         {:ok, follower} <- User.follow(follower, followed),
+         {:ok, follower} <- User.maybe_direct_follow(follower, followed),
          {:ok, _activity} <- ActivityPub.follow(follower, followed) do
       render(conn, AccountView, "relationship.json", %{user: follower, target: followed})
     else
@@ -442,7 +451,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def follow(%{assigns: %{user: follower}} = conn, %{"uri" => uri}) do
     with %User{} = followed <- Repo.get_by(User, nickname: uri),
-         {:ok, follower} <- User.follow(follower, followed),
+         {:ok, follower} <- User.maybe_direct_follow(follower, followed),
          {:ok, _activity} <- ActivityPub.follow(follower, followed) do
       render(conn, AccountView, "account.json", %{user: followed})
     else
