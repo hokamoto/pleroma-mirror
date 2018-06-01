@@ -1,6 +1,16 @@
 defmodule Pleroma.Factory do
   use ExMachina.Ecto, repo: Pleroma.Repo
 
+  alias Pleroma.Web.OAuth.App
+
+  def mastodon_app_factory do
+    %App{
+      client_name: "Mastodon-Local",
+      redirect_uris: ".",
+      scopes: "read,write,follow"
+    }
+  end
+
   def user_factory do
     user = %Pleroma.User{
       name: sequence(:name, &"Test テスト User #{&1}"),
