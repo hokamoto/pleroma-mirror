@@ -6,6 +6,7 @@ defmodule Pleroma.Web.OStatus.OStatusController do
   alias Pleroma.Repo
   alias Pleroma.Web.{OStatus, Federator}
   alias Pleroma.Web.XML
+  alias Pleroma.Web.ActivityPub.ObjectView
   alias Pleroma.Web.ActivityPub.ActivityPubController
   alias Pleroma.Web.ActivityPub.ActivityPub
 
@@ -75,28 +76,24 @@ defmodule Pleroma.Web.OStatus.OStatusController do
   end
 
   def object(conn, %{"uuid" => uuid}) do
-    if get_format(conn) == "activity+json" do
-      ActivityPubController.call(conn, :object)
-    else
-      with id <- o_status_url(conn, :object, uuid),
-           {_, %Activity{} = activity} <-
-             {:activity, Activity.get_create_activity_by_object_ap_id(id)},
-           {_, true} <- {:public?, ActivityPub.is_public?(activity)},
-           %User{} = user <- User.get_cached_by_ap_id(activity.data["actor"]) do
-        case get_format(conn) do
-          "html" -> redirect(conn, to: "/notice/#{activity.id}")
-          _ -> represent_activity(conn, activity, user)
-        end
-      else
-        {:public?, false} ->
-          {:error, :not_found}
-
-        {:activity, nil} ->
-          {:error, :not_found}
-
-        e ->
-          e
+    with id <- o_status_url(conn, :object, uuid),
+         {_, %Activity{} = activity} <-
+           {:activity, Activity.get_create_activity_by_object_ap_id(id)},
+         {_, true} <- {:public?, ActivityPub.is_public?(activity)},
+         %User{} = user <- User.get_cached_by_ap_id(activity.data["actor"]) do
+      case format = get_format(conn) do
+        "html" -> redirect(conn, to: "/notice/#{activity.id}")
+        _ -> represent_activity(conn, format, activity, user)
       end
+    else
+      {:public?, false} ->
+        {:error, :not_found}
+
+      {:activity, nil} ->
+        {:error, :not_found}
+
+      e ->
+        e
     end
   end
 
@@ -105,9 +102,9 @@ defmodule Pleroma.Web.OStatus.OStatusController do
          {_, %Activity{} = activity} <- {:activity, Activity.get_by_ap_id(id)},
          {_, true} <- {:public?, ActivityPub.is_public?(activity)},
          %User{} = user <- User.get_cached_by_ap_id(activity.data["actor"]) do
-      case get_format(conn) do
+      case format = get_format(conn) do
         "html" -> redirect(conn, to: "/notice/#{activity.id}")
-        _ -> represent_activity(conn, activity, user)
+        _ -> represent_activity(conn, format, activity, user)
       end
     else
       {:public?, false} ->
@@ -125,14 +122,14 @@ defmodule Pleroma.Web.OStatus.OStatusController do
     with {_, %Activity{} = activity} <- {:activity, Repo.get(Activity, id)},
          {_, true} <- {:public?, ActivityPub.is_public?(activity)},
          %User{} = user <- User.get_cached_by_ap_id(activity.data["actor"]) do
-      case get_format(conn) do
+      case format = get_format(conn) do
         "html" ->
           conn
           |> put_resp_content_type("text/html")
           |> send_file(200, "priv/static/index.html")
 
         _ ->
-          represent_activity(conn, activity, user)
+          represent_activity(conn, format, activity, user)
       end
     else
       {:public?, false} ->
@@ -146,17 +143,26 @@ defmodule Pleroma.Web.OStatus.OStatusController do
     end
   end
 
-  defp represent_activity(conn, activity, user) do
-    response =
-      activity
-      |> ActivityRepresenter.to_simple_form(user, true)
-      |> ActivityRepresenter.wrap_with_entry()
-      |> :xmerl.export_simple(:xmerl_xml)
-      |> to_string
+  defp represent_activity(conn, format, activity, user) do
+    case format do
+      "activity+json" ->
+        conn
+        |> put_resp_header("content-type", "application/activity+json")
+        |> json(ObjectView.render("object.json", %{object: activity}))
 
-    conn
-    |> put_resp_content_type("application/atom+xml")
-    |> send_resp(200, response)
+      # atom+xml
+      _ ->
+        response =
+          activity
+          |> ActivityRepresenter.to_simple_form(user, true)
+          |> ActivityRepresenter.wrap_with_entry()
+          |> :xmerl.export_simple(:xmerl_xml)
+          |> to_string
+
+        conn
+        |> put_resp_content_type("application/atom+xml")
+        |> send_resp(200, response)
+    end
   end
 
   def errors(conn, {:error, :not_found}) do
