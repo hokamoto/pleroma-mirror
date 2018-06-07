@@ -2,7 +2,7 @@ defmodule Pleroma.Web.OStatus.OStatusController do
   use Pleroma.Web, :controller
 
   alias Pleroma.{User, Activity}
-  alias Pleroma.Web.OStatus.{FeedRepresenter, ActivityRepresenter}
+  alias Pleroma.Web.OStatus.{FeedRepresenter, ActivityRepresenter, AppWithOpenGraphView}
   alias Pleroma.Repo
   alias Pleroma.Web.{OStatus, Federator}
   alias Pleroma.Web.XML
@@ -127,9 +127,8 @@ defmodule Pleroma.Web.OStatus.OStatusController do
          %User{} = user <- User.get_cached_by_ap_id(activity.data["actor"]) do
       case get_format(conn) do
         "html" ->
-          conn
-          |> put_resp_content_type("text/html")
-          |> send_file(200, "priv/static/index.html")
+          put_resp_content_type(conn, "text/html")
+          html(conn, AppWithOpenGraphView.render("index.html", %{activity: activity, user: user}))
 
         _ ->
           represent_activity(conn, activity, user)
