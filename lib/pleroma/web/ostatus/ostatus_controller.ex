@@ -89,8 +89,9 @@ defmodule Pleroma.Web.OStatus.OStatusController do
       {:public?, false} ->
         {:error, :not_found}
 
+      # handles non-posting objects. only knows how to reply in AP JSON
       {:activity, nil} ->
-        {:error, :not_found}
+        ActivityPubController.call(conn, :object)
 
       e ->
         e
