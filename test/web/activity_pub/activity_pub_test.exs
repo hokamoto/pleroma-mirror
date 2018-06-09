@@ -348,14 +348,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       {:ok, %Object{} = object} = ActivityPub.upload(file)
       assert object.data["name"] == "an_image.jpg"
     end
-
-    test "works with base64 encoded images" do
-      file = %{
-        "img" => data_uri()
-      }
-
-      {:ok, %Object{}} = ActivityPub.upload(file)
-    end
   end
 
   describe "fetch the latest Follow" do

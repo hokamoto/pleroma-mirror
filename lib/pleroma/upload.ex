@@ -31,31 +31,8 @@ defmodule Pleroma.Upload do
     }
   end
 
-  def store(%{"img" => "data:image/" <> image_data}) do
-    parsed = Regex.named_captures(~r/(?<filetype>jpeg|png|gif);base64,(?<data>.*)/, image_data)
-    data = Base.decode64!(parsed["data"])
-    uuid = UUID.generate()
-    upload_folder = Path.join(upload_path(), uuid)
-    File.mkdir_p!(upload_folder)
-    filename = Base.encode16(:crypto.hash(:sha256, data)) <> ".#{parsed["filetype"]}"
-    result_file = Path.join(upload_folder, filename)
-
-    File.write!(result_file, data)
-
-    content_type = "image/#{parsed["filetype"]}"
-
-    %{
-      "type" => "Image",
-      "url" => [
-        %{
-          "type" => "Link",
-          "mediaType" => content_type,
-          "href" => url_for(Path.join(uuid, :cow_uri.urlencode(filename)))
-        }
-      ],
-      "name" => filename,
-      "uuid" => uuid
-    }
+  def store(%{"img" => %Plug.Upload{} = file}) do
+    store(file)
   end
 
   def upload_path do
