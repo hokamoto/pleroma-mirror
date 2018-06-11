@@ -1,14 +1,15 @@
 defmodule Pleroma.Web.StreamerTest do
   use Pleroma.DataCase
-
+  # use Pleroma.Web.ConnCase, async: true
   alias Pleroma.Web.Streamer
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
-  alias Pleroma.Web.MastodonAPI.MastodonSocket
   alias Pleroma.Web.OAuth.{Authorization, Token}
   alias Phoenix.ConnTest
+  alias Pleroma.Plugs.AuthenticationPlug
   alias Plug.Conn
   import Pleroma.Factory
+  alias Pleroma.Web.MastodonAPI.{MastodonSocket, MastodonAPIController}
 
   defp create_sender_recipient() do
     with object <- direct_note_factory(),
@@ -26,11 +27,17 @@ defmodule Pleroma.Web.StreamerTest do
     end
   end
 
+  @session_opts [
+    store: :cookie,
+    key: "_test",
+    signing_salt: "cooldude"
+  ]
+
   test "it sends direct messages" do
     %{sender: sender, recipient: recipient, object: object} = create_sender_recipient()
     task =
       Task.async(fn ->
-        refute_receive {:text, _}, 4_000
+        assert_receive {:text, _}, 4_000
       end)
 
     {:ok, sender_token} = create_test_session_token(sender)
@@ -41,10 +48,14 @@ defmodule Pleroma.Web.StreamerTest do
 
     sender_conn =
       ConnTest.build_conn()
-      |> Conn.fetch_session()
+      |> Plug.Session.call(Plug.Session.init(@session_opts))
+      |> Conn.assign(:user, sender)
+      |> Conn.fetch_session
       |> Conn.put_session(:oauth_token, sender_token.token)
 
-    MastodonAPI.post_status(sender_conn, %{"status" => object})
+    IO.inspect sender_conn
+    IO.inspect object
+    MastodonAPIController.post_status(sender_conn, %{"status" => object})
     Task.await(task)
   end
 
