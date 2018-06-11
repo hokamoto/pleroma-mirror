@@ -8,6 +8,8 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
 
   require Logger
 
+  action_fallback(:errors)
+
   def verify_credentials(%{assigns: %{user: user}} = conn, _params) do
     token = Phoenix.Token.sign(conn, "user socket", user.id)
     render(conn, UserView, "show.json", %{user: user, token: token})
@@ -107,6 +109,11 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   end
 
   def mentions_timeline(%{assigns: %{user: user}} = conn, params) do
+    params =
+      params
+      |> Map.put("type", ["Create", "Announce", "Follow", "Like"])
+      |> Map.put("blocking_user", user)
+
     activities = ActivityPub.fetch_activities([user.ap_id], params)
 
     conn
@@ -213,19 +220,22 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   end
 
   def favorite(%{assigns: %{user: user}} = conn, %{"id" => id}) do
-    with {:ok, activity} <- TwitterAPI.fav(user, id) do
+    with {_, {:ok, id}} <- {:param_cast, Ecto.Type.cast(:integer, id)},
+         {:ok, activity} <- TwitterAPI.fav(user, id) do
       render(conn, ActivityView, "activity.json", %{activity: activity, for: user})
     end
   end
 
   def unfavorite(%{assigns: %{user: user}} = conn, %{"id" => id}) do
-    with {:ok, activity} <- TwitterAPI.unfav(user, id) do
+    with {_, {:ok, id}} <- {:param_cast, Ecto.Type.cast(:integer, id)},
+         {:ok, activity} <- TwitterAPI.unfav(user, id) do
       render(conn, ActivityView, "activity.json", %{activity: activity, for: user})
     end
   end
 
   def retweet(%{assigns: %{user: user}} = conn, %{"id" => id}) do
-    with {:ok, activity} <- TwitterAPI.repeat(user, id) do
+    with {_, {:ok, id}} <- {:param_cast, Ecto.Type.cast(:integer, id)},
+         {:ok, activity} <- TwitterAPI.repeat(user, id) do
       render(conn, ActivityView, "activity.json", %{activity: activity, for: user})
     end
   end
@@ -304,18 +314,18 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   end
 
   def followers(conn, params) do
-    with {:ok, user} <- TwitterAPI.get_user(conn.assigns.user, params),
+    with {:ok, user} <- TwitterAPI.get_user(conn.assigns[:user], params),
          {:ok, followers} <- User.get_followers(user) do
-      render(conn, UserView, "index.json", %{users: followers, for: user})
+      render(conn, UserView, "index.json", %{users: followers, for: conn.assigns[:user]})
     else
       _e -> bad_request_reply(conn, "Can't get followers")
     end
   end
 
   def friends(conn, params) do
-    with {:ok, user} <- TwitterAPI.get_user(conn.assigns.user, params),
+    with {:ok, user} <- TwitterAPI.get_user(conn.assigns[:user], params),
          {:ok, friends} <- User.get_friends(user) do
-      render(conn, UserView, "index.json", %{users: friends, for: user})
+      render(conn, UserView, "index.json", %{users: friends, for: conn.assigns[:user]})
     else
       _e -> bad_request_reply(conn, "Can't get friends")
     end
@@ -383,5 +393,17 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
 
   defp error_json(conn, error_message) do
     %{"error" => error_message, "request" => conn.request_path} |> Jason.encode!()
+  end
+
+  def errors(conn, {:param_cast, _}) do
+    conn
+    |> put_status(400)
+    |> json("Invalid parameters")
+  end
+
+  def errors(conn, _) do
+    conn
+    |> put_status(500)
+    |> json("Something went wrong")
   end
 end

@@ -10,6 +10,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   import Ecto.Query
   require Logger
 
+  action_fallback(:errors)
+
   def create_app(conn, params) do
     with cs <- App.register_changeset(%App{}, params) |> IO.inspect(),
          {:ok, app} <- Repo.insert(cs) |> IO.inspect() do
@@ -134,6 +136,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       %{
         "shortcode" => shortcode,
         "static_url" => url,
+        "visible_in_picker" => true,
         "url" => url
       }
     end)
@@ -144,7 +147,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     json(conn, mastodon_emoji)
   end
 
-  defp add_link_headers(conn, method, activities, param \\ false) do
+  defp add_link_headers(conn, method, activities, param \\ nil, params \\ %{}) do
     last = List.last(activities)
     first = List.first(activities)
 
@@ -155,13 +158,31 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       {next_url, prev_url} =
         if param do
           {
-            mastodon_api_url(Pleroma.Web.Endpoint, method, param, max_id: min),
-            mastodon_api_url(Pleroma.Web.Endpoint, method, param, since_id: max)
+            mastodon_api_url(
+              Pleroma.Web.Endpoint,
+              method,
+              param,
+              Map.merge(params, %{max_id: min})
+            ),
+            mastodon_api_url(
+              Pleroma.Web.Endpoint,
+              method,
+              param,
+              Map.merge(params, %{since_id: max})
+            )
           }
         else
           {
-            mastodon_api_url(Pleroma.Web.Endpoint, method, max_id: min),
-            mastodon_api_url(Pleroma.Web.Endpoint, method, since_id: max)
+            mastodon_api_url(
+              Pleroma.Web.Endpoint,
+              method,
+              Map.merge(params, %{max_id: min})
+            ),
+            mastodon_api_url(
+              Pleroma.Web.Endpoint,
+              method,
+              Map.merge(params, %{since_id: max})
+            )
           }
         end
 
@@ -189,10 +210,12 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def public_timeline(%{assigns: %{user: user}} = conn, params) do
+    local_only = params["local"] in [true, "True", "true", "1"]
+
     params =
       params
       |> Map.put("type", ["Create", "Announce"])
-      |> Map.put("local_only", params["local"] in [true, "True", "true", "1"])
+      |> Map.put("local_only", local_only)
       |> Map.put("blocking_user", user)
 
     activities =
@@ -200,7 +223,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       |> Enum.reverse()
 
     conn
-    |> add_link_headers(:public_timeline, activities)
+    |> add_link_headers(:public_timeline, activities, false, %{"local" => local_only})
     |> render(StatusView, "index.json", %{activities: activities, for: user, as: :activity})
   end
 
@@ -216,16 +239,22 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
       conn
       |> add_link_headers(:user_statuses, activities, params["id"])
-      |> render(StatusView, "index.json", %{activities: activities, for: user, as: :activity})
+      |> render(StatusView, "index.json", %{
+        activities: activities,
+        for: reading_user,
+        as: :activity
+      })
     end
   end
 
-  def dm_timeline(%{assigns: %{user: user}} = conn, params) do
-    query = ActivityPub.fetch_activities_query([user.ap_id], %{visibility: "direct"})
+  def dm_timeline(%{assigns: %{user: user}} = conn, _params) do
+    query =
+      ActivityPub.fetch_activities_query([user.ap_id], %{"type" => "Create", visibility: "direct"})
+
     activities = Repo.all(query)
 
     conn
-    |> add_link_headers(:user_statuses, activities, user.ap_id)
+    |> add_link_headers(:dm_timeline, activities)
     |> render(StatusView, "index.json", %{activities: activities, for: user, as: :activity})
   end
 
@@ -271,6 +300,15 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     end
   end
 
+  def post_status(conn, %{"status" => "", "media_ids" => media_ids} = params)
+      when length(media_ids) > 0 do
+    params =
+      params
+      |> Map.put("status", ".")
+
+    post_status(conn, params)
+  end
+
   def post_status(%{assigns: %{user: user}} = conn, %{"status" => _} = params) do
     params =
       params
@@ -301,27 +339,27 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def reblog_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
-    with {:ok, announce, _activity} = CommonAPI.repeat(ap_id_or_id, user) do
+    with {:ok, announce, _activity} <- CommonAPI.repeat(ap_id_or_id, user) do
       render(conn, StatusView, "status.json", %{activity: announce, for: user, as: :activity})
     end
   end
 
   def unreblog_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
-    with {:ok, _, _, %{data: %{"id" => id}}} = CommonAPI.unrepeat(ap_id_or_id, user),
+    with {:ok, _, _, %{data: %{"id" => id}}} <- CommonAPI.unrepeat(ap_id_or_id, user),
          %Activity{} = activity <- Activity.get_create_activity_by_object_ap_id(id) do
       render(conn, StatusView, "status.json", %{activity: activity, for: user, as: :activity})
     end
   end
 
   def fav_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
-    with {:ok, _fav, %{data: %{"id" => id}}} = CommonAPI.favorite(ap_id_or_id, user),
+    with {:ok, _fav, %{data: %{"id" => id}}} <- CommonAPI.favorite(ap_id_or_id, user),
          %Activity{} = activity <- Activity.get_create_activity_by_object_ap_id(id) do
       render(conn, StatusView, "status.json", %{activity: activity, for: user, as: :activity})
     end
   end
 
   def unfav_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
-    with {:ok, _, _, %{data: %{"id" => id}}} = CommonAPI.unfavorite(ap_id_or_id, user),
+    with {:ok, _, _, %{data: %{"id" => id}}} <- CommonAPI.unfavorite(ap_id_or_id, user),
          %Activity{} = activity <- Activity.get_create_activity_by_object_ap_id(id) do
       render(conn, StatusView, "status.json", %{activity: activity, for: user, as: :activity})
     end
@@ -406,10 +444,12 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def hashtag_timeline(%{assigns: %{user: user}} = conn, params) do
+    local_only = params["local"] in [true, "True", "true", "1"]
+
     params =
       params
       |> Map.put("type", "Create")
-      |> Map.put("local_only", !!params["local"])
+      |> Map.put("local_only", local_only)
       |> Map.put("blocking_user", user)
 
     activities =
@@ -417,7 +457,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       |> Enum.reverse()
 
     conn
-    |> add_link_headers(:hashtag_timeline, activities, params["tag"])
+    |> add_link_headers(:hashtag_timeline, activities, params["tag"], %{"local" => local_only})
     |> render(StatusView, "index.json", %{activities: activities, for: user, as: :activity})
   end
 
@@ -890,5 +930,11 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       _ ->
         nil
     end
+  end
+
+  def errors(conn, _) do
+    conn
+    |> put_status(500)
+    |> json("Something went wrong")
   end
 end

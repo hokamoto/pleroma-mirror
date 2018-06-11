@@ -53,9 +53,19 @@ defmodule Pleroma.Web.OStatus.OStatusControllerTest do
 
     conn =
       conn
+      |> put_req_header("content-type", "application/atom+xml")
       |> get("/users/#{user.nickname}/feed.atom")
 
     assert response(conn, 200) =~ note_activity.data["object"]["content"]
+  end
+
+  test "returns 404 for a missing feed", %{conn: conn} do
+    conn =
+      conn
+      |> put_req_header("content-type", "application/atom+xml")
+      |> get("/users/nonexisting/feed.atom")
+
+    assert response(conn, 404)
   end
 
   test "gets an object", %{conn: conn} do
@@ -77,6 +87,29 @@ defmodule Pleroma.Web.OStatus.OStatusControllerTest do
     assert response(conn, 200) == expected
   end
 
+  test "404s on private objects", %{conn: conn} do
+    note_activity = insert(:direct_note_activity)
+    user = User.get_by_ap_id(note_activity.data["actor"])
+    [_, uuid] = hd(Regex.scan(~r/.+\/([\w-]+)$/, note_activity.data["object"]["id"]))
+    url = "/objects/#{uuid}"
+
+    conn =
+      conn
+      |> get(url)
+
+    assert response(conn, 404)
+  end
+
+  test "404s on nonexisting objects", %{conn: conn} do
+    url = "/objects/123"
+
+    conn =
+      conn
+      |> get(url)
+
+    assert response(conn, 404)
+  end
+
   test "gets an activity", %{conn: conn} do
     note_activity = insert(:note_activity)
     [_, uuid] = hd(Regex.scan(~r/.+\/([\w-]+)$/, note_activity.data["id"]))
@@ -89,6 +122,28 @@ defmodule Pleroma.Web.OStatus.OStatusControllerTest do
     assert response(conn, 200)
   end
 
+  test "404s on private activities", %{conn: conn} do
+    note_activity = insert(:direct_note_activity)
+    [_, uuid] = hd(Regex.scan(~r/.+\/([\w-]+)$/, note_activity.data["id"]))
+    url = "/activities/#{uuid}"
+
+    conn =
+      conn
+      |> get(url)
+
+    assert response(conn, 404)
+  end
+
+  test "404s on nonexistent activities", %{conn: conn} do
+    url = "/activities/123"
+
+    conn =
+      conn
+      |> get(url)
+
+    assert response(conn, 404)
+  end
+
   test "gets a notice", %{conn: conn} do
     note_activity = insert(:note_activity)
     url = "/notice/#{note_activity.id}"
@@ -98,5 +153,26 @@ defmodule Pleroma.Web.OStatus.OStatusControllerTest do
       |> get(url)
 
     assert response(conn, 200)
+  end
+
+  test "404s a private notice", %{conn: conn} do
+    note_activity = insert(:direct_note_activity)
+    url = "/notice/#{note_activity.id}"
+
+    conn =
+      conn
+      |> get(url)
+
+    assert response(conn, 404)
+  end
+
+  test "404s a nonexisting notice", %{conn: conn} do
+    url = "/notice/123"
+
+    conn =
+      conn
+      |> get(url)
+
+    assert response(conn, 404)
   end
 end
