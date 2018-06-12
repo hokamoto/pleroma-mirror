@@ -4,11 +4,13 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   alias Pleroma.Web.CommonAPI
   alias Pleroma.{Repo, Activity, User, Notification}
   alias Pleroma.Web.ActivityPub.ActivityPub
+  alias Pleroma.Web.ActivityPub.Utils
   alias Ecto.Changeset
 
   require Logger
 
   plug(:only_if_public_instance when action in [:public_timeline, :public_and_external_timeline])
+  action_fallback(:errors)
 
   def verify_credentials(%{assigns: %{user: user}} = conn, _params) do
     token = Phoenix.Token.sign(conn, "user socket", user.id)
@@ -109,6 +111,11 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   end
 
   def mentions_timeline(%{assigns: %{user: user}} = conn, params) do
+    params =
+      params
+      |> Map.put("type", ["Create", "Announce", "Follow", "Like"])
+      |> Map.put("blocking_user", user)
+
     activities = ActivityPub.fetch_activities([user.ap_id], params)
 
     conn
@@ -215,19 +222,22 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   end
 
   def favorite(%{assigns: %{user: user}} = conn, %{"id" => id}) do
-    with {:ok, activity} <- TwitterAPI.fav(user, id) do
+    with {_, {:ok, id}} <- {:param_cast, Ecto.Type.cast(:integer, id)},
+         {:ok, activity} <- TwitterAPI.fav(user, id) do
       render(conn, ActivityView, "activity.json", %{activity: activity, for: user})
     end
   end
 
   def unfavorite(%{assigns: %{user: user}} = conn, %{"id" => id}) do
-    with {:ok, activity} <- TwitterAPI.unfav(user, id) do
+    with {_, {:ok, id}} <- {:param_cast, Ecto.Type.cast(:integer, id)},
+         {:ok, activity} <- TwitterAPI.unfav(user, id) do
       render(conn, ActivityView, "activity.json", %{activity: activity, for: user})
     end
   end
 
   def retweet(%{assigns: %{user: user}} = conn, %{"id" => id}) do
-    with {:ok, activity} <- TwitterAPI.repeat(user, id) do
+    with {_, {:ok, id}} <- {:param_cast, Ecto.Type.cast(:integer, id)},
+         {:ok, activity} <- TwitterAPI.repeat(user, id) do
       render(conn, ActivityView, "activity.json", %{activity: activity, for: user})
     end
   end
@@ -311,20 +321,68 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   end
 
   def followers(conn, params) do
-    with {:ok, user} <- TwitterAPI.get_user(conn.assigns.user, params),
+    with {:ok, user} <- TwitterAPI.get_user(conn.assigns[:user], params),
          {:ok, followers} <- User.get_followers(user) do
-      render(conn, UserView, "index.json", %{users: followers, for: user})
+      render(conn, UserView, "index.json", %{users: followers, for: conn.assigns[:user]})
     else
       _e -> bad_request_reply(conn, "Can't get followers")
     end
   end
 
   def friends(conn, params) do
-    with {:ok, user} <- TwitterAPI.get_user(conn.assigns.user, params),
+    with {:ok, user} <- TwitterAPI.get_user(conn.assigns[:user], params),
          {:ok, friends} <- User.get_friends(user) do
-      render(conn, UserView, "index.json", %{users: friends, for: user})
+      render(conn, UserView, "index.json", %{users: friends, for: conn.assigns[:user]})
     else
       _e -> bad_request_reply(conn, "Can't get friends")
+    end
+  end
+
+  def friend_requests(conn, params) do
+    with {:ok, user} <- TwitterAPI.get_user(conn.assigns[:user], params),
+         {:ok, friend_requests} <- User.get_follow_requests(user) do
+      render(conn, UserView, "index.json", %{users: friend_requests, for: conn.assigns[:user]})
+    else
+      _e -> bad_request_reply(conn, "Can't get friend requests")
+    end
+  end
+
+  def approve_friend_request(conn, %{"user_id" => uid} = params) do
+    with followed <- conn.assigns[:user],
+         uid when is_number(uid) <- String.to_integer(uid),
+         %User{} = follower <- Repo.get(User, uid),
+         {:ok, follower} <- User.maybe_follow(follower, followed),
+         %Activity{} = follow_activity <- Utils.fetch_latest_follow(follower, followed),
+         {:ok, follow_activity} <- Utils.update_follow_state(follow_activity, "accept"),
+         {:ok, _activity} <-
+           ActivityPub.accept(%{
+             to: [follower.ap_id],
+             actor: followed.ap_id,
+             object: follow_activity.data["id"],
+             type: "Accept"
+           }) do
+      render(conn, UserView, "show.json", %{user: follower, for: followed})
+    else
+      e -> bad_request_reply(conn, "Can't approve user: #{inspect(e)}")
+    end
+  end
+
+  def deny_friend_request(conn, %{"user_id" => uid} = params) do
+    with followed <- conn.assigns[:user],
+         uid when is_number(uid) <- String.to_integer(uid),
+         %User{} = follower <- Repo.get(User, uid),
+         %Activity{} = follow_activity <- Utils.fetch_latest_follow(follower, followed),
+         {:ok, follow_activity} <- Utils.update_follow_state(follow_activity, "reject"),
+         {:ok, _activity} <-
+           ActivityPub.reject(%{
+             to: [follower.ap_id],
+             actor: followed.ap_id,
+             object: follow_activity.data["id"],
+             type: "Reject"
+           }) do
+      render(conn, UserView, "show.json", %{user: follower, for: followed})
+    else
+      e -> bad_request_reply(conn, "Can't deny user: #{inspect(e)}")
     end
   end
 
@@ -352,6 +410,20 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
         Map.put(params, "bio", bio_brs)
       else
         params
+      end
+
+    user =
+      if locked = params["locked"] do
+        with locked <- locked == "true",
+             new_info <- Map.put(user.info, "locked", locked),
+             change <- User.info_changeset(user, %{info: new_info}),
+             {:ok, user} <- User.update_and_set_cache(change) do
+          user
+        else
+          _e -> user
+        end
+      else
+        user
       end
 
     with changeset <- User.update_changeset(user, params),
@@ -401,5 +473,17 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
       conn
       |> forbidden_json_reply("Invalid credentials.")
     end
+  end
+
+  def errors(conn, {:param_cast, _}) do
+    conn
+    |> put_status(400)
+    |> json("Invalid parameters")
+  end
+
+  def errors(conn, _) do
+    conn
+    |> put_status(500)
+    |> json("Something went wrong")
   end
 end

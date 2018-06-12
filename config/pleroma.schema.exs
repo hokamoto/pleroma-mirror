@@ -184,6 +184,22 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "pleroma.instance.registrations_open"
     ],
+    "pleroma.instance.quarantined_instances": [
+      commented: false,
+      datatype: [list: :binary],
+      default: [],
+      hidden: false,
+      doc: "Quarantined instances",
+      to: "pleroma.instance.quarantined_instances"
+    ],
+    "pleroma.mrf_simple.media_removal": [
+      commented: true,
+      datatype: [list: :binary],
+      default: [],
+      hidden: false,
+      doc: "MRF Simple: media removal",
+      to: "pleroma.mrf_simple.media_removal"
+    ],
     "pleroma.mrf_simple.media_removal": [
       commented: true,
       datatype: [list: :binary],

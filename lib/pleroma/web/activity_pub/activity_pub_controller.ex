@@ -17,15 +17,21 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
       conn
       |> put_resp_header("content-type", "application/activity+json")
       |> json(UserView.render("user.json", %{user: user}))
+    else
+      nil -> {:error, :not_found}
     end
   end
 
   def object(conn, %{"uuid" => uuid}) do
     with ap_id <- o_status_url(conn, :object, uuid),
-         %Object{} = object <- Object.get_cached_by_ap_id(ap_id) do
+         %Object{} = object <- Object.get_cached_by_ap_id(ap_id),
+         {_, true} <- {:public?, ActivityPub.is_public?(object)} do
       conn
       |> put_resp_header("content-type", "application/activity+json")
       |> json(ObjectView.render("object.json", %{object: object}))
+    else
+      {:public?, false} ->
+        {:error, :not_found}
     end
   end
 
@@ -101,6 +107,12 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     end
 
     json(conn, "ok")
+  end
+
+  def errors(conn, {:error, :not_found}) do
+    conn
+    |> put_status(404)
+    |> json("Not found")
   end
 
   def errors(conn, _e) do

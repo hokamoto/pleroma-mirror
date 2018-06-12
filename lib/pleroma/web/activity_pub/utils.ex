@@ -4,21 +4,19 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   alias Pleroma.Web.Endpoint
   alias Ecto.{Changeset, UUID}
   import Ecto.Query
+  require Logger
 
   # Some implementations send the actor URI as the actor field, others send the entire actor object,
   # so figure out what the actor's URI is based on what we have.
-  def normalize_actor(actor) do
-    cond do
-      is_binary(actor) ->
-        actor
-
-      is_map(actor) ->
-        actor["id"]
+  def get_ap_id(object) do
+    case object do
+      %{"id" => id} -> id
+      id -> id
     end
   end
 
   def normalize_params(params) do
-    Map.put(params, "actor", normalize_actor(params["actor"]))
+    Map.put(params, "actor", get_ap_id(params["actor"]))
   end
 
   def make_json_ld_header do
@@ -220,9 +218,26 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   #### Follow-related helpers
 
   @doc """
+  Updates a follow activity's state (for locked accounts).
+  """
+  def update_follow_state(%Activity{} = activity, state) do
+    with new_data <-
+           activity.data
+           |> Map.put("state", state),
+         changeset <- Changeset.change(activity, data: new_data),
+         {:ok, activity} <- Repo.update(changeset) do
+      {:ok, activity}
+    end
+  end
+
+  @doc """
   Makes a follow activity data for the given follower and followed
   """
-  def make_follow_data(%User{ap_id: follower_id}, %User{ap_id: followed_id}, activity_id) do
+  def make_follow_data(
+        %User{ap_id: follower_id},
+        %User{ap_id: followed_id} = followed,
+        activity_id
+      ) do
     data = %{
       "type" => "Follow",
       "actor" => follower_id,
@@ -231,7 +246,10 @@ defmodule Pleroma.Web.ActivityPub.Utils do
       "object" => followed_id
     }
 
-    if activity_id, do: Map.put(data, "id", activity_id), else: data
+    data = if activity_id, do: Map.put(data, "id", activity_id), else: data
+    data = if User.locked?(followed), do: Map.put(data, "state", "pending"), else: data
+
+    data
   end
 
   def fetch_latest_follow(%User{ap_id: follower_id}, %User{ap_id: followed_id}) do

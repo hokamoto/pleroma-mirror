@@ -67,7 +67,8 @@ defmodule Pleroma.User do
     %{
       following_count: length(user.following) - oneself,
       note_count: user.info["note_count"] || 0,
-      follower_count: user.info["follower_count"] || 0
+      follower_count: user.info["follower_count"] || 0,
+      locked: user.info["locked"] || false
     }
   end
 
@@ -167,6 +168,43 @@ defmodule Pleroma.User do
     end
   end
 
+  def maybe_direct_follow(%User{} = follower, %User{info: info} = followed) do
+    user_info = user_info(followed)
+
+    should_direct_follow =
+      cond do
+        # if the account is locked, don't pre-create the relationship
+        user_info[:locked] == true ->
+          false
+
+        # if the users are blocking each other, we shouldn't even be here, but check for it anyway
+        User.blocks?(follower, followed) == true or User.blocks?(followed, follower) == true ->
+          false
+
+        # if OStatus, then there is no three-way handshake to follow
+        User.ap_enabled?(followed) != true ->
+          true
+
+        # if there are no other reasons not to, just pre-create the relationship
+        true ->
+          true
+      end
+
+    if should_direct_follow do
+      follow(follower, followed)
+    else
+      {:ok, follower}
+    end
+  end
+
+  def maybe_follow(%User{} = follower, %User{info: info} = followed) do
+    if not following?(follower, followed) do
+      follow(follower, followed)
+    else
+      {:ok, follower}
+    end
+  end
+
   def follow(%User{} = follower, %User{info: info} = followed) do
     ap_followers = followed.follower_address
 
@@ -220,6 +258,10 @@ defmodule Pleroma.User do
 
   def following?(%User{} = follower, %User{} = followed) do
     Enum.member?(follower.following, followed.follower_address)
+  end
+
+  def locked?(%User{} = user) do
+    user.info["locked"] || false
   end
 
   def get_by_ap_id(ap_id) do
@@ -317,6 +359,40 @@ defmodule Pleroma.User do
     q = get_friends_query(user)
 
     {:ok, Repo.all(q)}
+  end
+
+  def get_follow_requests_query(%User{} = user) do
+    from(
+      a in Activity,
+      where:
+        fragment(
+          "? ->> 'type' = 'Follow'",
+          a.data
+        ),
+      where:
+        fragment(
+          "? ->> 'state' = 'pending'",
+          a.data
+        ),
+      where:
+        fragment(
+          "? @> ?",
+          a.data,
+          ^%{"object" => user.ap_id}
+        )
+    )
+  end
+
+  def get_follow_requests(%User{} = user) do
+    q = get_follow_requests_query(user)
+    reqs = Repo.all(q)
+
+    users =
+      Enum.map(reqs, fn req -> req.actor end)
+      |> Enum.uniq()
+      |> Enum.map(fn ap_id -> get_by_ap_id(ap_id) end)
+
+    {:ok, users}
   end
 
   def increase_note_count(%User{} = user) do
@@ -449,7 +525,31 @@ defmodule Pleroma.User do
 
   def blocks?(user, %{ap_id: ap_id}) do
     blocks = user.info["blocks"] || []
-    Enum.member?(blocks, ap_id)
+    domain_blocks = user.info["domain_blocks"] || []
+    %{host: host} = URI.parse(ap_id)
+
+    Enum.member?(blocks, ap_id) ||
+      Enum.any?(domain_blocks, fn domain ->
+        host == domain
+      end)
+  end
+
+  def block_domain(user, domain) do
+    domain_blocks = user.info["domain_blocks"] || []
+    new_blocks = Enum.uniq([domain | domain_blocks])
+    new_info = Map.put(user.info, "domain_blocks", new_blocks)
+
+    cs = User.info_changeset(user, %{info: new_info})
+    update_and_set_cache(cs)
+  end
+
+  def unblock_domain(user, domain) do
+    blocks = user.info["domain_blocks"] || []
+    new_blocks = List.delete(blocks, domain)
+    new_info = Map.put(user.info, "domain_blocks", new_blocks)
+
+    cs = User.info_changeset(user, %{info: new_info})
+    update_and_set_cache(cs)
   end
 
   def local_user_query() do

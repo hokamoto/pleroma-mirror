@@ -51,15 +51,25 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   end
 
   def stream_out(activity) do
+    public = "https://www.w3.org/ns/activitystreams#Public"
+
     if activity.data["type"] in ["Create", "Announce"] do
       Pleroma.Web.Streamer.stream("user", activity)
+      Pleroma.Web.Streamer.stream("list", activity)
 
-      if Enum.member?(activity.data["to"], "https://www.w3.org/ns/activitystreams#Public") do
+      if Enum.member?(activity.data["to"], public) do
         Pleroma.Web.Streamer.stream("public", activity)
 
         if activity.local do
           Pleroma.Web.Streamer.stream("public:local", activity)
         end
+      else
+        if !Enum.member?(activity.data["cc"] || [], public) &&
+             !Enum.member?(
+               activity.data["to"],
+               User.get_by_ap_id(activity.data["actor"]).follower_address
+             ),
+           do: Pleroma.Web.Streamer.stream("direct", activity)
       end
     end
   end
@@ -87,6 +97,17 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     local = !(params[:local] == false)
 
     with data <- %{"to" => to, "type" => "Accept", "actor" => actor, "object" => object},
+         {:ok, activity} <- insert(data, local),
+         :ok <- maybe_federate(activity) do
+      {:ok, activity}
+    end
+  end
+
+  def reject(%{to: to, actor: actor, object: object} = params) do
+    # only accept false as false value
+    local = !(params[:local] == false)
+
+    with data <- %{"to" => to, "type" => "Reject", "actor" => actor, "object" => object},
          {:ok, activity} <- insert(data, local),
          :ok <- maybe_federate(activity) do
       {:ok, activity}
@@ -192,6 +213,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   def unfollow(follower, followed, activity_id \\ nil, local \\ true) do
     with %Activity{} = follow_activity <- fetch_latest_follow(follower, followed),
+         {:ok, follow_activity} <- update_follow_state(follow_activity, "cancelled"),
          unfollow_data <- make_unfollow_data(follower, followed, follow_activity, activity_id),
          {:ok, activity} <- insert(unfollow_data, local),
          :ok <- maybe_federate(activity) do
@@ -279,6 +301,32 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> Repo.all()
     |> Enum.reverse()
   end
+
+  @valid_visibilities ~w[direct unlisted public private]
+
+  defp restrict_visibility(query, %{visibility: "direct"}) do
+    public = "https://www.w3.org/ns/activitystreams#Public"
+
+    from(
+      activity in query,
+      join: sender in User,
+      on: sender.ap_id == activity.actor,
+      # Are non-direct statuses with no to/cc possible?
+      where:
+        fragment(
+          "not (? && ?)",
+          [^public, sender.follower_address],
+          activity.recipients
+        )
+    )
+  end
+
+  defp restrict_visibility(_query, %{visibility: visibility})
+       when visibility not in @valid_visibilities do
+    Logger.error("Could not restrict visibility to #{visibility}")
+  end
+
+  defp restrict_visibility(query, _visibility), do: query
 
   def fetch_user_activities(user, reading_user, params \\ %{}) do
     params =
@@ -391,11 +439,13 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp restrict_blocked(query, %{"blocking_user" => %User{info: info}}) do
     blocks = info["blocks"] || []
+    domain_blocks = info["domain_blocks"] || []
 
     from(
       activity in query,
       where: fragment("not (? = ANY(?))", activity.actor, ^blocks),
-      where: fragment("not (?->'to' \\?| ?)", activity.data, ^blocks)
+      where: fragment("not (?->'to' \\?| ?)", activity.data, ^blocks),
+      where: fragment("not (split_part(?, '/', 3) = ANY(?))", activity.actor, ^domain_blocks)
     )
   end
 
@@ -434,6 +484,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> restrict_recent(opts)
     |> restrict_blocked(opts)
     |> restrict_media(opts)
+    |> restrict_visibility(opts)
   end
 
   def fetch_activities(recipients, opts \\ %{}) do
@@ -443,7 +494,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   end
 
   def upload(file) do
-    data = Upload.store(file)
+    data = Upload.store(file, Application.get_env(:pleroma, :instance)[:dedupe_media])
     Repo.insert(%Object{data: data})
   end
 
@@ -462,6 +513,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
           "url" => [%{"href" => data["image"]["url"]}]
         }
 
+    locked = data["manuallyApprovesFollowers"] || false
     data = Transmogrifier.maybe_fix_user_object(data)
 
     user_data = %{
@@ -469,7 +521,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       info: %{
         "ap_enabled" => true,
         "source_data" => data,
-        "banner" => banner
+        "banner" => banner,
+        "locked" => locked
       },
       avatar: avatar,
       nickname: "#{data["preferredUsername"]}@#{URI.parse(data["id"]).host}",
@@ -511,6 +564,17 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     end
   end
 
+  def should_federate?(inbox, true), do: true
+
+  def should_federate?(inbox, _) do
+    inbox_info = URI.parse(inbox)
+
+    quarantined =
+      Keyword.get(Application.get_env(:pleroma, :instance), :quarantined_instances, [])
+
+    !Enum.member?(quarantined, inbox_info.host)
+  end
+
   def publish(actor, activity) do
     followers =
       if actor.follower_address in activity.recipients do
@@ -520,6 +584,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         []
       end
 
+    public = is_public?(activity)
+
     remote_inboxes =
       (Pleroma.Web.Salmon.remote_users(activity) ++ followers)
       |> Enum.filter(fn user -> User.ap_enabled?(user) end)
@@ -527,6 +593,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         (data["endpoints"] && data["endpoints"]["sharedInbox"]) || data["inbox"]
       end)
       |> Enum.uniq()
+      |> Enum.filter(fn inbox -> should_federate?(inbox, public) end)
 
     {:ok, data} = Transmogrifier.prepare_outgoing(activity.data)
     json = Jason.encode!(data)

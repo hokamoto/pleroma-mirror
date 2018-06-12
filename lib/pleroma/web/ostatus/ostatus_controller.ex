@@ -10,37 +10,47 @@ defmodule Pleroma.Web.OStatus.OStatusController do
   alias Pleroma.Web.ActivityPub.ActivityPub
 
   plug(Pleroma.Web.FederatingPlug when action in [:salmon_incoming])
+  action_fallback(:errors)
 
-  def feed_redirect(conn, %{"nickname" => nickname} = params) do
-    user = User.get_cached_by_nickname(nickname)
-
+  def feed_redirect(conn, %{"nickname" => nickname}) do
     case get_format(conn) do
-      "html" -> Fallback.RedirectController.redirector(conn, nil)
-      "activity+json" -> ActivityPubController.user(conn, params)
-      _ -> redirect(conn, external: OStatus.feed_path(user))
+      "html" ->
+        Fallback.RedirectController.redirector(conn, nil)
+
+      "activity+json" ->
+        ActivityPubController.call(conn, :user)
+
+      _ ->
+        with %User{} = user <- User.get_cached_by_nickname(nickname) do
+          redirect(conn, external: OStatus.feed_path(user))
+        else
+          nil -> {:error, :not_found}
+        end
     end
   end
 
   def feed(conn, %{"nickname" => nickname} = params) do
-    user = User.get_cached_by_nickname(nickname)
+    with %User{} = user <- User.get_cached_by_nickname(nickname) do
+      query_params =
+        Map.take(params, ["max_id"])
+        |> Map.merge(%{"whole_db" => true, "actor_id" => user.ap_id})
 
-    query_params =
-      Map.take(params, ["max_id"])
-      |> Map.merge(%{"whole_db" => true, "actor_id" => user.ap_id})
+      activities =
+        ActivityPub.fetch_public_activities(query_params)
+        |> Enum.reverse()
 
-    activities =
-      ActivityPub.fetch_public_activities(query_params)
-      |> Enum.reverse()
+      response =
+        user
+        |> FeedRepresenter.to_simple_form(activities, [user])
+        |> :xmerl.export_simple(:xmerl_xml)
+        |> to_string
 
-    response =
-      user
-      |> FeedRepresenter.to_simple_form(activities, [user])
-      |> :xmerl.export_simple(:xmerl_xml)
-      |> to_string
-
-    conn
-    |> put_resp_content_type("application/atom+xml")
-    |> send_resp(200, response)
+      conn
+      |> put_resp_content_type("application/atom+xml")
+      |> send_resp(200, response)
+    else
+      nil -> {:error, :not_found}
+    end
   end
 
   defp decode_or_retry(body) do
@@ -70,37 +80,56 @@ defmodule Pleroma.Web.OStatus.OStatusController do
     |> send_resp(200, "")
   end
 
-  # TODO: Data leak
-  def object(conn, %{"uuid" => uuid} = params) do
+  def object(conn, %{"uuid" => uuid}) do
     if get_format(conn) == "activity+json" do
-      ActivityPubController.object(conn, params)
+      ActivityPubController.call(conn, :object)
     else
       with id <- o_status_url(conn, :object, uuid),
-           %Activity{} = activity <- Activity.get_create_activity_by_object_ap_id(id),
+           {_, %Activity{} = activity} <-
+             {:activity, Activity.get_create_activity_by_object_ap_id(id)},
+           {_, true} <- {:public?, ActivityPub.is_public?(activity)},
            %User{} = user <- User.get_cached_by_ap_id(activity.data["actor"]) do
         case get_format(conn) do
           "html" -> redirect(conn, to: "/notice/#{activity.id}")
           _ -> represent_activity(conn, activity, user)
         end
+      else
+        {:public?, false} ->
+          {:error, :not_found}
+
+        {:activity, nil} ->
+          {:error, :not_found}
+
+        e ->
+          e
       end
     end
   end
 
-  # TODO: Data leak
   def activity(conn, %{"uuid" => uuid}) do
     with id <- o_status_url(conn, :activity, uuid),
-         %Activity{} = activity <- Activity.get_by_ap_id(id),
+         {_, %Activity{} = activity} <- {:activity, Activity.get_by_ap_id(id)},
+         {_, true} <- {:public?, ActivityPub.is_public?(activity)},
          %User{} = user <- User.get_cached_by_ap_id(activity.data["actor"]) do
       case get_format(conn) do
         "html" -> redirect(conn, to: "/notice/#{activity.id}")
         _ -> represent_activity(conn, activity, user)
       end
+    else
+      {:public?, false} ->
+        {:error, :not_found}
+
+      {:activity, nil} ->
+        {:error, :not_found}
+
+      e ->
+        e
     end
   end
 
-  # TODO: Data leak
   def notice(conn, %{"id" => id}) do
-    with %Activity{} = activity <- Repo.get(Activity, id),
+    with {_, %Activity{} = activity} <- {:activity, Repo.get(Activity, id)},
+         {_, true} <- {:public?, ActivityPub.is_public?(activity)},
          %User{} = user <- User.get_cached_by_ap_id(activity.data["actor"]) do
       case get_format(conn) do
         "html" ->
@@ -111,6 +140,15 @@ defmodule Pleroma.Web.OStatus.OStatusController do
         _ ->
           represent_activity(conn, activity, user)
       end
+    else
+      {:public?, false} ->
+        {:error, :not_found}
+
+      {:activity, nil} ->
+        {:error, :not_found}
+
+      e ->
+        e
     end
   end
 
@@ -125,5 +163,17 @@ defmodule Pleroma.Web.OStatus.OStatusController do
     conn
     |> put_resp_content_type("application/atom+xml")
     |> send_resp(200, response)
+  end
+
+  def errors(conn, {:error, :not_found}) do
+    conn
+    |> put_status(404)
+    |> text("Not found")
+  end
+
+  def errors(conn, _) do
+    conn
+    |> put_status(500)
+    |> text("Something went wrong")
   end
 end
