@@ -36,7 +36,7 @@ defmodule Pleroma.Web.Router do
   end
 
   pipeline :well_known do
-    plug(:accepts, ["xml", "xrd+xml", "json", "jrd+json"])
+    plug(:accepts, ["json", "jrd+json", "xml", "xml+xrd"])
   end
 
   pipeline :config do
