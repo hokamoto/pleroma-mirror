@@ -1,5 +1,4 @@
 defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
-  require Logger
   alias Pleroma.User
   @behaviour Pleroma.Web.ActivityPub.MRF
 
@@ -41,25 +40,6 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
     end
   end
 
-  @rate_post Keyword.get(@mrf_policy, :sentiment_analysis_posts)
-  defp do_rate_post(actor_info, object) do
-    child_object = object["object"]
-
-    if @rate_post do
-      if child_object["content"] != nil do
-        grade = Veritaserum.analyze(child_object["content"])
-        Logger.info("rating found #{inspect(child_object)}:#{grade}")
-      else
-        grade = 0
-      end
-
-      child_object = Map.put(child_object, "sentiment_analysis", grade)
-      object = Map.put(object, "object", child_object)
-    end
-
-    {:ok, object}
-  end
-
   @ftl_removal Keyword.get(@mrf_policy, :federated_timeline_removal)
   defp check_ftl_removal(actor_info, object) do
     if actor_info.host in @ftl_removal do
@@ -97,8 +77,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
     with {:ok, object} <- check_reject(actor_info, object),
          {:ok, object} <- check_media_removal(actor_info, object),
          {:ok, object} <- check_media_nsfw(actor_info, object),
-         {:ok, object} <- check_ftl_removal(actor_info, object),
-         {:ok, object} <- do_rate_post(actor_info, object) do
+         {:ok, object} <- check_ftl_removal(actor_info, object) do
       {:ok, object}
     else
       _e -> {:reject, nil}
