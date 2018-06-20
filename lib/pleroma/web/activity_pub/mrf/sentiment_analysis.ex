@@ -2,6 +2,8 @@ defmodule Pleroma.Web.ActivityPub.MRF.SentimentAnalysis do
   require Logger
   @behaviour Pleroma.Web.ActivityPub.MRF
 
+  @mrf_policy Application.get_env(:pleroma, :mrf_sentimentanalysis)
+
   @rate_post Keyword.get(@mrf_policy, :sentiment_analysis_posts)
   defp do_rate_post(actor_info, object) do
     child_object = object["object"]
