@@ -5,6 +5,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SentimentAnalysis do
   @mrf_policy Application.get_env(:pleroma, :mrf_sentimentanalysis)
 
   @rate_post Keyword.get(@mrf_policy, :sentiment_analysis_posts)
+  @do_auto_cw Keyword.get(@mrf_policy, :sentiment_analysis_autocw)
   defp do_rate_post(actor_info, object) do
     child_object = object["object"]
 
@@ -14,6 +15,10 @@ defmodule Pleroma.Web.ActivityPub.MRF.SentimentAnalysis do
         Logger.info("rating found #{inspect(child_object)}:#{grade}")
       else
         grade = 0
+      end
+
+      if @do_auto_cw and grade < -2 do
+        child_object = Map.put(child_object, "sensitive", true)
       end
 
       child_object = Map.put(child_object, "sentiment_analysis", grade)
