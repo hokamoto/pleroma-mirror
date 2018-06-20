@@ -28,7 +28,6 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
   @media_nsfw Keyword.get(@mrf_policy, :media_nsfw)
   defp check_media_nsfw(actor_info, object) do
     child_object = object["object"]
-
     if actor_info.host in @media_nsfw and child_object["attachment"] != nil and
          length(child_object["attachment"]) > 0 do
       tags = (child_object["tag"] || []) ++ ["nsfw"]
@@ -46,10 +45,10 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
     child_object = object["object"]
     if @rate_post do
        if child_object["content"] != nil do
-          grade = Veritaserum.analyze(child_object["content"])
-          Logger.info("rating found #{inspect(child_object)}:#{grade}")
+         grade = Veritaserum.analyze(child_object["content"])
+         Logger.info("rating found #{inspect(child_object)}:#{grade}")
        else
-            grade = 0
+         grade = 0
        end
        child_object = Map.put(child_object, "sentiment_analysis", grade)
        object = Map.put(object, "object", child_object)
