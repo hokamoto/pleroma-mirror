@@ -1,11 +1,34 @@
-A safe and nice space for everyone.
+<h1>A safe and nice space for everyone.</h1>
 
 Mastodon.host is a generalist instance, lots of people, lots of content.<br>
-Soteria is the other side of the coin, a nice, quiet, safe space.<br>
+Soteria.mastodon.host is the other side of the coin, a nice, quiet, safe space.<br>
 <br>
+This instance is private, you need to register to see the timelines.<br>
 <h4>Why do you use pleroma ?</h4>
-Because pleroma has tools to deal with moderation in a very granular and automated way that is not even thinkable with mastodon: the MRF.
-Talk to me in private if you want more details.
+
+Because pleroma has tools to deal with moderation in a very granular and automated way that is not even thinkable with mastodon.<br>
+It allows users to mute words by default, and not by having them write regular expressions. simple keyword muting.<br>
+It integrates two different interfaces by default, the mastodon one, and their own, more choices for you !<br>
+But let's talk about the most powerful one, the MRF ( message rewriting facility ):<br>
+It allows to rewrite automatically any property of any message going in or out of the instance.<br>
+Let's take a few examples:<br>
+- Instance A always forget to CW their posts with pictures, we can automatically add that CW to their post as they reach our instance.<br>
+- Instance B is known to bypass the scope of posts ( unlisted / DM / etc.. ) to push everything as public. We can send them ONLY the posts already public and not the others.<br>
+- You have words that trigger bad feelings, upon receiving such words in posts, we can automatically add a CW or plainly reject those messages.<br>
+Hope you get how this framework baked into Pleroma makes a huge difference :)<br>
+- On the negative side, Pleroma may be missing features that you were using on Mastodon ( like lists, trending tags, etc...), but it is developing fast, the project is open to contributions
+and it's catching up for the missing bits...<br><br>
+Talk to me in private if you want more details !
+<h4>Moderation logs/automated setup:</h4>
+<h5>Automated rules</h5>
+<ul>
+	<li>As a proof of concept of the MRF, we added a policy that scans every post entering this instance automatically, using <a href='https://github.com/uesteibar/veritaserum'>that offline library</a>. If the score is too much negative, a CW is automatically added, with the subject telling you how negative it found it was. We will probably revisit that depending on our users will and needs. That way you can avoid negative talks if that is your desire.</li>
+	<li>let me know what else you need !</li>
+</ul>
+<h5>Moderation actions</h5>
+<ul>
+	<li>None were needed right now, but I wont hesitate to if needed, this instance is not for bullies or trolls...</li>
+</ul>
 <br>
 <h4>Terms of Service</h4>
 
