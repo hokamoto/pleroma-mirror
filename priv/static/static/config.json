@@ -2,7 +2,7 @@
   "theme": "pleroma-dark",
   "background": "/static/aurora_borealis.jpg",
   "logo": "/static/logo.png",
-  "redirectRootNoLogin": "/main/all",
+  "redirectRootNoLogin": "/main",
   "redirectRootLogin": "/main/friends",
   "chatDisabled": false,
   "showWhoToFollowPanel": false,
@@ -10,6 +10,6 @@
   "whoToFollowProviderDummy2": "https://followlink.osa-p.net/api/get_recommend.json?acct=@{{user}}@{{host}}",
   "whoToFollowLink": "https://vinayaka.distsn.org/?{{host}}+{{user}}",
   "whoToFollowLinkDummy2": "https://followlink.osa-p.net/recommend.html",
-  "showInstanceSpecificPanel": false,
-  "scopeOptionsEnabled": false
+  "showInstanceSpecificPanel": true,
+  "scopeOptionsEnabled": true
 }
