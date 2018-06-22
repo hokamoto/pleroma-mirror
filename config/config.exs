@@ -72,7 +72,10 @@ config :pleroma, :mrf_simple,
 config :pleroma, :mrf_content_classifier,
   sentiment_analysis: false,
   reprocess_lang: false,
-  set_profanities: false
+  set_profanities: false,
+  set_subject_sa: false,
+  set_subject_prof: false,
+  neg_sentiment_grade: -4
 
 config :pleroma, :media_proxy,
   enabled: false,

@@ -63,11 +63,52 @@ defmodule Pleroma.Web.ActivityPub.MRF.ContentClassifier do
     {:ok, object}
   end
 
+  @set_sentiment_sum Keyword.get(@mrf_policy, :set_subject_sa)
+  @neg_sentiment_grade Keyword.get(@mrf_policy, :neg_sentiment_grade)
+  defp set_sentiment_summary(object) do
+    child_object = object["object"]
+
+    if @set_sentiment_sum == true do
+      if child_object["sentiment_analysis"] != nil and child_object["sentiment_analysis"] < @neg_sentiment_grade do
+        if child_object["summary"] != nil do
+          child_object = Map.put(child_object, "summary", "[Neg:#{grade}] " <> child_object["summary"])
+        else
+          child_object = Map.put(child_object, "summary", "[Neg:#{grade}]")
+        end
+
+        object = Map.put(object, "object", child_object)
+      end
+    end
+
+    {:ok, object}
+  end
+
+  @set_prof_sum Keyword.get(@mrf_policy, :set_subject_prof)
+  defp set_prof_summary(object) do
+    child_object = object["object"]
+
+    if @set_prof_sum == true do
+      if child_object["profanities"] == true do
+        if child_object["summary"] != nil do
+          child_object = Map.put(child_object, "summary", "[Profanities] " <> child_object["summary"])
+        else
+          child_object = Map.put(child_object, "summary", "[Profanities]")
+        end
+
+        object = Map.put(object, "object", child_object)
+      end
+    end
+
+    {:ok, object}
+  end
+
   @impl true
   def filter(object) do
     with {:ok, object} <- do_rate_post(object),
          {:ok, object} <- do_set_lang(object),
-         {:ok, object} <- do_set_profanities(object) do
+         {:ok, object} <- do_set_profanities(object),
+         {:ok, object} <- set_sentiment_summary(object),
+         {:ok, object} <- set_prof_summary(object) do
       Logger.info("content_classifier: #{inspect(object)}")
       {:ok, object}
     end
