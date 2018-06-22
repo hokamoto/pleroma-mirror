@@ -71,6 +71,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.ContentClassifier do
     if @set_sentiment_sum == true do
       if child_object["sentiment_analysis"] != nil and
            child_object["sentiment_analysis"] < @neg_sentiment_grade do
+        grade = child_object["sentiment_analysis"]
         if child_object["summary"] != nil do
           child_object =
             Map.put(child_object, "summary", "[Neg:#{grade}] " <> child_object["summary"])
