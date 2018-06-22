@@ -69,9 +69,10 @@ config :pleroma, :mrf_simple,
   federated_timeline_removal: [],
   reject: []
 
-config :pleroma, :mrf_sentimentanalysis,
-  sentiment_analysis_posts: false,
-  sentiment_analysis_autocw: false
+config :pleroma, :mrf_content_classifier,
+  sentiment_analysis: false,
+  reprocess_lang: false,
+  set_profanities: false
 
 config :pleroma, :media_proxy,
   enabled: false,

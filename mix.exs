@@ -48,7 +48,9 @@ defmodule Pleroma.Mixfile do
       {:ex_machina, "~> 2.0", only: :test},
       {:credo, "~> 0.7", only: [:dev, :test]},
       {:mock, "~> 0.3.0", only: :test},
-      {:veritaserum, "~> 0.2.0"}
+      {:veritaserum, "~> 0.2.0"},
+      {:paasaa, "~> 0.2.2"},
+      {:woolly, "~> 0.1.0"}
     ]
   end
 
