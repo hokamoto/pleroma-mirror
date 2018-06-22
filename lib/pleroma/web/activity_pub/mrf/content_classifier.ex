@@ -72,10 +72,12 @@ defmodule Pleroma.Web.ActivityPub.MRF.ContentClassifier do
       if child_object["sentiment_analysis"] != nil and
            child_object["sentiment_analysis"] < @neg_sentiment_grade do
         grade = child_object["sentiment_analysis"]
+
         if child_object["summary"] != nil do
           child_object =
             Map.put(child_object, "summary", "[Neg:#{grade}] " <> child_object["summary"])
         else
+          child_object = Map.put(child_object, "sensitive", true)
           child_object = Map.put(child_object, "summary", "[Neg:#{grade}]")
         end
 
@@ -99,6 +101,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.ContentClassifier do
           child_object = Map.put(child_object, "summary", "[Profanities]")
         end
 
+        child_object = Map.put(child_object, "sensitive", true)
         object = Map.put(object, "object", child_object)
       end
     end
