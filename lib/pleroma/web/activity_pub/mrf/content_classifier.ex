@@ -69,9 +69,11 @@ defmodule Pleroma.Web.ActivityPub.MRF.ContentClassifier do
     child_object = object["object"]
 
     if @set_sentiment_sum == true do
-      if child_object["sentiment_analysis"] != nil and child_object["sentiment_analysis"] < @neg_sentiment_grade do
+      if child_object["sentiment_analysis"] != nil and
+           child_object["sentiment_analysis"] < @neg_sentiment_grade do
         if child_object["summary"] != nil do
-          child_object = Map.put(child_object, "summary", "[Neg:#{grade}] " <> child_object["summary"])
+          child_object =
+            Map.put(child_object, "summary", "[Neg:#{grade}] " <> child_object["summary"])
         else
           child_object = Map.put(child_object, "summary", "[Neg:#{grade}]")
         end
@@ -90,7 +92,8 @@ defmodule Pleroma.Web.ActivityPub.MRF.ContentClassifier do
     if @set_prof_sum == true do
       if child_object["profanities"] == true do
         if child_object["summary"] != nil do
-          child_object = Map.put(child_object, "summary", "[Profanities] " <> child_object["summary"])
+          child_object =
+            Map.put(child_object, "summary", "[Profanities] " <> child_object["summary"])
         else
           child_object = Map.put(child_object, "summary", "[Profanities]")
         end
