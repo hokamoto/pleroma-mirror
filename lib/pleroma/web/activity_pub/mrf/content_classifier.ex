@@ -31,7 +31,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.ContentClassifier do
 
     if @do_lang == true do
       if child_object["content"] != nil do
-        lang = Paasaa.detect(child_object["content"])
+        lang = Paasaa.all(child_object["content"]) |> Enum.take(1)
       end
 
       child_object = Map.put(child_object, "lang", lang)
