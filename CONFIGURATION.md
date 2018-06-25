@@ -45,8 +45,9 @@ Currently, MRFs availible by default are:
 * `Pleroma.Web.ActivityPub.MRF.DropPolicy`
 * `Pleroma.Web.ActivityPub.MRF.SimplePolicy`
 * `Pleroma.Web.ActivityPub.MRF.RejectNonPublic`
+* `Pleroma.Web.ActivityPub.MRF.ContentClassifier`
 
-Some policies, such as SimplePolicy and RejectNonPublic,
+Some policies, such as SimplePolicy, RejectNonPublic and ContentClassifier,
 can be additionally configured in their respective sections.
 
 ### NoOpPolicy
@@ -89,3 +90,16 @@ Drops posts with non-public visibility settings.
 * `allow_followersonly`: whether to allow follower-only posts through
    the filter
 * `allow_direct`: whether to allow direct messages through the filter
+
+### ContentClassifier
+
+Analyze content received and act or add properties to objects.
+
+    config :pleroma, :mrf_content_classifier,
+      sentiment_analysis: false, # process sentiment analysis rating
+      reprocess_lang: false, # try to detect the lang of the post received
+      set_profanities: false, # try to detect if post contains profanities
+      set_subject_sa: false, # autoCW when SA < neg_sentiment_grade
+      set_subject_prof: false, # autoCW if profanities found
+      neg_sentiment_grade: -4 # grade used above for autoCW
+
