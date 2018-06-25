@@ -26,6 +26,7 @@ config :logger, :console,
   metadata: [:request_id]
 
 config :mime, :types, %{
+  "application/xml" => ["xml"],
   "application/xrd+xml" => ["xrd+xml"],
   "application/activity+json" => ["activity+json"],
   "application/ld+json" => ["activity+json"]
@@ -57,7 +58,12 @@ config :pleroma, :instance,
   public: true,
   quarantined_instances: []
 
-config :pleroma, :activitypub, accept_blocks: true
+config :pleroma, :activitypub,
+  accept_blocks: true,
+  unfollow_blocked: true,
+  outgoing_blocks: true
+
+config :pleroma, :user, deny_follow_blocked: true
 
 config :pleroma, :mrf_rejectnonpublic,
   allow_followersonly: false,
