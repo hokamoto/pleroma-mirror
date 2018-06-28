@@ -31,7 +31,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       header: header,
       header_static: header,
       emojis: [],
-      fields: [],
+      fields: user_info.fields || [],
       source: %{
         note: "",
         privacy: "public",

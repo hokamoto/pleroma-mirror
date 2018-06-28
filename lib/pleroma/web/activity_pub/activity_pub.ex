@@ -543,6 +543,14 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         }
 
     locked = data["manuallyApprovesFollowers"] || false
+
+    attachements = data["attachment"] || []
+
+    fields =
+      attachements
+      |> Enum.filter(fn att -> att[:type] == "PropertyValue" end)
+      |> Enum.map(fn att -> %{name: att[:name], value: att[:value]} end)
+
     data = Transmogrifier.maybe_fix_user_object(data)
 
     user_data = %{
@@ -551,7 +559,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         "ap_enabled" => true,
         "source_data" => data,
         "banner" => banner,
-        "locked" => locked
+        "locked" => locked,
+        "fields" => fields
       },
       avatar: avatar,
       nickname: "#{data["preferredUsername"]}@#{URI.parse(data["id"]).host}",

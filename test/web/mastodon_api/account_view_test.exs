@@ -7,7 +7,11 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
   test "Represent a user account" do
     user =
       insert(:user, %{
-        info: %{"note_count" => 5, "follower_count" => 3},
+        info: %{
+          "note_count" => 5,
+          "follower_count" => 3,
+          "fields" => [%{name: "pronouns", value: "fem."}]
+        },
         nickname: "shp@shitposter.club",
         inserted_at: ~N[2017-08-15 15:47:06.597036]
       })
@@ -19,9 +23,9 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       display_name: user.name,
       locked: false,
       created_at: "2017-08-15T15:47:06.000Z",
-      followers_count: 3,
+      followers_count: user.info["follower_count"],
       following_count: 0,
-      statuses_count: 5,
+      statuses_count: user.info["note_count"],
       note: user.bio,
       url: user.ap_id,
       avatar: "http://localhost:4001/images/avi.png",
@@ -29,7 +33,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       header: "http://localhost:4001/images/banner.png",
       header_static: "http://localhost:4001/images/banner.png",
       emojis: [],
-      fields: [],
+      fields: user.info["fields"],
       source: %{
         note: "",
         privacy: "public",
