@@ -238,18 +238,23 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
         ""
       end
 
-    html =
+    content_html =
       HtmlSanitizeEx.basic_html(content)
       |> Formatter.emojify(object["emoji"])
 
-    combined_html = "<div>#{summary}</div><div>#{html}</div>"
+    combined_html =
+      if !!summary and summary != "" do
+        "<summary>#{summary}</summary><br /><content>#{content_html}</content>"
+      else
+        "<content>#{content}</content>"
+      end
 
     %{
       "id" => activity.id,
       "uri" => activity.data["object"]["id"],
       "user" => UserView.render("show.json", %{user: user, for: opts[:for]}),
       "statusnet_html" => combined_html,
-      "content" => html,
+      "content" => content_html,
       "summary" => summary,
       "text" => HtmlSanitizeEx.strip_tags(content),
       "is_local" => activity.local,
