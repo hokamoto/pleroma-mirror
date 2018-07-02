@@ -186,7 +186,6 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
     content_html =
       HtmlSanitizeEx.basic_html(content)
       |> Formatter.emojify(object["emoji"])
-    
 
     combined_html =
       if !!summary and summary != "" do
@@ -199,7 +198,7 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
       if !!summary and summary != "" do
         HtmlSanitizeEx.strip_tags("#{summary} #{content}")
       else
-        HtmlSanitizeEx.strip_tags(content);
+        HtmlSanitizeEx.strip_tags(content)
       end
 
     %{

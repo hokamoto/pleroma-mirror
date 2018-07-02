@@ -248,12 +248,12 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
       else
         content_html
       end
-    
+
     simple_text =
       if !!summary and summary != "" do
         HtmlSanitizeEx.strip_tags("#{summary} #{content}")
       else
-        HtmlSanitizeEx.strip_tags(content);
+        HtmlSanitizeEx.strip_tags(content)
       end
 
     %{

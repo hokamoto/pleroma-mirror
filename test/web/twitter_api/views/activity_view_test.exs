@@ -44,8 +44,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
       "statusnet_conversation_id" => convo_id,
       "statusnet_html" =>
         "Hey <span><a href=\"#{other_user.ap_id}\">@<span>shp</span></a></span>!",
-      "content" =>
-        "Hey <span><a href=\"#{other_user.ap_id}\">@<span>shp</span></a></span>!",
+      "content" => "Hey <span><a href=\"#{other_user.ap_id}\">@<span>shp</span></a></span>!",
       "summary" => "",
       "tags" => [],
       "text" => "Hey @shp!",

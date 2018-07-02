@@ -126,9 +126,12 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenterTest do
     }
 
     expected_summary = "2hu"
-    expected_content = "alert('YAY')Some <img height='32px' width='32px' alt='2hu' title='2hu' src='corndog.png' /> content mentioning <a href=\"#{
+
+    expected_content =
+      "alert('YAY')Some <img height='32px' width='32px' alt='2hu' title='2hu' src='corndog.png' /> content mentioning <a href=\"#{
         mentioned_user.ap_id
       }\">@shp</a>"
+
     expected_html =
       "<summary>#{expected_summary}</summary><br /><content>#{expected_content}</content>"
 
