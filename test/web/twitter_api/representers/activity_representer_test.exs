@@ -125,17 +125,21 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenterTest do
       recipients: to
     }
 
-    expected_html =
-      "<span>2hu</span><br />alert('YAY')Some <img height='32px' width='32px' alt='2hu' title='2hu' src='corndog.png' /> content mentioning <a href=\"#{
+    expected_summary = "2hu"
+    expected_content = "alert('YAY')Some <img height='32px' width='32px' alt='2hu' title='2hu' src='corndog.png' /> content mentioning <a href=\"#{
         mentioned_user.ap_id
       }\">@shp</a>"
+    expected_html =
+      "<summary>#{expected_summary}</summary><br /><content>#{expected_content}</content>"
 
     expected_status = %{
       "id" => activity.id,
       "user" => UserView.render("show.json", %{user: user, for: follower}),
       "is_local" => false,
       "statusnet_html" => expected_html,
-      "text" => "2hu" <> content,
+      "summary" => expected_summary,
+      "content" => expected_content,
+      "text" => "2hu " <> content,
       "is_post_verb" => true,
       "created_at" => "Tue May 24 13:26:08 +0000 2016",
       "in_reply_to_status_id" => 213_123,

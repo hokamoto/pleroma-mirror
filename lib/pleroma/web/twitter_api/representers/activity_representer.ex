@@ -29,6 +29,8 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
       "id" => activity.id,
       "user" => UserView.render("show.json", %{user: user, for: opts[:for]}),
       "statusnet_html" => text,
+      "content" => text,
+      "summary" => "",
       "text" => text,
       "is_local" => activity.local,
       "is_post_verb" => false,
@@ -53,6 +55,8 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
       "id" => activity.id,
       "user" => UserView.render("show.json", %{user: user, for: opts[:for]}),
       "statusnet_html" => text,
+      "content" => text,
+      "summary" => "",
       "text" => text,
       "is_local" => activity.local,
       "is_post_verb" => false,
@@ -79,6 +83,8 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
       "user" => UserView.render("show.json", %{user: user, for: opts[:for]}),
       "attentions" => [],
       "statusnet_html" => text,
+      "content" => text,
+      "summary" => "",
       "text" => text,
       "is_local" => activity.local,
       "is_post_verb" => false,
@@ -106,6 +112,8 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
       "user" => UserView.render("show.json", %{user: user, for: opts[:for]}),
       "attentions" => [],
       "statusnet_html" => text,
+      "content" => text,
+      "summary" => "",
       "text" => text,
       "is_local" => activity.local,
       "is_post_verb" => false,
@@ -129,6 +137,8 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
       "user" => UserView.render("show.json", %{user: user, for: opts[:for]}),
       "attentions" => [],
       "statusnet_html" => "deleted notice {{tag",
+      "content" => "deleted notice {{tag",
+      "summary" => "",
       "text" => "deleted notice {{tag",
       "is_local" => activity.local,
       "is_post_verb" => false,
@@ -166,23 +176,40 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
 
     summary = activity.data["object"]["summary"]
 
-    content =
+    summary =
       if !!summary and summary != "" do
-        "<span>#{activity.data["object"]["summary"]}</span><br />#{content}</span>"
+        HtmlSanitizeEx.strip_tags(summary)
       else
-        content
+        ""
       end
 
-    html =
+    content_html =
       HtmlSanitizeEx.basic_html(content)
       |> Formatter.emojify(object["emoji"])
+    
+
+    combined_html =
+      if !!summary and summary != "" do
+        "<summary>#{summary}</summary><br /><content>#{content_html}</content>"
+      else
+        content_html
+      end
+
+    simple_text =
+      if !!summary and summary != "" do
+        HtmlSanitizeEx.strip_tags("#{summary} #{content}")
+      else
+        HtmlSanitizeEx.strip_tags(content);
+      end
 
     %{
       "id" => activity.id,
       "uri" => activity.data["object"]["id"],
       "user" => UserView.render("show.json", %{user: user, for: opts[:for]}),
-      "statusnet_html" => html,
-      "text" => HtmlSanitizeEx.strip_tags(content),
+      "statusnet_html" => combined_html,
+      "content" => content_html,
+      "summary" => summary,
+      "text" => simple_text,
       "is_local" => activity.local,
       "is_post_verb" => true,
       "created_at" => created_at,

@@ -246,7 +246,14 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
       if !!summary and summary != "" do
         "<summary>#{summary}</summary><br /><content>#{content_html}</content>"
       else
-        "<content>#{content}</content>"
+        content_html
+      end
+    
+    simple_text =
+      if !!summary and summary != "" do
+        HtmlSanitizeEx.strip_tags("#{summary} #{content}")
+      else
+        HtmlSanitizeEx.strip_tags(content);
       end
 
     %{
@@ -256,7 +263,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
       "statusnet_html" => combined_html,
       "content" => content_html,
       "summary" => summary,
-      "text" => HtmlSanitizeEx.strip_tags(content),
+      "text" => simple_text,
       "is_local" => activity.local,
       "is_post_verb" => true,
       "created_at" => created_at,
