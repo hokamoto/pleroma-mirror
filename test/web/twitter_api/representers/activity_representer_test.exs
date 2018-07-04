@@ -133,7 +133,7 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenterTest do
       }\">@shp</a>"
 
     expected_html =
-      "<summary>#{expected_summary}</summary><br /><content>#{expected_content}</content>"
+      "<span>#{expected_summary}</span><br />#{expected_content}</span>"
 
     expected_status = %{
       "id" => activity.id,

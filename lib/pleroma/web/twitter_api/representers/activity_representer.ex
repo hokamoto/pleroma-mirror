@@ -189,7 +189,7 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
 
     combined_html =
       if !!summary and summary != "" do
-        "<summary>#{summary}</summary><br /><content>#{content_html}</content>"
+        "<span>#{summary}</span><br />#{content_html}</span>"
       else
         content_html
       end
