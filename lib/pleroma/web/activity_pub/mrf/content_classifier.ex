@@ -8,7 +8,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.ContentClassifier do
 
   @do_sa Keyword.get(@mrf_policy, :sentiment_analysis)
   defp do_rate_post(object) do
-    child_object = object["object"]
+    child_object = Object.normalize(object["object"])
     grade = 0
 
     if @do_sa == true do
@@ -26,7 +26,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.ContentClassifier do
 
   @do_lang Keyword.get(@mrf_policy, :reprocess_lang)
   defp do_set_lang(object) do
-    child_object = object["object"]
+    child_object = Object.normalize(object["object"])
     lang = ''
 
     if @do_lang == true do
@@ -43,7 +43,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.ContentClassifier do
 
   @do_set_prof Keyword.get(@mrf_policy, :set_profanities)
   defp do_set_profanities(object) do
-    child_object = object["object"]
+    child_object = Object.normalize(object["object"])
 
     if @do_set_prof == true do
       if child_object["content"] != nil do
@@ -66,7 +66,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.ContentClassifier do
   @set_sentiment_sum Keyword.get(@mrf_policy, :set_subject_sa)
   @neg_sentiment_grade Keyword.get(@mrf_policy, :neg_sentiment_grade)
   defp set_sentiment_summary(object) do
-    child_object = object["object"]
+    child_object = Object.normalize(object["object"])
 
     if @set_sentiment_sum == true do
       if child_object["sentiment_analysis"] != nil and
