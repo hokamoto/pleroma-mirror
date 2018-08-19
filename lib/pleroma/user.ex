@@ -73,6 +73,7 @@ defmodule Pleroma.User do
   end
 
   @email_regex ~r/^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
+  @nickname_regex ~r/^[a-zA-Z_\d]+$/
   def remote_user_creation(params) do
     changes =
       %User{}
@@ -105,7 +106,7 @@ defmodule Pleroma.User do
     struct
     |> cast(params, [:bio, :name])
     |> unique_constraint(:nickname)
-    |> validate_format(:nickname, ~r/^[a-zA-Z\d]+$/)
+    |> validate_format(:nickname, @nickname_regex)
     |> validate_length(:bio, max: 5000)
     |> validate_length(:name, min: 1, max: 100)
   end
@@ -114,7 +115,7 @@ defmodule Pleroma.User do
     struct
     |> cast(params, [:bio, :name, :info, :follower_address, :avatar])
     |> unique_constraint(:nickname)
-    |> validate_format(:nickname, ~r/^[a-zA-Z\d]+$/)
+    |> validate_format(:nickname, @nickname_regex)
     |> validate_length(:bio, max: 5000)
     |> validate_length(:name, max: 100)
   end
@@ -148,7 +149,7 @@ defmodule Pleroma.User do
       |> validate_confirmation(:password)
       |> unique_constraint(:email)
       |> unique_constraint(:nickname)
-      |> validate_format(:nickname, ~r/^[a-zA-Z\d]+$/)
+      |> validate_format(:nickname, @nickname_regex)
       |> validate_format(:email, @email_regex)
       |> validate_length(:bio, max: 1000)
       |> validate_length(:name, min: 1, max: 100)
