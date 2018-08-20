@@ -73,7 +73,7 @@ defmodule Pleroma.User do
   end
 
   @email_regex ~r/^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
-  @nickname_regex ~r/^[a-zA-Z_\d]+$/
+  @nickname_regex ~r/^[a-zA-Z_][a-zA-Z_\d]*$/
   def remote_user_creation(params) do
     changes =
       %User{}
