@@ -24,6 +24,15 @@ No release has been made yet, but several servers have been online for months al
 
 While we don't provide docker files, other people have written very good ones. Take a look at https://github.com/Angristan/dockerfiles/tree/master/pleroma or https://github.com/sn0w/pleroma-docker.
 
+### Nanobox
+
+1. [Install nanobox](https://docs.nanobox.io/install/)
+2. `nanobox dns add local phoenix.local`
+3. `nanobox evar add local NANOBOX=true`
+4. `nanobox run mix ecto.setup`
+5. `nanobox run mix phoenix.server`
+6. Visit phoenix.local:4000
+
 ### Dependencies
 
 * Postgresql version 9.6 or newer
