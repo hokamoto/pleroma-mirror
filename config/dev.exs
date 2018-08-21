@@ -57,3 +57,14 @@ rescue
       "!!! RUNNING IN LOCALHOST DEV MODE! !!!\nFEDERATION WON'T WORK UNTIL YOU CONFIGURE A dev.secret.exs"
     )
 end
+
+if System.get_env("NANOBOX") do
+  try do
+    import_config "dev.nanobox.exs"
+  rescue
+    _ ->
+      IO.puts(
+        "You may want to create dev.nanobox.exs to declare nanobox-specific settings."
+      )
+  end
+end

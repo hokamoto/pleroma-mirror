@@ -35,3 +35,14 @@ rescue
       "You may want to create test.secret.exs to declare custom database connection parameters."
     )
 end
+
+if System.get_env("NANOBOX") do
+  try do
+    import_config "test.nanobox.exs"
+  rescue
+    _ ->
+      IO.puts(
+        "You may want to create test.nanobox.exs to declare nanobox-specific settings."
+      )
+  end
+end

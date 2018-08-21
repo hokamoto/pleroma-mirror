@@ -61,3 +61,15 @@ config :logger, level: :info
 # Finally import the config/prod.secret.exs
 # which should be versioned separately.
 import_config "prod.secret.exs"
+
+
+if System.get_env("NANOBOX") do
+  try do
+    import_config "prod.nanobox.exs"
+  rescue
+    _ ->
+      IO.puts(
+        "You may want to create prod.nanobox.exs to declare nanobox-specific settings."
+      )
+  end
+end
