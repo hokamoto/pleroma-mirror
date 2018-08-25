@@ -28,7 +28,13 @@ defmodule Pleroma.Web.WebFinger do
   def webfinger(resource, fmt) when fmt in ["XML", "JSON"] do
     domain = Application.get_env(:pleroma, Pleroma.Web.Endpoint)[:domain]
     host = Pleroma.Web.Endpoint.host()
-    regex = ~r/(acct:)?(?<username>\w+)@(#{host}|#{domain})/
+
+    regex =
+      if domain do
+        ~r/(acct:)?(?<username>\w+)@(#{host}|#{domain})/
+      else
+        ~r/(acct:)?(?<username>\w+)@#{host}/
+      end
 
     with %{"username" => username} <- Regex.named_captures(regex, resource),
          %User{} = user <- User.get_by_nickname(username) do
@@ -48,7 +54,13 @@ defmodule Pleroma.Web.WebFinger do
     {:ok, user} = ensure_keys_present(user)
     {:ok, _private, public} = Salmon.keys_from_pem(user.info["keys"])
     magic_key = Salmon.encode_key(public)
-    host = Application.get_env(:pleroma, Pleroma.Web.Endpoint)[:domain]
+
+    host =
+      if Application.get_env(:pleroma, Pleroma.Web.Endpoint)[:domain] do
+        Application.get_env(:pleroma, Pleroma.Web.Endpoint)[:domain]
+      else
+        Pleroma.Web.Endpoint.host()
+      end
 
     %{
       "subject" => "acct:#{user.nickname}@#{host}",
@@ -87,7 +99,13 @@ defmodule Pleroma.Web.WebFinger do
     {:ok, user} = ensure_keys_present(user)
     {:ok, _private, public} = Salmon.keys_from_pem(user.info["keys"])
     magic_key = Salmon.encode_key(public)
-    host = Application.get_env(:pleroma, Pleroma.Web.Endpoint)[:domain]
+
+    host =
+      if Application.get_env(:pleroma, Pleroma.Web.Endpoint)[:domain] do
+        Application.get_env(:pleroma, Pleroma.Web.Endpoint)[:domain]
+      else
+        Pleroma.Web.Endpoint.host()
+      end
 
     {
       :XRD,
