@@ -102,8 +102,11 @@ defmodule Pleroma.Web.Router do
   scope "/oauth", Pleroma.Web.OAuth do
     get("/authorize", OAuthController, :authorize)
     post("/authorize", OAuthController, :create_authorization)
+    options("/authorize", ArticleController, :options)
     post("/token", OAuthController, :token_exchange)
+    options("/token", ArticleController, :options)
     post("/revoke", OAuthController, :token_revoke)
+    options("/revoke", ArticleController, :options)
   end
 
   scope "/api/v1", Pleroma.Web.MastodonAPI do
@@ -111,6 +114,7 @@ defmodule Pleroma.Web.Router do
 
     patch("/accounts/update_credentials", MastodonAPIController, :update_credentials)
     get("/accounts/verify_credentials", MastodonAPIController, :verify_credentials)
+    options("/accounts/verify_credentials", MastodonAPIController, :options)
     get("/accounts/relationships", MastodonAPIController, :relationships)
     get("/accounts/search", MastodonAPIController, :account_search)
     post("/accounts/:id/follow", MastodonAPIController, :follow)

@@ -37,6 +37,7 @@ defmodule Pleroma.Mixfile do
       {:gettext, "~> 0.15"},
       {:cowboy, "~> 1.1.2", override: true},
       {:comeonin, "~> 4.1.1"},
+      {:cors_plug, "~> 1.5"},
       {:pbkdf2_elixir, "~> 0.12.3"},
       {:trailing_format_plug, "~> 0.0.7"},
       {:html_sanitize_ex, "~> 1.3.0"},

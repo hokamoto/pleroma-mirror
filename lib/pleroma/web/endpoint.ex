@@ -56,6 +56,8 @@ defmodule Pleroma.Web.Endpoint do
     extra: "SameSite=Strict"
   )
 
+  plug(CORSPlug)
+
   plug(Pleroma.Web.Router)
 
   @doc """

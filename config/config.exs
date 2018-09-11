@@ -131,6 +131,11 @@ config :pleroma, :suggestions,
   limit: 23,
   web: "https://vinayaka.distsn.org/?{{host}}+{{user}}"
 
+config :cors_plug,
+  origin: ["*"],
+  max_age: 86400,
+  methods: ["GET", "POST"]
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"
