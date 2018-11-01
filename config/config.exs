@@ -5,6 +5,8 @@
 # is restricted to this project.
 use Mix.Config
 
+config :tesla, adapter: Tesla.Adapter.Hackney
+
 # General application configuration
 config :pleroma, ecto_repos: [Pleroma.Repo]
 
@@ -170,6 +172,14 @@ config :pleroma, :suggestions,
   timeout: 300_000,
   limit: 23,
   web: "https://vinayaka.distsn.org/?{{host}}+{{user}}"
+
+config :pleroma, :mfc,
+  login_secret: "I70Xk+ga0dBN/7QiIHWfxNovwC+RPyB/4Gu+gf1EaBV8QZVK8tSnjEt5gHRUoB/p",
+  passcode_cookie_endpoint: "https://passcookie/login",
+  login_endpoint: "https://passcookie/login/passcode",
+  client_version: "Pleroma",
+  server_ip: "127.0.0.1",
+  client_ip: "127.0.0.1"
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
