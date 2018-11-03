@@ -46,17 +46,21 @@ defmodule Pleroma.Web.Mfc.Login do
            post(url, %{username: username, password: password}),
          cookies <- decode_cookies(headers),
          [_, passcode] <- Enum.find(cookies, fn [key, _] -> key == "passcode" end) do
-      passcode
+      {:ok, passcode}
+    else
+      e -> {:error, e}
     end
   end
 
   def authenticate(username, password) do
-    passcode = get_passcode(username, password)
-    data = login_data(username, passcode)
-    hash = hash(data)
-    data = Map.put(data, :k, hash)
-
-    authenticate(data)
+    with {:ok, passcode} <- get_passcode(username, password),
+         data <- login_data(username, passcode),
+         hash <- hash(data),
+         data <- Map.put(data, :k, hash) do
+      authenticate(data)
+    else
+      e -> {:error, e}
+    end
   end
 
   def authenticate(data) do
@@ -66,8 +70,11 @@ defmodule Pleroma.Web.Mfc.Login do
       mfc
       |> Keyword.get(:login_endpoint)
 
-    with {:ok, response} <- post(url, data) do
-      IO.inspect(response)
+    with {:ok, %{status: 200, body: body}} <- post(url, data),
+         {:ok, %{"result" => result}} <- Jason.decode(body) do
+      {:ok, result}
+    else
+      e -> {:error, e}
     end
   end
 
