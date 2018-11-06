@@ -162,6 +162,7 @@ defmodule Pleroma.User do
       |> unique_constraint(:nickname)
       |> validate_format(:nickname, ~r/^[a-zA-Z\d]+$/)
       |> validate_length(:name, min: 1, max: 100)
+      |> validate_length(:nickname, min: 1, max: 100)
 
     if changeset.valid? do
       ap_id = User.ap_id(%User{nickname: changeset.changes[:nickname]})

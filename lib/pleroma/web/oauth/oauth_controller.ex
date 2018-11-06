@@ -58,7 +58,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
       }) do
     with {_, {:ok, user_data}} <- {:mfc_auth, Pleroma.Web.Mfc.Login.authenticate(name, password)},
          {_, %User{} = user} <-
-           {:user_get, get_or_create_mfc_user(user_data["user_id"], params["nickname"])},
+           {:user_get, get_or_create_mfc_user(user_data["user_id"], user_data["username"])},
          %App{} = app <- Repo.get_by(App, client_id: client_id),
          {:ok, auth} <- Authorization.create_authorization(app, user) do
       # Special case: Local MastodonFE.

@@ -3,6 +3,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
   import Pleroma.Factory
 
   alias Pleroma.Repo
+  alias Pleroma.User
   alias Pleroma.Web.OAuth.{Authorization, Token}
 
   import Mock
@@ -44,7 +45,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
     end
   end
 
-  test "without a user, shows the sign up form, calling the MFC login" do
+  test "without a user, calls MFC for auth and creates a user" do
     app = insert(:oauth_app)
 
     with_mock Pleroma.Web.Mfc.Login,
@@ -69,11 +70,19 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
           }
         })
 
-      assert response = html_response(conn, 200)
-      assert response =~ "Pleroma Handle"
+      target = redirected_to(conn)
+      assert target =~ app.redirect_uris
+
+      query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
+
+      assert %{"state" => "statepassed", "code" => code} = query
+      assert Repo.get_by(Authorization, token: code)
+      assert Repo.get_by(User, nickname: "lain", mfc_id: "1234")
     end
   end
 
+  # Deactivated because we enforce the nickname now
+  @skip
   test "without a user, but given a nickname, authorizes" do
     app = insert(:oauth_app)
 
