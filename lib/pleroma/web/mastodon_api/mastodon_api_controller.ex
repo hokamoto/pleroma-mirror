@@ -35,6 +35,14 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   def update_credentials(%{assigns: %{user: user}} = conn, params) do
     original_user = user
 
+    avatar_upload_limit =
+      Application.get_env(:pleroma, :instance)
+      |> Keyword.fetch(:avatar_upload_limit)
+
+    banner_upload_limit =
+      Application.get_env(:pleroma, :instance)
+      |> Keyword.fetch(:banner_upload_limit)
+
     params =
       if bio = params["note"] do
         Map.put(params, "bio", bio)
@@ -52,7 +60,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     user =
       if avatar = params["avatar"] do
         with %Plug.Upload{} <- avatar,
-             {:ok, object} <- ActivityPub.upload(avatar),
+             {:ok, object} <- ActivityPub.upload(avatar, avatar_upload_limit),
              change = Ecto.Changeset.change(user, %{avatar: object.data}),
              {:ok, user} = User.update_and_set_cache(change) do
           user
@@ -66,7 +74,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     user =
       if banner = params["header"] do
         with %Plug.Upload{} <- banner,
-             {:ok, object} <- ActivityPub.upload(banner),
+             {:ok, object} <- ActivityPub.upload(banner, banner_upload_limit),
              new_info <- Map.put(user.info, "banner", object.data),
              change <- User.info_changeset(user, %{info: new_info}),
              {:ok, user} <- User.update_and_set_cache(change) do
@@ -150,7 +158,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   defp mastodonized_emoji do
-    Pleroma.Formatter.get_custom_emoji()
+    Pleroma.Emoji.get_all()
     |> Enum.map(fn {shortcode, relative_url} ->
       url = to_string(URI.merge(Web.base_url(), relative_url))
 
@@ -223,6 +231,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
     activities =
       ActivityPub.fetch_activities([user.ap_id | user.following], params)
+      |> ActivityPub.contain_timeline(user)
       |> Enum.reverse()
 
     conn
@@ -499,6 +508,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       |> Map.put("type", "Create")
       |> Map.put("local_only", local_only)
       |> Map.put("blocking_user", user)
+      |> Map.put("tag", String.downcase(params["tag"]))
 
     activities =
       ActivityPub.fetch_public_activities(params)
@@ -975,9 +985,29 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     end
   end
 
+  def login(conn, %{"code" => code}) do
+    with {:ok, app} <- get_or_make_app(),
+         %Authorization{} = auth <- Repo.get_by(Authorization, token: code, app_id: app.id),
+         {:ok, token} <- Token.exchange_token(app, auth) do
+      conn
+      |> put_session(:oauth_token, token.token)
+      |> redirect(to: "/web/getting-started")
+    end
+  end
+
   def login(conn, _) do
-    conn
-    |> render(MastodonView, "login.html", %{error: false})
+    with {:ok, app} <- get_or_make_app() do
+      path =
+        o_auth_path(conn, :authorize,
+          response_type: "code",
+          client_id: app.client_id,
+          redirect_uri: ".",
+          scope: app.scopes
+        )
+
+      conn
+      |> redirect(to: path)
+    end
   end
 
   defp get_or_make_app() do
@@ -993,22 +1023,6 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
           })
 
         Repo.insert(cs)
-    end
-  end
-
-  def login_post(conn, %{"authorization" => %{"name" => name, "password" => password}}) do
-    with %User{} = user <- User.get_by_nickname_or_email(name),
-         true <- Pbkdf2.checkpw(password, user.password_hash),
-         {:ok, app} <- get_or_make_app(),
-         {:ok, auth} <- Authorization.create_authorization(app, user),
-         {:ok, token} <- Token.exchange_token(app, auth) do
-      conn
-      |> put_session(:oauth_token, token.token)
-      |> redirect(to: "/web/getting-started")
-    else
-      _e ->
-        conn
-        |> render(MastodonView, "login.html", %{error: "Wrong username or password"})
     end
   end
 

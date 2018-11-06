@@ -295,6 +295,7 @@ defmodule Pleroma.User do
   def invalidate_cache(user) do
     Cachex.del(:user_cache, "ap_id:#{user.ap_id}")
     Cachex.del(:user_cache, "nickname:#{user.nickname}")
+    Cachex.del(:user_cache, "user_info:#{user.id}")
   end
 
   def get_cached_by_ap_id(ap_id) do
@@ -622,8 +623,8 @@ defmodule Pleroma.User do
     )
   end
 
-  def deactivate(%User{} = user) do
-    new_info = Map.put(user.info, "deactivated", true)
+  def deactivate(%User{} = user, status \\ true) do
+    new_info = Map.put(user.info, "deactivated", status)
     cs = User.info_changeset(user, %{info: new_info})
     update_and_set_cache(cs)
   end
@@ -656,7 +657,7 @@ defmodule Pleroma.User do
       end
     end)
 
-    :ok
+    {:ok, user}
   end
 
   def html_filter_policy(%User{info: %{"no_rich_text" => true}}) do

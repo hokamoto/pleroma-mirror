@@ -79,7 +79,9 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
       |> Map.put("blocking_user", user)
       |> Map.put("user", user)
 
-    activities = ActivityPub.fetch_activities([user.ap_id | user.following], params)
+    activities =
+      ActivityPub.fetch_activities([user.ap_id | user.following], params)
+      |> ActivityPub.contain_timeline(user)
 
     conn
     |> render(ActivityView, "index.json", %{activities: activities, for: user})
@@ -261,7 +263,11 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   end
 
   def update_avatar(%{assigns: %{user: user}} = conn, params) do
-    {:ok, object} = ActivityPub.upload(params)
+    upload_limit =
+      Application.get_env(:pleroma, :instance)
+      |> Keyword.fetch(:avatar_upload_limit)
+
+    {:ok, object} = ActivityPub.upload(params, upload_limit)
     change = Changeset.change(user, %{avatar: object.data})
     {:ok, user} = User.update_and_set_cache(change)
     CommonAPI.update(user)
@@ -270,7 +276,11 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   end
 
   def update_banner(%{assigns: %{user: user}} = conn, params) do
-    with {:ok, object} <- ActivityPub.upload(%{"img" => params["banner"]}),
+    upload_limit =
+      Application.get_env(:pleroma, :instance)
+      |> Keyword.fetch(:banner_upload_limit)
+
+    with {:ok, object} <- ActivityPub.upload(%{"img" => params["banner"]}, upload_limit),
          new_info <- Map.put(user.info, "banner", object.data),
          change <- User.info_changeset(user, %{info: new_info}),
          {:ok, user} <- User.update_and_set_cache(change) do
@@ -284,7 +294,11 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   end
 
   def update_background(%{assigns: %{user: user}} = conn, params) do
-    with {:ok, object} <- ActivityPub.upload(params),
+    upload_limit =
+      Application.get_env(:pleroma, :instance)
+      |> Keyword.fetch(:background_upload_limit)
+
+    with {:ok, object} <- ActivityPub.upload(params, upload_limit),
          new_info <- Map.put(user.info, "background", object.data),
          change <- User.info_changeset(user, %{info: new_info}),
          {:ok, _user} <- User.update_and_set_cache(change) do

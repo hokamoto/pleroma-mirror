@@ -37,6 +37,11 @@ defmodule Pleroma.Web.ActivityPub.Utils do
       recipient_in_collection(ap_id, params["bcc"]) ->
         true
 
+      # if the message is unaddressed at all, then assume it is directly addressed
+      # to the recipient
+      !params["to"] && !params["cc"] && !params["bto"] && !params["bcc"] ->
+        true
+
       true ->
         false
     end
@@ -170,7 +175,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   Inserts a full object if it is contained in an activity.
   """
   def insert_full_object(%{"object" => %{"type" => type} = object_data})
-      when is_map(object_data) and type in ["Article", "Note", "Video"] do
+      when is_map(object_data) and type in ["Article", "Note", "Video", "Page"] do
     with {:ok, _} <- Object.create(object_data) do
       :ok
     end

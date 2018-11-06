@@ -57,6 +57,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     object
     |> fix_actor
     |> fix_attachments
+    |> fix_url
     |> fix_context
     |> fix_in_reply_to
     |> fix_emoji
@@ -171,6 +172,27 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
 
   def fix_attachments(object), do: object
 
+  def fix_url(%{"url" => url} = object) when is_map(url) do
+    object
+    |> Map.put("url", url["href"])
+  end
+
+  def fix_url(%{"url" => url} = object) when is_list(url) do
+    first_element = Enum.at(url, 0)
+
+    url_string =
+      cond do
+        is_bitstring(first_element) -> first_element
+        is_map(first_element) -> first_element["href"] || ""
+        true -> ""
+      end
+
+    object
+    |> Map.put("url", url_string)
+  end
+
+  def fix_url(object), do: object
+
   def fix_emoji(%{"tag" => tags} = object) when is_list(tags) do
     emoji = tags |> Enum.filter(fn data -> data["type"] == "Emoji" and data["icon"] end)
 
@@ -241,7 +263,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   # - tags
   # - emoji
   def handle_incoming(%{"type" => "Create", "object" => %{"type" => objtype} = object} = data)
-      when objtype in ["Article", "Note", "Video"] do
+      when objtype in ["Article", "Note", "Video", "Page"] do
     actor = get_actor(data)
 
     data =
