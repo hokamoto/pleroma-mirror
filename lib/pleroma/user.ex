@@ -23,6 +23,7 @@ defmodule Pleroma.User do
     field(:follower_address, :string)
     field(:search_distance, :float, virtual: true)
     field(:last_refreshed_at, :naive_datetime)
+    field(:mfc_id, :string)
     has_many(:notifications, Notification)
 
     timestamps()
@@ -151,6 +152,28 @@ defmodule Pleroma.User do
 
   def reset_password(user, data) do
     update_and_set_cache(password_update_changeset(user, data))
+  end
+
+  def mfc_register_changeset(struct, params \\ %{}) do
+    changeset =
+      struct
+      |> cast(params, [:name, :nickname, :mfc_id])
+      |> validate_required([:name, :nickname, :mfc_id])
+      |> unique_constraint(:nickname)
+      |> validate_format(:nickname, ~r/^[a-zA-Z\d]+$/)
+      |> validate_length(:name, min: 1, max: 100)
+
+    if changeset.valid? do
+      ap_id = User.ap_id(%User{nickname: changeset.changes[:nickname]})
+      followers = User.ap_followers(%User{nickname: changeset.changes[:nickname]})
+
+      changeset
+      |> put_change(:ap_id, ap_id)
+      |> put_change(:following, [followers])
+      |> put_change(:follower_address, followers)
+    else
+      changeset
+    end
   end
 
   def register_changeset(struct, params \\ %{}) do
