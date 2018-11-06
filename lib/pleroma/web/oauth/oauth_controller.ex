@@ -16,8 +16,35 @@ defmodule Pleroma.Web.OAuth.OAuthController do
       client_id: params["client_id"],
       scope: params["scope"],
       redirect_uri: params["redirect_uri"],
-      state: params["state"]
+      state: params["state"],
+      name: params["name"],
+      password: params["password"],
+      registration: params["registration"]
     })
+  end
+
+  defp get_or_create_mfc_user(mfc_id, nickname) do
+    mfc_id = to_string(mfc_id)
+    user = Repo.get_by(User, mfc_id: mfc_id)
+
+    cond do
+      user ->
+        user
+
+      nickname ->
+        with {:ok, user} <-
+               User.mfc_register_changeset(%User{}, %{
+                 nickname: nickname,
+                 mfc_id: mfc_id,
+                 name: nickname
+               })
+               |> Repo.insert() do
+          user
+        end
+
+      true ->
+        nil
+    end
   end
 
   def create_authorization(conn, %{
@@ -29,8 +56,9 @@ defmodule Pleroma.Web.OAuth.OAuthController do
             "redirect_uri" => redirect_uri
           } = params
       }) do
-    with %User{} = user <- User.get_by_nickname_or_email(name),
-         true <- Pbkdf2.checkpw(password, user.password_hash),
+    with {_, {:ok, user_data}} <- {:mfc_auth, Pleroma.Web.Mfc.Login.authenticate(name, password)},
+         {_, %User{} = user} <-
+           {:user_get, get_or_create_mfc_user(user_data["user_id"], params["nickname"])},
          %App{} = app <- Repo.get_by(App, client_id: client_id),
          {:ok, auth} <- Authorization.create_authorization(app, user) do
       # Special case: Local MastodonFE.
@@ -63,6 +91,13 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
           redirect(conn, external: url)
       end
+    else
+      {:user_get, _} ->
+        conn
+        |> Pleroma.Web.OAuth.OAuthController.authorize(Map.put(params, "registration", true))
+
+      e ->
+        e
     end
   end
 
