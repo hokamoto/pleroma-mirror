@@ -57,6 +57,9 @@ defmodule Pleroma.Web.OAuth.OAuthController do
           } = params
       }) do
     with {_, {:ok, user_data}} <- {:mfc_auth, Pleroma.Web.Mfc.Login.authenticate(name, password)},
+         true <-
+           user_data["access_level"] >=
+             Application.get_env(:pleroma, :mfc) |> Keyword.get(:minimum_access_level),
          {_, %User{} = user} <-
            {:user_get, get_or_create_mfc_user(user_data["user_id"], user_data["username"])},
          %App{} = app <- Repo.get_by(App, client_id: client_id),

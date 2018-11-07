@@ -18,7 +18,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
         {:ok,
          %{
            "user_id" => 1234,
-           "access_level" => 1,
+           "access_level" => 2,
            "avatar_url" => false,
            "username" => "lain"
          }}
@@ -45,6 +45,37 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
     end
   end
 
+  test "With an access level below the minimum, don't allow access" do
+    user = insert(:user, %{mfc_id: "1234"})
+    app = insert(:oauth_app)
+    nickname = user.nickname
+
+    with_mock Pleroma.Web.Mfc.Login,
+      authenticate: fn ^nickname, "test" ->
+        {:ok,
+         %{
+           "user_id" => 1234,
+           "access_level" => 1,
+           "avatar_url" => false,
+           "username" => "lain"
+         }}
+      end do
+      conn =
+        build_conn()
+        |> post("/oauth/authorize", %{
+          "authorization" => %{
+            "name" => user.nickname,
+            "password" => "test",
+            "client_id" => app.client_id,
+            "redirect_uri" => app.redirect_uris,
+            "state" => "statepassed"
+          }
+        })
+
+      assert html_response(conn, 200) =~ "Invalid"
+    end
+  end
+
   test "without a user, calls MFC for auth and creates a user" do
     app = insert(:oauth_app)
 
@@ -53,7 +84,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
         {:ok,
          %{
            "user_id" => 1234,
-           "access_level" => 1,
+           "access_level" => 2,
            "avatar_url" => false,
            "username" => "lain"
          }}
@@ -91,7 +122,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
         {:ok,
          %{
            "user_id" => 1234,
-           "access_level" => 1,
+           "access_level" => 2,
            "avatar_url" => false,
            "username" => "lain"
          }}

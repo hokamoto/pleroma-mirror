@@ -184,7 +184,8 @@ config :pleroma, :mfc,
   login_endpoint: "https://passcookie/login/passcode",
   client_version: "Pleroma",
   server_ip: "127.0.0.1",
-  client_ip: "127.0.0.1"
+  client_ip: "127.0.0.1",
+  minimum_access_level: 2
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
