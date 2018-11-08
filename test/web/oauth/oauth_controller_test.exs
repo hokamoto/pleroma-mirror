@@ -85,7 +85,10 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
          %{
            "user_id" => 1234,
            "access_level" => 2,
-           "avatar_url" => "http://example.com/image.jpg",
+           "avatar_url" => [
+             "https://img.mfcimg.com/photos2/300/30004271/avatar.",
+             ".jpg?nc=1541675948"
+           ],
            "username" => "lain"
          }}
       end do
@@ -109,7 +112,9 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert %{"state" => "statepassed", "code" => code} = query
       assert Repo.get_by(Authorization, token: code)
       assert user = Repo.get_by(User, nickname: "lain", mfc_id: "1234")
-      assert User.avatar_url(user) == "http://example.com/image.jpg"
+
+      assert User.avatar_url(user) ==
+               "https://img.mfcimg.com/photos2/300/30004271/avatar.300x300.jpg?nc=1541675948"
     end
   end
 
