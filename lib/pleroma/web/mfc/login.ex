@@ -2,6 +2,8 @@ defmodule Pleroma.Web.Mfc.Login do
   use Tesla
   plug(Tesla.Middleware.FormUrlencoded)
 
+  import Logger
+
   def hash(%{
         t: t,
         username: username,
@@ -59,7 +61,9 @@ defmodule Pleroma.Web.Mfc.Login do
          data <- Map.put(data, :k, hash) do
       authenticate(data)
     else
-      e -> {:error, e}
+      e ->
+        Logger.info("Error in authentication: #{inspect(e)}")
+        {:error, e}
     end
   end
 

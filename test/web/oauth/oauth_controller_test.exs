@@ -72,7 +72,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
           }
         })
 
-      assert html_response(conn, 200) =~ "Invalid"
+      assert html_response(conn, 200) =~ "Premium"
     end
   end
 

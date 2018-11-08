@@ -33,9 +33,10 @@ defmodule Pleroma.Web.OAuth.OAuthController do
           } = params
       }) do
     with {_, {:ok, user_data}} <- {:mfc_auth, Pleroma.Web.Mfc.Login.authenticate(name, password)},
-         true <-
-           user_data["access_level"] >=
-             Application.get_env(:pleroma, :mfc) |> Keyword.get(:minimum_access_level),
+         {_, true} <-
+           {:access_level_check,
+            user_data["access_level"] >=
+              Application.get_env(:pleroma, :mfc) |> Keyword.get(:minimum_access_level)},
          {_, %User{} = user} <-
            {:user_get,
             Pleroma.Web.Mfc.Utils.get_or_create_mfc_user(
@@ -76,9 +77,14 @@ defmodule Pleroma.Web.OAuth.OAuthController do
           redirect(conn, external: url)
       end
     else
+      {:access_level_check, _} ->
+        conn
+        |> put_flash(:error, "Only available for Premium accounts")
+        |> authorize(conn.params)
+
       {:user_get, _} ->
         conn
-        |> Pleroma.Web.OAuth.OAuthController.authorize(Map.put(params, "registration", true))
+        |> authorize(Map.put(params, "registration", true))
 
       e ->
         e
