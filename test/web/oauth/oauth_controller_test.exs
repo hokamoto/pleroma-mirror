@@ -3,31 +3,157 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
   import Pleroma.Factory
 
   alias Pleroma.Repo
+  alias Pleroma.User
   alias Pleroma.Web.OAuth.{Authorization, Token}
 
-  test "redirects with oauth authorization" do
-    user = insert(:user)
+  import Mock
+
+  test "redirects with oauth authorization, calling the MFC login" do
+    user = insert(:user, %{mfc_id: "1234"})
+    app = insert(:oauth_app)
+    nickname = user.nickname
+
+    with_mock Pleroma.Web.Mfc.Login,
+      authenticate: fn ^nickname, "test" ->
+        {:ok,
+         %{
+           "user_id" => 1234,
+           "access_level" => 2,
+           "avatar_url" => false,
+           "username" => "lain"
+         }}
+      end do
+      conn =
+        build_conn()
+        |> post("/oauth/authorize", %{
+          "authorization" => %{
+            "name" => user.nickname,
+            "password" => "test",
+            "client_id" => app.client_id,
+            "redirect_uri" => app.redirect_uris,
+            "state" => "statepassed"
+          }
+        })
+
+      target = redirected_to(conn)
+      assert target =~ app.redirect_uris
+
+      query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
+
+      assert %{"state" => "statepassed", "code" => code} = query
+      assert Repo.get_by(Authorization, token: code)
+    end
+  end
+
+  test "With an access level below the minimum, don't allow access" do
+    user = insert(:user, %{mfc_id: "1234"})
+    app = insert(:oauth_app)
+    nickname = user.nickname
+
+    with_mock Pleroma.Web.Mfc.Login,
+      authenticate: fn ^nickname, "test" ->
+        {:ok,
+         %{
+           "user_id" => 1234,
+           "access_level" => 1,
+           "avatar_url" => false,
+           "username" => "lain"
+         }}
+      end do
+      conn =
+        build_conn()
+        |> post("/oauth/authorize", %{
+          "authorization" => %{
+            "name" => user.nickname,
+            "password" => "test",
+            "client_id" => app.client_id,
+            "redirect_uri" => app.redirect_uris,
+            "state" => "statepassed"
+          }
+        })
+
+      assert html_response(conn, 200) =~ "Premium"
+    end
+  end
+
+  test "without a user, calls MFC for auth and creates a user" do
     app = insert(:oauth_app)
 
-    conn =
-      build_conn()
-      |> post("/oauth/authorize", %{
-        "authorization" => %{
-          "name" => user.nickname,
-          "password" => "test",
-          "client_id" => app.client_id,
-          "redirect_uri" => app.redirect_uris,
-          "state" => "statepassed"
-        }
-      })
+    with_mock Pleroma.Web.Mfc.Login,
+      authenticate: fn "lain", "test" ->
+        {:ok,
+         %{
+           "user_id" => 1234,
+           "access_level" => 2,
+           "avatar_url" => [
+             "https://img.mfcimg.com/photos2/300/30004271/avatar.",
+             ".jpg?nc=1541675948"
+           ],
+           "username" => "lain"
+         }}
+      end do
+      conn =
+        build_conn()
+        |> post("/oauth/authorize", %{
+          "authorization" => %{
+            "name" => "lain",
+            "password" => "test",
+            "client_id" => app.client_id,
+            "redirect_uri" => app.redirect_uris,
+            "state" => "statepassed"
+          }
+        })
 
-    target = redirected_to(conn)
-    assert target =~ app.redirect_uris
+      target = redirected_to(conn)
+      assert target =~ app.redirect_uris
 
-    query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
+      query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
 
-    assert %{"state" => "statepassed", "code" => code} = query
-    assert Repo.get_by(Authorization, token: code)
+      assert %{"state" => "statepassed", "code" => code} = query
+      assert Repo.get_by(Authorization, token: code)
+      assert user = Repo.get_by(User, nickname: "lain", mfc_id: "1234")
+
+      assert User.avatar_url(user) ==
+               "https://img.mfcimg.com/photos2/300/30004271/avatar.300x300.jpg?nc=1541675948"
+    end
+  end
+
+  # Deactivated because we enforce the nickname now
+  @skip
+  test "without a user, but given a nickname, authorizes" do
+    app = insert(:oauth_app)
+
+    with_mock Pleroma.Web.Mfc.Login,
+      authenticate: fn "lain", "test" ->
+        {:ok,
+         %{
+           "user_id" => 1234,
+           "access_level" => 2,
+           "avatar_url" => false,
+           "username" => "lain"
+         }}
+      end do
+      conn =
+        build_conn()
+        |> post("/oauth/authorize", %{
+          "authorization" => %{
+            "name" => "lain",
+            "password" => "test",
+            "client_id" => app.client_id,
+            "redirect_uri" => app.redirect_uris,
+            "state" => "statepassed",
+            "nickname" => "lain"
+          }
+        })
+
+      target = redirected_to(conn)
+      assert target =~ app.redirect_uris
+
+      query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
+
+      assert %{"state" => "statepassed", "code" => code} = query
+      assert Repo.get_by(Authorization, token: code)
+    end
   end
 
   test "issues a token for an all-body request" do
