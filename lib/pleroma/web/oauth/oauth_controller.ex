@@ -23,30 +23,6 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     })
   end
 
-  defp get_or_create_mfc_user(mfc_id, nickname) do
-    mfc_id = to_string(mfc_id)
-    user = Repo.get_by(User, mfc_id: mfc_id)
-
-    cond do
-      user ->
-        user
-
-      nickname ->
-        with {:ok, user} <-
-               User.mfc_register_changeset(%User{}, %{
-                 nickname: nickname,
-                 mfc_id: mfc_id,
-                 name: nickname
-               })
-               |> Repo.insert() do
-          user
-        end
-
-      true ->
-        nil
-    end
-  end
-
   def create_authorization(conn, %{
         "authorization" =>
           %{
@@ -61,7 +37,12 @@ defmodule Pleroma.Web.OAuth.OAuthController do
            user_data["access_level"] >=
              Application.get_env(:pleroma, :mfc) |> Keyword.get(:minimum_access_level),
          {_, %User{} = user} <-
-           {:user_get, get_or_create_mfc_user(user_data["user_id"], user_data["username"])},
+           {:user_get,
+            Pleroma.Web.Mfc.Utils.get_or_create_mfc_user(
+              user_data["user_id"],
+              user_data["username"],
+              user_data["avatar_url"]
+            )},
          %App{} = app <- Repo.get_by(App, client_id: client_id),
          {:ok, auth} <- Authorization.create_authorization(app, user) do
       # Special case: Local MastodonFE.
