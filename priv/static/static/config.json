@@ -1,8 +1,8 @@
 {
-  "theme": "pleroma-dark",
-  "background": "/static/aurora_borealis.jpg",
-  "logo": "/static/logo.png",
-  "logoMask": true,
+  "theme": "mfc",
+  "background": "/static/palms.jpg",
+  "logo": "/static/mfcsocial.png",
+  "logoMask": false,
   "logoMargin": ".1em",
   "redirectRootNoLogin": "/main/all",
   "redirectRootLogin": "/main/friends",
