@@ -115,6 +115,8 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       assert User.avatar_url(user) ==
                "https://img.mfcimg.com/photos2/300/30004271/avatar.300x300.jpg?nc=1541675948"
+
+      assert user.avatar["source"] == "mfc"
     end
   end
 
