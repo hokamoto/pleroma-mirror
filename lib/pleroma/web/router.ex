@@ -270,6 +270,7 @@ defmodule Pleroma.Web.Router do
     get("/statuses/friends_timeline", TwitterAPI.Controller, :friends_timeline)
     get("/statuses/mentions", TwitterAPI.Controller, :mentions_timeline)
     get("/statuses/mentions_timeline", TwitterAPI.Controller, :mentions_timeline)
+    get("/statuses/dm_timeline", TwitterAPI.Controller, :dm_timeline)
     get("/qvitter/statuses/notifications", TwitterAPI.Controller, :notifications)
 
     # XXX: this is really a pleroma API, but we want to keep the pleroma namespace clean
@@ -378,12 +379,12 @@ defmodule Pleroma.Web.Router do
   end
 
   pipeline :remote_media do
-    plug(:accepts, ["html"])
   end
 
   scope "/proxy/", Pleroma.Web.MediaProxy do
     pipe_through(:remote_media)
     get("/:sig/:url", MediaProxyController, :remote)
+    get("/:sig/:url/:filename", MediaProxyController, :remote)
   end
 
   scope "/", Fallback do
