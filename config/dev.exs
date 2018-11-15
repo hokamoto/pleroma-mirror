@@ -54,6 +54,8 @@ try do
 rescue
   _ ->
     IO.puts(
-      "!!! RUNNING IN LOCALHOST DEV MODE! !!!\nFEDERATION WON'T WORK UNTIL YOU CONFIGURE A dev.secret.exs"
+      "!!! RUNNING IN LOCALHOST DEV MODE! !!!\n" <>
+        "FEDERATION WON'T WORK UNTIL YOU CONFIGURE A dev.secret.exs.\n" <>
+        "If you are setting up Pleroma in production, set MIX_ENV=prod."
     )
 end
