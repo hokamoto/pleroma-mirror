@@ -178,6 +178,27 @@ config :pleroma, :suggestions,
   limit: 23,
   web: "https://vinayaka.distsn.org/?{{host}}+{{user}}"
 
+config :pleroma, :http_security,
+  enabled: true,
+  sts: false,
+  sts_max_age: 31_536_000,
+  ct_max_age: 2_592_000,
+  referrer_policy: "same-origin"
+
+config :cors_plug,
+  max_age: 86_400,
+  methods: ["POST", "PUT", "DELETE", "GET", "PATCH", "OPTIONS"],
+  expose: [
+    "Link",
+    "X-RateLimit-Reset",
+    "X-RateLimit-Limit",
+    "X-RateLimit-Remaining",
+    "X-Request-Id",
+    "Idempotency-Key"
+  ],
+  credentials: true,
+  headers: ["Authorization", "Content-Type", "Idempotency-Key"]
+
 config :pleroma, :mfc,
   login_secret: "I70Xk+ga0dBN/7QiIHWfxNovwC+RPyB/4Gu+gf1EaBV8QZVK8tSnjEt5gHRUoB/p",
   passcode_cookie_endpoint: "https://passcookie/login",

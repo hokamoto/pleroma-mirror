@@ -31,26 +31,32 @@ defmodule Pleroma.Web.Mfc.Utils do
   def maybe_update_avatar(user, avatar_url) when is_list(avatar_url) do
     avatar_url = Enum.join(avatar_url, "300x300")
 
-    if User.avatar_url(user) == avatar_url do
-      user
-    else
-      data = %{
-        "type" => "Image",
-        "url" => [
-          %{
-            "type" => "Link",
-            "href" => avatar_url
-          }
-        ],
-        "name" => "Avatar"
-      }
-
-      with cng <- Ecto.Changeset.change(user, %{avatar: data}),
-           {:ok, user} <- User.update_and_set_cache(cng) do
+    cond do
+      User.avatar_url(user) == avatar_url ->
         user
-      else
-        _ -> user
-      end
+
+      is_map(user.avatar) && user.avatar["source"] != "mfc" ->
+        user
+
+      true ->
+        data = %{
+          "type" => "Image",
+          "url" => [
+            %{
+              "type" => "Link",
+              "href" => avatar_url
+            }
+          ],
+          "name" => "Avatar",
+          "source" => "mfc"
+        }
+
+        with cng <- Ecto.Changeset.change(user, %{avatar: data}),
+             {:ok, user} <- User.update_and_set_cache(cng) do
+          user
+        else
+          _ -> user
+        end
     end
   end
 
