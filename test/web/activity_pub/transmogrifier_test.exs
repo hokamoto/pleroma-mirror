@@ -361,6 +361,26 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       refute Repo.get(Activity, activity.id)
     end
 
+    test "it fails for incoming deletes with spoofed origin" do
+      activity = insert(:note_activity)
+
+      data =
+        File.read!("test/fixtures/mastodon-delete.json")
+        |> Poison.decode!()
+
+      object =
+        data["object"]
+        |> Map.put("id", activity.data["object"]["id"])
+
+      data =
+        data
+        |> Map.put("object", object)
+
+      :error = Transmogrifier.handle_incoming(data)
+
+      assert Repo.get(Activity, activity.id)
+    end
+
     test "it works for incoming unannounces with an existing notice" do
       user = insert(:user)
       {:ok, activity} = CommonAPI.post(user, %{"status" => "hey"})
@@ -872,18 +892,107 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
     end
 
     test "it rejects activities which reference objects with bogus origins" do
-      user = insert(:user, %{local: false})
-
       data = %{
         "@context" => "https://www.w3.org/ns/activitystreams",
-        "id" => user.ap_id <> "/activities/1234",
-        "actor" => user.ap_id,
+        "id" => "http://mastodon.example.org/users/admin/activities/1234",
+        "actor" => "http://mastodon.example.org/users/admin",
         "to" => ["https://www.w3.org/ns/activitystreams#Public"],
         "object" => "https://info.pleroma.site/activity.json",
         "type" => "Announce"
       }
 
       :error = Transmogrifier.handle_incoming(data)
+    end
+
+    test "it rejects objects when attributedTo is wrong (variant 1)" do
+      {:error, _} = ActivityPub.fetch_object_from_id("https://info.pleroma.site/activity2.json")
+    end
+
+    test "it rejects activities which reference objects that have an incorrect attribution (variant 1)" do
+      data = %{
+        "@context" => "https://www.w3.org/ns/activitystreams",
+        "id" => "http://mastodon.example.org/users/admin/activities/1234",
+        "actor" => "http://mastodon.example.org/users/admin",
+        "to" => ["https://www.w3.org/ns/activitystreams#Public"],
+        "object" => "https://info.pleroma.site/activity2.json",
+        "type" => "Announce"
+      }
+
+      :error = Transmogrifier.handle_incoming(data)
+    end
+
+    test "it rejects objects when attributedTo is wrong (variant 2)" do
+      {:error, _} = ActivityPub.fetch_object_from_id("https://info.pleroma.site/activity3.json")
+    end
+
+    test "it rejects activities which reference objects that have an incorrect attribution (variant 2)" do
+      data = %{
+        "@context" => "https://www.w3.org/ns/activitystreams",
+        "id" => "http://mastodon.example.org/users/admin/activities/1234",
+        "actor" => "http://mastodon.example.org/users/admin",
+        "to" => ["https://www.w3.org/ns/activitystreams#Public"],
+        "object" => "https://info.pleroma.site/activity3.json",
+        "type" => "Announce"
+      }
+
+      :error = Transmogrifier.handle_incoming(data)
+    end
+  end
+
+  describe "general origin containment" do
+    test "contain_origin_from_id() catches obvious spoofing attempts" do
+      data = %{
+        "id" => "http://example.com/~alyssa/activities/1234.json"
+      }
+
+      :error =
+        Transmogrifier.contain_origin_from_id(
+          "http://example.org/~alyssa/activities/1234.json",
+          data
+        )
+    end
+
+    test "contain_origin_from_id() allows alternate IDs within the same origin domain" do
+      data = %{
+        "id" => "http://example.com/~alyssa/activities/1234.json"
+      }
+
+      :ok =
+        Transmogrifier.contain_origin_from_id(
+          "http://example.com/~alyssa/activities/1234",
+          data
+        )
+    end
+
+    test "contain_origin_from_id() allows matching IDs" do
+      data = %{
+        "id" => "http://example.com/~alyssa/activities/1234.json"
+      }
+
+      :ok =
+        Transmogrifier.contain_origin_from_id(
+          "http://example.com/~alyssa/activities/1234.json",
+          data
+        )
+    end
+
+    test "users cannot be collided through fake direction spoofing attempts" do
+      user =
+        insert(:user, %{
+          nickname: "rye@niu.moe",
+          local: false,
+          ap_id: "https://niu.moe/users/rye",
+          follower_address: User.ap_followers(%User{nickname: "rye@niu.moe"})
+        })
+
+      {:error, _} = User.get_or_fetch_by_ap_id("https://n1u.moe/users/rye")
+    end
+
+    test "all objects with fake directions are rejected by the object fetcher" do
+      {:error, _} =
+        ActivityPub.fetch_and_contain_remote_object_from_id(
+          "https://info.pleroma.site/activity4.json"
+        )
     end
   end
 end
