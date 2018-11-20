@@ -43,7 +43,10 @@ defmodule Pleroma.Plugs.HTTPSecurityPlug do
       "font-src 'self'",
       "script-src 'self'",
       connect_src,
-      "upgrade-insecure-requests"
+      "manifest-src 'self'",
+      if @protocol == "https" do
+        "upgrade-insecure-requests"
+      end
     ]
     |> Enum.join("; ")
   end
