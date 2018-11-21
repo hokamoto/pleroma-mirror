@@ -34,6 +34,9 @@ defmodule Pleroma.Plugs.HTTPSecurityPlug do
 
   defp csp_string do
     protocol = Config.get([Pleroma.Web.Endpoint, :protocol])
+    https = Pleroma.Web.Endpoint.static_url()
+    ws = String.replace(https, "http", "ws")
+    connect_src = "connect-src 'self' #{https} #{ws}"
 
     [
       "default-src 'none'",
@@ -44,11 +47,11 @@ defmodule Pleroma.Plugs.HTTPSecurityPlug do
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self'",
       "script-src 'self'",
-      "connect-src 'self' " <> String.replace(Pleroma.Web.Endpoint.static_url(), "http", "ws"),
       "manifest-src 'self'",
       if protocol == "https" do
         "upgrade-insecure-requests"
-      end
+      end,
+      connect_src
     ]
     |> Enum.join("; ")
   end
