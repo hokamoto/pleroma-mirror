@@ -29,6 +29,10 @@ defmodule Pleroma.Plugs.HTTPSecurityPlug do
   end
 
   defp csp_string do
+    https = Pleroma.Web.Endpoint.static_url()
+    ws = String.replace(https, "http", "ws")
+    connect_src = "connect-src 'self' #{https} #{ws}"
+
     [
       "default-src 'none'",
       "base-uri 'self'",
@@ -38,8 +42,7 @@ defmodule Pleroma.Plugs.HTTPSecurityPlug do
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self'",
       "script-src 'self'",
-      "connect-src 'self' " <>
-        String.replace(Pleroma.Web.Endpoint.static_url(), "http", "ws") <> " https:",
+      connect_src,
       "upgrade-insecure-requests"
     ]
     |> Enum.join("; ")
