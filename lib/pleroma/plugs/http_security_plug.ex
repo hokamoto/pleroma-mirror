@@ -29,6 +29,7 @@ defmodule Pleroma.Plugs.HTTPSecurityPlug do
   end
 
   defp csp_string do
+    protocol = Config.get([Pleroma.Web.Endpoint, :protocol])
     https = Pleroma.Web.Endpoint.static_url()
     ws = String.replace(https, "http", "ws")
     connect_src = "connect-src 'self' #{https} #{ws}"
