@@ -32,75 +32,55 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     end
   end
 
+  defp add_if_present(
+         map,
+         params,
+         params_field,
+         map_field,
+         value_function \\ fn x -> {:ok, x} end
+       ) do
+    if Map.has_key?(params, params_field) do
+      case value_function.(params[params_field]) do
+        {:ok, new_value} -> Map.put(map, map_field, new_value)
+        :error -> map
+      end
+    else
+      map
+    end
+  end
+
   def update_credentials(%{assigns: %{user: user}} = conn, params) do
     original_user = user
 
-    avatar_upload_limit =
-      Application.get_env(:pleroma, :instance)
-      |> Keyword.fetch(:avatar_upload_limit)
-
-    banner_upload_limit =
-      Application.get_env(:pleroma, :instance)
-      |> Keyword.fetch(:banner_upload_limit)
-
-    params =
-      if bio = params["note"] do
-        Map.put(params, "bio", bio)
-      else
-        params
-      end
-
-    params =
-      if name = params["display_name"] do
-        Map.put(params, "name", name)
-      else
-        params
-      end
-
-    user =
-      if avatar = params["avatar"] do
-        with %Plug.Upload{} <- avatar,
-             {:ok, object} <- ActivityPub.upload(avatar, avatar_upload_limit),
-             change = Ecto.Changeset.change(user, %{avatar: object.data}),
-             {:ok, user} = User.update_and_set_cache(change) do
-          user
+    user_params =
+      %{}
+      |> add_if_present(params, "display_name", :name)
+      |> add_if_present(params, "note", :bio, fn value -> {:ok, User.parse_bio(value)} end)
+      |> add_if_present(params, "avatar", :avatar, fn value ->
+        with %Plug.Upload{} <- value,
+             {:ok, object} <- ActivityPub.upload(value, type: :avatar) do
+          {:ok, object.data}
         else
-          _e -> user
+          _ -> :error
         end
-      else
-        user
-      end
+      end)
 
-    user =
-      if banner = params["header"] do
-        with %Plug.Upload{} <- banner,
-             {:ok, object} <- ActivityPub.upload(banner, banner_upload_limit),
-             new_info <- Map.put(user.info, "banner", object.data),
-             change <- User.info_changeset(user, %{info: new_info}),
-             {:ok, user} <- User.update_and_set_cache(change) do
-          user
+    info_params =
+      %{}
+      |> add_if_present(params, "locked", :locked, fn value -> {:ok, value == "true"} end)
+      |> add_if_present(params, "header", :banner, fn value ->
+        with %Plug.Upload{} <- value,
+             {:ok, object} <- ActivityPub.upload(value, type: :banner) do
+          {:ok, object.data}
         else
-          _e -> user
+          _ -> :error
         end
-      else
-        user
-      end
+      end)
 
-    user =
-      if locked = params["locked"] do
-        with locked <- locked == "true",
-             new_info <- Map.put(user.info, "locked", locked),
-             change <- User.info_changeset(user, %{info: new_info}),
-             {:ok, user} <- User.update_and_set_cache(change) do
-          user
-        else
-          _e -> user
-        end
-      else
-        user
-      end
+    info_cng = User.Info.mastodon_profile_update(user.info, info_params)
 
-    with changeset <- User.update_changeset(user, params),
+    with changeset <- User.update_changeset(user, user_params),
+         changeset <- Ecto.Changeset.put_embed(changeset, :info, info_cng),
          {:ok, user} <- User.update_and_set_cache(changeset) do
       if original_user != user do
         CommonAPI.update(user)
@@ -141,7 +121,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       uri: Web.base_url(),
       title: Keyword.get(instance, :name),
       description: Keyword.get(instance, :description),
-      version: "#{@mastodon_api_level} (compatible; #{Keyword.get(instance, :version)})",
+      version: "#{@mastodon_api_level} (compatible; #{Pleroma.Application.named_version()})",
       email: Keyword.get(instance, :email),
       urls: %{
         streaming_api: String.replace(Pleroma.Web.Endpoint.static_url(), "http", "ws")
@@ -471,19 +451,12 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def upload(%{assigns: %{user: _}} = conn, %{"file" => file} = data) do
-    with {:ok, object} <- ActivityPub.upload(file) do
-      objdata =
-        if Map.has_key?(data, "description") do
-          Map.put(object.data, "name", data["description"])
-        else
-          object.data
-        end
-
-      change = Object.change(object, %{data: objdata})
+    with {:ok, object} <- ActivityPub.upload(file, description: Map.get(data, "description")) do
+      change = Object.change(object, %{data: object.data})
       {:ok, object} = Repo.update(change)
 
       objdata =
-        objdata
+        object.data
         |> Map.put("id", object.id)
 
       render(conn, StatusView, "attachment.json", %{attachment: objdata})
@@ -659,7 +632,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   # TODO: Use proper query
   def blocks(%{assigns: %{user: user}} = conn, _) do
-    with blocked_users <- user.info["blocks"] || [],
+    with blocked_users <- user.info.blocks || [],
          accounts <- Enum.map(blocked_users, fn ap_id -> User.get_cached_by_ap_id(ap_id) end) do
       res = AccountView.render("accounts.json", users: accounts, for: user, as: :user)
       json(conn, res)
@@ -667,7 +640,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def domain_blocks(%{assigns: %{user: %{info: info}}} = conn, _) do
-    json(conn, info["domain_blocks"] || [])
+    json(conn, info.domain_blocks || [])
   end
 
   def block_domain(%{assigns: %{user: blocker}} = conn, %{"domain" => domain}) do
@@ -915,11 +888,11 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
             max_toot_chars: limit
           },
           rights: %{
-            delete_others_notice: !!user.info["is_moderator"]
+            delete_others_notice: !!user.info.is_moderator
           },
           compose: %{
             me: "#{user.id}",
-            default_privacy: user.info["default_scope"] || "public",
+            default_privacy: user.info.default_scope,
             default_sensitive: false
           },
           media_attachments: %{
@@ -939,7 +912,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
             ]
           },
           settings:
-            Map.get(user.info, "settings") ||
+            Map.get(user.info, :settings) ||
               %{
                 onboarded: true,
                 home: %{

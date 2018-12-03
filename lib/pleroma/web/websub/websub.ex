@@ -146,7 +146,7 @@ defmodule Pleroma.Web.Websub do
   end
 
   def subscribe(subscriber, subscribed, requester \\ &request_subscription/1) do
-    topic = subscribed.info["topic"]
+    topic = subscribed.info.topic
     # FIXME: Race condition, use transactions
     {:ok, subscription} =
       with subscription when not is_nil(subscription) <-
@@ -158,7 +158,7 @@ defmodule Pleroma.Web.Websub do
         _e ->
           subscription = %WebsubClientSubscription{
             topic: topic,
-            hub: subscribed.info["hub"],
+            hub: subscribed.info.hub,
             subscribers: [subscriber.ap_id],
             state: "requested",
             secret: :crypto.strong_rand_bytes(8) |> Base.url_encode64(),
@@ -251,5 +251,30 @@ defmodule Pleroma.Web.Websub do
     Enum.each(subs, fn sub ->
       Pleroma.Web.Federator.enqueue(:request_subscription, sub)
     end)
+  end
+
+  def publish_one(%{xml: xml, topic: topic, callback: callback, secret: secret}) do
+    signature = sign(secret || "", xml)
+    Logger.info(fn -> "Pushing #{topic} to #{callback}" end)
+
+    with {:ok, %{status_code: code}} <-
+           @httpoison.post(
+             callback,
+             xml,
+             [
+               {"Content-Type", "application/atom+xml"},
+               {"X-Hub-Signature", "sha1=#{signature}"}
+             ],
+             timeout: 10000,
+             recv_timeout: 20000,
+             hackney: [pool: :default]
+           ) do
+      Logger.info(fn -> "Pushed to #{callback}, code #{code}" end)
+      {:ok, code}
+    else
+      e ->
+        Logger.debug(fn -> "Couldn't push to #{callback}, #{inspect(e)}" end)
+        {:error, e}
+    end
   end
 end
