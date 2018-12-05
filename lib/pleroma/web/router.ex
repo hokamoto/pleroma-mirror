@@ -94,6 +94,12 @@ defmodule Pleroma.Web.Router do
     get("/emoji", UtilController, :emoji)
   end
 
+  scope "/api/pleroma/uploaders", Pleroma.Uploaders do
+    pipe_through(:pleroma_api)
+
+    post("/mfc/:action", MFC.Controller, :callbacks)
+  end
+
   scope "/api/pleroma/admin", Pleroma.Web.AdminAPI do
     pipe_through(:admin_api)
     delete("/user", AdminAPIController, :user_delete)
