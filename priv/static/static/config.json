@@ -14,7 +14,7 @@
   "scopeCopy": false,
   "subjectLineBehavior": "email",
   "alwaysShowSubjectInput": true,
-  "sitenameEnabled": true,
+  "sitenameEnabled": false,
   "hidePostStats": false,
   "hideUserStats": false,
   "loginMethod": "token"
