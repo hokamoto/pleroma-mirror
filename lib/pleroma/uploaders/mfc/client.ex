@@ -26,7 +26,7 @@ defmodule Pleroma.Uploaders.MFC.Client do
       {:ok, %{status: 200}} ->
         :ok
 
-      {:ok, %{status: status}} ->
+      {:ok, client = %{status: status}} ->
         Logger.error(
           "#{__MODULE__}: HTTP request to conversion service failed: #{inspect(client)}"
         )
