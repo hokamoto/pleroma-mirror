@@ -5,6 +5,11 @@ defmodule Pleroma.Uploaders.MFC do
 
   @conversion_wait :timer.minutes(2)
 
+  # TODO: With dedupe enabled, if two users upload the same file at the same time, this will bug (probably make an user
+  # wait for a timeout).
+  # A possible fix would be to create a Registry and share the upload key against multiple processes.
+  # Some API would be needed in Pleroma to do start-up checks/supervision tree changes to do this properly.@
+
   def get_file(file) do
     S3.get_file(file)
   end
@@ -18,7 +23,11 @@ defmodule Pleroma.Uploaders.MFC do
          {:ok, path} <- wait_for_conversion() do
       {:ok, {:file, path}}
     else
-      error = {:error, _} -> error
+      :duplicate ->
+        {:ok, {:file, Path.rootname(upload.path) <> ".mp4"}}
+
+      error = {:error, _} ->
+        error
     end
   end
 
