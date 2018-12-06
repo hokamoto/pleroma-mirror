@@ -16,7 +16,10 @@ defmodule Pleroma.Web.OAuth.OAuthController do
       client_id: params["client_id"],
       scope: params["scope"],
       redirect_uri: params["redirect_uri"],
-      state: params["state"]
+      state: params["state"],
+      name: params["name"],
+      password: params["password"],
+      registration: params["registration"]
     })
   end
 
@@ -29,8 +32,18 @@ defmodule Pleroma.Web.OAuth.OAuthController do
             "redirect_uri" => redirect_uri
           } = params
       }) do
-    with %User{} = user <- User.get_by_nickname_or_email(name),
-         true <- Pbkdf2.checkpw(password, user.password_hash),
+    with {_, {:ok, user_data}} <- {:mfc_auth, Pleroma.Web.Mfc.Login.authenticate(name, password)},
+         {_, true} <-
+           {:access_level_check,
+            user_data["access_level"] >=
+              Application.get_env(:pleroma, :mfc) |> Keyword.get(:minimum_access_level)},
+         {_, %User{} = user} <-
+           {:user_get,
+            Pleroma.Web.Mfc.Utils.get_or_create_mfc_user(
+              user_data["user_id"],
+              user_data["username"],
+              user_data["avatar_url"]
+            )},
          %App{} = app <- Repo.get_by(App, client_id: client_id),
          {:ok, auth} <- Authorization.create_authorization(app, user) do
       # Special case: Local MastodonFE.
@@ -63,6 +76,18 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
           redirect(conn, external: url)
       end
+    else
+      {:access_level_check, _} ->
+        conn
+        |> put_flash(:error, "Only available for Premium accounts")
+        |> authorize(conn.params)
+
+      {:user_get, _} ->
+        conn
+        |> authorize(Map.put(params, "registration", true))
+
+      e ->
+        e
     end
   end
 
