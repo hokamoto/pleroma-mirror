@@ -1,8 +1,6 @@
 <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
 <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
 <h2>Please log in with your MFC credentials</h2>
-<p>If this is the first time you're logging in, your current MyFreeCams username will become your permanent name on Social.MyFreeCams.com. Even if you change your username on MyFreeCams in the future, your Social.MyFreeCams.com name will remain the same.</p>
-<br>
 <%= form_for @conn, o_auth_path(@conn, :authorize), [as: "authorization"], fn f -> %>
 <%= if @registration do %>
 <h3>This is the first time you visit! Please enter your Pleroma handle.</h3>
