@@ -12,6 +12,7 @@ defmodule Pleroma.Uploaders.MFC.Client do
     Tesla.client(middleware)
   end
 
+  @spec convert(Tesla.Client.t(), String.t()) :: :ok | :duplicate | {:error, String.t()}
   def convert(client, path) do
     config = Pleroma.Config.get!([Pleroma.Uploaders.MFC, :video_conversion])
 
@@ -25,6 +26,9 @@ defmodule Pleroma.Uploaders.MFC.Client do
     case post(client, "/api/v1/videos", data) do
       {:ok, %{status: 200}} ->
         :ok
+
+      {:ok, %{status: 500, body: %{"error" => "Destination object already exists"}}} ->
+        :duplicate
 
       {:ok, client = %{status: status}} ->
         Logger.error(
