@@ -45,7 +45,7 @@ defmodule Pleroma.Plugs.HTTPSecurityPlug do
       "script-src 'self'",
       connect_src,
       "manifest-src 'self'",
-      if @protocol == "https" do
+      if protocol == "https" do
         "upgrade-insecure-requests"
       end
     ]
