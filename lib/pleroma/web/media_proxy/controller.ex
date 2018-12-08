@@ -2,7 +2,7 @@ defmodule Pleroma.Web.MediaProxy.MediaProxyController do
   use Pleroma.Web, :controller
   alias Pleroma.{Web.MediaProxy, ReverseProxy}
 
-  @default_proxy_opts [max_body_length: 25 * 1_048_576]
+  @default_proxy_opts [max_body_length: 25 * 1_048_576, http: [follow_redirect: true]]
 
   def remote(conn, params = %{"sig" => sig64, "url" => url64}) do
     with config <- Pleroma.Config.get([:media_proxy], []),
@@ -24,7 +24,12 @@ defmodule Pleroma.Web.MediaProxy.MediaProxyController do
   end
 
   def filename_matches(has_filename, path, url) do
-    filename = MediaProxy.filename(url)
+    filename =
+      url
+      |> MediaProxy.filename()
+      |> URI.decode()
+
+    path = URI.decode(path)
 
     cond do
       has_filename && filename && Path.basename(path) != filename -> {:wrong_filename, filename}

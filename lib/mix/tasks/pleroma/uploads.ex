@@ -1,16 +1,21 @@
-defmodule Mix.Tasks.MigrateLocalUploads do
+defmodule Mix.Tasks.Pleroma.Uploads do
   use Mix.Task
   import Mix.Ecto
   alias Pleroma.{Upload, Uploaders.Local, Uploaders.S3}
+  alias Mix.Tasks.Pleroma.Common
   require Logger
 
   @log_every 50
   @shortdoc "Migrate uploads from local to remote storage"
+  @longdoc """
+   Manages uploads
+   ## Migrate uploads from local to remote storage
 
-  def run([target_uploader | args]) do
+  """
+
+  def run(["migrate_local", target_uploader | args]) do
     delete? = Enum.member?(args, "--delete")
-    Application.ensure_all_started(:pleroma)
-
+    Common.start_pleroma()
     local_path = Pleroma.Config.get!([Local, :uploads])
     uploader = Module.concat(Pleroma.Uploaders, target_uploader)
 
@@ -24,10 +29,10 @@ defmodule Mix.Tasks.MigrateLocalUploads do
       Pleroma.Config.put([Upload, :uploader], uploader)
     end
 
-    Logger.info("Migrating files from local #{local_path} to #{to_string(uploader)}")
+    Mix.shell().info("Migrating files from local #{local_path} to #{to_string(uploader)}")
 
     if delete? do
-      Logger.warn(
+      Mix.shell().info(
         "Attention: uploaded files will be deleted, hope you have backups! (--delete ; cancel with ^C)"
       )
 
@@ -64,7 +69,7 @@ defmodule Mix.Tasks.MigrateLocalUploads do
       |> Enum.filter(& &1)
 
     total_count = length(uploads)
-    Logger.info("Found #{total_count} uploads")
+    Mix.shell().info("Found #{total_count} uploads")
 
     uploads
     |> Task.async_stream(
@@ -76,7 +81,7 @@ defmodule Mix.Tasks.MigrateLocalUploads do
             :ok
 
           error ->
-            Logger.error("failed to upload #{inspect(upload.path)}: #{inspect(error)}")
+            Mix.shell().error("failed to upload #{inspect(upload.path)}: #{inspect(error)}")
         end
       end,
       timeout: 150_000
@@ -84,14 +89,10 @@ defmodule Mix.Tasks.MigrateLocalUploads do
     |> Stream.chunk_every(@log_every)
     |> Enum.reduce(0, fn done, count ->
       count = count + length(done)
-      Logger.info("Uploaded #{count}/#{total_count} files")
+      Mix.shell().info("Uploaded #{count}/#{total_count} files")
       count
     end)
 
-    Logger.info("Done!")
-  end
-
-  def run(_) do
-    Logger.error("Usage: migrate_local_uploads S3|Swift [--delete]")
+    Mix.shell().info("Done!")
   end
 end
