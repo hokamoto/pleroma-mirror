@@ -2,7 +2,7 @@ defmodule Pleroma.Web.Mfc.Login do
   use Tesla
   plug(Tesla.Middleware.FormUrlencoded)
 
-  import Logger
+  require Logger
 
   def hash(%{
         t: t,

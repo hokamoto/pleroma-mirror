@@ -9,7 +9,7 @@ defmodule Pleroma.Uploaders.MFC.Controller do
     send_resp(conn, 400, "invalid request")
   end
 
-  defp process_callback(conn, pid, params = %{"action" => "success", "dest_key" => path})
+  defp process_callback(conn, pid, _params = %{"action" => "success", "dest_key" => path})
        when is_pid(pid) do
     send(pid, {Pleroma.Uploaders.MFC, {:ok, path}})
     send_resp(conn, 200, "ok")
