@@ -19,6 +19,17 @@ Note: `strip_exif` has been replaced by `Pleroma.Upload.Filter.Mogrify`.
 
 * `args`: List of actions for the `mogrify` command like `"strip"` or `["strip", {"impode", "1"}]`.
 
+## Pleroma.Upload.Filter.Dedupe
+
+No specific configuration.
+
+## Pleroma.Upload.Filter.AnonymizeFilename
+
+This filter replaces the filename (not the path) of an upload. For complete obfuscation, add
+`Pleroma.Upload.Filter.Dedupe` before AnonymizeFilename.
+
+* `text`: Text to replace filenames in links. If empty, `{random}.extension` will be used.
+
 ## :uri_schemes
 * `valid_schemes`: List of the scheme part that is considered valid to be an URL
 
@@ -30,9 +41,9 @@ Note: `strip_exif` has been replaced by `Pleroma.Upload.Filter.Mogrify`.
 * `upload_limit`: File size limit of uploads (except for avatar, background, banner)
 * `avatar_upload_limit`: File size limit of user’s profile avatars
 * `background_upload_limit`: File size limit of user’s profile backgrounds
-* `banner_upload_limit`: File size limit of user’s profile backgrounds
-* `registerations_open`: Enable registerations for anyone, invitations can be used when false.
-* `federating`
+* `banner_upload_limit`: File size limit of user’s profile banners
+* `registrations_open`: Enable registrations for anyone, invitations can be used when false.
+* `federating`: Enable federation with other instances
 * `allow_relay`: Enable Pleroma’s Relay, which makes it possible to follow a whole instance
 * `rewrite_policy`: Message Rewrite Policy, either one or a list. Here are the ones available by default:
   * `Pleroma.Web.ActivityPub.MRF.NoOpPolicy`: Doesn’t modify activities (default)
@@ -46,6 +57,12 @@ Note: `strip_exif` has been replaced by `Pleroma.Upload.Filter.Mogrify`.
 * `allowed_post_formats`: MIME-type list of formats allowed to be posted (transformed into HTML)
 * `finmoji_enabled`: Whenether to enable the finmojis in the custom emojis.
 * `mrf_transparency`: Make the content of your Message Rewrite Facility settings public (via nodeinfo).
+* `scope_copy`: Copy the scope (private/unlisted/public) in replies to posts by default.
+* `subject_line_behavior`: Allows changing the default behaviour of subject lines in replies. Valid values:
+  * "email": Copy and preprend re:, as in email.
+  * "masto": Copy verbatim, as in Mastodon.
+  * "noop": Don't copy the subject.
+* `always_show_subject_input`: When set to false, auto-hide the subject field when it's empty.
 
 ## :fe
 This section is used to configure Pleroma-FE, unless ``:managed_config`` in ``:instance`` is set to false.

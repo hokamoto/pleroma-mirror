@@ -3,7 +3,7 @@ defmodule Pleroma.MIME do
   Returns the mime-type of a binary and optionally a normalized file-name.
   """
   @default "application/octet-stream"
-  @read_bytes 31
+  @read_bytes 35
 
   @spec file_mime_type(String.t()) ::
           {:ok, content_type :: String.t(), filename :: String.t()} | {:error, any()} | :error
@@ -33,9 +33,9 @@ defmodule Pleroma.MIME do
     {:ok, check_mime_type(head)}
   end
 
-  def mime_type(<<_::binary>>), do: {:ok, @default}
-
   def bin_mime_type(_), do: :error
+
+  def mime_type(<<_::binary>>), do: {:ok, @default}
 
   defp fix_extension(filename, content_type) do
     parts = String.split(filename, ".")
