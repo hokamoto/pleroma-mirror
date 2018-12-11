@@ -13,7 +13,7 @@ defmodule Pleroma.Web.Mfc.Utils do
 
       nickname ->
         with {:ok, user} <-
-               User.mfc_register_changeset(%User{}, %{
+               User.mfc_register_changeset(%User{info: %{}}, %{
                  nickname: nickname,
                  mfc_id: mfc_id,
                  name: nickname
