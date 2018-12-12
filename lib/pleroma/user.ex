@@ -891,7 +891,7 @@ defmodule Pleroma.User do
   end
 
   defp local_nickname_regex() do
-    if regex = Pleroma.Config.get([:instance, :extended_nickname_format]) do
+    if Pleroma.Config.get([:instance, :extended_nickname_format]) do
       @extended_local_nickname_regex
     else
       @strict_local_nickname_regex
