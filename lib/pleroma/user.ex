@@ -175,7 +175,7 @@ defmodule Pleroma.User do
       |> cast(params, [:name, :nickname, :mfc_id])
       |> validate_required([:name, :nickname, :mfc_id])
       |> unique_constraint(:nickname)
-      |> validate_format(:nickname, ~r/^[a-zA-Z\d]+$/)
+      |> validate_format(:nickname, local_nickname_regex())
       |> validate_length(:name, min: 1, max: 100)
       |> validate_length(:nickname, min: 1, max: 100)
 
