@@ -91,7 +91,7 @@ defmodule Pleroma.Web.OStatus.OStatusController do
            {_, true} <- {:public?, ActivityPub.is_public?(activity)},
            %User{} = user <- User.get_cached_by_ap_id(activity.data["actor"]) do
         case get_format(conn) do
-          "html" -> redirect(conn, to: "/notice/#{activity.id}")
+          "html" -> redirect(conn, to: o_status_path(conn, :notice, activity.id))
           _ -> represent_activity(conn, nil, activity, user)
         end
       else
@@ -113,7 +113,7 @@ defmodule Pleroma.Web.OStatus.OStatusController do
          {_, true} <- {:public?, ActivityPub.is_public?(activity)},
          %User{} = user <- User.get_cached_by_ap_id(activity.data["actor"]) do
       case format = get_format(conn) do
-        "html" -> redirect(conn, to: "/notice/#{activity.id}")
+        "html" -> redirect(conn, to: o_status_path(conn, :notice, activity.id))
         _ -> represent_activity(conn, format, activity, user)
       end
     else
