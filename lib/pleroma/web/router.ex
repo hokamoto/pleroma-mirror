@@ -365,8 +365,7 @@ defmodule Pleroma.Web.Router do
 
     get("/objects/:uuid", OStatus.OStatusController, :object)
     get("/activities/:uuid", OStatus.OStatusController, :activity)
-    get("/status/:id", OStatus.OStatusController, :notice)
-    get("/notice/:id", OStatus.OStatusController, :notice, as: :old_notice)
+    get("/notice/:id", OStatus.OStatusController, :notice)
     get("/users/:nickname/feed", OStatus.OStatusController, :feed)
     get("/users/:nickname", OStatus.OStatusController, :feed_redirect)
 
