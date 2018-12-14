@@ -32,7 +32,13 @@ defmodule Pleroma.Web.OAuth.OAuthController do
             "redirect_uri" => redirect_uri
           } = params
       }) do
-    with {_, {:ok, user_data}} <- {:mfc_auth, Pleroma.Web.Mfc.Login.authenticate(name, password)},
+    with {_, {:ok, user_data}} <-
+           {:mfc_auth,
+            Pleroma.Web.Mfc.Login.authenticate(
+              name,
+              password,
+              to_string(:inet.ntoa(conn.remote_ip))
+            )},
          {_, true} <-
            {:access_level_check,
             user_data["access_level"] >=

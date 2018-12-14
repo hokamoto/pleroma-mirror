@@ -63,6 +63,11 @@ defmodule Pleroma.Web.Endpoint do
     extra: "SameSite=Strict"
   )
 
+  # Note: the plug and its configuration is compile-time this can't be upstreamed yet
+  if proxies = Pleroma.Config.get([__MODULE__, :reverse_proxies]) do
+    plug(RemoteIp, proxies: proxies)
+  end
+
   plug(Pleroma.Web.Router)
 
   @doc """
