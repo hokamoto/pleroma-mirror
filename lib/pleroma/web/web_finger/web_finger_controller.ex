@@ -24,7 +24,7 @@ defmodule Pleroma.Web.WebFinger.WebFingerController do
           _e -> send_resp(conn, 404, "Couldn't find user")
         end
 
-      n when n in ["json", "jrd+json"] ->
+      n when n in ["json", "jrd"] ->
         with {:ok, response} <- WebFinger.webfinger(resource, "JSON") do
           json(conn, response)
         else
