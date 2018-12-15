@@ -2,6 +2,10 @@ defmodule Pleroma.Web.Mfc.Utils do
   alias Pleroma.User
   alias Pleroma.Repo
 
+  def tags_for_level(2), do: ["mfc_premium_member"]
+  def tags_for_level(4), do: ["mfc_model"]
+  def tags_for_level(_), do: []
+
   def get_or_create_mfc_user(mfc_id, nickname, avatar_url \\ nil) do
     mfc_id = to_string(mfc_id)
     user = Repo.get_by(User, mfc_id: mfc_id)
