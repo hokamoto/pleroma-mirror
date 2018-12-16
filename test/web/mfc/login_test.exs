@@ -15,15 +15,16 @@ defmodule Pleroma.Web.Mfc.LoginTest do
     assert Login.hash(data) == "27d1c53d862446d662d71b317dde113fe792a33392e967e4cb4b30c7b48d9bd9"
   end
 
-  test "given a username and passcode, it generates the complete data set" do
+  test "given a username, passcode and a client ip, it generates the complete data set" do
     username = "lain"
     passcode = "123435"
+    client_ip = "10.69.69.1"
 
-    data = Login.login_data(username, passcode)
+    data = Login.login_data(username, passcode, "10.69.69.1")
 
     assert data.t
     assert data.client_version
-    assert data.client_ip
+    assert data.client_ip == client_ip
     assert data.server_ip
   end
 
@@ -133,6 +134,7 @@ defmodule Pleroma.Web.Mfc.LoginTest do
   test "it authenticates using a username and password" do
     username = "lain"
     password = "wired"
+    ip = "127.77.77.77"
 
     url =
       Application.get_env(:pleroma, :mfc)
@@ -162,7 +164,7 @@ defmodule Pleroma.Web.Mfc.LoginTest do
         }
     end)
 
-    assert {:ok, result} = Login.authenticate(username, password)
+    assert {:ok, result} = Login.authenticate(username, password, ip)
 
     assert result == %{
              "user_id" => 3_004_379,
@@ -175,6 +177,7 @@ defmodule Pleroma.Web.Mfc.LoginTest do
   test "it returns an error on failed auth using a username and password" do
     username = "lain"
     password = "wired"
+    ip = "127.77.77.77"
 
     passcode_url =
       Application.get_env(:pleroma, :mfc)
@@ -187,6 +190,6 @@ defmodule Pleroma.Web.Mfc.LoginTest do
         }
     end)
 
-    assert {:error, _} = Login.authenticate(username, password)
+    assert {:error, _} = Login.authenticate(username, password, ip)
   end
 end
