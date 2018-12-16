@@ -109,6 +109,8 @@ defmodule Pleroma.Web.Router do
 
   scope "/api/pleroma/admin", Pleroma.Web.AdminAPI do
     pipe_through(:admin_api)
+    post("/user/follow", AdminAPIController, :user_follow)
+    post("/user/unfollow", AdminAPIController, :user_unfollow)
     delete("/user", AdminAPIController, :user_delete)
     post("/user", AdminAPIController, :user_create)
     put("/users/tag", AdminAPIController, :tag_users)
