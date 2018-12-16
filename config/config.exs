@@ -55,7 +55,20 @@ config :pleroma, Pleroma.Web.Endpoint,
   signing_salt: "CqaoopA2",
   render_errors: [view: Pleroma.Web.ErrorView, accepts: ~w(json)],
   pubsub: [name: Pleroma.PubSub, adapter: Phoenix.PubSub.PG2],
-  secure_cookie_flag: true
+  secure_cookie_flag: true,
+  http: [
+    dispatch: [
+      _: [
+        {"/api/v1/streaming", Phoenix.Endpoint.CowboyWebSocket,
+         {Phoenix.Transports.WebSocket.Raw,
+          {Pleroma.Web.Endpoint, Pleroma.Web.MastodonAPI.MastodonSocket, :websocket}}},
+        {"/socket/websocket", Phoenix.Endpoint.CowboyWebSocket,
+         {Phoenix.Transports.WebSocket,
+          {Pleroma.Web.Endpoint, Pleroma.Web.UserSocket, :websocket}}},
+        {:_, Plug.Adapters.Cowboy.Handler, {Pleroma.Web.Endpoint, []}}
+      ]
+    ]
+  ]
 
 # Configures Elixir's Logger
 config :logger, :console,

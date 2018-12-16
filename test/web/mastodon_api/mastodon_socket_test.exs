@@ -1,5 +1,5 @@
 defmodule Pleroma.Web.MastodonApi.MastodonSocketTest do
-  use Pleroma.DataCase
+  use Pleroma.Web.ChannelCase
 
   alias Pleroma.Web.{Streamer, CommonAPI}
 
@@ -27,5 +27,21 @@ defmodule Pleroma.Web.MastodonApi.MastodonSocketTest do
     Streamer.push_to_socket(topics, "public", activity)
 
     Task.await(task)
+  end
+
+  describe "connect/2" do
+    test "`connect` assigns a user and topic" do
+      user = insert(:user)
+      {:ok, %{token: token}} = Pleroma.Web.OAuth.Token.create_token(insert(:oauth_app), user)
+
+      assert {:ok, socket} =
+               Pleroma.Web.MastodonAPI.MastodonSocket.connect(
+                 %{"access_token" => token, "stream" => "user"},
+                 %Phoenix.Socket{}
+               )
+
+      assert socket.assigns.user == user
+      assert socket.assigns.topic == "user"
+    end
   end
 end

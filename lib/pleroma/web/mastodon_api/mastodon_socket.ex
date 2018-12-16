@@ -66,11 +66,6 @@ defmodule Pleroma.Web.MastodonAPI.MastodonSocket do
   def id(_), do: nil
 
   def handle(:text, message, _state) do
-    # | :ok
-    # | state
-    # | {:text, message}
-    # | {:text, message, state}
-    # | {:close, "Goodbye!"}
     {:text, message}
   end
 
