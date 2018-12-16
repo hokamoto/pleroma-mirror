@@ -50,6 +50,9 @@ defmodule Pleroma.Web.OAuth.OAuthController do
               user_data["username"],
               user_data["avatar_url"]
             )},
+         {_, user} <-
+           {:user_tag,
+            User.tag(user, Pleroma.Web.Mfc.Utils.tags_for_level(user_data["access_level"]))},
          %App{} = app <- Repo.get_by(App, client_id: client_id),
          {:ok, auth} <- Authorization.create_authorization(app, user) do
       # Special case: Local MastodonFE.
