@@ -64,16 +64,21 @@ defmodule Pleroma.Mixfile do
       {:ex_aws, "~> 2.0"},
       {:ex_aws_s3, "~> 2.0"},
       {:earmark, "~> 1.3"},
-      {:ex_machina, "~> 2.2", only: :test},
-      {:credo, "~> 0.9.3", only: [:dev, :test]},
-      {:mock, "~> 0.3.1", only: :test},
       {:crypt,
        git: "https://github.com/msantos/crypt", ref: "1f2b58927ab57e72910191a7ebaeff984382a1d3"},
       {:cors_plug, "~> 1.5"},
-      {:ex_doc, "> 0.18.3 and < 0.20.0", only: :dev, runtime: false},
       {:web_push_encryption, "~> 0.2.1"},
       {:swoosh, "~> 0.20"},
       {:gen_smtp, "~> 0.13"},
+      {:distillery, "~> 2.0"},
+
+      # Development
+      {:ex_machina, "~> 2.2", only: :test},
+      {:credo, "~> 0.9.3", only: [:dev, :test]},
+
+      # Test
+      {:mock, "~> 0.3.1", only: :test},
+      {:ex_doc, "> 0.18.3 and < 0.20.0", only: :dev, runtime: false},
       {:websocket_client, git: "https://github.com/jeremyong/websocket_client.git", only: :test}
     ]
   end
