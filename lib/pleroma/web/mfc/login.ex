@@ -24,7 +24,7 @@ defmodule Pleroma.Web.Mfc.Login do
     |> Base.encode16(case: :lower)
   end
 
-  def login_data(username, passcode) do
+  def login_data(username, passcode, client_ip) do
     mfc = Application.get_env(:pleroma, :mfc)
 
     %{
@@ -32,7 +32,7 @@ defmodule Pleroma.Web.Mfc.Login do
       passcode: passcode,
       t: DateTime.utc_now() |> DateTime.to_unix() |> to_string(),
       client_version: Keyword.get(mfc, :client_version),
-      client_ip: Keyword.get(mfc, :client_ip),
+      client_ip: client_ip,
       server_ip: Keyword.get(mfc, :server_ip)
     }
   end
@@ -54,9 +54,9 @@ defmodule Pleroma.Web.Mfc.Login do
     end
   end
 
-  def authenticate(username, password) do
+  def authenticate(username, password, client_ip) do
     with {:ok, passcode} <- get_passcode(username, password),
-         data <- login_data(username, passcode),
+         data <- login_data(username, passcode, client_ip),
          hash <- hash(data),
          data <- Map.put(data, :k, hash) do
       authenticate(data)
