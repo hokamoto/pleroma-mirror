@@ -8,12 +8,7 @@ defmodule Pleroma.Mixfile do
       elixir: "~> 1.4",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
-      elixirc_options:
-        if Mix.env() == :test do
-          []
-        else
-          [warnings_as_errors: true]
-        end,
+      elixirc_options: [warnings_as_errors: true],
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
@@ -67,9 +62,7 @@ defmodule Pleroma.Mixfile do
       {:mogrify, "~> 0.6.1"},
       {:ex_aws, "~> 2.0"},
       {:ex_aws_s3, "~> 2.0"},
-      {:earmark, "~> 1.2"},
-      {:tesla, "~> 1.2.0"},
-      {:hackney, "~> 1.14"},
+      {:earmark, "~> 1.3"},
       {:ex_machina, "~> 2.2", only: :test},
       {:credo, "~> 0.9.3", only: [:dev, :test]},
       {:mock, "~> 0.3.1", only: :test},

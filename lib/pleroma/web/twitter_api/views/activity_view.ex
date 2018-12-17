@@ -14,6 +14,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
   alias Pleroma.HTML
 
   import Ecto.Query
+  require Logger
 
   defp query_context_ids([]), do: []
 
@@ -239,7 +240,8 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
     {summary, content} = render_content(object)
 
     html =
-      HTML.filter_tags(content, User.html_filter_policy(opts[:for]))
+      content
+      |> HTML.filter_tags(User.html_filter_policy(opts[:for]))
       |> Formatter.emojify(object["emoji"])
 
     reply_parent = Activity.get_in_reply_to_activity(activity)
@@ -274,6 +276,11 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
       "visibility" => Pleroma.Web.MastodonAPI.StatusView.get_visibility(object),
       "summary" => summary
     }
+  end
+
+  def render("activity.json", %{activity: unhandled_activity}) do
+    Logger.warn("#{__MODULE__} unhandled activity: #{inspect(unhandled_activity)}")
+    nil
   end
 
   def render_content(%{"type" => "Note"} = object) do
