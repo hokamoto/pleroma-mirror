@@ -225,11 +225,11 @@ defmodule Pleroma.FormatterTest do
     archaeme_remote = insert(:user, %{nickname: "archaeme@archae.me"})
 
     expected_result = [
-      {"@@gsimg", gsimg},
+      {"@gsimg", gsimg},
       {"@archaeme", archaeme},
       {"@archaeme@archae.me", archaeme_remote},
       {"@o", o},
-      {"@@jimm", jimm}
+      {"@jimm", jimm}
     ]
 
     assert Formatter.parse_mentions(text) == expected_result
