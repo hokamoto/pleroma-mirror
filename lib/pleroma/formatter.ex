@@ -24,10 +24,9 @@ defmodule Pleroma.Formatter do
 
     Regex.scan(regex, text)
     |> List.flatten()
-    |> Enum.map(fn v -> String.replace(v, ~r/^@@/, "@") end)
     |> Enum.uniq()
-    |> Enum.map(fn "@" <> match = full_match ->
-      {full_match, User.get_cached_by_nickname(match)}
+    |> Enum.map(fn nickname ->
+      {nickname, User.get_cached_by_nickname(String.trim_leading(nickname, "@"))}
     end)
     |> Enum.filter(fn {_match, user} -> user end)
   end

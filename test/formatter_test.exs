@@ -216,18 +216,20 @@ defmodule Pleroma.FormatterTest do
 
   test "it can parse mentions and return the relevant users" do
     text =
-      "@@gsimg According to @archaeme, that is @daggsy. Also hello @archaeme@archae.me and @o"
+      "@@gsimg According to @archaeme, that is @daggsy. Also hello @archaeme@archae.me and @o and @@@jimm"
 
     o = insert(:user, %{nickname: "o"})
+    jimm = insert(:user, %{nickname: "jimm"})
     gsimg = insert(:user, %{nickname: "gsimg"})
     archaeme = insert(:user, %{nickname: "archaeme"})
     archaeme_remote = insert(:user, %{nickname: "archaeme@archae.me"})
 
     expected_result = [
-      {"@gsimg", gsimg},
+      {"@@gsimg", gsimg},
       {"@archaeme", archaeme},
       {"@archaeme@archae.me", archaeme_remote},
-      {"@o", o}
+      {"@o", o},
+      {"@@jimm", jimm}
     ]
 
     assert Formatter.parse_mentions(text) == expected_result
