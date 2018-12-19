@@ -246,9 +246,9 @@ defmodule Mix.Tasks.Pleroma.User do
       Mix.shell().info("Generated user invite token")
 
       url =
-        Pleroma.Web.Router.Helpers.redirect_url(
+        Pleroma.Web.Router.Helpers.registration_page_url(
           Pleroma.Web.Endpoint,
-          :registration_page,
+          :redirector,
           token.token
         )
 
