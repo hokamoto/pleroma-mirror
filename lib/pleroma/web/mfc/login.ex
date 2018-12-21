@@ -37,7 +37,7 @@ defmodule Pleroma.Web.Mfc.Login do
     }
   end
 
-  def get_passcode(username, password) do
+  def get_passcode(username, password, client_ip) do
     mfc = Application.get_env(:pleroma, :mfc)
 
     url =
@@ -45,7 +45,7 @@ defmodule Pleroma.Web.Mfc.Login do
       |> Keyword.get(:passcode_cookie_endpoint)
 
     with {:ok, %{headers: headers, status: 200}} <-
-           post(url, %{username: username, password: password}),
+           post(url, %{username: username, password: password, client_ip: client_ip}),
          cookies <- decode_cookies(headers),
          [_, passcode] <- Enum.find(cookies, fn [key, _] -> key == "passcode" end) do
       {:ok, passcode}
@@ -55,7 +55,7 @@ defmodule Pleroma.Web.Mfc.Login do
   end
 
   def authenticate(username, password, client_ip) do
-    with {:ok, passcode} <- get_passcode(username, password),
+    with {:ok, passcode} <- get_passcode(username, password, client_ip),
          data <- login_data(username, passcode, client_ip),
          hash <- hash(data),
          data <- Map.put(data, :k, hash) do
