@@ -49,7 +49,8 @@ defmodule Pleroma.Web.Mfc.LoginTest do
         }
     end)
 
-    assert {:ok, "3nKHVtb3QDkNgKt3wsSnuak38vkHM5I6"} == Login.get_passcode(username, password)
+    assert {:ok, "3nKHVtb3QDkNgKt3wsSnuak38vkHM5I6"} ==
+             Login.get_passcode(username, password, "127.77.77.77")
   end
 
   test "it returns an error instead of a passcode for non-successful calls" do
@@ -69,7 +70,7 @@ defmodule Pleroma.Web.Mfc.LoginTest do
         }
     end)
 
-    assert {:error, _} = Login.get_passcode(username, password)
+    assert {:error, _} = Login.get_passcode(username, password, "127.77.77.77")
   end
 
   test "it authenticates using a data set" do
@@ -78,7 +79,7 @@ defmodule Pleroma.Web.Mfc.LoginTest do
       |> Keyword.get(:login_endpoint)
 
     Tesla.Mock.mock(fn
-      %{method: post, url: ^url} ->
+      %{method: :post, url: ^url} ->
         %Tesla.Env{
           body:
             "{\"id\":\"0 0\",\"responseVer\":1,\"method\":\"internal\\/login\\/passcode\",\"result\":{\"user_id\":3004379,\"username\":\"testcam20\",\"access_level\":1,\"avatar_url\":false},\"err\":0}",
@@ -112,7 +113,7 @@ defmodule Pleroma.Web.Mfc.LoginTest do
       |> Keyword.get(:login_endpoint)
 
     Tesla.Mock.mock(fn
-      %{method: post, url: ^url} ->
+      %{method: :post, url: ^url} ->
         %Tesla.Env{
           status: 403
         }
@@ -145,7 +146,7 @@ defmodule Pleroma.Web.Mfc.LoginTest do
       |> Keyword.get(:passcode_cookie_endpoint)
 
     Tesla.Mock.mock(fn
-      %{method: post, url: ^url} ->
+      %{method: :post, url: ^url} ->
         %Tesla.Env{
           body:
             "{\"id\":\"0 0\",\"responseVer\":1,\"method\":\"internal\\/login\\/passcode\",\"result\":{\"user_id\":3004379,\"username\":\"lain\",\"access_level\":1,\"avatar_url\":false},\"err\":0}",
