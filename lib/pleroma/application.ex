@@ -4,9 +4,12 @@ defmodule Pleroma.Application do
 
   @name "Pleroma"
   @version Mix.Project.config()[:version]
+  @env Application.get_env(:pleroma, :environment)
+
   def name, do: @name
   def version, do: @version
   def named_version(), do: @name <> " " <> @version
+  def env, do: @env
 
   def user_agent() do
     info = "#{Pleroma.Web.base_url()} <#{Pleroma.Config.get([:instance, :email], "")}>"
@@ -83,7 +86,9 @@ defmodule Pleroma.Application do
     Supervisor.start_link(children, opts)
   end
 
-  if Mix.env() == :test do
+  def mix?, do: Code.ensure_loaded?(Mix)
+
+  if @env == :test do
     defp streamer_child(), do: []
     defp chat_child(), do: []
   else

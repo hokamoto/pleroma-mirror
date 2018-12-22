@@ -6,6 +6,8 @@
 use Mix.Config
 
 # General application configuration
+config :pleroma, :environment, Mix.env()
+
 config :pleroma, ecto_repos: [Pleroma.Repo]
 
 config :pleroma, Pleroma.Repo, types: Pleroma.PostgresTypes
@@ -181,6 +183,7 @@ config :pleroma, :media_proxy,
 config :pleroma, :chat, enabled: true
 
 config :ecto, json_library: Jason
+config :phoenix, json_library: Jason
 
 config :phoenix, :format_encoders, json: Jason
 

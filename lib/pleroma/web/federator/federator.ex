@@ -149,7 +149,7 @@ defmodule Pleroma.Web.Federator do
     {:error, "Don't know what to do with this"}
   end
 
-  if Mix.env() == :test do
+  if Pleroma.Application.env() == :test do
     def enqueue(type, payload, _priority \\ 1) do
       if Pleroma.Config.get([:instance, :federating]) do
         handle(type, payload)

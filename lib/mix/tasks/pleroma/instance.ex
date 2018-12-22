@@ -128,15 +128,15 @@ defmodule Mix.Tasks.Pleroma.Instance do
           dbpass: dbpass
         )
 
-      Mix.shell().info(
+      Common.shell_info(
         "Writing config to #{config_path}. You should rename it to config/prod.secret.exs or config/dev.secret.exs."
       )
 
       File.write(config_path, result_config)
-      Mix.shell().info("Writing #{psql_path}.")
+      Common.shell_info("Writing #{psql_path}.")
       File.write(psql_path, result_psql)
 
-      Mix.shell().info(
+      Common.shell_info(
         "\n" <>
           """
           To get started:
@@ -150,7 +150,7 @@ defmodule Mix.Tasks.Pleroma.Instance do
           end
       )
     else
-      Mix.shell().error(
+      Common.shell_error(
         "The task would have overwritten the following files:\n" <>
           (Enum.map(paths, &"- #{&1}\n") |> Enum.join("")) <>
           "Rerun with `--force` to overwrite them."
