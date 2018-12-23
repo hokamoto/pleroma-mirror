@@ -52,6 +52,32 @@ defmodule Pleroma.NotificationTest do
       {:ok, _, _, activity_dupe} = TwitterAPI.follow(user, %{"user_id" => followed_user.id})
       assert nil == Notification.create_notification(activity_dupe, followed_user)
     end
+
+    test "it doesn't create a notification for like-unlike-like chains" do
+      user = insert(:user)
+      liked_user = insert(:user)
+      {:ok, status} = TwitterAPI.create_status(liked_user, %{"status" => "Yui is best yuru"})
+      {:ok, fav_status} = TwitterAPI.fav(user, status.id)
+      Notification.create_notification(fav_status, liked_user)
+      TwitterAPI.unfav(user, status.id)
+      {:ok, dupe} = TwitterAPI.fav(user, status.id)
+      assert nil == Notification.create_notification(dupe, liked_user)
+    end
+
+    test "it doesn't create a notification for repeat-unrepeat-repeat chains" do
+      user = insert(:user)
+      retweeted_user = insert(:user)
+
+      {:ok, status} =
+        TwitterAPI.create_status(retweeted_user, %{
+          "status" => "Send dupe notifications to the shadow realm"
+        })
+
+      {:ok, retweeted_activity} = TwitterAPI.repeat(user, status.id)
+      Notification.create_notification(retweeted_activity, retweeted_user)
+      {:ok, dupe} = TwitterAPI.unrepeat(user, status.id)
+      assert nil == Notification.create_notification(dupe, retweeted_user)
+    end
   end
 
   describe "get notification" do
