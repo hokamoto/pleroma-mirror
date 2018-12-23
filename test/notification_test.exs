@@ -42,6 +42,19 @@ defmodule Pleroma.NotificationTest do
 
       assert nil == Notification.create_notification(activity, author)
     end
+
+    test "it doesn't create a notification for follow-unfollow-follow chains" do
+      user = insert(:user)
+      followed_user = insert(:user)
+      {:ok, _, _, activity} = TwitterAPI.follow(user, %{"user_id" => followed_user.id})
+      Notification.create_notification(activity, followed_user)
+      TwitterAPI.unfollow(user, %{"user_id" => followed_user.id})
+      {:ok, _, _, activity_dupe} = TwitterAPI.follow(user, %{"user_id" => followed_user.id})
+      assert nil == Notification.create_notification(activity_dupe, followed_user)
+    end
+
+      
+      
   end
 
   describe "get notification" do
