@@ -75,7 +75,8 @@ defmodule Pleroma.NotificationTest do
 
       {:ok, retweeted_activity} = TwitterAPI.repeat(user, status.id)
       Notification.create_notification(retweeted_activity, retweeted_user)
-      {:ok, dupe} = TwitterAPI.unrepeat(user, status.id)
+      TwitterAPI.unrepeat(user, status.id)
+      {:ok, dupe} = TwitterAPI.repeat(user, status.id)
       assert nil == Notification.create_notification(dupe, retweeted_user)
     end
   end
