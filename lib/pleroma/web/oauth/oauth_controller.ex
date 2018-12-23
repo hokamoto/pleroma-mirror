@@ -53,9 +53,6 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          {_, user} <-
            {:user_tag,
             User.tag(user, Pleroma.Web.Mfc.Utils.tags_for_level(user_data["access_level"]))},
-    with %User{} = user <- User.get_by_nickname_or_email(name),
-         true <- Pbkdf2.checkpw(password, user.password_hash),
-         {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
          %App{} = app <- Repo.get_by(App, client_id: client_id),
          {:ok, auth} <- Authorization.create_authorization(app, user) do
       # Special case: Local MastodonFE.
