@@ -1,6 +1,6 @@
 defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   use Pleroma.Web, :controller
-  alias Pleroma.User
+  alias Pleroma.{User, Repo}
   alias Pleroma.Web.ActivityPub.Relay
 
   import Pleroma.Web.ControllerHelper, only: [json_response: 3]
