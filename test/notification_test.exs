@@ -52,9 +52,6 @@ defmodule Pleroma.NotificationTest do
       {:ok, _, _, activity_dupe} = TwitterAPI.follow(user, %{"user_id" => followed_user.id})
       assert nil == Notification.create_notification(activity_dupe, followed_user)
     end
-
-      
-      
   end
 
   describe "get notification" do
