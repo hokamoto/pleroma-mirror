@@ -554,6 +554,14 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
         info_params
       end
 
+    # MFC specific, don't allow models to lock their accounts.
+    info_params =
+      if "mfc_model" in user.tags do
+        Map.put(info_params, "locked", false)
+      else
+        info_params
+      end
+
     User.Info.profile_update(user.info, info_params)
   end
 
