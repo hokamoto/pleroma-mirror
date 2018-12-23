@@ -9,6 +9,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   require Logger
 
   @httpoison Application.get_env(:pleroma, :httpoison)
+  @type t() :: __MODULE__
 
   # For Announce activities, we filter the recipients based on following status for any actors
   # that match actual users.  See issue #164 for more information about why this is necessary.
@@ -715,16 +716,18 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         digest: digest
       })
 
-    @httpoison.post(
-      inbox,
-      json,
-      [
-        {"Content-Type", "application/activity+json"},
-        {"signature", signature},
-        {"digest", digest}
-      ],
-      hackney: [pool: :default]
-    )
+    with {:ok, _} <-
+           @httpoison.post(
+             inbox,
+             json,
+             [
+               {"Content-Type", "application/activity+json"},
+               {"signature", signature},
+               {"digest", digest}
+             ],
+             hackney: [pool: :default]
+           ),
+         do: Pleroma.Web.Federator.Queue.refresh_timestamp(host)
   end
 
   # TODO:

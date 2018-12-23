@@ -1,4 +1,7 @@
 defmodule Pleroma.Web.Federator do
+  @moduledoc """
+  """
+
   use GenServer
   alias Pleroma.User
   alias Pleroma.Activity

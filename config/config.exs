@@ -119,6 +119,10 @@ config :pleroma, :instance,
   finmoji_enabled: true,
   mrf_transparency: true
 
+config :pleroma,
+  # sec - 5 days
+  federator_queue_alive_period: 432_000
+
 config :pleroma, :markup,
   # XXX - unfortunately, inline images must be enabled by default right now, because
   # of custom emoji.  Issue #275 discusses defanging that somehow.

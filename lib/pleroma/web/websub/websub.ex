@@ -10,6 +10,7 @@ defmodule Pleroma.Web.Websub do
   import Ecto.Query
 
   @httpoison Application.get_env(:pleroma, :httpoison)
+  @type t() :: __MODULE__
 
   def verify(subscription, getter \\ &@httpoison.get/3) do
     challenge = Base.encode16(:crypto.strong_rand_bytes(8))
@@ -267,6 +268,7 @@ defmodule Pleroma.Web.Websub do
              ]
            ) do
       Logger.info(fn -> "Pushed to #{callback}, code #{code}" end)
+      Pleroma.Web.Federator.Queue.refresh_timestamp(URI.parse(callback).host)
       {:ok, code}
     else
       e ->

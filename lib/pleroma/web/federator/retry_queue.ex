@@ -1,11 +1,20 @@
 defmodule Pleroma.Web.Federator.RetryQueue do
+  @moduledoc """
+  """
+
   use GenServer
 
   require Logger
 
+  alias Pleroma.Web.ActivityPub.ActivityPub
+  alias Pleroma.Web.Websub
+
   # initial timeout, 5 min
   @initial_timeout 30_000
   @max_retries 5
+
+  #####
+  # External API
 
   def init(args) do
     {:ok, args}
@@ -23,17 +32,14 @@ defmodule Pleroma.Web.Federator.RetryQueue do
     end
   end
 
+  @doc "Adds to queue."
+  @spec enqueue(map(), ActivityPub.t() | Websub.t(), integer()) :: none()
   def enqueue(data, transport, retries \\ 0) do
     GenServer.cast(__MODULE__, {:maybe_enqueue, data, transport, retries + 1})
   end
 
-  def get_retry_params(retries) do
-    if retries > @max_retries do
-      {:drop, "Max retries reached"}
-    else
-      {:retry, growth_function(retries)}
-    end
-  end
+  #####
+  # GenServer implementation
 
   def handle_cast({:maybe_enqueue, data, transport, retries}, %{dropped: drop_count} = state) do
     case get_retry_params(retries) do
@@ -66,6 +72,14 @@ defmodule Pleroma.Web.Federator.RetryQueue do
   def handle_info(unknown, state) do
     Logger.debug("RetryQueue: don't know what to do with #{inspect(unknown)}, ignoring")
     {:noreply, state}
+  end
+
+  def get_retry_params(retries) do
+    if retries > @max_retries do
+      {:drop, "Max retries reached"}
+    else
+      {:retry, growth_function(retries)}
+    end
   end
 
   defp growth_function(retries) do
