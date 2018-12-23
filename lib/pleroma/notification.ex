@@ -108,7 +108,7 @@ defmodule Pleroma.Notification do
     unless User.blocks?(user, %{ap_id: activity.data["actor"]}) or
              user.ap_id == activity.data["actor"] or
              (activity.data["type"] == "Follow" and
-                not Enum.any?(Notification.for_user(user), fn notif ->
+                Enum.any?(Notification.for_user(user), fn notif ->
                   notif.activity.data["type"] == "Follow" and
                     notif.activity.data["actor"] == activity.data["actor"]
                 end)) do
