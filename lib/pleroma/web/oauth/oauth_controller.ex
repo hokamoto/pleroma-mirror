@@ -89,7 +89,6 @@ defmodule Pleroma.Web.OAuth.OAuthController do
           redirect(conn, external: url)
       end
     else
-<<<<<<< HEAD
       {:access_level_check, _} ->
         conn
         |> put_flash(:error, "Only available for Premium accounts")
@@ -101,7 +100,6 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
       e ->
         e
-=======
       {:auth_active, false} ->
         conn
         |> put_flash(:error, "Account confirmation pending")
@@ -110,7 +108,6 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
       error ->
         error
->>>>>>> 005b4194ffa855c56b2305d02249b31452155fff
     end
   end
 
