@@ -245,9 +245,11 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
       |> Formatter.emojify(object["emoji"])
 
     text =
-      content
-      |> String.replace(~r/<br\s?\/?>/, "\n")
-      |> HTML.strip_tags()
+      if content do
+        content
+        |> String.replace(~r/<br\s?\/?>/, "\n")
+        |> HTML.strip_tags()
+      end
 
     reply_parent = Activity.get_in_reply_to_activity(activity)
 
@@ -301,7 +303,8 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
     {summary, content}
   end
 
-  def render_content(%{"type" => object_type} = object) when object_type in ["Article", "Page"] do
+  def render_content(%{"type" => object_type} = object)
+      when object_type in ["Article", "Page", "Video"] do
     summary = object["name"] || object["summary"]
 
     content =

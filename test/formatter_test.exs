@@ -22,6 +22,18 @@ defmodule Pleroma.FormatterTest do
       assert expected_text ==
                Formatter.add_hashtag_links({[], text}, tags) |> Formatter.finalize()
     end
+
+    test "does not turn html characters to tags" do
+      text = "Fact #3: pleroma does what mastodon't"
+
+      expected_text =
+        "Fact <a data-tag='3' href='http://localhost:4001/tag/3' rel='tag'>#3</a>: pleroma does what mastodon't"
+
+      tags = Formatter.parse_tags(text)
+
+      assert expected_text ==
+               Formatter.add_hashtag_links({[], text}, tags) |> Formatter.finalize()
+    end
   end
 
   describe ".add_links" do
@@ -203,8 +215,11 @@ defmodule Pleroma.FormatterTest do
   end
 
   test "it can parse mentions and return the relevant users" do
-    text = "@gsimg According to @archaeme, that is @daggsy. Also hello @archaeme@archae.me"
+    text =
+      "@@gsimg According to @archaeme, that is @daggsy. Also hello @archaeme@archae.me and @o and @@@jimm"
 
+    o = insert(:user, %{nickname: "o"})
+    jimm = insert(:user, %{nickname: "jimm"})
     gsimg = insert(:user, %{nickname: "gsimg"})
     archaeme = insert(:user, %{nickname: "archaeme"})
     archaeme_remote = insert(:user, %{nickname: "archaeme@archae.me"})
@@ -212,7 +227,9 @@ defmodule Pleroma.FormatterTest do
     expected_result = [
       {"@gsimg", gsimg},
       {"@archaeme", archaeme},
-      {"@archaeme@archae.me", archaeme_remote}
+      {"@archaeme@archae.me", archaeme_remote},
+      {"@o", o},
+      {"@jimm", jimm}
     ]
 
     assert Formatter.parse_mentions(text) == expected_result

@@ -69,6 +69,7 @@ config :pleroma, Pleroma.Mailer,
 * `banner_upload_limit`: File size limit of user’s profile banners
 * `registrations_open`: Enable registrations for anyone, invitations can be enabled when false.
 * `invites_enabled`: Enable user invitations for admins (depends on `registrations_open: false`).
+* `account_activation_required`: Require users to confirm their emails before signing in.
 * `federating`: Enable federation with other instances
 * `allow_relay`: Enable Pleroma’s Relay, which makes it possible to follow a whole instance
 * `rewrite_policy`: Message Rewrite Policy, either one or a list. Here are the ones available by default:
@@ -119,6 +120,9 @@ This section is used to configure Pleroma-FE, unless ``:managed_config`` in ``:i
 ## :mrf_rejectnonpublic
 * `allow_followersonly`: whether to allow followers-only posts
 * `allow_direct`: whether to allow direct messages
+
+## :mrf_hellthread
+* `threshold`: Number of mentioned users after which the message gets discarded as spam
 
 ## :media_proxy
 * `enabled`: Enables proxying of remote media to the instance’s proxy
