@@ -86,8 +86,6 @@ defmodule Pleroma.Application do
     Supervisor.start_link(children, opts)
   end
 
-  def mix?, do: Code.ensure_loaded?(Mix)
-
   if @env == :test do
     defp streamer_child(), do: []
     defp chat_child(), do: []
