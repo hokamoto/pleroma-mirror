@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Pleroma.Common do
   @doc "Common functions to be reused in mix tasks"
   def start_pleroma do
-    Application.ensure_all_started(:pleroma)
+    {:ok, _} = Application.ensure_all_started(:pleroma)
   end
 
   def get_option(options, opt, prompt, defval \\ nil, defname \\ nil) do
