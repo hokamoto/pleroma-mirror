@@ -38,7 +38,7 @@ defmodule Pleroma.Object do
   # Legacy objects can be mutated by anybody
   def authorize_mutation(%Object{}, %User{}), do: true
 
-  if Pleroma.Application.env() == :test do
+  if Mix.env() == :test do
     def get_cached_by_ap_id(ap_id) do
       get_by_ap_id(ap_id)
     end
