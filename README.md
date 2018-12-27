@@ -10,13 +10,14 @@ For clients it supports both the [GNU Social API with Qvitter extensions](https:
 
 Client applications that are known to work well:
 
-* Twidere
-* Tusky
+* Amaroq (iOS)
+* Mastalab (Android)
 * Pawoo (Android + iOS)
 * Subway Tooter
-* Amaroq (iOS)
 * Tootdon (Android + iOS)
 * Tootle (iOS)
+* Tusky (Android)
+* Twidere (Android)
 * Whalebird (Windows + Mac + Linux)
 
 No release has been made yet, but several servers have been online for months already. If you want to run your own server, feel free to contact us at @lain@pleroma.soykaf.com or in our dev chat at #pleroma on freenode or via matrix at https://matrix.heldscal.la/#/room/#freenode_#pleroma:matrix.org.
