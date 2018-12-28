@@ -1,4 +1,6 @@
 defmodule Mix.Tasks.Pleroma.Common do
+  require Logger
+
   @doc "Common functions to be reused in mix tasks"
   def start_pleroma do
     {:ok, _} = Application.ensure_all_started(:pleroma)
@@ -28,11 +30,15 @@ defmodule Mix.Tasks.Pleroma.Common do
   end
 
   def shell_info(message) do
-    if mix_shell?(), do: Mix.shell().info(message)
+    if mix_shell?(),
+      do: Mix.shell().info(message),
+      else: Logger.info(message)
   end
 
   def shell_error(message) do
-    if mix_shell?(), do: Mix.shell().error(message)
+    if mix_shell?(),
+      do: Mix.shell().error(message),
+      else: Logger.error(message)
   end
 
   @doc "Performs a safe check whether `Mix.shell/0` is available (does not raise if Mix is not loaded)"
