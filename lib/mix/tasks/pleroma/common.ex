@@ -7,26 +7,34 @@ defmodule Mix.Tasks.Pleroma.Common do
   end
 
   def get_option(options, opt, prompt, defval \\ nil, defname \\ nil) do
-    Keyword.get(options, opt) || shell_prompt(options, opt, prompt, defval, defname)
+    Keyword.get(options, opt) || shell_prompt(prompt, defval, defname)
   end
 
-  def shell_prompt(options, opt, prompt, defval \\ nil, defname \\ nil) do
-    if mix_shell?() do
-      case Mix.shell().prompt("#{prompt} [#{defname || defval}]") do
-        "\n" ->
-          case defval do
-            nil -> shell_prompt(options, opt, prompt, defval)
-            defval -> defval
-          end
+  def shell_prompt(prompt, defval \\ nil, defname \\ nil) do
+    prompt_message = "#{prompt} [#{defname || defval}]"
 
-        opt ->
-          opt |> String.trim()
-      end
+    input =
+      if mix_shell?(),
+        do: Mix.shell().prompt(prompt_message),
+        else: :io.get_line(prompt_message)
+
+    case input do
+      "\n" ->
+        case defval do
+          nil ->
+            shell_prompt(prompt, defval, defname)
+
+          defval ->
+            defval
+        end
+
+      input ->
+        String.trim(input)
     end
   end
 
   def shell_yes?(message) do
-    if mix_shell?(), do: Mix.shell().yes?(message)
+    shell_prompt(message, "Yn") in ~w(Yn Y y)
   end
 
   def shell_info(message) do
