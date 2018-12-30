@@ -47,11 +47,11 @@ defmodule Pleroma.Plugs.HTTPSecurityPlug do
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self'",
       "script-src 'self'",
+      connect_src,
       "manifest-src 'self'",
       if protocol == "https" do
         "upgrade-insecure-requests"
-      end,
-      connect_src
+      end
     ]
     |> Enum.join("; ")
   end
