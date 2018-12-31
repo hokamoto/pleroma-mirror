@@ -5,7 +5,7 @@ defmodule Pleroma.Mixfile do
     [
       app: :pleroma,
       version: version("0.9.0"),
-      elixir: "~> 1.4",
+      elixir: "~> 1.7",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       elixirc_options: [warnings_as_errors: true],
@@ -21,7 +21,7 @@ defmodule Pleroma.Mixfile do
       homepage_url: "https://pleroma.social/",
       docs: [
         logo: "priv/static/static/logo.png",
-        extras: ["README.md", "docs/config.md", "docs/Pleroma-API.md"],
+        extras: ["README.md", "docs/config.md", "docs/Pleroma-API.md", "docs/Admin-API.md"],
         main: "readme",
         output: "priv/static/doc"
       ]
@@ -71,7 +71,7 @@ defmodule Pleroma.Mixfile do
       {:crypt,
        git: "https://github.com/msantos/crypt", ref: "1f2b58927ab57e72910191a7ebaeff984382a1d3"},
       {:cors_plug, "~> 1.5"},
-      {:ex_doc, "> 0.18.3 and < 0.20.0", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.19", only: :dev, runtime: false},
       {:web_push_encryption, "~> 0.2.1"},
       {:swoosh, "~> 0.20"},
       {:gen_smtp, "~> 0.13"},

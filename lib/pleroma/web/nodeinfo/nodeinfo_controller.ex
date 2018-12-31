@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
@@ -138,7 +138,8 @@ defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
         },
         accountActivationRequired: Keyword.get(instance, :account_activation_required, false),
         invitesEnabled: Keyword.get(instance, :invites_enabled, false),
-        features: features
+        features: features,
+        restrictedNicknames: Pleroma.Config.get([Pleroma.User, :restricted_nicknames])
       }
     }
 

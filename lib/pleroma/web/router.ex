@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Router do
@@ -145,6 +145,7 @@ defmodule Pleroma.Web.Router do
 
   scope "/api/pleroma", Pleroma.Web.TwitterAPI do
     pipe_through(:authenticated_api)
+    post("/blocks_import", UtilController, :blocks_import)
     post("/follow_import", UtilController, :follow_import)
     post("/change_password", UtilController, :change_password)
     post("/delete_account", UtilController, :delete_account)
@@ -289,6 +290,7 @@ defmodule Pleroma.Web.Router do
 
     get("/statuses/followers", TwitterAPI.Controller, :followers)
     get("/statuses/friends", TwitterAPI.Controller, :friends)
+    get("/statuses/blocks", TwitterAPI.Controller, :blocks)
     get("/statuses/show/:id", TwitterAPI.Controller, :fetch_status)
     get("/statusnet/conversation/:id", TwitterAPI.Controller, :fetch_conversation)
 
@@ -417,6 +419,27 @@ defmodule Pleroma.Web.Router do
     get("/users/:nickname/followers", ActivityPubController, :followers)
     get("/users/:nickname/following", ActivityPubController, :following)
     get("/users/:nickname/outbox", ActivityPubController, :outbox)
+  end
+
+  pipeline :activitypub_client do
+    plug(:accepts, ["activity+json"])
+    plug(:fetch_session)
+    plug(Pleroma.Plugs.OAuthPlug)
+    plug(Pleroma.Plugs.BasicAuthDecoderPlug)
+    plug(Pleroma.Plugs.UserFetcherPlug)
+    plug(Pleroma.Plugs.SessionAuthenticationPlug)
+    plug(Pleroma.Plugs.LegacyAuthenticationPlug)
+    plug(Pleroma.Plugs.AuthenticationPlug)
+    plug(Pleroma.Plugs.UserEnabledPlug)
+    plug(Pleroma.Plugs.SetUserSessionIdPlug)
+    plug(Pleroma.Plugs.EnsureUserKeyPlug)
+  end
+
+  scope "/", Pleroma.Web.ActivityPub do
+    pipe_through([:activitypub_client])
+
+    get("/users/:nickname/inbox", ActivityPubController, :read_inbox)
+    post("/users/:nickname/outbox", ActivityPubController, :update_outbox)
   end
 
   scope "/relay", Pleroma.Web.ActivityPub do

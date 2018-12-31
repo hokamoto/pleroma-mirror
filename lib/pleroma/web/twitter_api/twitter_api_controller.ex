@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.TwitterAPI.Controller do
@@ -130,6 +130,15 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   def user_timeline(%{assigns: %{user: user}} = conn, params) do
     case TwitterAPI.get_user(user, params) do
       {:ok, target_user} ->
+        # Twitter and ActivityPub use a different name and sense for this parameter.
+        {include_rts, params} = Map.pop(params, "include_rts")
+
+        params =
+          case include_rts do
+            x when x == "false" or x == "0" -> Map.put(params, "exclude_reblogs", "true")
+            _ -> params
+          end
+
         activities = ActivityPub.fetch_user_activities(target_user, user, params)
 
         conn
@@ -498,6 +507,14 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
     end
   end
 
+  def blocks(%{assigns: %{user: user}} = conn, _params) do
+    with blocked_users <- User.blocked_users(user) do
+      conn
+      |> put_view(UserView)
+      |> render("index.json", %{users: blocked_users, for: user})
+    end
+  end
+
   def friend_requests(conn, params) do
     with {:ok, user} <- TwitterAPI.get_user(conn.assigns[:user], params),
          {:ok, friend_requests} <- User.get_follow_requests(user) do
@@ -661,7 +678,7 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
     json_reply(conn, 403, json)
   end
 
-  def only_if_public_instance(conn = %{conn: %{assigns: %{user: _user}}}, _), do: conn
+  def only_if_public_instance(%{assigns: %{user: %User{}}} = conn, _), do: conn
 
   def only_if_public_instance(conn, _) do
     if Keyword.get(Application.get_env(:pleroma, :instance), :public) do

@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
@@ -712,11 +712,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     end
   end
 
-  # TODO: Use proper query
   def blocks(%{assigns: %{user: user}} = conn, _) do
-    with blocked_users <- user.info.blocks || [],
-         accounts <- Enum.map(blocked_users, fn ap_id -> User.get_cached_by_ap_id(ap_id) end) do
-      res = AccountView.render("accounts.json", users: accounts, for: user, as: :user)
+    with blocked_accounts <- User.blocked_users(user) do
+      res = AccountView.render("accounts.json", users: blocked_accounts, for: user, as: :user)
       json(conn, res)
     end
   end
@@ -974,7 +972,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
             max_toot_chars: limit
           },
           rights: %{
-            delete_others_notice: !!user.info.is_moderator
+            delete_others_notice: !!user.info.is_moderator,
+            admin: !!user.info.is_admin
           },
           compose: %{
             me: "#{user.id}",

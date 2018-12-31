@@ -1,11 +1,13 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Activity do
   use Ecto.Schema
   alias Pleroma.{Repo, Activity, Notification}
   import Ecto.Query
+
+  @type t :: %__MODULE__{}
 
   # https://github.com/tootsuite/mastodon/blob/master/app/models/notification.rb#L19
   @mastodon_notification_types %{

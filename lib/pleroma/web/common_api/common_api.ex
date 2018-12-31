@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.CommonAPI do
@@ -102,7 +102,7 @@ defmodule Pleroma.Web.CommonAPI do
              attachments,
              tags,
              get_content_type(data["content_type"]),
-             data["no_attachment_links"]
+             Enum.member?([true, "true"], data["no_attachment_links"])
            ),
          context <- make_context(inReplyTo),
          cw <- data["spoiler_text"],
