@@ -18,7 +18,10 @@ defmodule Pleroma.Web.Mfc.Utils do
          {:ok, %{status: 200, body: body}} <-
            Tesla.get("#{Pleroma.Config.get([:mfc, :bookmarks_endpoint])}/#{mfc_id}"),
          bookmarks <- get_ids_from_body(body),
-         candidates <- Enum.uniq(friends ++ bookmarks) do
+         {:ok, %{status: 200, body: body}} <-
+           Tesla.get("#{Pleroma.Config.get([:mfc, :following_endpoint])}&user_id=#{mfc_id}"),
+         following <- get_ids_from_body(body),
+         candidates <- Enum.uniq(friends ++ bookmarks ++ following) do
       query =
         from(u in User,
           where: u.mfc_id in ^candidates
