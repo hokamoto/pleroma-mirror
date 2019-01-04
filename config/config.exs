@@ -14,7 +14,7 @@ config :pleroma, Pleroma.Repo, types: Pleroma.PostgresTypes
 
 config :pleroma, Pleroma.Captcha,
   enabled: false,
-  seconds_retained: 180,
+  seconds_valid: 60,
   method: Pleroma.Captcha.Kocaptcha
 
 config :pleroma, Pleroma.Captcha.Kocaptcha, endpoint: "https://captcha.kotobank.ch"
@@ -56,6 +56,17 @@ config :pleroma, :uri_schemes,
     "xmpp"
   ]
 
+websocket_config = [
+  path: "/websocket",
+  serializer: [
+    {Phoenix.Socket.V1.JSONSerializer, "~> 1.0.0"},
+    {Phoenix.Socket.V2.JSONSerializer, "~> 2.0.0"}
+  ],
+  timeout: 60_000,
+  transport_log: false,
+  compress: false
+]
+
 # Configures the endpoint
 config :pleroma, Pleroma.Web.Endpoint,
   url: [host: "localhost"],
@@ -64,6 +75,8 @@ config :pleroma, Pleroma.Web.Endpoint,
       {:_,
        [
          {"/api/v1/streaming", Elixir.Pleroma.Web.MastodonAPI.WebsocketHandler, []},
+         {"/socket/websocket", Phoenix.Endpoint.CowboyWebSocket,
+          {nil, {Pleroma.Web.Endpoint, Pleroma.Web.UserSocket, websocket_config}}},
          {:_, Plug.Adapters.Cowboy.Handler, {Pleroma.Web.Endpoint, []}}
        ]}
     ]
@@ -176,13 +189,7 @@ config :pleroma, :mrf_simple,
   reject: [],
   accept: []
 
-config :pleroma, :media_proxy,
-  enabled: false,
-  # base_url: "https://cache.pleroma.social",
-  proxy_opts: [
-    # inline_content_types: [] | false | true,
-    # http: [:insecure]
-  ]
+config :pleroma, :media_proxy, enabled: false
 
 config :pleroma, :chat, enabled: true
 
@@ -261,8 +268,17 @@ config :pleroma, Pleroma.User,
     "auth",
     "proxy",
     "dev",
-    "internal"
+    "internal",
+    "media"
   ]
+
+config :pleroma, Pleroma.Web.Federator, max_jobs: 50
+
+config :pleroma, Pleroma.Web.Federator.RetryQueue,
+  enabled: false,
+  max_jobs: 20,
+  initial_timeout: 30,
+  max_retries: 5
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
