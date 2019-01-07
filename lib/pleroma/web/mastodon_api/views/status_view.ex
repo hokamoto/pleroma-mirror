@@ -180,7 +180,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       id: to_string(attachment["id"] || hash_id),
       url: href,
       remote_url: href,
-      preview_url: href,
+      preview_url: nil,
       text_url: href,
       type: type,
       description: attachment["name"]
