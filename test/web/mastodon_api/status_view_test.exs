@@ -138,7 +138,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
       type: "image",
       url: "someurl",
       remote_url: "someurl",
-      preview_url: "someurl",
+      preview_url: nil,
       text_url: "someurl",
       description: nil
     }
