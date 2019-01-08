@@ -25,6 +25,37 @@ defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
 
   import Mock
 
+  test "returns a temporary ap_id based user for activities missing db users" do
+    user = insert(:user)
+
+    {:ok, activity} = CommonAPI.post(user, %{"status" => "Hey @shp!", "visibility" => "direct"})
+
+    Repo.delete(user)
+    Cachex.clear(:user_cache)
+
+    %{"user" => tw_user} = ActivityView.render("activity.json", activity: activity)
+
+    assert tw_user["screen_name"] == "erroruser@example.com"
+    assert tw_user["name"] == user.ap_id
+    assert tw_user["statusnet_profile_url"] == user.ap_id
+  end
+
+  test "tries to get a user by nickname if fetching by ap_id doesn't work" do
+    user = insert(:user)
+
+    {:ok, activity} = CommonAPI.post(user, %{"status" => "Hey @shp!", "visibility" => "direct"})
+
+    {:ok, user} =
+      user
+      |> Ecto.Changeset.change(%{ap_id: "#{user.ap_id}/extension/#{user.nickname}"})
+      |> Repo.update()
+
+    Cachex.clear(:user_cache)
+
+    result = ActivityView.render("activity.json", activity: activity)
+    assert result["user"]["id"] == user.id
+  end
+
   test "a create activity with a html status" do
     text = """
     #Bike log - Commute Tuesday\nhttps://pla.bike/posts/20181211/\n#cycling #CHScycling #commute\nMVIMG_20181211_054020.jpg
@@ -39,6 +70,35 @@ defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
 
     assert result["text"] ==
              "#Bike log - Commute Tuesday\nhttps://pla.bike/posts/20181211/\n#cycling #CHScycling #commute\nMVIMG_20181211_054020.jpg"
+  end
+
+  test "a create activity with a summary containing emoji" do
+    {:ok, activity} =
+      CommonAPI.post(insert(:user), %{
+        "spoiler_text" => ":woollysocks: meow",
+        "status" => "."
+      })
+
+    result = ActivityView.render("activity.json", activity: activity)
+
+    expected =
+      "<img height=\"32px\" width=\"32px\" alt=\"woollysocks\" title=\"woollysocks\" src=\"http://localhost:4001/finmoji/128px/woollysocks-128.png\" /> meow"
+
+    assert result["summary"] == expected
+  end
+
+  test "a create activity with a summary containing invalid HTML" do
+    {:ok, activity} =
+      CommonAPI.post(insert(:user), %{
+        "spoiler_text" => "<span style=\"color: magenta; font-size: 32px;\">meow</span>",
+        "status" => "."
+      })
+
+    result = ActivityView.render("activity.json", activity: activity)
+
+    expected = "meow"
+
+    assert result["summary"] == expected
   end
 
   test "a create activity with a note" do
@@ -73,14 +133,14 @@ defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
       "repeat_num" => 0,
       "repeated" => false,
       "statusnet_conversation_id" => convo_id,
+      "summary" => "",
       "statusnet_html" =>
         "Hey <span><a data-user=\"#{other_user.id}\" href=\"#{other_user.ap_id}\">@<span>shp</span></a></span>!",
       "tags" => [],
       "text" => "Hey @shp!",
       "uri" => activity.data["object"]["id"],
       "user" => UserView.render("show.json", %{user: user}),
-      "visibility" => "direct",
-      "summary" => nil
+      "visibility" => "direct"
     }
 
     assert result == expected

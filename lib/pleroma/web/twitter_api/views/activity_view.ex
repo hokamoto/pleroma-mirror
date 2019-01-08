@@ -94,9 +94,25 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
       ap_id == "https://www.w3.org/ns/activitystreams#Public" ->
         nil
 
+      user = User.get_cached_by_ap_id(ap_id) ->
+        user
+
+      user = User.get_by_guessed_nickname(ap_id) ->
+        user
+
       true ->
-        User.get_cached_by_ap_id(ap_id)
+        error_user(ap_id)
     end
+  end
+
+  defp error_user(ap_id) do
+    %User{
+      name: ap_id,
+      ap_id: ap_id,
+      info: %User.Info{},
+      nickname: "erroruser@example.com",
+      inserted_at: NaiveDateTime.utc_now()
+    }
   end
 
   def render("index.json", opts) do
@@ -245,14 +261,18 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
 
     html =
       content
-      |> HTML.get_cached_scrubbed_html_for_object(User.html_filter_policy(opts[:for]), activity)
+      |> HTML.get_cached_scrubbed_html_for_object(
+        User.html_filter_policy(opts[:for]),
+        activity,
+        __MODULE__
+      )
       |> Formatter.emojify(object["emoji"])
 
     text =
       if content do
         content
         |> String.replace(~r/<br\s?\/?>/, "\n")
-        |> HTML.get_cached_stripped_html_for_object(activity)
+        |> HTML.get_cached_stripped_html_for_object(activity, __MODULE__)
       end
 
     reply_parent = Activity.get_in_reply_to_activity(activity)
@@ -285,7 +305,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
       "activity_type" => "post",
       "possibly_sensitive" => possibly_sensitive,
       "visibility" => Pleroma.Web.MastodonAPI.StatusView.get_visibility(object),
-      "summary" => summary
+      "summary" => HTML.strip_tags(summary) |> Formatter.emojify(object["emoji"])
     }
   end
 
