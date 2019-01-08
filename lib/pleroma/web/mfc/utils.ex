@@ -1,6 +1,40 @@
 defmodule Pleroma.Web.Mfc.Utils do
   alias Pleroma.User
   alias Pleroma.Repo
+  import Ecto.Query
+
+  defp get_ids_from_body(body) do
+    with {:ok, %{"err" => 0, "data" => data}} <- Jason.decode(body) do
+      Enum.map(data, fn %{"id" => id} -> to_string(id) end)
+    else
+      _ -> []
+    end
+  end
+
+  def sync_follows(%{mfc_id: mfc_id} = user) do
+    with {:ok, %{status: 200, body: body}} <-
+           Tesla.get("#{Pleroma.Config.get([:mfc, :friends_endpoint])}/#{mfc_id}"),
+         friends <- get_ids_from_body(body),
+         {:ok, %{status: 200, body: body}} <-
+           Tesla.get("#{Pleroma.Config.get([:mfc, :bookmarks_endpoint])}/#{mfc_id}"),
+         bookmarks <- get_ids_from_body(body),
+         {:ok, %{status: 200, body: body}} <-
+           Tesla.get("#{Pleroma.Config.get([:mfc, :following_endpoint])}&user_id=#{mfc_id}"),
+         following <- get_ids_from_body(body),
+         candidates <- Enum.uniq(friends ++ bookmarks ++ following) do
+      query =
+        from(u in User,
+          where: u.mfc_id in ^candidates
+        )
+
+      query
+      |> Repo.all()
+      |> Enum.reduce(user, fn candidate, user ->
+        {:ok, user} = User.maybe_follow(user, candidate)
+        user
+      end)
+    end
+  end
 
   def tags_for_level(2), do: ["mfc_premium_member"]
   def tags_for_level(4), do: ["mfc_model"]

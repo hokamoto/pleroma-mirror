@@ -17,16 +17,21 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
     app = insert(:oauth_app)
     nickname = user.nickname
 
-    with_mock Pleroma.Web.Mfc.Login,
-      authenticate: fn ^nickname, "test" ->
-        {:ok,
-         %{
-           "user_id" => 1234,
-           "access_level" => 2,
-           "avatar_url" => false,
-           "username" => "lain"
-         }}
-      end do
+    with_mocks [
+      {Pleroma.Web.Mfc.Utils, [:passthrough], [sync_follows: fn x -> x end]},
+      {Pleroma.Web.Mfc.Login, [],
+       [
+         authenticate: fn ^nickname, "test", _ip ->
+           {:ok,
+            %{
+              "user_id" => 1234,
+              "access_level" => 2,
+              "avatar_url" => false,
+              "username" => "lain"
+            }}
+         end
+       ]}
+    ] do
       conn =
         build_conn()
         |> post("/oauth/authorize", %{
@@ -55,7 +60,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
     nickname = user.nickname
 
     with_mock Pleroma.Web.Mfc.Login,
-      authenticate: fn ^nickname, "test" ->
+      authenticate: fn ^nickname, "test", _ip ->
         {:ok,
          %{
            "user_id" => 1234,
@@ -83,19 +88,24 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
   test "without a user, calls MFC for auth and creates a user (level 2)" do
     app = insert(:oauth_app)
 
-    with_mock Pleroma.Web.Mfc.Login,
-      authenticate: fn "lain", "test" ->
-        {:ok,
-         %{
-           "user_id" => 1234,
-           "access_level" => 2,
-           "avatar_url" => [
-             "https://img.mfcimg.com/photos2/300/30004271/avatar.",
-             ".jpg?nc=1541675948"
-           ],
-           "username" => "lain"
-         }}
-      end do
+    with_mocks [
+      {Pleroma.Web.Mfc.Utils, [:passthrough], [sync_follows: fn x -> x end]},
+      {Pleroma.Web.Mfc.Login, [],
+       [
+         authenticate: fn "lain", "test", _ip ->
+           {:ok,
+            %{
+              "user_id" => 1234,
+              "access_level" => 2,
+              "avatar_url" => [
+                "https://img.mfcimg.com/photos2/300/30004271/avatar.",
+                ".jpg?nc=1541675948"
+              ],
+              "username" => "lain"
+            }}
+         end
+       ]}
+    ] do
       conn =
         build_conn()
         |> post("/oauth/authorize", %{
@@ -128,19 +138,24 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
   test "without a user, calls MFC for auth and creates a user (level 4)" do
     app = insert(:oauth_app)
 
-    with_mock Pleroma.Web.Mfc.Login,
-      authenticate: fn "lain", "test" ->
-        {:ok,
-         %{
-           "user_id" => 1234,
-           "access_level" => 4,
-           "avatar_url" => [
-             "https://img.mfcimg.com/photos2/300/30004271/avatar.",
-             ".jpg?nc=1541675948"
-           ],
-           "username" => "lain"
-         }}
-      end do
+    with_mocks [
+      {Pleroma.Web.Mfc.Utils, [:passthrough], [sync_follows: fn x -> x end]},
+      {Pleroma.Web.Mfc.Login, [],
+       [
+         authenticate: fn "lain", "test", _ip ->
+           {:ok,
+            %{
+              "user_id" => 1234,
+              "access_level" => 4,
+              "avatar_url" => [
+                "https://img.mfcimg.com/photos2/300/30004271/avatar.",
+                ".jpg?nc=1541675948"
+              ],
+              "username" => "lain"
+            }}
+         end
+       ]}
+    ] do
       conn =
         build_conn()
         |> post("/oauth/authorize", %{
