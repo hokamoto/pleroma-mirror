@@ -11,16 +11,21 @@ defmodule Pleroma.Web.Mfc.Utils do
     end
   end
 
+  defp get_ids_for_url(url) do
+    with {:ok, %{status: 200, body: body}} <- Tesla.get(url),
+         ids <- get_ids_from_body(body) do
+      ids
+    else
+      _ -> []
+    end
+  end
+
   def sync_follows(%{mfc_id: mfc_id} = user) do
-    with {:ok, %{status: 200, body: body}} <-
-           Tesla.get("#{Pleroma.Config.get([:mfc, :friends_endpoint])}/#{mfc_id}"),
-         friends <- get_ids_from_body(body),
-         {:ok, %{status: 200, body: body}} <-
-           Tesla.get("#{Pleroma.Config.get([:mfc, :bookmarks_endpoint])}/#{mfc_id}"),
-         bookmarks <- get_ids_from_body(body),
-         {:ok, %{status: 200, body: body}} <-
-           Tesla.get("#{Pleroma.Config.get([:mfc, :following_endpoint])}&user_id=#{mfc_id}"),
-         following <- get_ids_from_body(body),
+    with friends <- get_ids_for_url("#{Pleroma.Config.get([:mfc, :friends_endpoint])}/#{mfc_id}"),
+         bookmarks <-
+           get_ids_for_url("#{Pleroma.Config.get([:mfc, :bookmarks_endpoint])}/#{mfc_id}"),
+         following <-
+           get_ids_for_url("#{Pleroma.Config.get([:mfc, :following_endpoint])}&user_id=#{mfc_id}"),
          candidates <- Enum.uniq(friends ++ bookmarks ++ following) do
       query =
         from(u in User,
