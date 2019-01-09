@@ -1,6 +1,6 @@
 defmodule Pleroma.Web.RichMedia.Parsers.OGP do
   def parse(html, data) do
-    Pleroma.Web.RichMedia.Parsers.BaseParser.parse(
+    Pleroma.Web.RichMedia.Parsers.MetaTagsParser.parse(
       html,
       data,
       "og",

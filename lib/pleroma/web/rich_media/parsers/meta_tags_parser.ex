@@ -1,4 +1,4 @@
-defmodule Pleroma.Web.RichMedia.Parsers.BaseParser do
+defmodule Pleroma.Web.RichMedia.Parsers.MetaTagsParser do
   def parse(html, data, prefix, error_message, key_name, value_name \\ "content") do
     with elements = [_ | _] <- get_elements(html, key_name, prefix),
          meta_data =
