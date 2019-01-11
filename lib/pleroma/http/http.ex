@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.HTTP do
@@ -9,6 +9,8 @@ defmodule Pleroma.HTTP do
 
   alias Pleroma.HTTP.Connection
   alias Pleroma.HTTP.RequestBuilder, as: Builder
+
+  @type t :: __MODULE__
 
   @doc """
   Builds and perform http request.
@@ -54,7 +56,6 @@ defmodule Pleroma.HTTP do
   def process_request_options(options) do
     config = Application.get_env(:pleroma, :http, [])
     proxy = Keyword.get(config, :proxy_url, nil)
-    options = options ++ [adapter: [pool: :default]]
 
     case proxy do
       nil -> options

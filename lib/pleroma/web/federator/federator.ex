@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Federator do
@@ -17,7 +17,6 @@ defmodule Pleroma.Web.Federator do
 
   @websub Application.get_env(:pleroma, :websub)
   @ostatus Application.get_env(:pleroma, :ostatus)
-  @max_jobs 20
 
   def init(args) do
     {:ok, args}
@@ -168,7 +167,7 @@ defmodule Pleroma.Web.Federator do
   end
 
   def maybe_start_job(running_jobs, queue) do
-    if :sets.size(running_jobs) < @max_jobs && queue != [] do
+    if :sets.size(running_jobs) < Pleroma.Config.get([__MODULE__, :max_jobs]) && queue != [] do
       {{type, payload}, queue} = queue_pop(queue)
       {:ok, pid} = Task.start(fn -> handle(type, payload) end)
       mref = Process.monitor(pid)

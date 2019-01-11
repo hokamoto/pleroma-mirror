@@ -48,6 +48,17 @@ defmodule Pleroma.UserTest do
     assert expected_followers_collection == User.ap_followers(user)
   end
 
+  test "follow_all follows mutliple users" do
+    user = insert(:user)
+    followed_one = insert(:user)
+    followed_two = insert(:user)
+
+    {:ok, user} = User.follow_all(user, [followed_one, followed_two])
+
+    assert User.following?(user, followed_one)
+    assert User.following?(user, followed_two)
+  end
+
   test "follow takes a user and another user" do
     user = insert(:user)
     followed = insert(:user)
@@ -141,6 +152,23 @@ defmodule Pleroma.UserTest do
       password_confirmation: "test",
       email: "email@example.com"
     }
+
+    test "it autofollows accounts that are set for it" do
+      user = insert(:user)
+      remote_user = insert(:user, %{local: false})
+
+      Pleroma.Config.put([:instance, :autofollowed_nicknames], [
+        user.nickname,
+        remote_user.nickname
+      ])
+
+      cng = User.register_changeset(%User{}, @full_user_data)
+
+      {:ok, registered_user} = User.register(cng)
+
+      assert User.following?(registered_user, user)
+      refute User.following?(registered_user, remote_user)
+    end
 
     test "it requires an email, name, nickname and password, bio is optional" do
       @full_user_data
@@ -274,6 +302,24 @@ defmodule Pleroma.UserTest do
     test "gets an existing user, case insensitive" do
       user = insert(:user, nickname: "nick")
       fetched_user = User.get_or_fetch_by_nickname("NICK")
+
+      assert user == fetched_user
+    end
+
+    test "gets an existing user by fully qualified nickname" do
+      user = insert(:user)
+
+      fetched_user =
+        User.get_or_fetch_by_nickname(user.nickname <> "@" <> Pleroma.Web.Endpoint.host())
+
+      assert user == fetched_user
+    end
+
+    test "gets an existing user by fully qualified nickname, case insensitive" do
+      user = insert(:user, nickname: "nick")
+      casing_altered_fqn = String.upcase(user.nickname <> "@" <> Pleroma.Web.Endpoint.host())
+
+      fetched_user = User.get_or_fetch_by_nickname(casing_altered_fqn)
 
       assert user == fetched_user
     end
@@ -485,6 +531,21 @@ defmodule Pleroma.UserTest do
     end
   end
 
+  describe "follow_import" do
+    test "it imports user followings from list" do
+      [user1, user2, user3] = insert_list(3, :user)
+
+      identifiers = [
+        user2.ap_id,
+        user3.nickname
+      ]
+
+      result = User.follow_import(user1, identifiers)
+      assert is_list(result)
+      assert result == [user2, user3]
+    end
+  end
+
   describe "blocks" do
     test "it blocks people" do
       user = insert(:user)
@@ -584,6 +645,21 @@ defmodule Pleroma.UserTest do
     end
   end
 
+  describe "blocks_import" do
+    test "it imports user blocks from list" do
+      [user1, user2, user3] = insert_list(3, :user)
+
+      identifiers = [
+        user2.ap_id,
+        user3.nickname
+      ]
+
+      result = User.blocks_import(user1, identifiers)
+      assert is_list(result)
+      assert result == [user2, user3]
+    end
+  end
+
   test "get recipients from activity" do
     actor = insert(:user)
     user = insert(:user, local: true)
@@ -658,10 +734,10 @@ defmodule Pleroma.UserTest do
   end
 
   describe "per-user rich-text filtering" do
-    test "html_filter_policy returns nil when rich-text is enabled" do
+    test "html_filter_policy returns default policies, when rich-text is enabled" do
       user = insert(:user)
 
-      assert nil == User.html_filter_policy(user)
+      assert Pleroma.Config.get([:markup, :scrub_policy]) == User.html_filter_policy(user)
     end
 
     test "html_filter_policy returns TwitterText scrubber when rich-text is disabled" do
@@ -707,6 +783,95 @@ defmodule Pleroma.UserTest do
 
       assert user_four ==
                User.search("lain@ple") |> List.first() |> Map.put(:search_distance, nil)
+    end
+
+    test "finds a user whose name is nil" do
+      _user = insert(:user, %{name: "notamatch", nickname: "testuser@pleroma.amplifie.red"})
+      user_two = insert(:user, %{name: nil, nickname: "lain@pleroma.soykaf.com"})
+
+      assert user_two ==
+               User.search("lain@pleroma.soykaf.com")
+               |> List.first()
+               |> Map.put(:search_distance, nil)
+    end
+  end
+
+  test "auth_active?/1 works correctly" do
+    Pleroma.Config.put([:instance, :account_activation_required], true)
+
+    local_user = insert(:user, local: true, info: %{confirmation_pending: true})
+    confirmed_user = insert(:user, local: true, info: %{confirmation_pending: false})
+    remote_user = insert(:user, local: false)
+
+    refute User.auth_active?(local_user)
+    assert User.auth_active?(confirmed_user)
+    assert User.auth_active?(remote_user)
+
+    Pleroma.Config.put([:instance, :account_activation_required], false)
+  end
+
+  describe "superuser?/1" do
+    test "returns false for unprivileged users" do
+      user = insert(:user, local: true)
+
+      refute User.superuser?(user)
+    end
+
+    test "returns false for remote users" do
+      user = insert(:user, local: false)
+      remote_admin_user = insert(:user, local: false, info: %{is_admin: true})
+
+      refute User.superuser?(user)
+      refute User.superuser?(remote_admin_user)
+    end
+
+    test "returns true for local moderators" do
+      user = insert(:user, local: true, info: %{is_moderator: true})
+
+      assert User.superuser?(user)
+    end
+
+    test "returns true for local admins" do
+      user = insert(:user, local: true, info: %{is_admin: true})
+
+      assert User.superuser?(user)
+    end
+  end
+
+  describe "visible_for?/2" do
+    test "returns true when the account is itself" do
+      user = insert(:user, local: true)
+
+      assert User.visible_for?(user, user)
+    end
+
+    test "returns false when the account is unauthenticated and auth is required" do
+      Pleroma.Config.put([:instance, :account_activation_required], true)
+
+      user = insert(:user, local: true, info: %{confirmation_pending: true})
+      other_user = insert(:user, local: true)
+
+      refute User.visible_for?(user, other_user)
+
+      Pleroma.Config.put([:instance, :account_activation_required], false)
+    end
+
+    test "returns true when the account is unauthenticated and auth is not required" do
+      user = insert(:user, local: true, info: %{confirmation_pending: true})
+      other_user = insert(:user, local: true)
+
+      assert User.visible_for?(user, other_user)
+    end
+
+    test "returns true when the account is unauthenticated and being viewed by a privileged account (auth required)" do
+      Pleroma.Config.put([:instance, :account_activation_required], true)
+
+      user = insert(:user, local: true, info: %{confirmation_pending: true})
+      other_user = insert(:user, local: true, info: %{is_admin: true})
+
+      assert User.visible_for?(user, other_user)
+
+      Pleroma.Config.put([:instance, :account_activation_required], false)
     end
   end
 end

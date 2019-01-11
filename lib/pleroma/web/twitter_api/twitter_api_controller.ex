@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.TwitterAPI.Controller do
@@ -375,6 +375,30 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
     end
   end
 
+  def pin(%{assigns: %{user: user}} = conn, %{"id" => id}) do
+    with {_, {:ok, id}} <- {:param_cast, Ecto.Type.cast(:integer, id)},
+         {:ok, activity} <- TwitterAPI.pin(user, id) do
+      conn
+      |> put_view(ActivityView)
+      |> render("activity.json", %{activity: activity, for: user})
+    else
+      {:error, message} -> bad_request_reply(conn, message)
+      err -> err
+    end
+  end
+
+  def unpin(%{assigns: %{user: user}} = conn, %{"id" => id}) do
+    with {_, {:ok, id}} <- {:param_cast, Ecto.Type.cast(:integer, id)},
+         {:ok, activity} <- TwitterAPI.unpin(user, id) do
+      conn
+      |> put_view(ActivityView)
+      |> render("activity.json", %{activity: activity, for: user})
+    else
+      {:error, message} -> bad_request_reply(conn, message)
+      err -> err
+    end
+  end
+
   def register(conn, params) do
     with {:ok, user} <- TwitterAPI.register_user(params) do
       conn
@@ -472,8 +496,10 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   end
 
   def followers(%{assigns: %{user: for_user}} = conn, params) do
+    {:ok, page} = Ecto.Type.cast(:integer, params["page"] || 1)
+
     with {:ok, user} <- TwitterAPI.get_user(for_user, params),
-         {:ok, followers} <- User.get_followers(user) do
+         {:ok, followers} <- User.get_followers(user, page) do
       followers =
         cond do
           for_user && user.id == for_user.id -> followers
@@ -490,8 +516,10 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   end
 
   def friends(%{assigns: %{user: for_user}} = conn, params) do
+    {:ok, page} = Ecto.Type.cast(:integer, params["page"] || 1)
+
     with {:ok, user} <- TwitterAPI.get_user(conn.assigns[:user], params),
-         {:ok, friends} <- User.get_friends(user) do
+         {:ok, friends} <- User.get_friends(user, page) do
       friends =
         cond do
           for_user && user.id == for_user.id -> friends
@@ -504,6 +532,14 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
       |> render("index.json", %{users: friends, for: conn.assigns[:user]})
     else
       _e -> bad_request_reply(conn, "Can't get friends")
+    end
+  end
+
+  def blocks(%{assigns: %{user: user}} = conn, _params) do
+    with blocked_users <- User.blocked_users(user) do
+      conn
+      |> put_view(UserView)
+      |> render("index.json", %{users: blocked_users, for: user})
     end
   end
 
@@ -662,7 +698,7 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
     json_reply(conn, 403, json)
   end
 
-  def only_if_public_instance(conn = %{conn: %{assigns: %{user: _user}}}, _), do: conn
+  def only_if_public_instance(%{assigns: %{user: %User{}}} = conn, _), do: conn
 
   def only_if_public_instance(conn, _) do
     if Keyword.get(Application.get_env(:pleroma, :instance), :public) do

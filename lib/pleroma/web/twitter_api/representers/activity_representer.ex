@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 # THIS MODULE IS DEPRECATED! DON'T USE IT!
@@ -153,6 +153,7 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
     announcement_count = object["announcement_count"] || 0
     favorited = opts[:for] && opts[:for].ap_id in (object["likes"] || [])
     repeated = opts[:for] && opts[:for].ap_id in (object["announcements"] || [])
+    pinned = activity.id in user.info.pinned_activities
 
     mentions = opts[:mentioned] || []
 
@@ -181,6 +182,8 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
 
     reply_user = reply_parent && User.get_cached_by_ap_id(reply_parent.actor)
 
+    summary = HTML.strip_tags(object["summary"])
+
     %{
       "id" => activity.id,
       "uri" => activity.data["object"]["id"],
@@ -202,12 +205,14 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
       "repeat_num" => announcement_count,
       "favorited" => to_boolean(favorited),
       "repeated" => to_boolean(repeated),
+      "pinned" => pinned,
       "external_url" => object["external_url"] || object["id"],
       "tags" => tags,
       "activity_type" => "post",
       "possibly_sensitive" => possibly_sensitive,
       "visibility" => Pleroma.Web.MastodonAPI.StatusView.get_visibility(object),
-      "summary" => object["summary"]
+      "summary" => summary,
+      "summary_html" => summary |> Formatter.emojify(object["emoji"])
     }
   end
 

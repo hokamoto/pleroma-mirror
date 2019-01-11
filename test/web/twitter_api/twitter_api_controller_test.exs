@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.TwitterAPI.ControllerTest do
@@ -112,6 +112,8 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
   end
 
   describe "GET /statuses/public_timeline.json" do
+    setup [:valid_user]
+
     test "returns statuses", %{conn: conn} do
       user = insert(:user)
       activities = ActivityBuilder.insert_list(30, %{}, %{user: user})
@@ -145,14 +147,44 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
       Application.put_env(:pleroma, :instance, instance)
     end
 
+    test "returns 200 to authenticated request when the instance is not public",
+         %{conn: conn, user: user} do
+      instance =
+        Application.get_env(:pleroma, :instance)
+        |> Keyword.put(:public, false)
+
+      Application.put_env(:pleroma, :instance, instance)
+
+      conn
+      |> with_credentials(user.nickname, "test")
+      |> get("/api/statuses/public_timeline.json")
+      |> json_response(200)
+
+      instance =
+        Application.get_env(:pleroma, :instance)
+        |> Keyword.put(:public, true)
+
+      Application.put_env(:pleroma, :instance, instance)
+    end
+
     test "returns 200 to unauthenticated request when the instance is public", %{conn: conn} do
       conn
+      |> get("/api/statuses/public_timeline.json")
+      |> json_response(200)
+    end
+
+    test "returns 200 to authenticated request when the instance is public",
+         %{conn: conn, user: user} do
+      conn
+      |> with_credentials(user.nickname, "test")
       |> get("/api/statuses/public_timeline.json")
       |> json_response(200)
     end
   end
 
   describe "GET /statuses/public_and_external_timeline.json" do
+    setup [:valid_user]
+
     test "returns 403 to unauthenticated request when the instance is not public", %{conn: conn} do
       instance =
         Application.get_env(:pleroma, :instance)
@@ -171,8 +203,36 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
       Application.put_env(:pleroma, :instance, instance)
     end
 
+    test "returns 200 to authenticated request when the instance is not public",
+         %{conn: conn, user: user} do
+      instance =
+        Application.get_env(:pleroma, :instance)
+        |> Keyword.put(:public, false)
+
+      Application.put_env(:pleroma, :instance, instance)
+
+      conn
+      |> with_credentials(user.nickname, "test")
+      |> get("/api/statuses/public_and_external_timeline.json")
+      |> json_response(200)
+
+      instance =
+        Application.get_env(:pleroma, :instance)
+        |> Keyword.put(:public, true)
+
+      Application.put_env(:pleroma, :instance, instance)
+    end
+
     test "returns 200 to unauthenticated request when the instance is public", %{conn: conn} do
       conn
+      |> get("/api/statuses/public_and_external_timeline.json")
+      |> json_response(200)
+    end
+
+    test "returns 200 to authenticated request when the instance is public",
+         %{conn: conn, user: user} do
+      conn
+      |> with_credentials(user.nickname, "test")
       |> get("/api/statuses/public_and_external_timeline.json")
       |> json_response(200)
     end
@@ -1022,6 +1082,31 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
       assert Enum.sort(expected) == Enum.sort(result)
     end
 
+    test "it returns 20 followers per page", %{conn: conn} do
+      user = insert(:user)
+      followers = insert_list(21, :user)
+
+      Enum.each(followers, fn follower ->
+        User.follow(follower, user)
+      end)
+
+      res_conn =
+        conn
+        |> assign(:user, user)
+        |> get("/api/statuses/followers")
+
+      result = json_response(res_conn, 200)
+      assert length(result) == 20
+
+      res_conn =
+        conn
+        |> assign(:user, user)
+        |> get("/api/statuses/followers?page=2")
+
+      result = json_response(res_conn, 200)
+      assert length(result) == 1
+    end
+
     test "it returns a given user's followers with user_id", %{conn: conn} do
       user = insert(:user)
       follower_one = insert(:user)
@@ -1085,6 +1170,24 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
     end
   end
 
+  describe "GET /api/statuses/blocks" do
+    test "it returns the list of users blocked by requester", %{conn: conn} do
+      user = insert(:user)
+      other_user = insert(:user)
+
+      {:ok, user} = User.block(user, other_user)
+
+      conn =
+        conn
+        |> assign(:user, user)
+        |> get("/api/statuses/blocks")
+
+      expected = UserView.render("index.json", %{users: [other_user], for: user})
+      result = json_response(conn, 200)
+      assert Enum.sort(expected) == Enum.sort(result)
+    end
+  end
+
   describe "GET /api/statuses/friends" do
     test "it returns the logged in user's friends", %{conn: conn} do
       user = insert(:user)
@@ -1103,6 +1206,32 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
       expected = UserView.render("index.json", %{users: [followed_one, followed_two], for: user})
       result = json_response(conn, 200)
       assert Enum.sort(expected) == Enum.sort(result)
+    end
+
+    test "it returns 20 friends per page", %{conn: conn} do
+      user = insert(:user)
+      followeds = insert_list(21, :user)
+
+      {:ok, user} =
+        Enum.reduce(followeds, {:ok, user}, fn followed, {:ok, user} ->
+          User.follow(user, followed)
+        end)
+
+      res_conn =
+        conn
+        |> assign(:user, user)
+        |> get("/api/statuses/friends")
+
+      result = json_response(res_conn, 200)
+      assert length(result) == 20
+
+      res_conn =
+        conn
+        |> assign(:user, user)
+        |> get("/api/statuses/friends", %{page: 2})
+
+      result = json_response(res_conn, 200)
+      assert length(result) == 1
     end
 
     test "it returns a given user's friends with user_id", %{conn: conn} do
@@ -1614,6 +1743,81 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
 
       object = Repo.get(Object, object.id)
       assert object.data["name"] == description
+    end
+  end
+
+  describe "POST /api/statuses/user_timeline.json?user_id=:user_id&pinned=true" do
+    test "it returns a list of pinned statuses", %{conn: conn} do
+      Pleroma.Config.put([:instance, :max_pinned_statuses], 1)
+
+      user = insert(:user, %{name: "egor"})
+      {:ok, %{id: activity_id}} = CommonAPI.post(user, %{"status" => "HI!!!"})
+      {:ok, _} = CommonAPI.pin(activity_id, user)
+
+      resp =
+        conn
+        |> get("/api/statuses/user_timeline.json", %{user_id: user.id, pinned: true})
+        |> json_response(200)
+
+      assert length(resp) == 1
+      assert [%{"id" => ^activity_id, "pinned" => true}] = resp
+    end
+  end
+
+  describe "POST /api/statuses/pin/:id" do
+    setup do
+      Pleroma.Config.put([:instance, :max_pinned_statuses], 1)
+      [user: insert(:user)]
+    end
+
+    test "without valid credentials", %{conn: conn} do
+      note_activity = insert(:note_activity)
+      conn = post(conn, "/api/statuses/pin/#{note_activity.id}.json")
+      assert json_response(conn, 403) == %{"error" => "Invalid credentials."}
+    end
+
+    test "with credentials", %{conn: conn, user: user} do
+      {:ok, activity} = CommonAPI.post(user, %{"status" => "test!"})
+
+      request_path = "/api/statuses/pin/#{activity.id}.json"
+
+      response =
+        conn
+        |> with_credentials(user.nickname, "test")
+        |> post(request_path)
+
+      user = refresh_record(user)
+
+      assert json_response(response, 200) == ActivityRepresenter.to_map(activity, %{user: user})
+    end
+  end
+
+  describe "POST /api/statuses/unpin/:id" do
+    setup do
+      Pleroma.Config.put([:instance, :max_pinned_statuses], 1)
+      [user: insert(:user)]
+    end
+
+    test "without valid credentials", %{conn: conn} do
+      note_activity = insert(:note_activity)
+      conn = post(conn, "/api/statuses/unpin/#{note_activity.id}.json")
+      assert json_response(conn, 403) == %{"error" => "Invalid credentials."}
+    end
+
+    test "with credentials", %{conn: conn, user: user} do
+      {:ok, activity} = CommonAPI.post(user, %{"status" => "test!"})
+      {:ok, activity} = CommonAPI.pin(activity.id, user)
+
+      request_path = "/api/statuses/unpin/#{activity.id}.json"
+
+      response =
+        conn
+        |> with_credentials(user.nickname, "test")
+        |> post(request_path)
+
+      user = refresh_record(user)
+
+      assert json_response(response, 200) == ActivityRepresenter.to_map(activity, %{user: user})
     end
   end
 end

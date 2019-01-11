@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
@@ -256,13 +256,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def user_statuses(%{assigns: %{user: reading_user}} = conn, params) do
     with %User{} = user <- Repo.get(User, params["id"]) do
-      # Since Pleroma has no "pinned" posts feature, we'll just set an empty list here
-      activities =
-        if params["pinned"] == "true" do
-          []
-        else
-          ActivityPub.fetch_user_activities(user, reading_user, params)
-        end
+      activities = ActivityPub.fetch_user_activities(user, reading_user, params)
 
       conn
       |> add_link_headers(:user_statuses, activities, params["id"])
@@ -403,6 +397,27 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   def unfav_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
     with {:ok, _, _, %{data: %{"id" => id}}} <- CommonAPI.unfavorite(ap_id_or_id, user),
          %Activity{} = activity <- Activity.get_create_activity_by_object_ap_id(id) do
+      conn
+      |> put_view(StatusView)
+      |> try_render("status.json", %{activity: activity, for: user, as: :activity})
+    end
+  end
+
+  def pin_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
+    with {:ok, activity} <- CommonAPI.pin(ap_id_or_id, user) do
+      conn
+      |> put_view(StatusView)
+      |> try_render("status.json", %{activity: activity, for: user, as: :activity})
+    else
+      {:error, reason} ->
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(:bad_request, Jason.encode!(%{"error" => reason}))
+    end
+  end
+
+  def unpin_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
+    with {:ok, activity} <- CommonAPI.unpin(ap_id_or_id, user) do
       conn
       |> put_view(StatusView)
       |> try_render("status.json", %{activity: activity, for: user, as: :activity})
@@ -704,11 +719,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     end
   end
 
-  # TODO: Use proper query
   def blocks(%{assigns: %{user: user}} = conn, _) do
-    with blocked_users <- user.info.blocks || [],
-         accounts <- Enum.map(blocked_users, fn ap_id -> User.get_cached_by_ap_id(ap_id) end) do
-      res = AccountView.render("accounts.json", users: accounts, for: user, as: :user)
+    with blocked_accounts <- User.blocked_users(user) do
+      res = AccountView.render("accounts.json", users: blocked_accounts, for: user, as: :user)
       json(conn, res)
     end
   end
@@ -727,11 +740,14 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     json(conn, %{})
   end
 
-  def status_search(query) do
+  def status_search(user, query) do
     fetched =
       if Regex.match?(~r/https?:/, query) do
-        with {:ok, object} <- ActivityPub.fetch_object_from_id(query) do
-          [Activity.get_create_activity_by_object_ap_id(object.data["id"])]
+        with {:ok, object} <- ActivityPub.fetch_object_from_id(query),
+             %Activity{} = activity <-
+               Activity.get_create_activity_by_object_ap_id(object.data["id"]),
+             true <- ActivityPub.visible_for_user?(activity, user) do
+          [activity]
         else
           _e -> []
         end
@@ -758,7 +774,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   def search2(%{assigns: %{user: user}} = conn, %{"q" => query} = params) do
     accounts = User.search(query, params["resolve"] == "true")
 
-    statuses = status_search(query)
+    statuses = status_search(user, query)
 
     tags_path = Web.base_url() <> "/tag/"
 
@@ -782,7 +798,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   def search(%{assigns: %{user: user}} = conn, %{"q" => query} = params) do
     accounts = User.search(query, params["resolve"] == "true")
 
-    statuses = status_search(query)
+    statuses = status_search(user, query)
 
     tags =
       String.split(query)
@@ -966,7 +982,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
             max_toot_chars: limit
           },
           rights: %{
-            delete_others_notice: !!user.info.is_moderator
+            delete_others_notice: !!user.info.is_moderator,
+            admin: !!user.info.is_admin
           },
           compose: %{
             me: "#{user.id}",

@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.TwitterAPI.ActivityView do
@@ -11,11 +11,11 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
   alias Pleroma.Web.TwitterAPI.TwitterAPI
   alias Pleroma.Web.TwitterAPI.Representers.ObjectRepresenter
   alias Pleroma.Activity
+  alias Pleroma.HTML
   alias Pleroma.Object
   alias Pleroma.User
   alias Pleroma.Repo
   alias Pleroma.Formatter
-  alias Pleroma.HTML
 
   import Ecto.Query
   require Logger
@@ -94,9 +94,25 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
       ap_id == "https://www.w3.org/ns/activitystreams#Public" ->
         nil
 
+      user = User.get_cached_by_ap_id(ap_id) ->
+        user
+
+      user = User.get_by_guessed_nickname(ap_id) ->
+        user
+
       true ->
-        User.get_cached_by_ap_id(ap_id)
+        error_user(ap_id)
     end
+  end
+
+  defp error_user(ap_id) do
+    %User{
+      name: ap_id,
+      ap_id: ap_id,
+      info: %User.Info{},
+      nickname: "erroruser@example.com",
+      inserted_at: NaiveDateTime.utc_now()
+    }
   end
 
   def render("index.json", opts) do
@@ -227,6 +243,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
     announcement_count = object["announcement_count"] || 0
     favorited = opts[:for] && opts[:for].ap_id in (object["likes"] || [])
     repeated = opts[:for] && opts[:for].ap_id in (object["announcements"] || [])
+    pinned = activity.id in user.info.pinned_activities
 
     attentions =
       activity.recipients
@@ -245,19 +262,25 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
 
     html =
       content
-      |> HTML.filter_tags(User.html_filter_policy(opts[:for]))
+      |> HTML.get_cached_scrubbed_html_for_object(
+        User.html_filter_policy(opts[:for]),
+        activity,
+        __MODULE__
+      )
       |> Formatter.emojify(object["emoji"])
 
     text =
       if content do
         content
         |> String.replace(~r/<br\s?\/?>/, "\n")
-        |> HTML.strip_tags()
+        |> HTML.get_cached_stripped_html_for_object(activity, __MODULE__)
       end
 
     reply_parent = Activity.get_in_reply_to_activity(activity)
 
     reply_user = reply_parent && User.get_cached_by_ap_id(reply_parent.actor)
+
+    summary = HTML.strip_tags(summary)
 
     %{
       "id" => activity.id,
@@ -280,12 +303,14 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
       "repeat_num" => announcement_count,
       "favorited" => !!favorited,
       "repeated" => !!repeated,
+      "pinned" => pinned,
       "external_url" => object["external_url"] || object["id"],
       "tags" => tags,
       "activity_type" => "post",
       "possibly_sensitive" => possibly_sensitive,
       "visibility" => Pleroma.Web.MastodonAPI.StatusView.get_visibility(object),
-      "summary" => summary
+      "summary" => summary,
+      "summary_html" => summary |> Formatter.emojify(object["emoji"])
     }
   end
 

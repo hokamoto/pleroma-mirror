@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
@@ -82,6 +82,14 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
     end
   end
 
+  def pin(%User{} = user, ap_id_or_id) do
+    CommonAPI.pin(ap_id_or_id, user)
+  end
+
+  def unpin(%User{} = user, ap_id_or_id) do
+    CommonAPI.unpin(ap_id_or_id, user)
+  end
+
   def fav(%User{} = user, ap_id_or_id) do
     with {:ok, _fav, %{data: %{"id" => id}}} <- CommonAPI.favorite(ap_id_or_id, user),
          %Activity{} = activity <- Activity.get_create_activity_by_object_ap_id(id) do
@@ -140,22 +148,28 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
       password: params["password"],
       password_confirmation: params["confirm"],
       captcha_solution: params["captcha_solution"],
-      captcha_token: params["captcha_token"]
+      captcha_token: params["captcha_token"],
+      captcha_answer_data: params["captcha_answer_data"]
     }
 
     captcha_enabled = Pleroma.Config.get([Pleroma.Captcha, :enabled])
     # true if captcha is disabled or enabled and valid, false otherwise
     captcha_ok =
       if !captcha_enabled do
-        true
+        :ok
       else
-        Pleroma.Captcha.validate(params[:captcha_token], params[:captcha_solution])
+        Pleroma.Captcha.validate(
+          params[:captcha_token],
+          params[:captcha_solution],
+          params[:captcha_answer_data]
+        )
       end
 
     # Captcha invalid
-    if not captcha_ok do
+    if captcha_ok != :ok do
+      {:error, error} = captcha_ok
       # I have no idea how this error handling works
-      {:error, %{error: Jason.encode!(%{captcha: ["Invalid CAPTCHA"]})}}
+      {:error, %{error: Jason.encode!(%{captcha: [error]})}}
     else
       registrations_open = Pleroma.Config.get([:instance, :registrations_open])
 
