@@ -1,3 +1,7 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.User do
   use Ecto.Schema
 
@@ -193,6 +197,7 @@ defmodule Pleroma.User do
       |> validate_confirmation(:password)
       |> unique_constraint(:email)
       |> unique_constraint(:nickname)
+      |> validate_exclusion(:nickname, Pleroma.Config.get([Pleroma.User, :restricted_nicknames]))
       |> validate_format(:nickname, local_nickname_regex())
       |> validate_format(:email, @email_regex)
       |> validate_length(:bio, max: 1000)

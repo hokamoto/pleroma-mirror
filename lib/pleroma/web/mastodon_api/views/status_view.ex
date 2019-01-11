@@ -1,3 +1,7 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.Web.MastodonAPI.StatusView do
   use Pleroma.Web, :view
 
@@ -106,7 +110,6 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     favorited = opts[:for] && opts[:for].ap_id in (object["likes"] || [])
 
     attachment_data = object["attachment"] || []
-    attachment_data = attachment_data ++ if object["type"] == "Video", do: [object], else: []
     attachments = render_many(attachment_data, StatusView, "attachment.json", as: :attachment)
 
     created_at = Utils.to_masto_date(object["published"])

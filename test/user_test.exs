@@ -1,3 +1,7 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.UserTest do
   alias Pleroma.Builders.UserBuilder
   alias Pleroma.{User, Repo, Activity}
@@ -147,6 +151,20 @@ defmodule Pleroma.UserTest do
 
         assert if key == :bio, do: changeset.valid?, else: not changeset.valid?
       end)
+    end
+
+    test "it restricts certain nicknames" do
+      [restricted_name | _] = Pleroma.Config.get([Pleroma.User, :restricted_nicknames])
+
+      assert is_bitstring(restricted_name)
+
+      params =
+        @full_user_data
+        |> Map.put(:nickname, restricted_name)
+
+      changeset = User.register_changeset(%User{}, params)
+
+      refute changeset.valid?
     end
 
     test "it sets the password_hash, ap_id and following fields" do

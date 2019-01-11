@@ -1,3 +1,7 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.Web.TwitterAPI.ControllerTest do
   use Pleroma.Web.ConnCase
   alias Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter
@@ -509,6 +513,34 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
         conn
         |> with_credentials(current_user.nickname, "test")
         |> get("/api/statuses/user_timeline.json", %{"screen_name" => user.nickname})
+
+      response = json_response(conn, 200)
+
+      assert length(response) == 1
+      assert Enum.at(response, 0) == ActivityRepresenter.to_map(activity, %{user: user})
+    end
+
+    test "with credentials with user_id, excluding RTs", %{conn: conn, user: current_user} do
+      user = insert(:user)
+      {:ok, activity} = ActivityBuilder.insert(%{"id" => 1, "type" => "Create"}, %{user: user})
+      {:ok, _} = ActivityBuilder.insert(%{"id" => 2, "type" => "Announce"}, %{user: user})
+
+      conn =
+        conn
+        |> with_credentials(current_user.nickname, "test")
+        |> get("/api/statuses/user_timeline.json", %{
+          "user_id" => user.id,
+          "include_rts" => "false"
+        })
+
+      response = json_response(conn, 200)
+
+      assert length(response) == 1
+      assert Enum.at(response, 0) == ActivityRepresenter.to_map(activity, %{user: user})
+
+      conn =
+        conn
+        |> get("/api/statuses/user_timeline.json", %{"user_id" => user.id, "include_rts" => "0"})
 
       response = json_response(conn, 200)
 

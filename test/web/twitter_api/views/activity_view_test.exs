@@ -1,3 +1,7 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
   use Pleroma.DataCase
 
@@ -12,6 +16,13 @@ defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
   alias Pleroma.Web.ActivityPub.ActivityPub
 
   import Pleroma.Factory
+  import Tesla.Mock
+
+  setup do
+    mock(fn env -> apply(HttpRequestMock, :request, [env]) end)
+    :ok
+  end
+
   import Mock
 
   test "a create activity with a html status" do
@@ -257,5 +268,19 @@ defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
     }
 
     assert result == expected
+  end
+
+  test "a peertube video" do
+    {:ok, object} =
+      ActivityPub.fetch_object_from_id(
+        "https://peertube.moe/videos/watch/df5f464b-be8d-46fb-ad81-2d4c2d1630e3"
+      )
+
+    %Activity{} = activity = Activity.get_create_activity_by_object_ap_id(object.data["id"])
+
+    result = ActivityView.render("activity.json", activity: activity)
+
+    assert length(result["attachments"]) == 1
+    assert result["summary"] == "Friday Night"
   end
 end

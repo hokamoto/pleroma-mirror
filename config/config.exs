@@ -137,8 +137,8 @@ config :pleroma, :fe,
   logo_mask: true,
   logo_margin: "0.1em",
   background: "/static/aurora_borealis.jpg",
-  redirect_root_no_login: "/~/main/all",
-  redirect_root_login: "/~/main/friends",
+  redirect_root_no_login: "/main/all",
+  redirect_root_login: "/main/friends",
   show_instance_panel: true,
   scope_options_enabled: false,
   formatting_options_enabled: false,
@@ -162,6 +162,8 @@ config :pleroma, :mrf_normalize_markup, scrub_policy: Pleroma.HTML.Scrubber.Defa
 config :pleroma, :mrf_rejectnonpublic,
   allow_followersonly: false,
   allow_direct: false
+
+config :pleroma, :mrf_hellthread, threshold: 10
 
 config :pleroma, :mrf_simple,
   media_removal: [],
@@ -218,6 +220,37 @@ config :cors_plug,
   ],
   credentials: true,
   headers: ["Authorization", "Content-Type", "Idempotency-Key"]
+
+config :pleroma, Pleroma.User,
+  restricted_nicknames: [
+    "about",
+    "~",
+    "main",
+    "users",
+    "settings",
+    "objects",
+    "activities",
+    "web",
+    "registration",
+    "friend-requests",
+    "pleroma",
+    "api",
+    "tag",
+    "notice",
+    "status",
+    "user-search",
+    "ostatus_subscribe",
+    "oauth",
+    "push",
+    "relay",
+    "inbox",
+    ".well-known",
+    "nodeinfo",
+    "auth",
+    "proxy",
+    "dev",
+    "internal"
+  ]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

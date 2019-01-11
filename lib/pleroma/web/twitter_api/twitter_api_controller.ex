@@ -1,3 +1,7 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.Web.TwitterAPI.Controller do
   use Pleroma.Web, :controller
 
@@ -126,6 +130,15 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   def user_timeline(%{assigns: %{user: user}} = conn, params) do
     case TwitterAPI.get_user(user, params) do
       {:ok, target_user} ->
+        # Twitter and ActivityPub use a different name and sense for this parameter.
+        {include_rts, params} = Map.pop(params, "include_rts")
+
+        params =
+          case include_rts do
+            x when x == "false" or x == "0" -> Map.put(params, "exclude_reblogs", "true")
+            _ -> params
+          end
+
         activities = ActivityPub.fetch_user_activities(target_user, user, params)
 
         conn

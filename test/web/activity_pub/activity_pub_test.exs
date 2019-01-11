@@ -1,3 +1,7 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
   use Pleroma.DataCase
   alias Pleroma.Web.ActivityPub.ActivityPub
@@ -174,6 +178,16 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
     assert Enum.member?(activities, activity_three)
     assert Enum.member?(activities, boost_activity)
     assert Enum.member?(activities, activity_one)
+  end
+
+  test "excludes reblogs on request" do
+    user = insert(:user)
+    {:ok, expected_activity} = ActivityBuilder.insert(%{"type" => "Create"}, %{:user => user})
+    {:ok, _} = ActivityBuilder.insert(%{"type" => "Announce"}, %{:user => user})
+
+    [activity] = ActivityPub.fetch_user_activities(user, nil, %{"exclude_reblogs" => "true"})
+
+    assert activity == expected_activity
   end
 
   describe "public fetch activities" do
@@ -478,7 +492,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
 
       assert Repo.get(Activity, delete.id) != nil
 
-      assert Repo.get(Object, object.id) == nil
+      assert Repo.get(Object, object.id).data["type"] == "Tombstone"
     end
   end
 
