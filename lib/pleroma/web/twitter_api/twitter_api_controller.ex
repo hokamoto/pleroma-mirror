@@ -674,7 +674,8 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
     |> render("index.json", %{activities: activities, for: user})
   end
 
-  def search_user(%{assigns: %{user: user}} = conn, %{"query" => query}) do
+  def search_user(%{assigns: %{user: user}} = conn, %{"query" => raw_query}) do
+    query = String.trim(raw_query)
     users = User.search(query, true)
 
     conn

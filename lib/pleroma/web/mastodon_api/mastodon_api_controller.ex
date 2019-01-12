@@ -740,7 +740,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     json(conn, %{})
   end
 
-  def status_search(user, query) do
+  def status_search(user, raw_query) do
+    query = String.trim(raw_query)
+
     fetched =
       if Regex.match?(~r/https?:/, query) do
         with {:ok, object} <- ActivityPub.fetch_object_from_id(query),
@@ -771,7 +773,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     Repo.all(q) ++ fetched
   end
 
-  def search2(%{assigns: %{user: user}} = conn, %{"q" => query} = params) do
+  def search2(%{assigns: %{user: user}} = conn, %{"q" => raw_query} = params) do
+    query = String.trim(raw_query)
     accounts = User.search(query, params["resolve"] == "true")
 
     statuses = status_search(user, query)
@@ -795,7 +798,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     json(conn, res)
   end
 
-  def search(%{assigns: %{user: user}} = conn, %{"q" => query} = params) do
+  def search(%{assigns: %{user: user}} = conn, %{"q" => raw_query} = params) do
+    query = String.trim(raw_query)
     accounts = User.search(query, params["resolve"] == "true")
 
     statuses = status_search(user, query)
@@ -816,7 +820,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     json(conn, res)
   end
 
-  def account_search(%{assigns: %{user: user}} = conn, %{"q" => query} = params) do
+  def account_search(%{assigns: %{user: user}} = conn, %{"q" => raw_query} = params) do
+    query = String.trim(raw_query)
     accounts = User.search(query, params["resolve"] == "true")
 
     res = AccountView.render("accounts.json", users: accounts, for: user, as: :user)
