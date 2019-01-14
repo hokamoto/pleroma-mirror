@@ -1356,6 +1356,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
     assert [status] = json_response(conn, 200)
     assert status["id"] == to_string(activity.id)
+    assert [] != get_resp_header(conn, "link")
   end
 
   describe "updating credentials" do
