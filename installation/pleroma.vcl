@@ -53,12 +53,21 @@ sub vcl_recv {
       unset req.http.Authorization;
       return (hash);
     }
+
+    # Assume everything else should just be passed (uncachable)
+    return (pass);
 }
 
 sub vcl_backend_response {
     # gzip text content
     if (beresp.http.content-type ~ "(text|text/css|application/x-javascript|application/javascript)") {
       set beresp.do_gzip = true;
+    }
+
+    # Retry broken backend responses.
+    if (beresp.status == 503) {
+      set bereq.http.X-Varnish-Backend-503 = "1";
+      return (retry);
     }
 
     # CHUNKED SUPPORT
@@ -136,6 +145,23 @@ sub vcl_backend_fetch {
     if (bereq.http.x-range) {
       set bereq.http.Range = bereq.http.x-range;
     }
+
+    if (bereq.retries == 0) {
+        # Clean up the X-Varnish-Backend-503 flag that is used internally
+        # to mark broken backend responses that should be retried.
+        unset bereq.http.X-Varnish-Backend-503;
+    } else {
+        if (bereq.http.X-Varnish-Backend-503) {
+            if (bereq.method != "POST" &&
+              std.healthy(bereq.backend) &&
+              bereq.retries <= 4) {
+              # Flush broken backend response flag & try again.
+              unset bereq.http.X-Varnish-Backend-503;
+            } else {
+              return (abandon);
+            }
+        }
+    }
 }
 
 sub vcl_deliver {
@@ -144,4 +170,10 @@ sub vcl_deliver {
       set resp.http.Content-Range = resp.http.CR;
       unset resp.http.CR;
     }
+}
+
+sub vcl_backend_error {
+    # Retry broken backend responses.
+    set bereq.http.X-Varnish-Backend-503 = "1";
+    return (retry);
 }
