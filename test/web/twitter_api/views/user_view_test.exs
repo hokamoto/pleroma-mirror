@@ -16,6 +16,7 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
     "<span>Here's some html.</span>
     notamention@domain.com
     <span><a class='mention' href='https://domain.com/@user1'>@<span>user1</span></a></span>
+    <span><a class='mention' href='https://domain.com/users/user2'>@<span>user2</span></a></span>
     """
 
     user = insert(:user, bio: bio)
@@ -127,7 +128,8 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "name" => user.name,
       "screen_name" => user.nickname,
       "name_html" => user.name,
-      "description" => "\"Here's some html.\nnotamention@domain.com\n@user1@domain.com\n",
+      "description" =>
+        "\"Here's some html.\nnotamention@domain.com\n@user1@domain.com\n@user2@domain.com\n",
       "description_html" => HtmlSanitizeEx.basic_html(user.bio),
       "created_at" => user.inserted_at |> Utils.format_naive_asctime(),
       "favourites_count" => 0,

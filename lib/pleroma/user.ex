@@ -1002,8 +1002,8 @@ defmodule Pleroma.User do
         user.bio || "",
         fn a ->
           href = Regex.run(~r/href=['"](.*)['"]/, a) |> Enum.at(-1)
-          mention = Regex.run(~r/@.*$/, href) |> Enum.at(0)
-          mention <> "@" <> URI.parse(href).host
+          nickname = Regex.run(~r/(?:@|\/users\/)(.+)$/, href) |> Enum.at(-1)
+          "@" <> nickname <> "@" <> URI.parse(href).host
         end
       )
 
