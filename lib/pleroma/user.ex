@@ -12,6 +12,7 @@ defmodule Pleroma.User do
   alias Pleroma.Web.CommonAPI.Utils, as: CommonUtils
   alias Pleroma.Web.{OStatus, Websub, OAuth}
   alias Pleroma.Web.ActivityPub.{Utils, ActivityPub}
+  alias Pleroma.HTML
 
   require Logger
 
@@ -992,6 +993,23 @@ defmodule Pleroma.User do
     bio
     |> CommonUtils.format_input(mentions, tags, "text/plain")
     |> Formatter.emojify(emoji)
+  end
+
+  def plain_text_bio(user) do
+    bio_with_full_mentions =
+      Regex.replace(
+        ~r(<a .*?class=['"]mention['"].*?</a>),
+        user.bio || "",
+        fn a ->
+          href = Regex.run(~r/href=['"](.*)['"]/, a) |> Enum.at(-1)
+          mention = Regex.run(~r/@.*$/, href) |> Enum.at(0)
+          mention <> "@" <> URI.parse(href).host
+        end
+      )
+
+    bio_with_full_mentions
+    |> String.replace("<br>", "\n")
+    |> HTML.strip_tags()
   end
 
   def tag(user_identifiers, tags) when is_list(user_identifiers) do
