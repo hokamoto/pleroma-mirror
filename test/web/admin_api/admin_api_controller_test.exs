@@ -45,7 +45,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       user = insert(:user)
       follower = insert(:user)
 
-      conn =
+      _conn =
         build_conn()
         |> assign(:user, admin)
         |> put_req_header("accept", "application/json")
@@ -69,7 +69,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
       User.follow(follower, user)
 
-      conn =
+      _conn =
         build_conn()
         |> assign(:user, admin)
         |> put_req_header("accept", "application/json")

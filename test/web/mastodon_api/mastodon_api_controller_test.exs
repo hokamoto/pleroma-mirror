@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
@@ -386,7 +386,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
         |> assign(:user, user)
         |> get("/api/v1/filters/#{filter.filter_id}")
 
-      assert response = json_response(conn, 200)
+      assert _response = json_response(conn, 200)
     end
 
     test "update a filter", %{conn: conn} do
@@ -600,7 +600,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
         |> get("/api/v1/notifications")
 
       expected_response =
-        "hi <span><a data-user=\"#{user.id}\" href=\"#{user.ap_id}\">@<span>#{user.nickname}</span></a></span>"
+        "hi <span class=\"h-card\"><a data-user=\"#{user.id}\" class=\"u-url mention\" href=\"#{
+          user.ap_id
+        }\">@<span>#{user.nickname}</span></a></span>"
 
       assert [%{"status" => %{"content" => response}} | _rest] = json_response(conn, 200)
       assert response == expected_response
@@ -621,7 +623,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
         |> get("/api/v1/notifications/#{notification.id}")
 
       expected_response =
-        "hi <span><a data-user=\"#{user.id}\" href=\"#{user.ap_id}\">@<span>#{user.nickname}</span></a></span>"
+        "hi <span class=\"h-card\"><a data-user=\"#{user.id}\" class=\"u-url mention\" href=\"#{
+          user.ap_id
+        }\">@<span>#{user.nickname}</span></a></span>"
 
       assert %{"status" => %{"content" => response}} = json_response(conn, 200)
       assert response == expected_response
@@ -1349,13 +1353,42 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
     {:ok, _, _} = CommonAPI.favorite(activity.id, user)
 
-    conn =
+    first_conn =
       conn
       |> assign(:user, user)
       |> get("/api/v1/favourites")
 
-    assert [status] = json_response(conn, 200)
+    assert [status] = json_response(first_conn, 200)
     assert status["id"] == to_string(activity.id)
+
+    assert [{"link", _link_header}] =
+             Enum.filter(first_conn.resp_headers, fn element -> match?({"link", _}, element) end)
+
+    # Honours query params
+    {:ok, second_activity} =
+      CommonAPI.post(other_user, %{
+        "status" =>
+          "Trees Are Never Sad Look At Them Every Once In Awhile They're Quite Beautiful."
+      })
+
+    {:ok, _, _} = CommonAPI.favorite(second_activity.id, user)
+
+    last_like = status["id"]
+
+    second_conn =
+      conn
+      |> assign(:user, user)
+      |> get("/api/v1/favourites?since_id=#{last_like}")
+
+    assert [second_status] = json_response(second_conn, 200)
+    assert second_status["id"] == to_string(second_activity.id)
+
+    third_conn =
+      conn
+      |> assign(:user, user)
+      |> get("/api/v1/favourites?limit=0")
+
+    assert [] = json_response(third_conn, 200)
   end
 
   describe "updating credentials" do
@@ -1373,9 +1406,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       assert user = json_response(conn, 200)
 
       assert user["note"] ==
-               "I drink <a data-tag=\"cofe\" href=\"http://localhost:4001/tag/cofe\">#cofe</a> with <span><a data-user=\"#{
+               "I drink <a class=\"hashtag\" data-tag=\"cofe\" href=\"http://localhost:4001/tag/cofe\">#cofe</a> with <span class=\"h-card\"><a data-user=\"#{
                  user2.id
-               }\" href=\"#{user2.ap_id}\">@<span>#{user2.nickname}</span></a></span>"
+               }\" class=\"u-url mention\" href=\"#{user2.ap_id}\">@<span>#{user2.nickname}</span></a></span>"
     end
 
     test "updates the user's locking status", %{conn: conn} do
@@ -1454,20 +1487,36 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
   test "get instance information", %{conn: conn} do
     insert(:user, %{local: true})
     user = insert(:user, %{local: true})
-    insert(:user, %{local: false})
+    insert(:user, %{local: false, nickname: "u@peer1.com"})
+    insert(:user, %{local: false, nickname: "u@peer2.com"})
 
     {:ok, _} = TwitterAPI.create_status(user, %{"status" => "cofe"})
 
     Pleroma.Stats.update_stats()
 
-    conn =
-      conn
-      |> get("/api/v1/instance")
+    conn = get(conn, "/api/v1/instance")
 
     assert result = json_response(conn, 200)
 
-    assert result["stats"]["user_count"] == 2
-    assert result["stats"]["status_count"] == 1
+    stats = result["stats"]
+
+    assert stats
+    assert stats["user_count"] == 2
+    assert stats["status_count"] == 1
+    assert stats["domain_count"] == 2
+  end
+
+  test "get peers", %{conn: conn} do
+    insert(:user, %{local: false, nickname: "u@peer1.com"})
+    insert(:user, %{local: false, nickname: "u@peer2.com"})
+
+    Pleroma.Stats.update_stats()
+
+    conn = get(conn, "/api/v1/instance/peers")
+
+    assert result = json_response(conn, 200)
+
+    assert ["peer1.com", "peer2.com"] == Enum.sort(result)
   end
 
   test "put settings", %{conn: conn} do
@@ -1478,9 +1527,89 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       |> assign(:user, user)
       |> put("/api/web/settings", %{"data" => %{"programming" => "socks"}})
 
-    assert result = json_response(conn, 200)
+    assert _result = json_response(conn, 200)
 
     user = User.get_cached_by_ap_id(user.ap_id)
     assert user.info.settings == %{"programming" => "socks"}
+  end
+
+  describe "pinned statuses" do
+    setup do
+      Pleroma.Config.put([:instance, :max_pinned_statuses], 1)
+
+      user = insert(:user)
+      {:ok, activity} = CommonAPI.post(user, %{"status" => "HI!!!"})
+
+      [user: user, activity: activity]
+    end
+
+    test "returns pinned statuses", %{conn: conn, user: user, activity: activity} do
+      {:ok, _} = CommonAPI.pin(activity.id, user)
+
+      result =
+        conn
+        |> assign(:user, user)
+        |> get("/api/v1/accounts/#{user.id}/statuses?pinned=true")
+        |> json_response(200)
+
+      id_str = to_string(activity.id)
+
+      assert [%{"id" => ^id_str, "pinned" => true}] = result
+    end
+
+    test "pin status", %{conn: conn, user: user, activity: activity} do
+      id_str = to_string(activity.id)
+
+      assert %{"id" => ^id_str, "pinned" => true} =
+               conn
+               |> assign(:user, user)
+               |> post("/api/v1/statuses/#{activity.id}/pin")
+               |> json_response(200)
+
+      assert [%{"id" => ^id_str, "pinned" => true}] =
+               conn
+               |> assign(:user, user)
+               |> get("/api/v1/accounts/#{user.id}/statuses?pinned=true")
+               |> json_response(200)
+    end
+
+    test "unpin status", %{conn: conn, user: user, activity: activity} do
+      {:ok, _} = CommonAPI.pin(activity.id, user)
+
+      id_str = to_string(activity.id)
+      user = refresh_record(user)
+
+      assert %{"id" => ^id_str, "pinned" => false} =
+               conn
+               |> assign(:user, user)
+               |> post("/api/v1/statuses/#{activity.id}/unpin")
+               |> json_response(200)
+
+      assert [] =
+               conn
+               |> assign(:user, user)
+               |> get("/api/v1/accounts/#{user.id}/statuses?pinned=true")
+               |> json_response(200)
+    end
+
+    test "max pinned statuses", %{conn: conn, user: user, activity: activity_one} do
+      {:ok, activity_two} = CommonAPI.post(user, %{"status" => "HI!!!"})
+
+      id_str_one = to_string(activity_one.id)
+
+      assert %{"id" => ^id_str_one, "pinned" => true} =
+               conn
+               |> assign(:user, user)
+               |> post("/api/v1/statuses/#{id_str_one}/pin")
+               |> json_response(200)
+
+      user = refresh_record(user)
+
+      assert %{"error" => "You have already pinned the maximum number of statuses"} =
+               conn
+               |> assign(:user, user)
+               |> post("/api/v1/statuses/#{activity_two.id}/pin")
+               |> json_response(400)
+    end
   end
 end

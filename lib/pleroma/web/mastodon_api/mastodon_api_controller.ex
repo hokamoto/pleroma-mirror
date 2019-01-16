@@ -264,13 +264,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def user_statuses(%{assigns: %{user: reading_user}} = conn, params) do
     with %User{} = user <- Repo.get(User, params["id"]) do
-      # Since Pleroma has no "pinned" posts feature, we'll just set an empty list here
-      activities =
-        if params["pinned"] == "true" do
-          []
-        else
-          ActivityPub.fetch_user_activities(user, reading_user, params)
-        end
+      activities = ActivityPub.fetch_user_activities(user, reading_user, params)
 
       conn
       |> add_link_headers(:user_statuses, activities, params["id"])
@@ -411,6 +405,27 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   def unfav_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
     with {:ok, _, _, %{data: %{"id" => id}}} <- CommonAPI.unfavorite(ap_id_or_id, user),
          %Activity{} = activity <- Activity.get_create_activity_by_object_ap_id(id) do
+      conn
+      |> put_view(StatusView)
+      |> try_render("status.json", %{activity: activity, for: user, as: :activity})
+    end
+  end
+
+  def pin_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
+    with {:ok, activity} <- CommonAPI.pin(ap_id_or_id, user) do
+      conn
+      |> put_view(StatusView)
+      |> try_render("status.json", %{activity: activity, for: user, as: :activity})
+    else
+      {:error, reason} ->
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(:bad_request, Jason.encode!(%{"error" => reason}))
+    end
+  end
+
+  def unpin_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
+    with {:ok, activity} <- CommonAPI.unpin(ap_id_or_id, user) do
       conn
       |> put_view(StatusView)
       |> try_render("status.json", %{activity: activity, for: user, as: :activity})
@@ -817,9 +832,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     json(conn, res)
   end
 
-  def favourites(%{assigns: %{user: user}} = conn, _) do
+  def favourites(%{assigns: %{user: user}} = conn, params) do
     params =
-      %{}
+      params
       |> Map.put("type", "Create")
       |> Map.put("favorited_by", user.ap_id)
       |> Map.put("blocking_user", user)
@@ -829,6 +844,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       |> Enum.reverse()
 
     conn
+    |> add_link_headers(:favourites, activities)
     |> put_view(StatusView)
     |> render("index.json", %{activities: activities, for: user, as: :activity})
   end

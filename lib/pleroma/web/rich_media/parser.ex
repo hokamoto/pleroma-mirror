@@ -1,11 +1,15 @@
 defmodule Pleroma.Web.RichMedia.Parser do
-  @parsers [Pleroma.Web.RichMedia.Parsers.OGP]
+  @parsers [
+    Pleroma.Web.RichMedia.Parsers.OGP,
+    Pleroma.Web.RichMedia.Parsers.TwitterCard,
+    Pleroma.Web.RichMedia.Parsers.OEmbed
+  ]
 
   if Mix.env() == :test do
     def parse(url), do: parse_url(url)
   else
     def parse(url),
-      do: {:commit, Cachex.fetch!(:rich_media_cache, url, fn _ -> parse_url(url) end)}
+      do: Cachex.fetch!(:rich_media_cache, url, fn _ -> parse_url(url) end)
   end
 
   defp parse_url(url) do

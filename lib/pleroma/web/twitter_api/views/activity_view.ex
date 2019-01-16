@@ -243,6 +243,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
     announcement_count = object["announcement_count"] || 0
     favorited = opts[:for] && opts[:for].ap_id in (object["likes"] || [])
     repeated = opts[:for] && opts[:for].ap_id in (object["announcements"] || [])
+    pinned = activity.id in user.info.pinned_activities
 
     attentions =
       activity.recipients
@@ -279,6 +280,8 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
 
     reply_user = reply_parent && User.get_cached_by_ap_id(reply_parent.actor)
 
+    summary = HTML.strip_tags(summary)
+
     %{
       "id" => activity.id,
       "uri" => activity.data["object"]["id"],
@@ -300,12 +303,14 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
       "repeat_num" => announcement_count,
       "favorited" => !!favorited,
       "repeated" => !!repeated,
+      "pinned" => pinned,
       "external_url" => object["external_url"] || object["id"],
       "tags" => tags,
       "activity_type" => "post",
       "possibly_sensitive" => possibly_sensitive,
       "visibility" => Pleroma.Web.MastodonAPI.StatusView.get_visibility(object),
-      "summary" => HTML.strip_tags(summary) |> Formatter.emojify(object["emoji"])
+      "summary" => summary,
+      "summary_html" => summary |> Formatter.emojify(object["emoji"])
     }
   end
 

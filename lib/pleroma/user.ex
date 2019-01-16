@@ -45,20 +45,28 @@ defmodule Pleroma.User do
     timestamps()
   end
 
-  def auth_active?(%User{} = user) do
-    (user.info && !user.info.confirmation_pending) ||
-      !Pleroma.Config.get([:instance, :account_activation_required])
+  def auth_active?(%User{local: false}), do: true
+
+  def auth_active?(%User{info: %User.Info{confirmation_pending: false}}), do: true
+
+  def auth_active?(%User{info: %User.Info{confirmation_pending: true}}),
+    do: !Pleroma.Config.get([:instance, :account_activation_required])
+
+  def auth_active?(_), do: false
+
+  def visible_for?(user, for_user \\ nil)
+
+  def visible_for?(%User{id: user_id}, %User{id: for_id}) when user_id == for_id, do: true
+
+  def visible_for?(%User{} = user, for_user) do
+    auth_active?(user) || superuser?(for_user)
   end
 
-  def remote_or_auth_active?(%User{} = user), do: !user.local || auth_active?(user)
+  def visible_for?(_, _), do: false
 
-  def visible_for?(%User{} = user, for_user \\ nil) do
-    User.remote_or_auth_active?(user) || (for_user && for_user.id == user.id) ||
-      User.superuser?(for_user)
-  end
-
-  def superuser?(nil), do: false
-  def superuser?(%User{} = user), do: user.info && User.Info.superuser?(user.info)
+  def superuser?(%User{local: true, info: %User.Info{is_admin: true}}), do: true
+  def superuser?(%User{local: true, info: %User.Info{is_moderator: true}}), do: true
+  def superuser?(_), do: false
 
   def avatar_url(user) do
     case user.avatar do
@@ -253,10 +261,24 @@ defmodule Pleroma.User do
     end
   end
 
+  defp autofollow_users(user) do
+    candidates = Pleroma.Config.get([:instance, :autofollowed_nicknames])
+
+    autofollowed_users =
+      from(u in User,
+        where: u.local == true,
+        where: u.nickname in ^candidates
+      )
+      |> Repo.all()
+
+    follow_all(user, autofollowed_users)
+  end
+
   @doc "Inserts provided changeset, performs post-registration actions (confirmation email sending etc.)"
   def register(%Ecto.Changeset{} = changeset) do
     with {:ok, user} <- Repo.insert(changeset),
-         {:ok, _} = try_send_confirmation_email(user) do
+         {:ok, _} <- try_send_confirmation_email(user),
+         {:ok, user} <- autofollow_users(user) do
       {:ok, user}
     end
   end
@@ -304,6 +326,25 @@ defmodule Pleroma.User do
     else
       {:ok, follower}
     end
+  end
+
+  @doc "A mass follow for local users. Ignores blocks and has no side effects"
+  @spec follow_all(User.t(), list(User.t())) :: {atom(), User.t()}
+  def follow_all(follower, followeds) do
+    following =
+      (follower.following ++ Enum.map(followeds, fn %{follower_address: fa} -> fa end))
+      |> Enum.uniq()
+
+    {:ok, follower} =
+      follower
+      |> follow_changeset(%{following: following})
+      |> update_and_set_cache
+
+    Enum.each(followeds, fn followed ->
+      update_follower_count(followed)
+    end)
+
+    {:ok, follower}
   end
 
   def follow(%User{} = follower, %User{info: info} = followed) do
@@ -470,7 +511,7 @@ defmodule Pleroma.User do
     end
   end
 
-  def get_followers_query(%User{id: id, follower_address: follower_address}) do
+  def get_followers_query(%User{id: id, follower_address: follower_address}, nil) do
     from(
       u in User,
       where: fragment("? <@ ?", ^[follower_address], u.following),
@@ -478,13 +519,23 @@ defmodule Pleroma.User do
     )
   end
 
-  def get_followers(user) do
-    q = get_followers_query(user)
+  def get_followers_query(user, page) do
+    from(
+      u in get_followers_query(user, nil),
+      limit: 20,
+      offset: ^((page - 1) * 20)
+    )
+  end
+
+  def get_followers_query(user), do: get_followers_query(user, nil)
+
+  def get_followers(user, page \\ nil) do
+    q = get_followers_query(user, page)
 
     {:ok, Repo.all(q)}
   end
 
-  def get_friends_query(%User{id: id, following: following}) do
+  def get_friends_query(%User{id: id, following: following}, nil) do
     from(
       u in User,
       where: u.follower_address in ^following,
@@ -492,8 +543,18 @@ defmodule Pleroma.User do
     )
   end
 
-  def get_friends(user) do
-    q = get_friends_query(user)
+  def get_friends_query(user, page) do
+    from(
+      u in get_friends_query(user, nil),
+      limit: 20,
+      offset: ^((page - 1) * 20)
+    )
+  end
+
+  def get_friends_query(user), do: get_friends_query(user, nil)
+
+  def get_friends(user, page \\ nil) do
+    q = get_friends_query(user, page)
 
     {:ok, Repo.all(q)}
   end

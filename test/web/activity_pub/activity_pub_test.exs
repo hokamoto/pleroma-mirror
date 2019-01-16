@@ -18,6 +18,42 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
     :ok
   end
 
+  describe "fetching restricted by visibility" do
+    test "it restricts by the appropriate visibility" do
+      user = insert(:user)
+
+      {:ok, public_activity} = CommonAPI.post(user, %{"status" => ".", "visibility" => "public"})
+
+      {:ok, direct_activity} = CommonAPI.post(user, %{"status" => ".", "visibility" => "direct"})
+
+      {:ok, unlisted_activity} =
+        CommonAPI.post(user, %{"status" => ".", "visibility" => "unlisted"})
+
+      {:ok, private_activity} =
+        CommonAPI.post(user, %{"status" => ".", "visibility" => "private"})
+
+      activities =
+        ActivityPub.fetch_activities([], %{:visibility => "direct", "actor_id" => user.ap_id})
+
+      assert activities == [direct_activity]
+
+      activities =
+        ActivityPub.fetch_activities([], %{:visibility => "unlisted", "actor_id" => user.ap_id})
+
+      assert activities == [unlisted_activity]
+
+      activities =
+        ActivityPub.fetch_activities([], %{:visibility => "private", "actor_id" => user.ap_id})
+
+      assert activities == [private_activity]
+
+      activities =
+        ActivityPub.fetch_activities([], %{:visibility => "public", "actor_id" => user.ap_id})
+
+      assert activities == [public_activity]
+    end
+  end
+
   describe "building a user from his ap id" do
     test "it returns a user" do
       user_id = "http://mastodon.example.org/users/admin"
@@ -599,6 +635,28 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       )
 
     assert object
+  end
+
+  test "returned pinned statuses" do
+    Pleroma.Config.put([:instance, :max_pinned_statuses], 3)
+    user = insert(:user)
+
+    {:ok, activity_one} = CommonAPI.post(user, %{"status" => "HI!!!"})
+    {:ok, activity_two} = CommonAPI.post(user, %{"status" => "HI!!!"})
+    {:ok, activity_three} = CommonAPI.post(user, %{"status" => "HI!!!"})
+
+    CommonAPI.pin(activity_one.id, user)
+    user = refresh_record(user)
+
+    CommonAPI.pin(activity_two.id, user)
+    user = refresh_record(user)
+
+    CommonAPI.pin(activity_three.id, user)
+    user = refresh_record(user)
+
+    activities = ActivityPub.fetch_user_activities(user, nil, %{"pinned" => "true"})
+
+    assert 3 = length(activities)
   end
 
   def data_uri do

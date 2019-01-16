@@ -14,6 +14,7 @@ defmodule Pleroma.Web.CommonAPI do
     with %Activity{data: %{"object" => %{"id" => object_id}}} <- Repo.get(Activity, activity_id),
          %Object{} = object <- Object.normalize(object_id),
          true <- user.info.is_moderator || user.ap_id == object.data["actor"],
+         {:ok, _} <- unpin(activity_id, user),
          {:ok, delete} <- ActivityPub.delete(object) do
       {:ok, delete}
     end
@@ -163,5 +164,49 @@ defmodule Pleroma.Web.CommonAPI do
       actor: user.ap_id,
       object: Pleroma.Web.ActivityPub.UserView.render("user.json", %{user: user})
     })
+  end
+
+  def pin(id_or_ap_id, %{ap_id: user_ap_id} = user) do
+    with %Activity{
+           actor: ^user_ap_id,
+           data: %{
+             "type" => "Create",
+             "object" => %{
+               "to" => object_to,
+               "type" => "Note"
+             }
+           }
+         } = activity <- get_by_id_or_ap_id(id_or_ap_id),
+         true <- Enum.member?(object_to, "https://www.w3.org/ns/activitystreams#Public"),
+         %{valid?: true} = info_changeset <-
+           Pleroma.User.Info.add_pinnned_activity(user.info, activity),
+         changeset <-
+           Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_changeset),
+         {:ok, _user} <- User.update_and_set_cache(changeset) do
+      {:ok, activity}
+    else
+      %{errors: [pinned_activities: {err, _}]} ->
+        {:error, err}
+
+      _ ->
+        {:error, "Could not pin"}
+    end
+  end
+
+  def unpin(id_or_ap_id, user) do
+    with %Activity{} = activity <- get_by_id_or_ap_id(id_or_ap_id),
+         %{valid?: true} = info_changeset <-
+           Pleroma.User.Info.remove_pinnned_activity(user.info, activity),
+         changeset <-
+           Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_changeset),
+         {:ok, _user} <- User.update_and_set_cache(changeset) do
+      {:ok, activity}
+    else
+      %{errors: [pinned_activities: {err, _}]} ->
+        {:error, err}
+
+      _ ->
+        {:error, "Could not unpin"}
+    end
   end
 end

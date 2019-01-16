@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
@@ -66,7 +66,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
     result = ActivityView.render("activity.json", activity: activity)
 
     assert result["statusnet_html"] ==
-             "<a data-tag=\"bike\" href=\"http://localhost:4001/tag/bike\">#Bike</a> log - Commute Tuesday<br /><a href=\"https://pla.bike/posts/20181211/\">https://pla.bike/posts/20181211/</a><br /><a data-tag=\"cycling\" href=\"http://localhost:4001/tag/cycling\">#cycling</a> <a data-tag=\"chscycling\" href=\"http://localhost:4001/tag/chscycling\">#CHScycling</a> <a data-tag=\"commute\" href=\"http://localhost:4001/tag/commute\">#commute</a><br />MVIMG_20181211_054020.jpg"
+             "<a class=\"hashtag\" data-tag=\"bike\" href=\"http://localhost:4001/tag/bike\">#Bike</a> log - Commute Tuesday<br /><a href=\"https://pla.bike/posts/20181211/\">https://pla.bike/posts/20181211/</a><br /><a class=\"hashtag\" data-tag=\"cycling\" href=\"http://localhost:4001/tag/cycling\">#cycling</a> <a class=\"hashtag\" data-tag=\"chscycling\" href=\"http://localhost:4001/tag/chscycling\">#CHScycling</a> <a class=\"hashtag\" data-tag=\"commute\" href=\"http://localhost:4001/tag/commute\">#commute</a><br />MVIMG_20181211_054020.jpg"
 
     assert result["text"] ==
              "#Bike log - Commute Tuesday\nhttps://pla.bike/posts/20181211/\n#cycling #CHScycling #commute\nMVIMG_20181211_054020.jpg"
@@ -81,10 +81,13 @@ defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
 
     result = ActivityView.render("activity.json", activity: activity)
 
-    expected =
+    expected = ":woollysocks: meow"
+
+    expected_html =
       "<img height=\"32px\" width=\"32px\" alt=\"woollysocks\" title=\"woollysocks\" src=\"http://localhost:4001/finmoji/128px/woollysocks-128.png\" /> meow"
 
     assert result["summary"] == expected
+    assert result["summary_html"] == expected_html
   end
 
   test "a create activity with a summary containing invalid HTML" do
@@ -99,6 +102,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
     expected = "meow"
 
     assert result["summary"] == expected
+    assert result["summary_html"] == expected
   end
 
   test "a create activity with a note" do
@@ -132,10 +136,14 @@ defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
       "possibly_sensitive" => false,
       "repeat_num" => 0,
       "repeated" => false,
+      "pinned" => false,
       "statusnet_conversation_id" => convo_id,
       "summary" => "",
+      "summary_html" => "",
       "statusnet_html" =>
-        "Hey <span><a data-user=\"#{other_user.id}\" href=\"#{other_user.ap_id}\">@<span>shp</span></a></span>!",
+        "Hey <span class=\"h-card\"><a data-user=\"#{other_user.id}\" class=\"u-url mention\" href=\"#{
+          other_user.ap_id
+        }\">@<span>shp</span></a></span>!",
       "tags" => [],
       "text" => "Hey @shp!",
       "uri" => activity.data["object"]["id"],

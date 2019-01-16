@@ -364,21 +364,18 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   @valid_visibilities ~w[direct unlisted public private]
 
-  defp restrict_visibility(query, %{visibility: "direct"}) do
-    public = "https://www.w3.org/ns/activitystreams#Public"
+  defp restrict_visibility(query, %{visibility: visibility})
+       when visibility in @valid_visibilities do
+    query =
+      from(
+        a in query,
+        where:
+          fragment("activity_visibility(?, ?, ?) = ?", a.actor, a.recipients, a.data, ^visibility)
+      )
 
-    from(
-      activity in query,
-      join: sender in User,
-      on: sender.ap_id == activity.actor,
-      # Are non-direct statuses with no to/cc possible?
-      where:
-        fragment(
-          "not (? && ?)",
-          [^public, sender.follower_address],
-          activity.recipients
-        )
-    )
+    Ecto.Adapters.SQL.to_sql(:all, Repo, query)
+
+    query
   end
 
   defp restrict_visibility(_query, %{visibility: visibility})
@@ -394,6 +391,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       |> Map.put("type", ["Create", "Announce"])
       |> Map.put("actor_id", user.ap_id)
       |> Map.put("whole_db", true)
+      |> Map.put("pinned_activity_ids", user.info.pinned_activities)
 
     recipients =
       if reading_user do
@@ -517,15 +515,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp restrict_reblogs(query, _), do: query
 
-  # Only search through last 100_000 activities by default
-  defp restrict_recent(query, %{"whole_db" => true}), do: query
-
-  defp restrict_recent(query, _) do
-    since = (Repo.aggregate(Activity, :max, :id) || 0) - 100_000
-
-    from(activity in query, where: activity.id > ^since)
-  end
-
   defp restrict_blocked(query, %{"blocking_user" => %User{info: info}}) do
     blocks = info.blocks || []
     domain_blocks = info.domain_blocks || []
@@ -552,6 +541,12 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     )
   end
 
+  defp restrict_pinned(query, %{"pinned" => "true", "pinned_activity_ids" => ids}) do
+    from(activity in query, where: activity.id in ^ids)
+  end
+
+  defp restrict_pinned(query, _), do: query
+
   def fetch_activities_query(recipients, opts \\ %{}) do
     base_query =
       from(
@@ -570,12 +565,12 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> restrict_actor(opts)
     |> restrict_type(opts)
     |> restrict_favorited_by(opts)
-    |> restrict_recent(opts)
     |> restrict_blocked(opts)
     |> restrict_media(opts)
     |> restrict_visibility(opts)
     |> restrict_replies(opts)
     |> restrict_reblogs(opts)
+    |> restrict_pinned(opts)
   end
 
   def fetch_activities(recipients, opts \\ %{}) do
