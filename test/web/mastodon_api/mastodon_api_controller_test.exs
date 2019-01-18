@@ -1242,6 +1242,50 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     end)
   end
 
+  test "space-insensitive search", %{conn: conn} do
+    user = insert(:user, %{nickname: "blarb@blush-intensifi.es"})
+
+    account1 =
+      conn
+      |> assign(:user, user)
+      |> get("/api/v1/accounts/search", %{"q" => "blarb"})
+      |> json_response(200)
+
+    account2 =
+      conn
+      |> assign(:user, user)
+      |> get("/api/v1/accounts/search", %{"q" => "    blarb\t\t"})
+      |> json_response(200)
+
+    assert account1 == account2
+
+    {:ok, activity} = CommonAPI.post(user, %{"status" => "This is about 2hu"})
+
+    search1 =
+      conn
+      |> get("/api/v1/search", %{"q" => "2hu"})
+      |> json_response(200)
+
+    search2 =
+      conn
+      |> get("/api/v1/search", %{"q" => "   2hu      \n\n"})
+      |> json_response(200)
+
+    assert search1 == search2
+
+    search3 =
+      conn
+      |> get("/api/v2/search", %{"q" => "    2hu   "})
+      |> json_response(200)
+
+    search4 =
+      conn
+      |> get("/api/v2/search", %{"q" => "2hu"})
+      |> json_response(200)
+
+    assert search3 == search4
+  end
+
   test "account search", %{conn: conn} do
     user = insert(:user)
     user_two = insert(:user, %{nickname: "shp@shitposter.club"})
