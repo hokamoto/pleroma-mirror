@@ -196,11 +196,15 @@ defmodule Pleroma.Web.TwitterAPI.UtilController do
           scopeOptionsEnabled: Keyword.get(instance_fe, :scope_options_enabled),
           formattingOptionsEnabled: Keyword.get(instance_fe, :formatting_options_enabled),
           collapseMessageWithSubject: Keyword.get(instance_fe, :collapse_message_with_subject),
-          hidePostStats: Keyword.get(instance_fe, :hide_post_stats),
-          hideUserStats: Keyword.get(instance_fe, :hide_user_stats),
           scopeCopy: Keyword.get(instance_fe, :scope_copy),
           subjectLineBehavior: Keyword.get(instance_fe, :subject_line_behavior),
-          alwaysShowSubjectInput: Keyword.get(instance_fe, :always_show_subject_input)
+          alwaysShowSubjectInput: Keyword.get(instance_fe, :always_show_subject_input),
+          hidePostStats: Keyword.get(instance_fe, :hide_post_stats),
+          hideUserStats: Keyword.get(instance_fe, :hide_user_stats),
+          loginMethod: Keyword.get(instance_fe, :login_method),
+          webPushNotifications: Keyword.get(instance_fe, :web_push_notifications),
+          noAttachmentLinks: Keyword.get(instance_fe, :no_attachment_links),
+          nsfwCensorImage: Keyword.get(instance_fe, :nsfw_censor_image)
         }
 
         managed_config = Keyword.get(instance, :managed_config)
