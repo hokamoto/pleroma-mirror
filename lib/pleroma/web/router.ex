@@ -113,6 +113,11 @@ defmodule Pleroma.Web.Router do
     post("/mfc/:action", MFC.Controller, :callbacks)
   end
 
+  scope "/api/pleroma", Pleroma.Web do
+    pipe_through(:pleroma_api)
+    post("/uploader_callback/:upload_path", UploaderController, :callback)
+  end
+
   scope "/api/pleroma/admin", Pleroma.Web.AdminAPI do
     pipe_through(:admin_api)
     post("/user/follow", AdminAPIController, :user_follow)
