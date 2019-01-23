@@ -85,17 +85,17 @@ config :pleroma, Pleroma.Mailer,
 * `allowed_post_formats`: MIME-type list of formats allowed to be posted (transformed into HTML)
 * `finmoji_enabled`: Whenether to enable the finmojis in the custom emojis.
 * `mrf_transparency`: Make the content of your Message Rewrite Facility settings public (via nodeinfo).
-* `scope_copy`: Copy the scope (private/unlisted/public) in replies to posts by default.
-* `subject_line_behavior`: Allows changing the default behaviour of subject lines in replies. Valid values:
+* `scopeCopy`: Copy the scope (private/unlisted/public) in replies to posts by default.
+* `subjectLineBehavior`: Allows changing the default behaviour of subject lines in replies. Valid values:
   * "email": Copy and preprend re:, as in email.
   * "masto": Copy verbatim, as in Mastodon.
   * "noop": Don't copy the subject.
-* `always_show_subject_input`: When set to false, auto-hide the subject field when it's empty.
+* `alwaysShowSubjectInput`: When set to false, auto-hide the subject field when it's empty.
 * `extended_nickname_format`: Set to `true` to use extended local nicknames format (allows underscores/dashes). This will break federation with
     older software for theses nicknames.
 * `max_pinned_statuses`: The maximum number of pinned statuses. `0` will disable the feature.
 * `autofollowed_nicknames`: Set to nicknames of (local) users that every new user should automatically follow.
-* `no_attachment_links`: Set to true to disable automatically adding attachment link text to statuses
+* `noAttachmentLinks`: Set to true to disable automatically adding attachment link text to statuses
 
 ## :logger
 * `backends`: `:console` is used to send logs to stdout, `{ExSyslogger, :ex_syslogger}` to log to syslog
@@ -105,18 +105,22 @@ See: [logger’s documentation](https://hexdocs.pm/logger/Logger.html) and [ex_s
 This section is used to configure Pleroma-FE, unless ``:managed_config`` in ``:instance`` is set to false.
 
 * `theme`: Which theme to use, they are defined in ``styles.json``
-* `logo`: URL of the logo, defaults to Pleroma’s logo
-* `logo_mask`: Whenether to mask the logo
-* `logo_margin`: What margin to use around the logo
 * `background`: URL of the background, unless viewing a user profile with a background that is set
-* `redirect_root_no_login`: relative URL which indicates where to redirect when a user isn’t logged in.
-* `redirect_root_login`: relative URL which indicates where to redirect when a user is logged in.
-* `show_instance_panel`: Whenether to show the instance’s specific panel.
-* `scope_options_enabled`: Enable setting an notice visibility and subject/CW when posting
-* `formatting_options_enabled`: Enable setting a formatting different than plain-text (ie. HTML, Markdown) when posting, relates to ``:instance, allowed_post_formats``
-* `collapse_message_with_subjects`: When a message has a subject(aka Content Warning), collapse it by default
-* `hide_post_stats`: Hide notices statistics(repeats, favorites, …)
-* `hide_user_stats`: Hide profile statistics(posts, posts per day, followers, followings, …)
+* `logo`: URL of the logo, defaults to Pleroma’s logo
+* `logoMask`: Whenether to mask the logo
+* `logoMargin`: What margin to use around the logo
+* `redirectRootNoLogin`: relative URL which indicates where to redirect when a user isn’t logged in.
+* `redirectRootLogin`: relative URL which indicates where to redirect when a user is logged in.
+* `showInstanceSpecificPanel`: Whenether to show the instance’s specific panel.
+* `scopeOptionsEnabled`: Enable setting an notice visibility and subject/CW when posting
+* `formattingOptionsEnabled`: Enable setting a formatting different than plain-text (ie. HTML, Markdown) when posting, relates to ``:instance, allowed_post_formats``
+* `collapseMessageWithSubject`: When a message has a subject(aka Content Warning), collapse it by default
+* `hidePostStats`: Hide notices statistics(repeats, favorites, …)
+* `hideUserStats`: Hide profile statistics(posts, posts per day, followers, followings, …)
+* `loginMethod`: What method for user authentication. Valid values:
+  * "password": Default
+  * "token": Uses the full OAuth redirection flow (useful for SSO situations)
+* `nsfwCensorImage`: URL of the NSFW censor image
 
 ## :mrf_simple
 * `media_removal`: List of instances to remove medias from
