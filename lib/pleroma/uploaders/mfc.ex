@@ -46,12 +46,7 @@ defmodule Pleroma.Uploaders.MFC do
   def preview_url("image", url), do: Image.build_preview_url(url)
   def preview_url(_type, href), do: href
 
-  defp store do
-    config()
-    |> Keyword.get(:store, Pleroma.Uploaders.S3)
-  end
-
-  defp config, do: Pleroma.Config.get([__MODULE__], [])
+  defp store, do: Pleroma.Config.get([__MODULE__, :store], Pleroma.Uploaders.S3)
 
   defp wait_for_conversion() do
     receive do
