@@ -226,6 +226,8 @@ defmodule Pleroma.Web.Router do
     get("/suggestions", MastodonAPIController, :suggestions)
 
     get("/endorsements", MastodonAPIController, :empty_array)
+
+    post("/reports", MastodonAPIController, :reports)
   end
 
   scope "/api/web", Pleroma.Web.MastodonAPI do

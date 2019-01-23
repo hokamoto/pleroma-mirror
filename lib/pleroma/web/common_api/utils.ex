@@ -261,4 +261,20 @@ defmodule Pleroma.Web.CommonAPI.Utils do
       }
     end)
   end
+
+  def make_report_content_html(nil), do: {:ok, nil}
+
+  def make_report_content_html(comment) do
+    if String.length(comment) <= 1000 do
+      {:ok, format_input(comment, [], [], "text/plain")}
+    else
+      {:error, "Comment must be up to 1000 characters"}
+    end
+  end
+
+  def get_report_statuses(%User{ap_id: actor}, %{"status_ids" => status_ids}) do
+    {:ok, Activity.all_by_actor_and_id(actor, status_ids)}
+  end
+
+  def get_report_statuses(_, _), do: {:ok, nil}
 end

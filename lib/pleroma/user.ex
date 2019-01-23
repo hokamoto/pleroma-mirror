@@ -404,6 +404,10 @@ defmodule Pleroma.User do
     user.info.locked || false
   end
 
+  def get_by_id(id) do
+    Repo.get(User, id)
+  end
+
   def get_by_ap_id(ap_id) do
     Repo.get_by(User, ap_id: ap_id)
   end
@@ -1160,5 +1164,14 @@ defmodule Pleroma.User do
       nickname: "erroruser@example.com",
       inserted_at: NaiveDateTime.utc_now()
     }
+  end
+
+  def all_superusers do
+    from(
+      u in User,
+      where: u.local == true,
+      where: fragment("?->'is_admin' @> 'true' OR ?->'is_moderator' @> 'true'", u.info, u.info)
+    )
+    |> Repo.all()
   end
 end

@@ -1603,4 +1603,66 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
                |> json_response(400)
     end
   end
+
+  describe "reports" do
+    setup do
+      reporter = insert(:user)
+      target_user = insert(:user)
+
+      {:ok, activity} = CommonAPI.post(target_user, %{"status" => "foobar"})
+
+      [reporter: reporter, target_user: target_user, activity: activity]
+    end
+
+    test "submit a basic report", %{conn: conn, reporter: reporter, target_user: target_user} do
+      assert %{"action_taken" => false, "id" => _} =
+               conn
+               |> assign(:user, reporter)
+               |> post("/api/v1/reports", %{"account_id" => target_user.id})
+               |> json_response(200)
+    end
+
+    test "submit a report with statuses and comment", %{
+      conn: conn,
+      reporter: reporter,
+      target_user: target_user,
+      activity: activity
+    } do
+      assert %{"action_taken" => false, "id" => _} =
+               conn
+               |> assign(:user, reporter)
+               |> post("/api/v1/reports", %{
+                 "account_id" => target_user.id,
+                 "status_ids" => [activity.id],
+                 "comment" => "bad status!"
+               })
+               |> json_response(200)
+    end
+
+    test "accound_id is required", %{
+      conn: conn,
+      reporter: reporter,
+      activity: activity
+    } do
+      assert %{"error" => "Valid `account_id` required"} =
+               conn
+               |> assign(:user, reporter)
+               |> post("/api/v1/reports", %{"status_ids" => [activity.id]})
+               |> json_response(400)
+    end
+
+    test "comment must be up to 1000 characters", %{
+      conn: conn,
+      reporter: reporter,
+      target_user: target_user
+    } do
+      comment = String.pad_trailing("a", 1001, "a")
+
+      assert %{"error" => "Comment must be up to 1000 characters"} =
+               conn
+               |> assign(:user, reporter)
+               |> post("/api/v1/reports", %{"account_id" => target_user.id, "comment" => comment})
+               |> json_response(400)
+    end
+  end
 end
