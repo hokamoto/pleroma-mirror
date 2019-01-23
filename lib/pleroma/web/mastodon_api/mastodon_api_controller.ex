@@ -385,7 +385,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def unreblog_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
     with {:ok, _unannounce, %{data: %{"id" => id}}} <- CommonAPI.unrepeat(ap_id_or_id, user),
-         %Activity{} = activity <- Activity.get_create_activity_by_object_ap_id(id) do
+         %Activity{} = activity <- Activity.get_create_by_object_ap_id(id) do
       conn
       |> put_view(StatusView)
       |> try_render("status.json", %{activity: activity, for: user, as: :activity})
@@ -394,7 +394,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def fav_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
     with {:ok, _fav, %{data: %{"id" => id}}} <- CommonAPI.favorite(ap_id_or_id, user),
-         %Activity{} = activity <- Activity.get_create_activity_by_object_ap_id(id) do
+         %Activity{} = activity <- Activity.get_create_by_object_ap_id(id) do
       conn
       |> put_view(StatusView)
       |> try_render("status.json", %{activity: activity, for: user, as: :activity})
@@ -403,7 +403,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def unfav_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
     with {:ok, _, _, %{data: %{"id" => id}}} <- CommonAPI.unfavorite(ap_id_or_id, user),
-         %Activity{} = activity <- Activity.get_create_activity_by_object_ap_id(id) do
+         %Activity{} = activity <- Activity.get_create_by_object_ap_id(id) do
       conn
       |> put_view(StatusView)
       |> try_render("status.json", %{activity: activity, for: user, as: :activity})
@@ -751,8 +751,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     fetched =
       if Regex.match?(~r/https?:/, query) do
         with {:ok, object} <- ActivityPub.fetch_object_from_id(query),
-             %Activity{} = activity <-
-               Activity.get_create_activity_by_object_ap_id(object.data["id"]),
+             %Activity{} = activity <- Activity.get_create_by_object_ap_id(object.data["id"]),
              true <- ActivityPub.visible_for_user?(activity, user) do
           [activity]
         else
@@ -1146,7 +1145,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def render_notification(user, %{id: id, activity: activity, inserted_at: created_at} = _params) do
     actor = User.get_cached_by_ap_id(activity.data["actor"])
-    parent_activity = Activity.get_create_activity_by_object_ap_id(activity.data["object"])
+    parent_activity = Activity.get_create_by_object_ap_id(activity.data["object"])
     mastodon_type = Activity.mastodon_notification_type(activity)
 
     response = %{
