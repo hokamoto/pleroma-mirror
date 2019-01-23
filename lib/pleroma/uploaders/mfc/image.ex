@@ -23,6 +23,8 @@ defmodule Pleroma.Uploaders.MFC.Image do
 
   @convert_path "/api/v1/images"
   @default_postfix_preview ".preview.png"
+  @resolution "400x400"
+  @convert_method "resize"
 
   @doc "Convert image"
   @spec convert(Tesla.Client.t(), String.t()) :: :ok | :duplicate | {:error, String.t()}
@@ -35,14 +37,14 @@ defmodule Pleroma.Uploaders.MFC.Image do
       "source_key" => path,
       "versions" => %{
         "dest_key" => build_preview_url(Path.rootname(path)),
-        "resolution" => "400x400",
-        "method" => "resize"
+        "resolution" => @resolution,
+        "method" => @convert_method
       }
     }
 
     case Client.post(client, @convert_path, data) do
       {:ok, %{status: 200, body: versions}} ->
-        versions
+        {:ok, versions}
 
       error ->
         Logger.error(

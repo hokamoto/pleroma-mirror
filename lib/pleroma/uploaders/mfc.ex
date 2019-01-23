@@ -5,13 +5,7 @@ defmodule Pleroma.Uploaders.MFC do
   alias __MODULE__.Video
   alias __MODULE__.Image
 
-  @conversion_wait :timer.minutes(2)
   @original_postprefix "_original"
-
-  # TODO: With dedupe enabled, if two users upload the same file at the same time, this will bug (probably make an user
-  # wait for a timeout).
-  # A possible fix would be to create a Registry and share the upload key against multiple processes.
-  # Some API would be needed in Pleroma to do start-up checks/supervision tree changes to do this properly.@
 
   def get_file(file), do: store().get_file(file)
 
@@ -34,7 +28,7 @@ defmodule Pleroma.Uploaders.MFC do
 
   # put image file
   #
-  def put_file(%Pleroma.Upload{content_type: "image" <> _} = upload) do
+  def put_file(%Upload{content_type: "image" <> _} = upload) do
     with {:ok, {:file, path}} <- store().put_file(build_upload(upload)),
          {:ok, [path | _]} <- Image.convert(Image.Client.client(), path),
          do: {:ok, {:file, path}}
@@ -64,7 +58,12 @@ defmodule Pleroma.Uploaders.MFC do
       {__MODULE__, {:ok, path}} -> {:ok, path}
       {__MODULE__, {:error, error}} -> {:error, error}
     after
-      @conversion_wait -> {:error, "conversion timeout"}
+      conversion_wait() -> {:error, "conversion timeout"}
     end
+  end
+
+  defp conversion_wait do
+    [__MODULE__, :video_conversion, :conversion_wait]
+    |> Pleroma.Config.get(:timer.minutes(2))
   end
 end
