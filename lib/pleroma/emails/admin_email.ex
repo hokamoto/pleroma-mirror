@@ -7,12 +7,14 @@ defmodule Pleroma.AdminEmail do
 
   import Swoosh.Email
 
+  alias Pleroma.Web.Router.Helpers
+
   defp instance_config, do: Pleroma.Config.get(:instance)
   defp instance_name, do: instance_config()[:name]
   defp instance_email, do: instance_config()[:email]
 
   defp user_url(user) do
-    "#{Pleroma.Web.Endpoint.url()}/users/#{user.id}"
+    Helpers.o_status_url(Pleroma.Web.Endpoint, :feed_redirect, user.nickname)
   end
 
   def report(to, reporter, account, statuses, comment) do
@@ -28,7 +30,7 @@ defmodule Pleroma.AdminEmail do
         statuses_list_html =
           statuses
           |> Enum.map(fn %{id: id} ->
-            status_url = "#{Pleroma.Web.Endpoint.url()}/notice/#{id}"
+            status_url = Helpers.o_status_url(Pleroma.Web.Endpoint, :notice, id)
             "<li><a href=\"#{status_url}\">#{status_url}</li>"
           end)
           |> Enum.join("\n")
