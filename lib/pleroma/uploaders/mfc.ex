@@ -1,25 +1,20 @@
 defmodule Pleroma.Uploaders.MFC do
   @behaviour Pleroma.Uploaders.Uploader
-  alias Pleroma.Uploaders.S3
-  alias __MODULE__.Client
 
-  @conversion_wait :timer.minutes(2)
+  alias Pleroma.Upload
+  alias __MODULE__.Video
+  alias __MODULE__.Image
 
-  # TODO: With dedupe enabled, if two users upload the same file at the same time, this will bug (probably make an user
-  # wait for a timeout).
-  # A possible fix would be to create a Registry and share the upload key against multiple processes.
-  # Some API would be needed in Pleroma to do start-up checks/supervision tree changes to do this properly.@
+  @original_postprefix "_original"
 
-  def get_file(file) do
-    S3.get_file(file)
-  end
+  def get_file(file), do: store().get_file(file)
 
-  def put_file(upload = %Pleroma.Upload{content_type: "video" <> _}) do
-    with {:ok, {:file, path}} <-
-           S3.put_file(%Pleroma.Upload{upload | path: upload.path <> "_original"}),
+  # put video file
+  #
+  def put_file(%Upload{content_type: "video" <> _} = upload) do
+    with {:ok, {:file, path}} <- store().put_file(build_upload(upload)),
          _ <- :global.register_name({__MODULE__, path}, self()),
-         client <- Client.client(),
-         :ok <- Client.convert(client, path),
+         :ok <- Video.convert(Video.Client.client(), path),
          {:ok, path} <- wait_for_conversion() do
       {:ok, {:file, path}}
     else
@@ -31,16 +26,39 @@ defmodule Pleroma.Uploaders.MFC do
     end
   end
 
-  def put_file(upload) do
-    S3.put_file(upload)
+  # put image file
+  #
+  def put_file(%Upload{content_type: "image" <> _} = upload) do
+    with {:ok, {:file, path}} <- store().put_file(build_upload(upload)),
+         {:ok, [path | _]} <- Image.convert(Image.Client.client(), path),
+         do: {:ok, {:file, path}}
   end
+
+  def put_file(upload) do
+    store().put_file(upload)
+  end
+
+  def build_upload(upload) do
+    %Upload{upload | path: "#{upload.path}#{@original_postprefix}"}
+  end
+
+  def preview_url("video", url), do: Video.build_preview_url(url)
+  def preview_url("image", url), do: Image.build_preview_url(url)
+  def preview_url(_type, href), do: href
+
+  defp store, do: Pleroma.Config.get([__MODULE__, :store], Pleroma.Uploaders.S3)
 
   defp wait_for_conversion() do
     receive do
       {__MODULE__, {:ok, path}} -> {:ok, path}
       {__MODULE__, {:error, error}} -> {:error, error}
     after
-      @conversion_wait -> {:error, "conversion timeout"}
+      conversion_wait() -> {:error, "conversion timeout"}
     end
+  end
+
+  defp conversion_wait do
+    [__MODULE__, :video_conversion, :conversion_wait]
+    |> Pleroma.Config.get(:timer.minutes(2))
   end
 end

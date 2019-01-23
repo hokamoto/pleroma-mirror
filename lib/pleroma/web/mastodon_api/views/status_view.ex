@@ -13,6 +13,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   alias Pleroma.Web.MediaProxy
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MastodonAPI.StatusView
+  alias Pleroma.Uploaders.Uploader
 
   # TODO: Add cached version.
   defp get_replied_to_activities(activities) do
@@ -195,7 +196,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       id: to_string(attachment["id"] || hash_id),
       url: href,
       remote_url: href,
-      preview_url: href,
+      preview_url: Uploader.preview_url(type, href),
       text_url: href,
       type: type,
       description: attachment["name"]
