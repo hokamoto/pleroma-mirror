@@ -19,5 +19,6 @@
   "hideUserStats": false,
   "loginMethod": "token",
   "webPushNotifications": false,
-  "noAttachmentLinks": false
+  "noAttachmentLinks": false,
+  "nsfwCensorImage": "/static/mfcnsfw.png"
 }
