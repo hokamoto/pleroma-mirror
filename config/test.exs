@@ -49,7 +49,8 @@ config :pleroma, Pleroma.Uploaders.MFC,
   image_conversion: [
     endpoint: "http://test.test",
     client: "xxxx",
-    secret: "dddd"
+    secret: "dddd",
+    conversion_wait: 5_000
   ]
 
 config :web_push_encryption, :vapid_details,

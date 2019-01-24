@@ -9,15 +9,20 @@ defmodule Pleroma.Uploaders.MFC.Image do
     use Tesla
 
     def client() do
+      config = Pleroma.Config.get!([Pleroma.Uploaders.MFC, :image_conversion])
+
       middleware = [
         {
           Tesla.Middleware.BaseUrl,
-          Pleroma.Config.get!([Pleroma.Uploaders.MFC, :image_conversion, :endpoint])
+          Keyword.fetch!(config, :endpoint)
         },
         Tesla.Middleware.JSON
       ]
 
-      Tesla.client(middleware)
+      timeout = Keyword.get(config, :conversion_wait, 5_000)
+      adapter = {Tesla.Adapter.Hackney, [timeout: timeout, recv_timeout: timeout]}
+
+      Tesla.client(middleware, adapter)
     end
   end
 
