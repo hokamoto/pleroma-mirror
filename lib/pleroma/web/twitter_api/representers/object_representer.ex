@@ -6,11 +6,12 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ObjectRepresenter do
   use Pleroma.Web.TwitterAPI.Representers.BaseRepresenter
   alias Pleroma.Object
 
-  def to_map(%Object{data: %{"url" => [url | _]}} = object, _opts) do
+  def to_map(%Object{data: %{"url" => [url | _]}} = object, opts) do
     data = object.data
 
     %{
       url: url["href"] |> Pleroma.Web.MediaProxy.url(),
+      large_thumb_url: preview_url(Map.get(opts, :local, false), url),
       mimetype: url["mediaType"] || url["mimeType"],
       id: data["uuid"],
       oembed: false,
@@ -36,4 +37,20 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ObjectRepresenter do
   def to_map(%{} = data, opts) do
     to_map(%Object{data: data}, opts)
   end
+
+  defp preview_url(true, url) do
+    media_type = url["mediaType"] || url["mimeType"] || "image"
+
+    type =
+      cond do
+        String.contains?(media_type, "image") -> "image"
+        String.contains?(media_type, "video") -> "video"
+        String.contains?(media_type, "audio") -> "audio"
+        true -> "unknown"
+      end
+
+    Pleroma.Uploaders.Uploader.preview_url(type, url["href"])
+  end
+
+  defp preview_url(_, _), do: nil
 end
