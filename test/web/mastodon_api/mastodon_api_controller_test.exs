@@ -1662,14 +1662,17 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
                |> json_response(400)
     end
 
-    test "comment must be up to 1000 characters", %{
+    test "comment must be up to the size specified in the config", %{
       conn: conn,
       reporter: reporter,
       target_user: target_user
     } do
-      comment = String.pad_trailing("a", 1001, "a")
+      max_size = Pleroma.Config.get([:instance, :max_report_comment_size], 1000)
+      comment = String.pad_trailing("a", max_size + 1, "a")
 
-      assert %{"error" => "Comment must be up to 1000 characters"} =
+      error = %{"error" => "Comment must be up to #{max_size} characters"}
+
+      assert ^error =
                conn
                |> assign(:user, reporter)
                |> post("/api/v1/reports", %{"account_id" => target_user.id, "comment" => comment})

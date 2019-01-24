@@ -265,10 +265,12 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   def make_report_content_html(nil), do: {:ok, nil}
 
   def make_report_content_html(comment) do
-    if String.length(comment) <= 1000 do
+    max_size = Pleroma.Config.get([:instance, :max_report_comment_size], 1000)
+
+    if String.length(comment) <= max_size do
       {:ok, format_input(comment, [], [], "text/plain")}
     else
-      {:error, "Comment must be up to 1000 characters"}
+      {:error, "Comment must be up to #{max_size} characters"}
     end
   end
 

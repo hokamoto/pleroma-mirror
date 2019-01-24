@@ -140,7 +140,8 @@ config :pleroma, :instance,
   mrf_transparency: true,
   autofollowed_nicknames: [],
   max_pinned_statuses: 1,
-  no_attachment_links: false
+  no_attachment_links: false,
+  max_report_comment_size: 1000
 
 config :pleroma, :markup,
   # XXX - unfortunately, inline images must be enabled by default right now, because
