@@ -5,14 +5,12 @@ defmodule Pleroma.Uploaders.MFC do
   alias __MODULE__.Video
   alias __MODULE__.Image
 
-  @original_postprefix "_original"
-
   def get_file(file), do: store().get_file(file)
 
   # put video file
   #
   def put_file(%Upload{content_type: "video" <> _} = upload) do
-    with {:ok, {:file, path}} <- store().put_file(build_upload(upload)),
+    with {:ok, {:file, path}} <- store().put_file(upload),
          _ <- :global.register_name({__MODULE__, path}, self()),
          :ok <- Video.convert(Video.Client.client(), path),
          {:ok, path} <- wait_for_conversion() do
@@ -29,17 +27,13 @@ defmodule Pleroma.Uploaders.MFC do
   # put image file
   #
   def put_file(%Upload{content_type: "image" <> _} = upload) do
-    with {:ok, {:file, path}} <- store().put_file(build_upload(upload)),
-         {:ok, versions} <- Image.convert(Image.Client.client(), path),
-         do: {:ok, {:file, hd(versions)}}
+    with {:ok, {:file, path}} <- store().put_file(upload),
+         {:ok, _versions} <- Image.convert(Image.Client.client(), path),
+         do: {:ok, {:file, path}}
   end
 
   def put_file(upload) do
     store().put_file(upload)
-  end
-
-  def build_upload(upload) do
-    %Upload{upload | path: "#{upload.path}#{@original_postprefix}"}
   end
 
   def preview_url("video", url), do: Video.build_preview_url(url)
