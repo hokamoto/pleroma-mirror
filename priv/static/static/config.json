@@ -20,5 +20,5 @@
   "loginMethod": "token",
   "webPushNotifications": false,
   "noAttachmentLinks": false,
-  "nsfwCensorImage": "/static/mfcnsfw.png"
+  "nsfwCensorImage": ""
 }
