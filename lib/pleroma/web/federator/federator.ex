@@ -18,6 +18,17 @@ defmodule Pleroma.Web.Federator do
   @websub Application.get_env(:pleroma, :websub)
   @ostatus Application.get_env(:pleroma, :ostatus)
 
+  # These tasks will be skipped if the `federating` setting is disabled
+  @federation_types [
+    :refresh_subscriptions,
+    :publish,
+    :verify_websub,
+    :incoming_doc,
+    :incoming_ap_doc,
+    :publish_single_ap,
+    :publish_single_websub
+  ]
+
   def init(args) do
     {:ok, args}
   end
@@ -152,17 +163,27 @@ defmodule Pleroma.Web.Federator do
     {:error, "Don't know what to do with this"}
   end
 
+  def enqueue(type, payload, priority \\ 1)
+
   if Mix.env() == :test do
-    def enqueue(type, payload, _priority \\ 1) do
+    def enqueue(type, payload, _priority) when type in @federation_types do
       if Pleroma.Config.get([:instance, :federating]) do
         handle(type, payload)
       end
     end
+
+    def enqueue(type, payload, _priority) do
+      handle(type, payload)
+    end
   else
-    def enqueue(type, payload, priority \\ 1) do
+    def enqueue(type, payload, priority) when type in @federation_types do
       if Pleroma.Config.get([:instance, :federating]) do
         GenServer.cast(__MODULE__, {:enqueue, type, payload, priority})
       end
+    end
+
+    def enqueue(type, payload, priority) do
+      GenServer.cast(__MODULE__, {:enqueue, type, payload, priority})
     end
   end
 
