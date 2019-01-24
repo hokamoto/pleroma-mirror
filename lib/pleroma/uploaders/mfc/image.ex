@@ -22,7 +22,7 @@ defmodule Pleroma.Uploaders.MFC.Image do
   end
 
   @convert_path "/api/v1/images"
-  @default_postfix_preview ".preview.png"
+  @default_postfix_preview "-preview.png"
   @resolution "400x400"
   @convert_method "resize"
 
@@ -35,11 +35,13 @@ defmodule Pleroma.Uploaders.MFC.Image do
       "client" => Keyword.fetch!(config, :client),
       "secret" => Keyword.fetch!(config, :secret),
       "source_key" => path,
-      "versions" => %{
-        "dest_key" => build_preview_url(Path.rootname(path)),
-        "resolution" => @resolution,
-        "method" => @convert_method
-      }
+      "versions" => [
+        %{
+          "dest_key" => build_preview_url(path),
+          "resolution" => @resolution,
+          "method" => @convert_method
+        }
+      ]
     }
 
     case Client.post(client, @convert_path, data) do
@@ -62,6 +64,6 @@ defmodule Pleroma.Uploaders.MFC.Image do
       [Pleroma.Uploaders.MFC, :image_conversion, :postfix_preview_name]
       |> Pleroma.Config.get(@default_postfix_preview)
 
-    "#{path}#{postfix_preview_name}"
+    "#{Path.rootname(path)}#{postfix_preview_name}"
   end
 end
