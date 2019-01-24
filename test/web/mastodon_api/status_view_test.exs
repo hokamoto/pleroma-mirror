@@ -189,19 +189,19 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
       "url" => [
         %{
           "mediaType" => "image/png",
-          "href" => "someurl"
+          "href" => "jimi-hendrix.png"
         }
       ],
       "uuid" => 6
     }
 
     expected = %{
-      id: "1638338801",
+      id: "-1312277582",
       type: "image",
-      url: "someurl",
-      remote_url: "someurl",
-      preview_url: "someurl.preview.png",
-      text_url: "someurl",
+      url: "jimi-hendrix.png",
+      remote_url: "jimi-hendrix.png",
+      preview_url: "jimi-hendrix.preview.png",
+      text_url: "jimi-hendrix.png",
       description: nil
     }
 

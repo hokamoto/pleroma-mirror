@@ -9,15 +9,20 @@ defmodule Pleroma.Uploaders.MFC.Image do
     use Tesla
 
     def client() do
+      config = Pleroma.Config.get!([Pleroma.Uploaders.MFC, :image_conversion])
+
       middleware = [
         {
           Tesla.Middleware.BaseUrl,
-          Pleroma.Config.get!([Pleroma.Uploaders.MFC, :image_conversion, :endpoint])
+          Keyword.fetch!(config, :endpoint)
         },
         Tesla.Middleware.JSON
       ]
 
-      Tesla.client(middleware)
+      timeout = Keyword.get(config, :conversion_wait, 5_000)
+      adapter = {Tesla.Adapter.Hackney, [timeout: timeout, recv_timeout: timeout]}
+
+      Tesla.client(middleware, adapter)
     end
   end
 
@@ -35,11 +40,13 @@ defmodule Pleroma.Uploaders.MFC.Image do
       "client" => Keyword.fetch!(config, :client),
       "secret" => Keyword.fetch!(config, :secret),
       "source_key" => path,
-      "versions" => %{
-        "dest_key" => build_preview_url(Path.rootname(path)),
-        "resolution" => @resolution,
-        "method" => @convert_method
-      }
+      "versions" => [
+        %{
+          "dest_key" => build_preview_url(path),
+          "resolution" => @resolution,
+          "method" => @convert_method
+        }
+      ]
     }
 
     case Client.post(client, @convert_path, data) do
@@ -62,6 +69,6 @@ defmodule Pleroma.Uploaders.MFC.Image do
       [Pleroma.Uploaders.MFC, :image_conversion, :postfix_preview_name]
       |> Pleroma.Config.get(@default_postfix_preview)
 
-    "#{path}#{postfix_preview_name}"
+    "#{Path.rootname(path)}#{postfix_preview_name}"
   end
 end
