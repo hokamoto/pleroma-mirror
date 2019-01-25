@@ -28,7 +28,8 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ObjectReprenterTest do
       url: "someurl",
       mimetype: "sometype",
       oembed: false,
-      description: nil
+      description: nil,
+      large_thumb_url: nil
     }
 
     assert expected_object == ObjectRepresenter.to_map(object)
