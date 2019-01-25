@@ -1,8 +1,8 @@
 {
-  "theme": "mfc",
-  "background": "/static/palms.jpg",
-  "logo": "/static/mfcsocial.png",
-  "logoMask": false,
+  "theme": "pleroma-dark",
+  "background": "/static/aurora_borealis.jpg",
+  "logo": "/static/logo.png",
+  "logoMask": true,
   "logoMargin": ".1em",
   "redirectRootNoLogin": "/main/all",
   "redirectRootLogin": "/main/friends",
@@ -17,8 +17,8 @@
   "sitenameEnabled": false,
   "hidePostStats": false,
   "hideUserStats": false,
-  "loginMethod": "token",
+  "loginMethod": "password",
   "webPushNotifications": false,
   "noAttachmentLinks": false,
-  "nsfwCensorImage": "/static/mfcnsfw.png"
+  "nsfwCensorImage": ""
 }
