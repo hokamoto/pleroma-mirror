@@ -111,6 +111,16 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
     href = url["href"]
     type = url["mediaType"]
 
+    mtype =
+      cond do
+        String.contains?(type, "image") -> "image"
+        String.contains?(type, "video") -> "video"
+        String.contains?(type, "audio") -> "audio"
+        true -> "unknown"
+      end
+
+    preview_url = Pleroma.Uploaders.Uploader.preview_url(mtype, url["href"])
+
     case format do
       "xml" ->
         # Fake this as good as possible...
@@ -122,6 +132,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
         <media_id_string>#{object.id}</media_id_string>
         <media_url>#{href}</media_url>
         <mediaurl>#{href}</mediaurl>
+        <media_large_thumb_url>#{preview_url}</media_large_thumb_url>
         <atom:link rel="enclosure" href="#{href}" type="#{type}"></atom:link>
         </rsp>
         """
@@ -131,6 +142,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
           media_id: object.id,
           media_id_string: "#{object.id}}",
           media_url: href,
+          media_large_thumb_url: preview_url,
           size: 0
         }
         |> Jason.encode!()
