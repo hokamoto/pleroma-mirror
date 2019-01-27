@@ -10,7 +10,7 @@ defmodule Pleroma.Uploaders.MFC do
   # put video file
   #
   def put_file(%Upload{content_type: "video" <> _} = upload) do
-    with {:ok, {:file, path}} <- store().put_file(upload),
+    with {:ok, {:file, path}} <- store().put_file(rename_original_path(upload)),
          _ <- :global.register_name({__MODULE__, path}, self()),
          :ok <- Video.convert(Video.Client.client(), path),
          {:ok, path} <- wait_for_conversion() do
@@ -46,6 +46,10 @@ defmodule Pleroma.Uploaders.MFC do
   def preview_url("video", url), do: Video.build_preview_url(url)
   def preview_url("image", url), do: Image.build_preview_url(url)
   def preview_url(_type, href), do: href
+
+  defp rename_original_path(upload) do
+    %Upload{upload | path: upload.path <> "_original"}
+  end
 
   defp store, do: Pleroma.Config.get([__MODULE__, :store], Pleroma.Uploaders.S3)
 
