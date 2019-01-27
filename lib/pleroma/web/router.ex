@@ -266,7 +266,7 @@ defmodule Pleroma.Web.Router do
 
     get("/statuses/:id", MastodonAPIController, :get_status)
     get("/statuses/:id/context", MastodonAPIController, :get_context)
-    get("/statuses/:id/card", MastodonAPIController, :empty_object)
+    get("/statuses/:id/card", MastodonAPIController, :status_card)
     get("/statuses/:id/favourited_by", MastodonAPIController, :favourited_by)
     get("/statuses/:id/reblogged_by", MastodonAPIController, :reblogged_by)
 
@@ -532,10 +532,10 @@ defmodule Fallback.RedirectController do
   alias Pleroma.Web.Metadata
   alias Pleroma.User
 
-  def redirector(conn, _params) do
+  def redirector(conn, _params, code \\ 200) do
     conn
     |> put_resp_content_type("text/html")
-    |> send_file(200, index_file_path())
+    |> send_file(code, index_file_path())
   end
 
   def redirector_with_meta(conn, %{"maybe_nickname_or_id" => maybe_nickname_or_id} = params) do
