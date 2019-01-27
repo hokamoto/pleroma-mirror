@@ -43,7 +43,7 @@ defmodule Pleroma.Uploaders.MFC.Video do
       {:ok, %{status: 200}} ->
         :ok
 
-      {:ok, %{status: 500, body: %{"error" => "Destination object already exists"}}} ->
+      {:ok, %{status: 500, body: %{"error" => "destination_key_already_exists"}}} ->
         :duplicate
 
       {:ok, client = %{status: status}} ->

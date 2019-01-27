@@ -53,6 +53,9 @@ defmodule Pleroma.Uploaders.MFC.Image do
       {:ok, %{status: 200, body: versions}} ->
         {:ok, versions}
 
+      {:ok, %{status: 500, body: %{"error" => "destination_key_already_exists"}}} ->
+        :duplicate
+
       error ->
         Logger.error(
           "#{__MODULE__}: HTTP request to conversion service failed: #{inspect(error)}"

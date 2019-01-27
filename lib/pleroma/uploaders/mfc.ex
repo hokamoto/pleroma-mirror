@@ -28,8 +28,15 @@ defmodule Pleroma.Uploaders.MFC do
   #
   def put_file(%Upload{content_type: "image" <> _} = upload) do
     with {:ok, {:file, path}} <- store().put_file(upload),
-         {:ok, _versions} <- Image.convert(Image.Client.client(), path),
-         do: {:ok, {:file, path}}
+         {:ok, _versions} <- Image.convert(Image.Client.client(), path) do
+      {:ok, {:file, path}}
+    else
+      :duplicate ->
+        {:ok, {:file, upload.path}}
+
+      error = {:error, _} ->
+        error
+    end
   end
 
   def put_file(upload) do
