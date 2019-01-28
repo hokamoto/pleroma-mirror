@@ -20,7 +20,7 @@ defmodule Pleroma.Uploaders.MFC.Image do
       ]
 
       timeout = Keyword.get(config, :conversion_wait, 5_000)
-      adapter = {Tesla.Adapter.Hackney, [timeout: timeout, recv_timeout: timeout]}
+      adapter = {Application.get_env(:tesla, :adapter), [timeout: timeout, recv_timeout: timeout]}
 
       Tesla.client(middleware, adapter)
     end

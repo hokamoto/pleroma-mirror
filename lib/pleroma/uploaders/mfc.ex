@@ -5,6 +5,8 @@ defmodule Pleroma.Uploaders.MFC do
   alias __MODULE__.Video
   alias __MODULE__.Image
 
+  @image_conversion_ignore ["gif"]
+
   def get_file(file), do: store().get_file(file)
 
   # put video file
@@ -26,7 +28,8 @@ defmodule Pleroma.Uploaders.MFC do
 
   # put image file
   #
-  def put_file(%Upload{content_type: "image" <> _} = upload) do
+  def put_file(%Upload{content_type: "image/" <> type} = upload)
+      when type not in @image_conversion_ignore do
     with {:ok, {:file, path}} <- store().put_file(upload),
          {:ok, _versions} <- Image.convert(Image.Client.client(), path) do
       {:ok, {:file, path}}
@@ -43,8 +46,12 @@ defmodule Pleroma.Uploaders.MFC do
     store().put_file(upload)
   end
 
-  def preview_url("video", url), do: Video.build_preview_url(url)
-  def preview_url("image", url), do: Image.build_preview_url(url)
+  def preview_url("video" <> _, url), do: Video.build_preview_url(url)
+
+  def preview_url("image/" <> type, url) when type not in @image_conversion_ignore do
+    Image.build_preview_url(url)
+  end
+
   def preview_url(_type, href), do: href
 
   defp rename_original_path(upload) do

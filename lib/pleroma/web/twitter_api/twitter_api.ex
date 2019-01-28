@@ -111,15 +111,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
     href = url["href"]
     type = url["mediaType"]
 
-    mtype =
-      cond do
-        String.contains?(type, "image") -> "image"
-        String.contains?(type, "video") -> "video"
-        String.contains?(type, "audio") -> "audio"
-        true -> "unknown"
-      end
-
-    preview_url = Pleroma.Uploaders.Uploader.preview_url(mtype, url["href"])
+    preview_url = Pleroma.Uploaders.Uploader.preview_url(type, url["href"])
 
     case format do
       "xml" ->

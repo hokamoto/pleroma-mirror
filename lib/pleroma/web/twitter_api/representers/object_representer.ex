@@ -39,17 +39,9 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ObjectRepresenter do
   end
 
   defp preview_url(true, url) do
-    media_type = url["mediaType"] || url["mimeType"] || "image"
+    media_type = url["mediaType"] || url["mimeType"]
 
-    type =
-      cond do
-        String.contains?(media_type, "image") -> "image"
-        String.contains?(media_type, "video") -> "video"
-        String.contains?(media_type, "audio") -> "audio"
-        true -> "unknown"
-      end
-
-    Pleroma.Uploaders.Uploader.preview_url(type, url["href"])
+    Pleroma.Uploaders.Uploader.preview_url(media_type, url["href"])
   end
 
   defp preview_url(_, _), do: nil

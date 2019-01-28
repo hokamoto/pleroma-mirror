@@ -29,7 +29,7 @@ defmodule Pleroma.Uploaders.MFCTest do
   end
 
   describe "uploads image files" do
-    test "returns a preview url" do
+    test "returns a url" do
       mock(fn
         %{method: :post, url: "http://test.test/api/v1/images"} ->
           json(["output_resize1000x1000.png"])
@@ -39,13 +39,13 @@ defmodule Pleroma.Uploaders.MFCTest do
         id: "image_tmp.jpg",
         content_type: "image/jpg",
         tempfile: "test/fixtures/image_tmp.jpg",
-        path: "test/fixtures/image_tmp.jpg",
+        path: "some_path/image_tmp.jpg",
         name: "image_tmp.jpg"
       }
 
       assert {
                :ok,
-               {:file, "output_resize1000x1000.png"}
+               {:file, "some_path/image_tmp.jpg"}
              } = Pleroma.Uploaders.MFC.put_file(file)
     end
   end
