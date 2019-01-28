@@ -196,7 +196,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
     preview_href =
       if Map.get(assigns, :local) do
-        Uploader.preview_url(type, href)
+        Uploader.preview_url(media_type, href)
       else
         href
       end
