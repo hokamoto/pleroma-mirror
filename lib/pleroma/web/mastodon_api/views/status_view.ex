@@ -207,7 +207,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     nil
   end
 
-  def render("attachment.json", %{attachment: attachment}) do
+  def render("attachment.json", %{attachment: attachment} = assigns) do
     [attachment_url | _] = attachment["url"]
     media_type = attachment_url["mediaType"] || attachment_url["mimeType"] || "image"
     href = attachment_url["href"] |> MediaProxy.url()
