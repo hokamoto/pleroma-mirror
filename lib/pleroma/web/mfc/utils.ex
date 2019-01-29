@@ -2,6 +2,7 @@ defmodule Pleroma.Web.Mfc.Utils do
   alias Pleroma.User
   alias Pleroma.Repo
   import Ecto.Query
+  require Logger
 
   defp get_ids_from_body(body) do
     with {:ok, %{"err" => 0, "data" => data}} <- Jason.decode(body) do
@@ -35,8 +36,17 @@ defmodule Pleroma.Web.Mfc.Utils do
       query
       |> Repo.all()
       |> Enum.reduce(user, fn candidate, user ->
-        {:ok, user} = User.maybe_follow(user, candidate)
-        user
+        case User.maybe_follow(user, candidate) do
+          {:ok, user} ->
+            user
+
+          {:error, error} ->
+            Logger.info(
+              "#{__MODULE__} #{user.id} failed to auto-follow #{candidate.id}: #{inspect(error)}"
+            )
+
+            user
+        end
       end)
     end
   end
