@@ -145,6 +145,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         __MODULE__
       )
 
+    card = render("card.json", Pleroma.Web.RichMedia.Helpers.fetch_data_for_activity(activity))
+
     %{
       id: to_string(activity.id),
       uri: object["id"],
@@ -153,6 +155,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       in_reply_to_id: reply_to && to_string(reply_to.id),
       in_reply_to_account_id: reply_to_user && to_string(reply_to_user.id),
       reblog: nil,
+      card: card,
       content: content,
       created_at: created_at,
       reblogs_count: announcement_count,
@@ -181,7 +184,30 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     nil
   end
 
-  def render("attachment.json", assigns = %{attachment: attachment}) do
+  def render("card.json", %{rich_media: rich_media, page_url: page_url}) do
+    page_url = rich_media[:url] || page_url
+    page_url_data = URI.parse(page_url)
+    site_name = rich_media[:site_name] || page_url_data.host
+
+    %{
+      type: "link",
+      provider_name: site_name,
+      provider_url: page_url_data.scheme <> "://" <> page_url_data.host,
+      url: page_url,
+      image: rich_media[:image] |> MediaProxy.url(),
+      title: rich_media[:title],
+      description: rich_media[:description],
+      pleroma: %{
+        opengraph: rich_media
+      }
+    }
+  end
+
+  def render("card.json", _) do
+    nil
+  end
+
+  def render("attachment.json", %{attachment: attachment}) do
     [attachment_url | _] = attachment["url"]
     media_type = attachment_url["mediaType"] || attachment_url["mimeType"] || "image"
     href = attachment_url["href"] |> MediaProxy.url()

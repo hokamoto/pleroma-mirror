@@ -247,12 +247,6 @@ defmodule Pleroma.Web.Router do
     put("/settings", MastodonAPIController, :put_settings)
   end
 
-  scope "/api", Pleroma.Web.RichMedia do
-    pipe_through(:authenticated_api)
-
-    get("/rich_media/parse", RichMediaController, :parse)
-  end
-
   scope "/api/v1", Pleroma.Web.MastodonAPI do
     pipe_through(:api)
     get("/instance", MastodonAPIController, :masto_instance)
@@ -292,6 +286,7 @@ defmodule Pleroma.Web.Router do
     post("/help/test", TwitterAPI.UtilController, :help_test)
     get("/statusnet/config", TwitterAPI.UtilController, :config)
     get("/statusnet/version", TwitterAPI.UtilController, :version)
+    get("/pleroma/frontend_configurations", TwitterAPI.UtilController, :frontend_configurations)
   end
 
   scope "/api", Pleroma.Web do
