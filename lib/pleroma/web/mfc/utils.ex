@@ -33,21 +33,12 @@ defmodule Pleroma.Web.Mfc.Utils do
           where: u.mfc_id in ^candidates
         )
 
-      query
-      |> Repo.all()
-      |> Enum.reduce(user, fn candidate, user ->
-        case User.maybe_follow(user, candidate) do
-          {:ok, user} ->
-            user
+      followeds =
+        query
+        |> Repo.all()
 
-          {:error, error} ->
-            Logger.info(
-              "#{__MODULE__} #{user.id} failed to auto-follow #{candidate.id}: #{inspect(error)}"
-            )
-
-            user
-        end
-      end)
+      {:ok, user} = User.follow_all(user, followeds)
+      user
     end
   end
 

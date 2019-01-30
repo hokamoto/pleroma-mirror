@@ -105,6 +105,7 @@ defmodule Pleroma.Application do
         worker(Pleroma.Web.Federator.RetryQueue, []),
         worker(Pleroma.Web.Federator, []),
         worker(Pleroma.Stats, []),
+        worker(Pleroma.MfcFollowerSync, []),
         worker(Pleroma.Web.Push, [])
       ] ++
         streamer_child() ++
