@@ -74,6 +74,21 @@ defmodule Pleroma.Web.Endpoint do
     plug(RemoteIp, proxies: proxies)
   end
 
+  defmodule Instrumenter do
+    use Prometheus.PhoenixInstrumenter
+  end
+
+  defmodule PipelineInstrumenter do
+    use Prometheus.PlugPipelineInstrumenter
+  end
+
+  defmodule MetricsExporter do
+    use Prometheus.PlugExporter
+  end
+
+  plug(PipelineInstrumenter)
+  plug(MetricsExporter)
+
   plug(Pleroma.Web.Router)
 
   @doc """

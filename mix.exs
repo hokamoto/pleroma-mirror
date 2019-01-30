@@ -49,7 +49,7 @@ defmodule Pleroma.Mixfile do
   defp deps do
     [
       # Until Phoenix 1.4.1 is released
-      {:phoenix, github: "phoenixframework/phoenix", branch: "v1.4"},
+      {:phoenix, github: "phoenixframework/phoenix", branch: "v1.4", override: true},
       {:plug_cowboy, "~> 1.0"},
       {:phoenix_pubsub, "~> 1.1"},
       {:phoenix_ecto, "~> 3.3"},
@@ -83,7 +83,12 @@ defmodule Pleroma.Mixfile do
       {:remote_ip, "~> 0.1.0"},
       {:websocket_client, git: "https://github.com/jeremyong/websocket_client.git", only: :test},
       {:floki, "~> 0.20.0"},
-      {:ex_syslogger, github: "slashmili/ex_syslogger", tag: "1.4.0"}
+      {:ex_syslogger, github: "slashmili/ex_syslogger", tag: "1.4.0"},
+      {:telemetry, "~> 0.3"},
+      {:prometheus_ex, "~> 3.0"},
+      {:prometheus_plugs, "~> 1.1"},
+      {:prometheus_phoenix, "~> 1.2"},
+      {:prometheus_ecto, "~> 1.4"}
     ]
   end
 
