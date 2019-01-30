@@ -10,7 +10,9 @@ config :tesla, adapter: Tesla.Adapter.Hackney
 # General application configuration
 config :pleroma, ecto_repos: [Pleroma.Repo]
 
-config :pleroma, Pleroma.Repo, types: Pleroma.PostgresTypes
+config :pleroma, Pleroma.Repo,
+  types: Pleroma.PostgresTypes,
+  loggers: [Pleroma.Repo.Instrumenter, Ecto.LogEntry]
 
 config :pleroma, Pleroma.Captcha,
   enabled: false,
@@ -69,6 +71,7 @@ websocket_config = [
 
 # Configures the endpoint
 config :pleroma, Pleroma.Web.Endpoint,
+  instrumenters: [Pleroma.Web.Endpoint.Instrumenter],
   url: [host: "localhost"],
   http: [
     dispatch: [
@@ -312,6 +315,8 @@ config :pleroma, Pleroma.Web.Federator.RetryQueue,
   max_jobs: 20,
   initial_timeout: 30,
   max_retries: 5
+
+config :prometheus, Pleroma.Web.Endpoint.MetricsExporter, path: "/api/pleroma/app_metrics"
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
