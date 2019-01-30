@@ -316,6 +316,8 @@ config :pleroma, Pleroma.Web.Federator.RetryQueue,
   initial_timeout: 30,
   max_retries: 5
 
+config :prometheus, Pleroma.Web.Endpoint.MetricsExporter, path: "/api/pleroma/app_metrics"
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"
