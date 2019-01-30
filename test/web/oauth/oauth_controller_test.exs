@@ -226,25 +226,34 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
     user = insert(:user)
     app = insert(:oauth_app)
 
-    result =
-      conn
-      |> post("/oauth/authorize", %{
-        "authorization" => %{
-          "name" => user.nickname,
-          "password" => "wrong",
-          "client_id" => app.client_id,
-          "redirect_uri" => app.redirect_uris,
-          "state" => "statepassed"
-        }
-      })
-      |> html_response(:unauthorized)
+    with_mocks [
+      {Pleroma.Web.Mfc.Login, [],
+       [
+         authenticate: fn _nickname, _password, _ip ->
+           {:error, "I made an oopsy whoopsy"}
+         end
+       ]}
+    ] do
+      result =
+        conn
+        |> post("/oauth/authorize", %{
+          "authorization" => %{
+            "name" => user.nickname,
+            "password" => "wrong",
+            "client_id" => app.client_id,
+            "redirect_uri" => app.redirect_uris,
+            "state" => "statepassed"
+          }
+        })
+        |> html_response(:unauthorized)
 
-    # Keep the details
-    assert result =~ app.client_id
-    assert result =~ app.redirect_uris
+      # Keep the details
+      assert result =~ app.client_id
+      assert result =~ app.redirect_uris
 
-    # Error message
-    assert result =~ "Invalid"
+      # Error message
+      assert result =~ "Invalid"
+    end
   end
 
   test "issues a token for an all-body request" do
