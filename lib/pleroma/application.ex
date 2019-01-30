@@ -123,6 +123,8 @@ defmodule Pleroma.Application do
   end
 
   defp setup_instrumenters() do
+    require Prometheus.Registry
+    Prometheus.Registry.register_collector(:prometheus_process_collector)
     Pleroma.Web.Endpoint.MetricsExporter.setup()
     Pleroma.Web.Endpoint.PipelineInstrumenter.setup()
     Pleroma.Web.Endpoint.Instrumenter.setup()
