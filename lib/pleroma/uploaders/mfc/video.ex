@@ -23,7 +23,7 @@ defmodule Pleroma.Uploaders.MFC.Video do
 
   @video_ext ".mp4"
   @convert_path "/api/v1/videos"
-  @default_postfix_preview ".preview.png"
+  @default_postfix_preview ".preview.jpg"
 
   @doc "Uploads video to take screenshot."
   @spec convert(Tesla.Client.t(), String.t()) :: :ok | :duplicate | {:error, String.t()}

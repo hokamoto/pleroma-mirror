@@ -27,7 +27,7 @@ defmodule Pleroma.Uploaders.MFC.Image do
   end
 
   @convert_path "/api/v1/images"
-  @default_postfix_preview ".preview.png"
+  @default_postfix_preview ".preview.jpg"
   @resolution "800x800"
   @convert_method "resize"
 
