@@ -102,15 +102,15 @@ defmodule Pleroma.Application do
           ],
           id: :cachex_idem
         ),
-        worker(Pleroma.FlakeId, []),
-        worker(Pleroma.MfcFollowerSync, []),
+        worker(Pleroma.FlakeId, [])
       ] ++
         hackney_pool_children() ++
         [
           worker(Pleroma.Web.Federator.RetryQueue, []),
           worker(Pleroma.Web.Federator, []),
           worker(Pleroma.Stats, []),
-          worker(Pleroma.Web.Push, [])
+          worker(Pleroma.Web.Push, []),
+          worker(Pleroma.MfcFollowerSync, [])
         ] ++
         streamer_child() ++
         chat_child() ++
