@@ -72,6 +72,6 @@ defmodule Pleroma.Uploaders.MFC.Image do
       [Pleroma.Uploaders.MFC, :image_conversion, :postfix_preview_name]
       |> Pleroma.Config.get(@default_postfix_preview)
 
-    "#{Path.rootname(path)}#{postfix_preview_name}"
+    "#{path}#{postfix_preview_name}"
   end
 end
