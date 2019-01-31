@@ -102,12 +102,15 @@ defmodule Pleroma.Application do
           ],
           id: :cachex_idem
         ),
-        worker(Pleroma.FlakeId, []),
-        worker(Pleroma.Web.Federator.RetryQueue, []),
-        worker(Pleroma.Web.Federator, []),
-        worker(Pleroma.Stats, []),
-        worker(Pleroma.Web.Push, [])
+        worker(Pleroma.FlakeId, [])
       ] ++
+        hackney_pool_children() ++
+        [
+          worker(Pleroma.Web.Federator.RetryQueue, []),
+          worker(Pleroma.Web.Federator, []),
+          worker(Pleroma.Stats, []),
+          worker(Pleroma.Web.Push, [])
+        ] ++
         streamer_child() ++
         chat_child() ++
         [
@@ -131,6 +134,20 @@ defmodule Pleroma.Application do
     Pleroma.Repo.Instrumenter.setup()
   end
 
+  def enabled_hackney_pools() do
+    [:media] ++
+      if Application.get_env(:tesla, :adapter) == Tesla.Adapter.Hackney do
+        [:federation]
+      else
+        []
+      end ++
+      if Pleroma.Config.get([Pleroma.Uploader, :proxy_remote]) do
+        [:upload]
+      else
+        []
+      end
+  end
+
   if Mix.env() == :test do
     defp streamer_child(), do: []
     defp chat_child(), do: []
@@ -145,6 +162,13 @@ defmodule Pleroma.Application do
       else
         []
       end
+    end
+  end
+
+  defp hackney_pool_children() do
+    for pool <- enabled_hackney_pools() do
+      options = Pleroma.Config.get([:hackney_pools, pool])
+      :hackney_pool.child_spec(pool, options)
     end
   end
 end

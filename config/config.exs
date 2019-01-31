@@ -19,6 +19,20 @@ config :pleroma, Pleroma.Captcha,
   seconds_valid: 60,
   method: Pleroma.Captcha.Kocaptcha
 
+config :pleroma, :hackney_pools,
+  federation: [
+    max_connections: 50,
+    timeout: 150_000
+  ],
+  media: [
+    max_connections: 50,
+    timeout: 150_000
+  ],
+  upload: [
+    max_connections: 25,
+    timeout: 300_000
+  ]
+
 config :pleroma, Pleroma.Captcha.Kocaptcha, endpoint: "https://captcha.kotobank.ch"
 
 # Upload configuration
@@ -26,7 +40,14 @@ config :pleroma, Pleroma.Upload,
   uploader: Pleroma.Uploaders.Local,
   filters: [],
   proxy_remote: false,
-  proxy_opts: []
+  proxy_opts: [
+    redirect_on_failure: false,
+    max_body_length: 25 * 1_048_576,
+    http: [
+      follow_redirect: true,
+      pool: :upload
+    ]
+  ]
 
 config :pleroma, Pleroma.Uploaders.Local, uploads: "uploads"
 
@@ -220,7 +241,16 @@ config :pleroma, :mrf_simple,
   reject: [],
   accept: []
 
-config :pleroma, :media_proxy, enabled: false
+config :pleroma, :media_proxy,
+  enabled: false,
+  proxy_opts: [
+    redirect_on_failure: false,
+    max_body_length: 25 * 1_048_576,
+    http: [
+      follow_redirect: true,
+      pool: :media
+    ]
+  ]
 
 config :pleroma, :chat, enabled: true
 
