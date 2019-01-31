@@ -11,12 +11,20 @@ defmodule Pleroma.Web.Mfc.UtilsTest do
       bookmark_user = insert(:user, %{mfc_id: "3"})
       following_user = insert(:user, %{mfc_id: "4"})
       non_followed_user = insert(:user, %{mfc_id: "5"})
+      twitter_friend_user = insert(:user, %{mfc_id: "6"})
 
       friends_url = "#{Pleroma.Config.get([:mfc, :friends_endpoint])}/1"
+      twitter_friends_url = "#{Pleroma.Config.get([:mfc, :twitter_friends_endpoint])}/1"
       bookmarks_url = "#{Pleroma.Config.get([:mfc, :bookmarks_endpoint])}/1"
       following_url = "#{Pleroma.Config.get([:mfc, :following_endpoint])}&user_id=1"
 
       Tesla.Mock.mock(fn
+        %{url: ^twitter_friends_url} ->
+          %Tesla.Env{
+            status: 200,
+            body: Jason.encode!(%{err: 0, data: [%{id: 6}]})
+          }
+
         %{url: ^friends_url} ->
           %Tesla.Env{
             status: 200,
@@ -41,6 +49,7 @@ defmodule Pleroma.Web.Mfc.UtilsTest do
       user = Repo.get(User, user.id)
 
       assert User.following?(user, friend_user)
+      assert User.following?(user, twitter_friend_user)
       assert User.following?(user, bookmark_user)
       assert User.following?(user, following_user)
       refute User.following?(user, non_followed_user)
@@ -51,10 +60,17 @@ defmodule Pleroma.Web.Mfc.UtilsTest do
       friend_user = insert(:user, %{mfc_id: "2"})
 
       friends_url = "#{Pleroma.Config.get([:mfc, :friends_endpoint])}/1"
+      twitter_friends_url = "#{Pleroma.Config.get([:mfc, :twitter_friends_endpoint])}/1"
       bookmarks_url = "#{Pleroma.Config.get([:mfc, :bookmarks_endpoint])}/1"
       following_url = "#{Pleroma.Config.get([:mfc, :following_endpoint])}&user_id=1"
 
       Tesla.Mock.mock(fn
+        %{url: ^twitter_friends_url} ->
+          %Tesla.Env{
+            status: 200,
+            body: Jason.encode!(%{err: 0, data: [%{id: 2}]})
+          }
+
         %{url: ^friends_url} ->
           %Tesla.Env{
             status: 200,

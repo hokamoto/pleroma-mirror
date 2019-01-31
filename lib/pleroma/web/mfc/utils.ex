@@ -25,29 +25,22 @@ defmodule Pleroma.Web.Mfc.Utils do
     with friends <- get_ids_for_url("#{Pleroma.Config.get([:mfc, :friends_endpoint])}/#{mfc_id}"),
          bookmarks <-
            get_ids_for_url("#{Pleroma.Config.get([:mfc, :bookmarks_endpoint])}/#{mfc_id}"),
+         twitter_friends <-
+           get_ids_for_url("#{Pleroma.Config.get([:mfc, :twitter_friends_endpoint])}/#{mfc_id}"),
          following <-
            get_ids_for_url("#{Pleroma.Config.get([:mfc, :following_endpoint])}&user_id=#{mfc_id}"),
-         candidates <- Enum.uniq(friends ++ bookmarks ++ following) do
+         candidates <- Enum.uniq(friends ++ bookmarks ++ following ++ twitter_friends) do
       query =
         from(u in User,
           where: u.mfc_id in ^candidates
         )
 
-      query
-      |> Repo.all()
-      |> Enum.reduce(user, fn candidate, user ->
-        case User.maybe_follow(user, candidate) do
-          {:ok, user} ->
-            user
+      followeds =
+        query
+        |> Repo.all()
 
-          {:error, error} ->
-            Logger.info(
-              "#{__MODULE__} #{user.id} failed to auto-follow #{candidate.id}: #{inspect(error)}"
-            )
-
-            user
-        end
-      end)
+      {:ok, user} = User.follow_all(user, followeds)
+      user
     end
   end
 
