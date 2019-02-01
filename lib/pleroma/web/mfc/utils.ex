@@ -21,7 +21,7 @@ defmodule Pleroma.Web.Mfc.Utils do
     end
   end
 
-  def sync_follows(%{mfc_id: mfc_id} = user) do
+  def sync_follows(%{mfc_id: mfc_id, info: %{mfc_follower_sync: true}} = user) do
     with friends <- get_ids_for_url("#{Pleroma.Config.get([:mfc, :friends_endpoint])}/#{mfc_id}"),
          bookmarks <-
            get_ids_for_url("#{Pleroma.Config.get([:mfc, :bookmarks_endpoint])}/#{mfc_id}"),
@@ -43,6 +43,8 @@ defmodule Pleroma.Web.Mfc.Utils do
       user
     end
   end
+
+  def sync_follows(_), do: nil
 
   def tags_for_level(2), do: ["mfc_premium_member"]
   def tags_for_level(4), do: ["mfc_model"]
