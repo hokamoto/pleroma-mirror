@@ -1132,6 +1132,30 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
              )
     end
 
+    test "it sets and un-sets mfc_follower_sync", %{conn: conn} do
+      user = insert(:user)
+
+      conn
+      |> assign(:user, user)
+      |> post("/api/account/update_profile.json", %{
+        "mfc_follower_sync" => "true"
+      })
+
+      user = Repo.get!(User, user.id)
+      assert user.info.mfc_follower_sync == true
+
+      conn =
+        conn
+        |> assign(:user, user)
+        |> post("/api/account/update_profile.json", %{
+          "mfc_follower_sync" => "false"
+        })
+
+      user = Repo.get!(User, user.id)
+      assert user.info.mfc_follower_sync == false
+      assert json_response(conn, 200) == UserView.render("user.json", %{user: user, for: user})
+    end
+
     test "it returns empty for a hidden network", %{conn: conn} do
       user = insert(:user, %{info: %{hide_network: true}})
       follower_one = insert(:user)

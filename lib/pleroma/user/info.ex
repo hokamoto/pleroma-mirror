@@ -32,6 +32,7 @@ defmodule Pleroma.User.Info do
     field(:salmon, :string, default: nil)
     field(:hide_network, :boolean, default: false)
     field(:pinned_activities, {:array, :string}, default: [])
+    field(:mfc_follower_sync, :boolean, default: true)
 
     # Found in the wild
     # ap_id -> Where is this used?
@@ -144,7 +145,8 @@ defmodule Pleroma.User.Info do
       :default_scope,
       :banner,
       :hide_network,
-      :background
+      :background,
+      :mfc_follower_sync
     ])
   end
 
