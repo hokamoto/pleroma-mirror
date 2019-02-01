@@ -109,6 +109,7 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
       "default_scope" => user.info.default_scope,
       "no_rich_text" => user.info.no_rich_text,
       "hide_network" => user.info.hide_network,
+      "mfc_follower_sync" => user.info.mfc_follower_sync,
       "fields" => fields,
 
       # Pleroma extension
