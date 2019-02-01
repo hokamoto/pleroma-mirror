@@ -152,6 +152,7 @@ config :pleroma, :instance,
   banner_upload_limit: 4_000_000,
   registrations_open: true,
   federating: true,
+  federation_reachability_timeout_days: 7,
   allow_relay: true,
   rewrite_policy: Pleroma.Web.ActivityPub.MRF.NoOpPolicy,
   public: true,
@@ -240,6 +241,8 @@ config :pleroma, :mrf_simple,
   federated_timeline_removal: [],
   reject: [],
   accept: []
+
+config :pleroma, :rich_media, enabled: true
 
 config :pleroma, :media_proxy,
   enabled: false,
