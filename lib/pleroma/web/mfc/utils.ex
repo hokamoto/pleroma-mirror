@@ -6,7 +6,10 @@ defmodule Pleroma.Web.Mfc.Utils do
 
   defp get_ids_from_body(body) do
     with {:ok, %{"err" => 0, "data" => data}} <- Jason.decode(body) do
-      Enum.map(data, fn %{"id" => id} -> to_string(id) end)
+      Enum.map(data, fn
+        %{"id" => id} -> to_string(id)
+        %{"following_id" => id} -> to_string(id)
+      end)
     else
       _ -> []
     end
