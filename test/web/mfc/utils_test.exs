@@ -44,6 +44,16 @@ defmodule Pleroma.Web.Mfc.UtilsTest do
           }
       end)
 
+      # Does nothing if user.info.mfc_follower_sync is false
+      Utils.sync_follows(%User{user | info: %{user.info | mfc_follower_sync: false}})
+      user = Repo.get(User, user.id)
+
+      refute User.following?(user, friend_user)
+      refute User.following?(user, twitter_friend_user)
+      refute User.following?(user, bookmark_user)
+      refute User.following?(user, following_user)
+      refute User.following?(user, non_followed_user)
+
       Utils.sync_follows(user)
 
       user = Repo.get(User, user.id)
