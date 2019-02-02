@@ -22,7 +22,7 @@ defmodule Pleroma.Web.Mfc.UtilsTest do
         %{url: ^twitter_friends_url} ->
           %Tesla.Env{
             status: 200,
-            body: Jason.encode!(%{err: 0, data: [%{id: 6}]})
+            body: Jason.encode!(%{err: 0, data: [%{following_id: 6}]})
           }
 
         %{url: ^friends_url} ->
