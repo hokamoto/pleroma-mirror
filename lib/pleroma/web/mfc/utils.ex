@@ -44,7 +44,7 @@ defmodule Pleroma.Web.Mfc.Utils do
     end
   end
 
-  def sync_follows(_), do: nil
+  def sync_follows(user), do: user
 
   def tags_for_level(2), do: ["mfc_premium_member"]
   def tags_for_level(4), do: ["mfc_model"]
