@@ -146,7 +146,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       version: "#{@mastodon_api_level} (compatible; #{Pleroma.Application.named_version()})",
       email: Keyword.get(instance, :email),
       urls: %{
-        streaming_api: String.replace(Pleroma.Web.Endpoint.static_url(), "http", "ws")
+        streaming_api: Pleroma.Web.Endpoint.websocket_url()
       },
       stats: Stats.get_stats(),
       thumbnail: Web.base_url() <> "/instance/thumbnail.jpeg",
@@ -913,7 +913,10 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       res = ListView.render("list.json", list: list)
       json(conn, res)
     else
-      _e -> json(conn, "error")
+      _e ->
+        conn
+        |> put_status(404)
+        |> json(%{error: "Record not found"})
     end
   end
 
