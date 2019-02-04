@@ -30,9 +30,9 @@ defmodule Pleroma.Uploaders.MFC do
   #
   def put_file(%Upload{content_type: "image/" <> type} = upload)
       when type not in @image_conversion_ignore do
-    with {:ok, {:file, path}} <- store().put_file(upload),
-         {:ok, _versions} <- Image.convert(Image.Client.client(), path) do
-      {:ok, {:file, path}}
+    with {:ok, {:file, _path}} <- store().put_file(rename_original_path(upload)),
+         {:ok, _versions} <- Image.convert(Image.Client.client(), upload.path) do
+      {:ok, {:file, upload.path}}
     else
       :duplicate ->
         {:ok, {:file, upload.path}}
@@ -54,8 +54,12 @@ defmodule Pleroma.Uploaders.MFC do
 
   def preview_url(_type, href), do: href
 
-  defp rename_original_path(upload) do
-    %Upload{upload | path: upload.path <> "_original"}
+  def rename_original_path(%Upload{} = upload) do
+    %Upload{upload | path: rename_original_path(upload.path)}
+  end
+
+  def rename_original_path(path) when is_binary(path) do
+    path <> "_original"
   end
 
   defp store, do: Pleroma.Config.get([__MODULE__, :store], Pleroma.Uploaders.S3)

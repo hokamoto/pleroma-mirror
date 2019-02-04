@@ -3,13 +3,15 @@ defmodule Pleroma.Uploaders.MFC.Image do
   The module represents functions to convert images to different formats/resolustion.
   """
 
+  alias Pleroma.Uploaders.MFC
+
   require Logger
 
   defmodule Client do
     use Tesla
 
     def client() do
-      config = Pleroma.Config.get!([Pleroma.Uploaders.MFC, :image_conversion])
+      config = Pleroma.Config.get!([MFC, :image_conversion])
 
       middleware = [
         {
@@ -20,6 +22,7 @@ defmodule Pleroma.Uploaders.MFC.Image do
       ]
 
       timeout = Keyword.get(config, :conversion_wait, 5_000)
+
       adapter = {Application.get_env(:tesla, :adapter), [timeout: timeout, recv_timeout: timeout]}
 
       Tesla.client(middleware, adapter)
@@ -27,23 +30,29 @@ defmodule Pleroma.Uploaders.MFC.Image do
   end
 
   @convert_path "/api/v1/images"
-  @default_postfix_preview ".preview.jpg"
-  @resolution "800x800"
+  @preview_suffix ".preview.jpg"
+  @resolution "2048x2048"
+  @preview_resolution "800x800"
   @convert_method "resize"
 
   @doc "Convert image"
   @spec convert(Tesla.Client.t(), String.t()) :: :ok | :duplicate | {:error, String.t()}
   def convert(client, path) do
-    config = Pleroma.Config.get!([Pleroma.Uploaders.MFC, :image_conversion])
+    config = Pleroma.Config.get!([MFC, :image_conversion])
 
     data = %{
       "client" => Keyword.fetch!(config, :client),
       "secret" => Keyword.fetch!(config, :secret),
-      "source_key" => path,
+      "source_key" => MFC.rename_original_path(path),
       "versions" => [
         %{
-          "dest_key" => build_preview_url(path),
+          "dest_key" => path,
           "resolution" => @resolution,
+          "method" => @convert_method
+        },
+        %{
+          "dest_key" => build_preview_url(path),
+          "resolution" => @preview_resolution,
           "method" => @convert_method
         }
       ]
@@ -68,10 +77,10 @@ defmodule Pleroma.Uploaders.MFC.Image do
   @doc "Build preview url"
   @spec build_preview_url(String.t()) :: String.t()
   def build_preview_url(path) do
-    postfix_preview_name =
+    suffix_preview_name =
       [Pleroma.Uploaders.MFC, :image_conversion, :postfix_preview_name]
-      |> Pleroma.Config.get(@default_postfix_preview)
+      |> Pleroma.Config.get(@preview_suffix)
 
-    "#{path}#{postfix_preview_name}"
+    "#{path}#{suffix_preview_name}"
   end
 end
