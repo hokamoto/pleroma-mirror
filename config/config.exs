@@ -107,13 +107,15 @@ config :pleroma, Pleroma.Web.Endpoint,
   pubsub: [name: Pleroma.PubSub, adapter: Phoenix.PubSub.PG2],
   secure_cookie_flag: true
 
+# Set Logger level
+config :logger, level: :debug
+
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
 config :logger, :ex_syslogger,
-  level: :debug,
   ident: "Pleroma",
   format: "$date $time $metadata[$level] $message",
   metadata: [:request_id]
