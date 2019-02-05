@@ -797,7 +797,7 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
         |> with_credentials(current_user.nickname, "test")
         |> post("/api/favorites/create/1.json")
 
-      assert json_response(conn, 500)
+      assert json_response(conn, 400)
     end
   end
 
@@ -1357,9 +1357,9 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
       assert user.name == "new name"
 
       assert user.bio ==
-               "hi <span><a data-user='#{user2.id}' class='mention' href='#{user2.ap_id}'>@<span>#{
-                 user2.nickname
-               }</span></a></span>"
+               "hi <span class='h-card'><a data-user='#{user2.id}' class='u-url mention' href='#{
+                 user2.ap_id
+               }'>@<span>#{user2.nickname}</span></a></span>"
 
       assert json_response(conn, 200) == UserView.render("user.json", %{user: user, for: user})
     end
@@ -1621,7 +1621,7 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
       conn =
         build_conn()
         |> assign(:user, user)
-        |> post("/api/pleroma/friendships/approve", %{"user_id" => to_string(other_user.id)})
+        |> post("/api/pleroma/friendships/approve", %{"user_id" => other_user.id})
 
       assert relationship = json_response(conn, 200)
       assert other_user.id == relationship["id"]
@@ -1644,7 +1644,7 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
       conn =
         build_conn()
         |> assign(:user, user)
-        |> post("/api/pleroma/friendships/deny", %{"user_id" => to_string(other_user.id)})
+        |> post("/api/pleroma/friendships/deny", %{"user_id" => other_user.id})
 
       assert relationship = json_response(conn, 200)
       assert other_user.id == relationship["id"]
@@ -1655,16 +1655,16 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
   describe "GET /api/pleroma/search_user" do
     test "it returns users, ordered by similarity", %{conn: conn} do
       user = insert(:user, %{name: "eal"})
-      user_two = insert(:user, %{name: "ean"})
-      user_three = insert(:user, %{name: "ebn"})
+      user_two = insert(:user, %{name: "eal me"})
+      _user_three = insert(:user, %{name: "zzz"})
 
       resp =
         conn
-        |> get(twitter_api_search__path(conn, :search_user), query: "eal")
+        |> get(twitter_api_search__path(conn, :search_user), query: "eal me")
         |> json_response(200)
 
-      assert length(resp) == 3
-      assert [user.id, user_two.id, user_three.id] == Enum.map(resp, fn %{"id" => id} -> id end)
+      assert length(resp) == 2
+      assert [user_two.id, user.id] == Enum.map(resp, fn %{"id" => id} -> id end)
     end
   end
 

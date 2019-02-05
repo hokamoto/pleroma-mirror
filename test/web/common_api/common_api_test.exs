@@ -17,6 +17,13 @@ defmodule Pleroma.Web.CommonAPI.Test do
     assert activity.data["object"]["tag"] == ["2hu"]
   end
 
+  test "it adds emoji in the object" do
+    user = insert(:user)
+    {:ok, activity} = CommonAPI.post(user, %{"status" => ":moominmamma:"})
+
+    assert activity.data["object"]["emoji"]["moominmamma"]
+  end
+
   test "it adds emoji when updating profiles" do
     user = insert(:user, %{name: ":karjalanpiirakka:"})
 
@@ -109,6 +116,11 @@ defmodule Pleroma.Web.CommonAPI.Test do
 
     test "pin status", %{user: user, activity: activity} do
       assert {:ok, ^activity} = CommonAPI.pin(activity.id, user)
+
+      id = activity.id
+      user = refresh_record(user)
+
+      assert %User{info: %{pinned_activities: [^id]}} = user
     end
 
     test "only self-authored can be pinned", %{activity: activity} do
@@ -131,7 +143,25 @@ defmodule Pleroma.Web.CommonAPI.Test do
     test "unpin status", %{user: user, activity: activity} do
       {:ok, activity} = CommonAPI.pin(activity.id, user)
 
+      user = refresh_record(user)
+
       assert {:ok, ^activity} = CommonAPI.unpin(activity.id, user)
+
+      user = refresh_record(user)
+
+      assert %User{info: %{pinned_activities: []}} = user
+    end
+
+    test "should unpin when deleting a status", %{user: user, activity: activity} do
+      {:ok, activity} = CommonAPI.pin(activity.id, user)
+
+      user = refresh_record(user)
+
+      assert {:ok, _} = CommonAPI.delete(activity.id, user)
+
+      user = refresh_record(user)
+
+      assert %User{info: %{pinned_activities: []}} = user
     end
   end
 end

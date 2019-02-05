@@ -10,6 +10,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
   alias Pleroma.Web.TwitterAPI.ActivityView
   alias Pleroma.Web.TwitterAPI.TwitterAPI
   alias Pleroma.Web.TwitterAPI.Representers.ObjectRepresenter
+  alias Pleroma.Web.MastodonAPI.StatusView
   alias Pleroma.Activity
   alias Pleroma.HTML
   alias Pleroma.Object
@@ -101,18 +102,8 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
         user
 
       true ->
-        error_user(ap_id)
+        User.error_user(ap_id)
     end
-  end
-
-  defp error_user(ap_id) do
-    %User{
-      name: ap_id,
-      ap_id: ap_id,
-      info: %User.Info{},
-      nickname: "erroruser@example.com",
-      inserted_at: NaiveDateTime.utc_now()
-    }
   end
 
   def render("index.json", opts) do
@@ -124,7 +115,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
       |> Map.put(:context_ids, context_ids)
       |> Map.put(:users, users)
 
-    render_many(
+    safe_render_many(
       opts.activities,
       ActivityView,
       "activity.json",
@@ -178,7 +169,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
   def render("activity.json", %{activity: %{data: %{"type" => "Announce"}} = activity} = opts) do
     user = get_user(activity.data["actor"], opts)
     created_at = activity.data["published"] |> Utils.date_to_asctime()
-    announced_activity = Activity.get_create_activity_by_object_ap_id(activity.data["object"])
+    announced_activity = Activity.get_create_by_object_ap_id(activity.data["object"])
 
     text = "#{user.nickname} retweeted a status."
 
@@ -202,7 +193,7 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
 
   def render("activity.json", %{activity: %{data: %{"type" => "Like"}} = activity} = opts) do
     user = get_user(activity.data["actor"], opts)
-    liked_activity = Activity.get_create_activity_by_object_ap_id(activity.data["object"])
+    liked_activity = Activity.get_create_by_object_ap_id(activity.data["object"])
     liked_activity_id = if liked_activity, do: liked_activity.id, else: nil
 
     created_at =
@@ -246,7 +237,9 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
     pinned = activity.id in user.info.pinned_activities
 
     attentions =
-      activity.recipients
+      []
+      |> Utils.maybe_notify_to_recipients(activity)
+      |> Utils.maybe_notify_mentioned_recipients(activity)
       |> Enum.map(fn ap_id -> get_user(ap_id, opts) end)
       |> Enum.filter(& &1)
       |> Enum.map(fn user -> UserView.render("show.json", %{user: user, for: opts[:for]}) end)
@@ -282,6 +275,12 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
 
     summary = HTML.strip_tags(summary)
 
+    card =
+      StatusView.render(
+        "card.json",
+        Pleroma.Web.RichMedia.Helpers.fetch_data_for_activity(activity)
+      )
+
     %{
       "id" => activity.id,
       "uri" => activity.data["object"]["id"],
@@ -308,9 +307,10 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
       "tags" => tags,
       "activity_type" => "post",
       "possibly_sensitive" => possibly_sensitive,
-      "visibility" => Pleroma.Web.MastodonAPI.StatusView.get_visibility(object),
+      "visibility" => StatusView.get_visibility(object),
       "summary" => summary,
-      "summary_html" => summary |> Formatter.emojify(object["emoji"])
+      "summary_html" => summary |> Formatter.emojify(object["emoji"]),
+      "card" => card
     }
   end
 

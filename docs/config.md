@@ -17,7 +17,7 @@ Note: `strip_exif` has been replaced by `Pleroma.Upload.Filter.Mogrify`.
 
 ## Pleroma.Upload.Filter.Mogrify
 
-* `args`: List of actions for the `mogrify` command like `"strip"` or `["strip", {"impode", "1"}]`.
+* `args`: List of actions for the `mogrify` command like `"strip"` or `["strip", "auto-orient", {"impode", "1"}]`.
 
 ## Pleroma.Upload.Filter.Dedupe
 
@@ -72,6 +72,7 @@ config :pleroma, Pleroma.Mailer,
 * `invites_enabled`: Enable user invitations for admins (depends on `registrations_open: false`).
 * `account_activation_required`: Require users to confirm their emails before signing in.
 * `federating`: Enable federation with other instances
+* `federation_reachability_timeout_days`: Timeout (in days) of each external federation target being unreachable prior to pausing federating to it.
 * `allow_relay`: Enable Pleroma’s Relay, which makes it possible to follow a whole instance
 * `rewrite_policy`: Message Rewrite Policy, either one or a list. Here are the ones available by default:
   * `Pleroma.Web.ActivityPub.MRF.NoOpPolicy`: Doesn’t modify activities (default)
@@ -95,17 +96,35 @@ config :pleroma, Pleroma.Mailer,
     older software for theses nicknames.
 * `max_pinned_statuses`: The maximum number of pinned statuses. `0` will disable the feature.
 * `autofollowed_nicknames`: Set to nicknames of (local) users that every new user should automatically follow.
+* `no_attachment_links`: Set to true to disable automatically adding attachment link text to statuses
 
 ## :logger
 * `backends`: `:console` is used to send logs to stdout, `{ExSyslogger, :ex_syslogger}` to log to syslog
 See: [logger’s documentation](https://hexdocs.pm/logger/Logger.html) and [ex_syslogger’s documentation](https://hexdocs.pm/ex_syslogger/)
 
+
+## :frontend_configurations
+
+This can be used to configure a keyword list that keeps the configuration data for any kind of frontend. By default, settings for `pleroma_fe` are configured.
+
+Frontends can access these settings at `/api/pleroma/frontend_configurations`
+
+To add your own configuration for PleromaFE, use it like this:
+
+`config :pleroma, :frontend_configurations, pleroma_fe: %{redirectRootNoLogin: "/main/all", ...}`
+
+These settings need to be complete, they will override the defaults. See `priv/static/static/config.json` for the available keys.
+
 ## :fe
+__THIS IS DEPRECATED__
+
+If you are using this method, please change it to the `frontend_configurations` method. Please set this option to false in your config like this: `config :pleroma, :fe, false`.
+
 This section is used to configure Pleroma-FE, unless ``:managed_config`` in ``:instance`` is set to false.
 
 * `theme`: Which theme to use, they are defined in ``styles.json``
 * `logo`: URL of the logo, defaults to Pleroma’s logo
-* `logo_mask`: Whenether to mask the logo
+* `logo_mask`: Whether to use only the logo's shape as a mask (true) or as a regular image (false)
 * `logo_margin`: What margin to use around the logo
 * `background`: URL of the background, unless viewing a user profile with a background that is set
 * `redirect_root_no_login`: relative URL which indicates where to redirect when a user isn’t logged in.
@@ -129,7 +148,8 @@ This section is used to configure Pleroma-FE, unless ``:managed_config`` in ``:i
 * `allow_direct`: whether to allow direct messages
 
 ## :mrf_hellthread
-* `threshold`: Number of mentioned users after which the message gets discarded as spam
+* `delist_threshold`: Number of mentioned users after which the message gets delisted (the message can still be seen, but it will not show up in public timelines and mentioned users won't get notifications about it). Set to 0 to disable.
+* `reject_threshold`: Number of mentioned users after which the messaged gets rejected. Set to 0 to disable.
 
 ## :media_proxy
 * `enabled`: Enables proxying of remote media to the instance’s proxy
@@ -210,3 +230,29 @@ curl "http://localhost:4000/api/pleroma/admin/invite_token?admin_token=somerando
 * `max_jobs`: The maximum amount of parallel federation jobs running at the same time.
 * `initial_timeout`: The initial timeout in seconds
 * `max_retries`: The maximum number of times a federation job is retried
+
+## Pleroma.Web.Metadata
+* `providers`: a list of metadata providers to enable. Providers availible:
+  * Pleroma.Web.Metadata.Providers.OpenGraph
+  * Pleroma.Web.Metadata.Providers.TwitterCard
+* `unfurl_nsfw`: If set to `true` nsfw attachments will be shown in previews
+
+## :rich_media
+* `enabled`: if enabled the instance will parse metadata from attached links to generate link previews
+
+## :hackney_pools
+
+Advanced. Tweaks Hackney (http client) connections pools.
+
+There's three pools used:
+
+* `:federation` for the federation jobs.
+  You may want this pool max_connections to be at least equal to the number of federator jobs + retry queue jobs.
+* `:media` for rich media, media proxy
+* `:upload` for uploaded media (if using a remote uploader and `proxy_remote: true`)
+
+For each pool, the options are:
+
+* `max_connections` - how much connections a pool can hold
+* `timeout` - retention duration for connections
+

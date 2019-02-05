@@ -14,6 +14,7 @@ defmodule Pleroma.Web.CommonAPI do
     with %Activity{data: %{"object" => %{"id" => object_id}}} <- Repo.get(Activity, activity_id),
          %Object{} = object <- Object.normalize(object_id),
          true <- user.info.is_moderator || user.ap_id == object.data["actor"],
+         {:ok, _} <- unpin(activity_id, user),
          {:ok, delete} <- ActivityPub.delete(object) do
       {:ok, delete}
     end
@@ -102,7 +103,14 @@ defmodule Pleroma.Web.CommonAPI do
              attachments,
              tags,
              get_content_type(data["content_type"]),
-             Enum.member?([true, "true"], data["no_attachment_links"])
+             Enum.member?(
+               [true, "true"],
+               Map.get(
+                 data,
+                 "no_attachment_links",
+                 Pleroma.Config.get([:instance, :no_attachment_links], false)
+               )
+             )
            ),
          context <- make_context(inReplyTo),
          cw <- data["spoiler_text"],
@@ -135,7 +143,7 @@ defmodule Pleroma.Web.CommonAPI do
           actor: user,
           context: context,
           object: object,
-          additional: %{"cc" => cc}
+          additional: %{"cc" => cc, "directMessage" => visibility == "direct"}
         })
 
       res

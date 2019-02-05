@@ -6,8 +6,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
   use Pleroma.Web.ConnCase
   import Pleroma.Factory
   alias Pleroma.Web.ActivityPub.{UserView, ObjectView}
-  alias Pleroma.{Object, Repo, User}
-  alias Pleroma.Activity
+  alias Pleroma.{Object, Repo, Activity, User, Instances}
 
   setup_all do
     Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
@@ -89,6 +88,21 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
     end
   end
 
+  describe "/object/:uuid/likes" do
+    test "it returns the like activities in a collection", %{conn: conn} do
+      like = insert(:like_activity)
+      uuid = String.split(like.data["object"], "/") |> List.last()
+
+      result =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/objects/#{uuid}/likes")
+        |> json_response(200)
+
+      assert List.first(result["first"]["orderedItems"])["id"] == like.data["id"]
+    end
+  end
+
   describe "/activities/:uuid" do
     test "it returns a json representation of the activity", %{conn: conn} do
       activity = insert(:note_activity)
@@ -128,6 +142,23 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
       assert "ok" == json_response(conn, 200)
       :timer.sleep(500)
       assert Activity.get_by_ap_id(data["id"])
+    end
+
+    test "it clears `unreachable` federation status of the sender", %{conn: conn} do
+      data = File.read!("test/fixtures/mastodon-post-activity.json") |> Poison.decode!()
+
+      sender_url = data["actor"]
+      Instances.set_consistently_unreachable(sender_url)
+      refute Instances.reachable?(sender_url)
+
+      conn =
+        conn
+        |> assign(:valid_signature, true)
+        |> put_req_header("content-type", "application/activity+json")
+        |> post("/inbox", data)
+
+      assert "ok" == json_response(conn, 200)
+      assert Instances.reachable?(sender_url)
     end
   end
 
@@ -175,6 +206,28 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
         |> get("/users/#{user.nickname}/inbox")
 
       assert response(conn, 200) =~ note_activity.data["object"]["content"]
+    end
+
+    test "it clears `unreachable` federation status of the sender", %{conn: conn} do
+      user = insert(:user)
+
+      data =
+        File.read!("test/fixtures/mastodon-post-activity.json")
+        |> Poison.decode!()
+        |> Map.put("bcc", [user.ap_id])
+
+      sender_host = URI.parse(data["actor"]).host
+      Instances.set_consistently_unreachable(sender_host)
+      refute Instances.reachable?(sender_host)
+
+      conn =
+        conn
+        |> assign(:valid_signature, true)
+        |> put_req_header("content-type", "application/activity+json")
+        |> post("/users/#{user.nickname}/inbox", data)
+
+      assert "ok" == json_response(conn, 200)
+      assert Instances.reachable?(sender_host)
     end
   end
 
@@ -291,6 +344,31 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
         |> post("/users/#{user.nickname}/outbox", data)
 
       assert json_response(conn, 400)
+    end
+
+    test "it increases like count when receiving a like action", %{conn: conn} do
+      note_activity = insert(:note_activity)
+      user = User.get_cached_by_ap_id(note_activity.data["actor"])
+
+      data = %{
+        type: "Like",
+        object: %{
+          id: note_activity.data["object"]["id"]
+        }
+      }
+
+      conn =
+        conn
+        |> assign(:user, user)
+        |> put_req_header("content-type", "application/activity+json")
+        |> post("/users/#{user.nickname}/outbox", data)
+
+      result = json_response(conn, 201)
+      assert Activity.get_by_ap_id(result["id"])
+
+      object = Object.get_by_ap_id(note_activity.data["object"]["id"])
+      assert object
+      assert object.data["like_count"] == 1
     end
   end
 

@@ -50,13 +50,32 @@ defmodule Pleroma.UserTest do
 
   test "follow_all follows mutliple users" do
     user = insert(:user)
+    followed_zero = insert(:user)
     followed_one = insert(:user)
     followed_two = insert(:user)
+    not_followed = insert(:user)
+
+    {:ok, user} = User.follow(user, followed_zero)
 
     {:ok, user} = User.follow_all(user, [followed_one, followed_two])
 
     assert User.following?(user, followed_one)
     assert User.following?(user, followed_two)
+    assert User.following?(user, followed_zero)
+    refute User.following?(user, not_followed)
+  end
+
+  test "follow_all follows mutliple users without duplicating" do
+    user = insert(:user)
+    followed_zero = insert(:user)
+    followed_one = insert(:user)
+    followed_two = insert(:user)
+
+    {:ok, user} = User.follow_all(user, [followed_zero, followed_one])
+    assert length(user.following) == 3
+
+    {:ok, user} = User.follow_all(user, [followed_one, followed_two])
+    assert length(user.following) == 4
   end
 
   test "follow takes a user and another user" do
@@ -672,12 +691,13 @@ defmodule Pleroma.UserTest do
         "status" => "hey @#{addressed.nickname} @#{addressed_remote.nickname}"
       })
 
-    assert [addressed] == User.get_recipients_from_activity(activity)
+    assert Enum.map([actor, addressed], & &1.ap_id) --
+             Enum.map(User.get_recipients_from_activity(activity), & &1.ap_id) == []
 
     {:ok, user} = User.follow(user, actor)
     {:ok, _user_two} = User.follow(user_two, actor)
     recipients = User.get_recipients_from_activity(activity)
-    assert length(recipients) == 2
+    assert length(recipients) == 3
     assert user in recipients
     assert addressed in recipients
   end
@@ -775,14 +795,61 @@ defmodule Pleroma.UserTest do
   end
 
   describe "User.search" do
-    test "finds a user, ranking by similarity" do
-      _user = insert(:user, %{name: "lain"})
-      _user_two = insert(:user, %{name: "ean"})
-      _user_three = insert(:user, %{name: "ebn", nickname: "lain@mastodon.social"})
-      user_four = insert(:user, %{nickname: "lain@pleroma.soykaf.com"})
+    test "finds a user by full or partial nickname" do
+      user = insert(:user, %{nickname: "john"})
 
-      assert user_four ==
-               User.search("lain@ple") |> List.first() |> Map.put(:search_distance, nil)
+      Enum.each(["john", "jo", "j"], fn query ->
+        assert user == User.search(query) |> List.first() |> Map.put(:search_rank, nil)
+      end)
+    end
+
+    test "finds a user by full or partial name" do
+      user = insert(:user, %{name: "John Doe"})
+
+      Enum.each(["John Doe", "JOHN", "doe", "j d", "j", "d"], fn query ->
+        assert user == User.search(query) |> List.first() |> Map.put(:search_rank, nil)
+      end)
+    end
+
+    test "finds users, preferring nickname matches over name matches" do
+      u1 = insert(:user, %{name: "lain", nickname: "nick1"})
+      u2 = insert(:user, %{nickname: "lain", name: "nick1"})
+
+      assert [u2.id, u1.id] == Enum.map(User.search("lain"), & &1.id)
+    end
+
+    test "finds users, considering density of matched tokens" do
+      u1 = insert(:user, %{name: "Bar Bar plus Word Word"})
+      u2 = insert(:user, %{name: "Word Word Bar Bar Bar"})
+
+      assert [u2.id, u1.id] == Enum.map(User.search("bar word"), & &1.id)
+    end
+
+    test "finds users, ranking by similarity" do
+      u1 = insert(:user, %{name: "lain"})
+      _u2 = insert(:user, %{name: "ean"})
+      u3 = insert(:user, %{name: "ebn", nickname: "lain@mastodon.social"})
+      u4 = insert(:user, %{nickname: "lain@pleroma.soykaf.com"})
+
+      assert [u4.id, u3.id, u1.id] == Enum.map(User.search("lain@ple"), & &1.id)
+    end
+
+    test "finds users, handling misspelled requests" do
+      u1 = insert(:user, %{name: "lain"})
+
+      assert [u1.id] == Enum.map(User.search("laiin"), & &1.id)
+    end
+
+    test "finds users, boosting ranks of friends and followers" do
+      u1 = insert(:user)
+      u2 = insert(:user, %{name: "Doe"})
+      follower = insert(:user, %{name: "Doe"})
+      friend = insert(:user, %{name: "Doe"})
+
+      {:ok, follower} = User.follow(follower, u1)
+      {:ok, u1} = User.follow(u1, friend)
+
+      assert [friend.id, follower.id, u2.id] == Enum.map(User.search("doe", false, u1), & &1.id)
     end
 
     test "finds a user whose name is nil" do
@@ -792,7 +859,15 @@ defmodule Pleroma.UserTest do
       assert user_two ==
                User.search("lain@pleroma.soykaf.com")
                |> List.first()
-               |> Map.put(:search_distance, nil)
+               |> Map.put(:search_rank, nil)
+    end
+
+    test "does not yield false-positive matches" do
+      insert(:user, %{name: "John Doe"})
+
+      Enum.each(["mary", "a", ""], fn query ->
+        assert [] == User.search(query)
+      end)
     end
   end
 
@@ -873,5 +948,47 @@ defmodule Pleroma.UserTest do
 
       Pleroma.Config.put([:instance, :account_activation_required], false)
     end
+  end
+
+  describe "parse_bio/2" do
+    test "preserves hosts in user links text" do
+      remote_user = insert(:user, local: false, nickname: "nick@domain.com")
+      user = insert(:user)
+      bio = "A.k.a. @nick@domain.com"
+
+      expected_text =
+        "A.k.a. <span class='h-card'><a data-user='#{remote_user.id}' class='u-url mention' href='#{
+          remote_user.ap_id
+        }'>" <> "@<span>nick@domain.com</span></a></span>"
+
+      assert expected_text == User.parse_bio(bio, user)
+    end
+  end
+
+  test "bookmarks" do
+    user = insert(:user)
+
+    {:ok, activity1} =
+      CommonAPI.post(user, %{
+        "status" => "heweoo!"
+      })
+
+    id1 = activity1.data["object"]["id"]
+
+    {:ok, activity2} =
+      CommonAPI.post(user, %{
+        "status" => "heweoo!"
+      })
+
+    id2 = activity2.data["object"]["id"]
+
+    assert {:ok, user_state1} = User.bookmark(user, id1)
+    assert user_state1.bookmarks == [id1]
+
+    assert {:ok, user_state2} = User.unbookmark(user, id1)
+    assert user_state2.bookmarks == []
+
+    assert {:ok, user_state3} = User.bookmark(user, id2)
+    assert user_state3.bookmarks == [id2]
   end
 end

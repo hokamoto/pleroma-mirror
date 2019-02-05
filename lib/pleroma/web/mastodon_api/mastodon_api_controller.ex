@@ -138,7 +138,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       version: "#{@mastodon_api_level} (compatible; #{Pleroma.Application.named_version()})",
       email: Keyword.get(instance, :email),
       urls: %{
-        streaming_api: String.replace(Pleroma.Web.Endpoint.static_url(), "http", "ws")
+        streaming_api: Pleroma.Web.Endpoint.websocket_url()
       },
       stats: Stats.get_stats(),
       thumbnail: Web.base_url() <> "/instance/thumbnail.jpeg",
@@ -341,7 +341,6 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     params =
       params
       |> Map.put("in_reply_to_status_id", params["in_reply_to_id"])
-      |> Map.put("no_attachment_links", true)
 
     idempotency_key =
       case get_req_header(conn, "idempotency-key") do
@@ -378,7 +377,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def unreblog_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
     with {:ok, _unannounce, %{data: %{"id" => id}}} <- CommonAPI.unrepeat(ap_id_or_id, user),
-         %Activity{} = activity <- Activity.get_create_activity_by_object_ap_id(id) do
+         %Activity{} = activity <- Activity.get_create_by_object_ap_id(id) do
       conn
       |> put_view(StatusView)
       |> try_render("status.json", %{activity: activity, for: user, as: :activity})
@@ -387,7 +386,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def fav_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
     with {:ok, _fav, %{data: %{"id" => id}}} <- CommonAPI.favorite(ap_id_or_id, user),
-         %Activity{} = activity <- Activity.get_create_activity_by_object_ap_id(id) do
+         %Activity{} = activity <- Activity.get_create_by_object_ap_id(id) do
       conn
       |> put_view(StatusView)
       |> try_render("status.json", %{activity: activity, for: user, as: :activity})
@@ -396,7 +395,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def unfav_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
     with {:ok, _, _, %{data: %{"id" => id}}} <- CommonAPI.unfavorite(ap_id_or_id, user),
-         %Activity{} = activity <- Activity.get_create_activity_by_object_ap_id(id) do
+         %Activity{} = activity <- Activity.get_create_by_object_ap_id(id) do
       conn
       |> put_view(StatusView)
       |> try_render("status.json", %{activity: activity, for: user, as: :activity})
@@ -418,6 +417,28 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def unpin_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
     with {:ok, activity} <- CommonAPI.unpin(ap_id_or_id, user) do
+      conn
+      |> put_view(StatusView)
+      |> try_render("status.json", %{activity: activity, for: user, as: :activity})
+    end
+  end
+
+  def bookmark_status(%{assigns: %{user: user}} = conn, %{"id" => id}) do
+    with %Activity{} = activity <- Repo.get(Activity, id),
+         %User{} = user <- User.get_by_nickname(user.nickname),
+         true <- ActivityPub.visible_for_user?(activity, user),
+         {:ok, user} <- User.bookmark(user, activity.data["object"]["id"]) do
+      conn
+      |> put_view(StatusView)
+      |> try_render("status.json", %{activity: activity, for: user, as: :activity})
+    end
+  end
+
+  def unbookmark_status(%{assigns: %{user: user}} = conn, %{"id" => id}) do
+    with %Activity{} = activity <- Repo.get(Activity, id),
+         %User{} = user <- User.get_by_nickname(user.nickname),
+         true <- ActivityPub.visible_for_user?(activity, user),
+         {:ok, user} <- User.unbookmark(user, activity.data["object"]["id"]) do
       conn
       |> put_view(StatusView)
       |> try_render("status.json", %{activity: activity, for: user, as: :activity})
@@ -500,7 +521,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def upload(%{assigns: %{user: user}} = conn, %{"file" => file} = data) do
     with {:ok, object} <-
-           ActivityPub.upload(file,
+           ActivityPub.upload(
+             file,
              actor: User.ap_id(user),
              description: Map.get(data, "description")
            ) do
@@ -541,15 +563,34 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   def hashtag_timeline(%{assigns: %{user: user}} = conn, params) do
     local_only = params["local"] in [true, "True", "true", "1"]
 
-    params =
+    tags =
+      [params["tag"], params["any"]]
+      |> List.flatten()
+      |> Enum.uniq()
+      |> Enum.filter(& &1)
+      |> Enum.map(&String.downcase(&1))
+
+    tag_all =
+      params["all"] ||
+        []
+        |> Enum.map(&String.downcase(&1))
+
+    tag_reject =
+      params["none"] ||
+        []
+        |> Enum.map(&String.downcase(&1))
+
+    query_params =
       params
       |> Map.put("type", "Create")
       |> Map.put("local_only", local_only)
       |> Map.put("blocking_user", user)
-      |> Map.put("tag", String.downcase(params["tag"]))
+      |> Map.put("tag", tags)
+      |> Map.put("tag_all", tag_all)
+      |> Map.put("tag_reject", tag_reject)
 
     activities =
-      ActivityPub.fetch_public_activities(params)
+      ActivityPub.fetch_public_activities(query_params)
       |> Enum.reverse()
 
     conn
@@ -744,8 +785,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     fetched =
       if Regex.match?(~r/https?:/, query) do
         with {:ok, object} <- ActivityPub.fetch_object_from_id(query),
-             %Activity{} = activity <-
-               Activity.get_create_activity_by_object_ap_id(object.data["id"]),
+             %Activity{} = activity <- Activity.get_create_by_object_ap_id(object.data["id"]),
              true <- ActivityPub.visible_for_user?(activity, user) do
           [activity]
         else
@@ -772,7 +812,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def search2(%{assigns: %{user: user}} = conn, %{"q" => query} = params) do
-    accounts = User.search(query, params["resolve"] == "true")
+    accounts = User.search(query, params["resolve"] == "true", user)
 
     statuses = status_search(user, query)
 
@@ -796,7 +836,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def search(%{assigns: %{user: user}} = conn, %{"q" => query} = params) do
-    accounts = User.search(query, params["resolve"] == "true")
+    accounts = User.search(query, params["resolve"] == "true", user)
 
     statuses = status_search(user, query)
 
@@ -817,22 +857,36 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def account_search(%{assigns: %{user: user}} = conn, %{"q" => query} = params) do
-    accounts = User.search(query, params["resolve"] == "true")
+    accounts = User.search(query, params["resolve"] == "true", user)
 
     res = AccountView.render("accounts.json", users: accounts, for: user, as: :user)
 
     json(conn, res)
   end
 
-  def favourites(%{assigns: %{user: user}} = conn, _) do
+  def favourites(%{assigns: %{user: user}} = conn, params) do
     params =
-      %{}
+      params
       |> Map.put("type", "Create")
       |> Map.put("favorited_by", user.ap_id)
       |> Map.put("blocking_user", user)
 
     activities =
       ActivityPub.fetch_public_activities(params)
+      |> Enum.reverse()
+
+    conn
+    |> add_link_headers(:favourites, activities)
+    |> put_view(StatusView)
+    |> render("index.json", %{activities: activities, for: user, as: :activity})
+  end
+
+  def bookmarks(%{assigns: %{user: user}} = conn, _) do
+    user = Repo.get(User, user.id)
+
+    activities =
+      user.bookmarks
+      |> Enum.map(fn id -> Activity.get_create_by_object_ap_id(id) end)
       |> Enum.reverse()
 
     conn
@@ -851,7 +905,10 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       res = ListView.render("list.json", list: list)
       json(conn, res)
     else
-      _e -> json(conn, "error")
+      _e ->
+        conn
+        |> put_status(404)
+        |> json(%{error: "Record not found"})
     end
   end
 
@@ -1082,7 +1139,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   def login(conn, _) do
     with {:ok, app} <- get_or_make_app() do
       path =
-        o_auth_path(conn, :authorize,
+        o_auth_path(
+          conn,
+          :authorize,
           response_type: "code",
           client_id: app.client_id,
           redirect_uri: ".",
@@ -1138,7 +1197,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def render_notification(user, %{id: id, activity: activity, inserted_at: created_at} = _params) do
     actor = User.get_cached_by_ap_id(activity.data["actor"])
-    parent_activity = Activity.get_create_activity_by_object_ap_id(activity.data["object"])
+    parent_activity = Activity.get_create_by_object_ap_id(activity.data["object"])
     mastodon_type = Activity.mastodon_notification_type(activity)
 
     response = %{
@@ -1290,7 +1349,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
                [],
                adapter: [
                  timeout: timeout,
-                 recv_timeout: timeout
+                 recv_timeout: timeout,
+                 pool: :default
                ]
              ),
            {:ok, data} <- Jason.decode(body) do
@@ -1320,6 +1380,22 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       end
     else
       json(conn, [])
+    end
+  end
+
+  def status_card(conn, %{"id" => status_id}) do
+    with %Activity{} = activity <- Repo.get(Activity, status_id),
+         true <- ActivityPub.is_public?(activity) do
+      data =
+        StatusView.render(
+          "card.json",
+          Pleroma.Web.RichMedia.Helpers.fetch_data_for_activity(activity)
+        )
+
+      json(conn, data)
+    else
+      _e ->
+        %{}
     end
   end
 
