@@ -52,6 +52,10 @@ defmodule Pleroma.Uploaders.MFC do
     Image.build_preview_url(url)
   end
 
+  def preview_url("image", url) do
+    Image.build_preview_url(url)
+  end
+
   def preview_url(_type, href), do: href
 
   def rename_original_path(%Upload{} = upload) do
