@@ -31,9 +31,12 @@ defmodule Pleroma.Uploaders.MFC.Image do
 
   @convert_path "/api/v1/images"
   @preview_suffix ".preview.jpg"
+  @auto_orient true
+  @quality 85
   @resolution "2048x2048"
   @preview_resolution "800x800"
   @convert_method "resize"
+  @preview_convert_method "smartcrop"
 
   @doc "Convert image"
   @spec convert(Tesla.Client.t(), String.t()) :: :ok | :duplicate | {:error, String.t()}
@@ -48,12 +51,16 @@ defmodule Pleroma.Uploaders.MFC.Image do
         %{
           "dest_key" => path,
           "resolution" => @resolution,
-          "method" => @convert_method
+          "method" => @convert_method,
+          "auto_orient" => @auto_orient,
+          "quality" => @quality
         },
         %{
           "dest_key" => build_preview_url(path),
           "resolution" => @preview_resolution,
-          "method" => @convert_method
+          "method" => @preview_convert_method,
+          "auto_orient" => @auto_orient,
+          "quality" => @quality
         }
       ]
     }
