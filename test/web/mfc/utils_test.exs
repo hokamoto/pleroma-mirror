@@ -9,6 +9,7 @@ defmodule Pleroma.Web.Mfc.UtilsTest do
     test "it pulls the state form the web and sets the online state for the model" do
       user = insert(:user, %{mfc_id: "1"})
       online_model = insert(:user, %{mfc_id: "2", nickname: "AnnaLove7"})
+      online_model_two = insert(:user, %{mfc_id: "4", nickname: "MadelinLove"})
 
       offline_model =
         insert(:user, %{mfc_id: "3", nickname: "Erica_grey", info: %{mfc_model_online: true}})
@@ -25,6 +26,7 @@ defmodule Pleroma.Web.Mfc.UtilsTest do
 
       assert Repo.get(User, user.id).info.mfc_model_online == false
       assert Repo.get(User, online_model.id).info.mfc_model_online == true
+      assert Repo.get(User, online_model_two.id).info.mfc_model_online == true
       assert Repo.get(User, offline_model.id).info.mfc_model_online == false
     end
   end

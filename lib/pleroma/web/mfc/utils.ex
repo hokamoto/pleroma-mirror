@@ -29,7 +29,7 @@ defmodule Pleroma.Web.Mfc.Utils do
 
   defp filter_public_streaming(model_states) do
     model_states
-    |> Enum.filter(fn {_, %{state: state}} -> state == "0" end)
+    |> Enum.filter(fn {_, %{state: state}} -> state != "90" end)
     |> Enum.into(%{})
     |> (&{:ok, &1}).()
   end
