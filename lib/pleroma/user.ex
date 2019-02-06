@@ -576,15 +576,13 @@ defmodule Pleroma.User do
   end
 
   def get_all_friends_query(user) do
-    from(
-      u in get_friends_query(user, nil)
-    )
+    from(u in get_friends_query(user, nil))
   end
 
   def get_friends_query(user), do: get_friends_query(user, nil)
 
   def get_friends(user, page \\ nil, export \\ false) do
-    q = 
+    q =
       if export do
         get_all_friends_query(user)
       else
