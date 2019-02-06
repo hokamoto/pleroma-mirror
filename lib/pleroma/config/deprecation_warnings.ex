@@ -14,7 +14,17 @@ defmodule Pleroma.Config.DeprecationWarnings do
     end
   end
 
+  def check_hellthread_threshold do
+    if Pleroma.Config.get([:mrf_hellthread, :threshold]) do
+      Logger.warn("""
+      !!!DEPRECATION WARNING!!!
+      You are using the old configuration mechanism for the hellthread filter. Please check config.md.
+      """)
+    end
+  end
+
   def warn do
     check_frontend_config_mechanism()
+    check_hellthread_threshold()
   end
 end

@@ -23,6 +23,7 @@ defmodule Pleroma.User.Info do
     field(:ap_enabled, :boolean, default: false)
     field(:is_moderator, :boolean, default: false)
     field(:is_admin, :boolean, default: false)
+    field(:show_role, :boolean, default: true)
     field(:keys, :string, default: nil)
     field(:settings, :map, default: nil)
     field(:magic_key, :string, default: nil)
@@ -30,7 +31,8 @@ defmodule Pleroma.User.Info do
     field(:topic, :string, default: nil)
     field(:hub, :string, default: nil)
     field(:salmon, :string, default: nil)
-    field(:hide_network, :boolean, default: false)
+    field(:hide_followers, :boolean, default: false)
+    field(:hide_followings, :boolean, default: false)
     field(:pinned_activities, {:array, :string}, default: [])
     field(:mfc_follower_sync, :boolean, default: true)
     field(:mfc_model_online, :boolean, default: false)
@@ -145,9 +147,11 @@ defmodule Pleroma.User.Info do
       :no_rich_text,
       :default_scope,
       :banner,
-      :hide_network,
+      :hide_followings,
+      :hide_followers,
       :background,
-      :mfc_follower_sync
+      :mfc_follower_sync,
+      :show_role
     ])
   end
 
@@ -197,7 +201,8 @@ defmodule Pleroma.User.Info do
     info
     |> cast(params, [
       :is_moderator,
-      :is_admin
+      :is_admin,
+      :show_role
     ])
   end
 
