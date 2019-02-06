@@ -3,6 +3,31 @@ defmodule Pleroma.Web.Mfc.UtilsTest do
   import Pleroma.Factory
   alias Pleroma.Web.Mfc.Utils
   alias Pleroma.User
+  alias Pleroma.Repo
+
+  describe "model online status" do
+    test "it pulls the state form the web and sets the online state for the model" do
+      user = insert(:user, %{mfc_id: "1"})
+      online_model = insert(:user, %{mfc_id: "2", nickname: "AnnaLove7"})
+
+      offline_model =
+        insert(:user, %{mfc_id: "3", nickname: "Erica_grey", info: %{mfc_model_online: true}})
+
+      fixture = File.read!("test/fixtures/online_models")
+      models_state_url = Pleroma.Config.get([:mfc, :models_state_endpoint])
+
+      Tesla.Mock.mock(fn
+        %{url: ^models_state_url} ->
+          {:ok, %Tesla.Env{status: 200, body: fixture}}
+      end)
+
+      Utils.update_online_status()
+
+      assert Repo.get(User, user.id).info.mfc_model_online == false
+      assert Repo.get(User, online_model.id).info.mfc_model_online == true
+      assert Repo.get(User, offline_model.id).info.mfc_model_online == false
+    end
+  end
 
   describe "user following synchronization" do
     test "for a user with friends and bookmarks, it follows them" do
