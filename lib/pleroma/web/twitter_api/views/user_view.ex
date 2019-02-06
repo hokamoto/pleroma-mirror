@@ -109,6 +109,7 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
       "default_scope" => user.info.default_scope,
       "no_rich_text" => user.info.no_rich_text,
       "hide_network" => user.info.hide_network,
+      # Deprecated, moved to new namespace
       "mfc_follower_sync" => user.info.mfc_follower_sync,
       "fields" => fields,
 
@@ -116,6 +117,12 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
       "pleroma" => %{
         "confirmation_pending" => user_info.confirmation_pending,
         "tags" => user.tags
+      },
+
+      # MFC fields
+      "mfc" => %{
+        "mfc_follower_sync" => user.info.mfc_follower_sync,
+        "mfc_model_online" => user.info.mfc_model_online
       }
     }
 

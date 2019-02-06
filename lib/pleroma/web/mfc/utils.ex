@@ -4,6 +4,73 @@ defmodule Pleroma.Web.Mfc.Utils do
   import Ecto.Query
   require Logger
 
+  defp parse_model_states_body(body) do
+    try do
+      model_states =
+        body
+        |> String.split("<br>")
+        |> Enum.drop(1)
+        |> Enum.reduce(%{}, fn line, acc ->
+          case String.split(line, ",") do
+            [name, state, server, room_count] ->
+              acc
+              |> Map.put(name, %{state: state, server: server, room_count: room_count})
+
+            _ ->
+              acc
+          end
+        end)
+
+      {:ok, model_states}
+    rescue
+      e -> e
+    end
+  end
+
+  defp filter_public_streaming(model_states) do
+    model_states
+    |> Enum.filter(fn {_, %{state: state}} -> state == "0" end)
+    |> Enum.into(%{})
+    |> (&{:ok, &1}).()
+  end
+
+  def update_online_status do
+    endpoint = Pleroma.Config.get([:mfc, :models_state_endpoint])
+
+    with {:ok, %{status: 200, body: body}} <- Tesla.get(endpoint),
+         {:ok, model_states} <- parse_model_states_body(body),
+         {:ok, model_states} <- filter_public_streaming(model_states) do
+      names = Map.keys(model_states)
+
+      Repo.transaction(fn ->
+        online =
+          from(u in User,
+            where: u.nickname in ^names,
+            update: [
+              set: [
+                info: fragment("jsonb_set(?, '{mfc_model_online}', to_jsonb(true))", u.info)
+              ]
+            ]
+          )
+
+        offline =
+          from(u in User,
+            where: not (u.nickname in ^names),
+            update: [
+              set: [
+                info: fragment("jsonb_set(?, '{mfc_model_online}', to_jsonb(false))", u.info)
+              ]
+            ]
+          )
+
+        Repo.update_all(online, [])
+        Repo.update_all(offline, [])
+      end)
+    else
+      e -> Logger.error("Could not fetch models' online state: #{inspect(e)}")
+    end
+  end
+
   defp get_ids_from_body(body) do
     with {:ok, %{"err" => 0, "data" => data}} <- Jason.decode(body) do
       Enum.map(data, fn

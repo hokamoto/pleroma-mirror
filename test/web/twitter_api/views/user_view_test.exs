@@ -106,6 +106,10 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "pleroma" => %{
         "confirmation_pending" => false,
         "tags" => []
+      },
+      "mfc" => %{
+        "mfc_follower_sync" => true,
+        "mfc_model_online" => false
       }
     }
 
@@ -154,6 +158,10 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "pleroma" => %{
         "confirmation_pending" => false,
         "tags" => []
+      },
+      "mfc" => %{
+        "mfc_follower_sync" => true,
+        "mfc_model_online" => false
       }
     }
 
@@ -203,6 +211,10 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "pleroma" => %{
         "confirmation_pending" => false,
         "tags" => []
+      },
+      "mfc" => %{
+        "mfc_follower_sync" => true,
+        "mfc_model_online" => false
       }
     }
 
@@ -266,6 +278,10 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "pleroma" => %{
         "confirmation_pending" => false,
         "tags" => []
+      },
+      "mfc" => %{
+        "mfc_follower_sync" => true,
+        "mfc_model_online" => false
       }
     }
 
