@@ -575,10 +575,21 @@ defmodule Pleroma.User do
     )
   end
 
+  def get_all_friends_query(user) do
+    from(
+      u in get_friends_query(user, nil)
+    )
+  end
+
   def get_friends_query(user), do: get_friends_query(user, nil)
 
-  def get_friends(user, page \\ nil) do
-    q = get_friends_query(user, page)
+  def get_friends(user, page \\ nil, export \\ false) do
+    q = 
+      if export do
+        get_all_friends_query(user)
+      else
+        get_friends_query(user, page)
+      end
 
     {:ok, Repo.all(q)}
   end
