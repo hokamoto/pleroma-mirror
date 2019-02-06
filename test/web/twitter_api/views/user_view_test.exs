@@ -101,7 +101,7 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "default_scope" => "public",
       "no_rich_text" => false,
       "mfc_follower_sync" => true,
-      "hide_followings" => false,
+      "hide_follows" => false,
       "hide_followers" => false,
       "fields" => [],
       "pleroma" => %{
@@ -154,7 +154,7 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "default_scope" => "public",
       "no_rich_text" => false,
       "mfc_follower_sync" => true,
-      "hide_followings" => false,
+      "hide_follows" => false,
       "hide_followers" => false,
       "fields" => [],
       "pleroma" => %{
@@ -208,7 +208,7 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "default_scope" => "public",
       "no_rich_text" => false,
       "mfc_follower_sync" => true,
-      "hide_followings" => false,
+      "hide_follows" => false,
       "hide_followers" => false,
       "fields" => [],
       "pleroma" => %{
@@ -292,7 +292,7 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "default_scope" => "public",
       "no_rich_text" => false,
       "mfc_follower_sync" => true,
-      "hide_followings" => false,
+      "hide_follows" => false,
       "hide_followers" => false,
       "fields" => [],
       "pleroma" => %{

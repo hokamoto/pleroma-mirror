@@ -111,7 +111,7 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
       # Deprecated, moved to new namespace
       "mfc_follower_sync" => user.info.mfc_follower_sync,
       "hide_followers" => user.info.hide_followers,
-      "hide_followings" => user.info.hide_followings,
+      "hide_follows" => user.info.hide_follows,
       "fields" => fields,
 
       # Pleroma extension
