@@ -205,7 +205,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
       type: "image",
       url: "jimi-hendrix.png",
       remote_url: "jimi-hendrix.png",
-      preview_url: "jimi-hendrix.preview.png",
+      preview_url: "jimi-hendrix.png.preview.jpg",
       text_url: "jimi-hendrix.png",
       description: nil
     }
