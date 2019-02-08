@@ -4,6 +4,10 @@
 
 defmodule Pleroma.Web.Auth.LDAPAuthenticator do
   alias Pleroma.User
+  alias Pleroma.Web.Auth.PleromaAuthenticator
+
+  import Pleroma.Web.Auth.Authenticator,
+    only: [fetch_credentials: 1, fetch_user: 1]
 
   require Logger
 
@@ -14,29 +18,20 @@ defmodule Pleroma.Web.Auth.LDAPAuthenticator do
 
   def get_user(%Plug.Conn{} = conn) do
     if Pleroma.Config.get([:ldap, :enabled]) do
-      {name, password} =
-        case conn.params do
-          %{"authorization" => %{"name" => name, "password" => password}} ->
-            {name, password}
-
-          %{"grant_type" => "password", "username" => name, "password" => password} ->
-            {name, password}
-        end
-
-      case ldap_user(name, password) do
-        %User{} = user ->
-          {:ok, user}
-
+      with {:ok, {name, password}} <- fetch_credentials(conn),
+           %User{} = user <- ldap_user(name, password) do
+        {:ok, user}
+      else
         {:error, {:ldap_connection_error, _}} ->
           # When LDAP is unavailable, try default authenticator
-          Pleroma.Web.Auth.PleromaAuthenticator.get_user(conn)
+          PleromaAuthenticator.get_user(conn)
 
         error ->
           error
       end
     else
       # Fall back to default authenticator
-      Pleroma.Web.Auth.PleromaAuthenticator.get_user(conn)
+      PleromaAuthenticator.get_user(conn)
     end
   end
 
@@ -93,7 +88,7 @@ defmodule Pleroma.Web.Auth.LDAPAuthenticator do
 
     case :eldap.simple_bind(connection, "#{uid}=#{name},#{base}", password) do
       :ok ->
-        case User.get_by_nickname_or_email(name) do
+        case fetch_user(name) do
           %User{} = user ->
             user
 

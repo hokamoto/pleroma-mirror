@@ -6,24 +6,19 @@ defmodule Pleroma.Web.Auth.PleromaAuthenticator do
   alias Comeonin.Pbkdf2
   alias Pleroma.User
 
+  import Pleroma.Web.Auth.Authenticator,
+    only: [fetch_credentials: 1, fetch_user: 1]
+
   @behaviour Pleroma.Web.Auth.Authenticator
 
   def get_user(%Plug.Conn{} = conn) do
-    {name, password} =
-      case conn.params do
-        %{"authorization" => %{"name" => name, "password" => password}} ->
-          {name, password}
-
-        %{"grant_type" => "password", "username" => name, "password" => password} ->
-          {name, password}
-      end
-
-    with {_, %User{} = user} <- {:user, User.get_by_nickname_or_email(name)},
-         {_, true} <- {:checkpw, Pbkdf2.checkpw(password, user.password_hash)} do
+    with {:ok, {name, password}} <- fetch_credentials(conn),
+         {_, %User{} = user} <- {:user, fetch_user(name)},
+         {:ok, _user} <- {authenticate(user, password), user} do
       {:ok, user}
     else
-      error ->
-        {:error, error}
+      {:error, reason} -> {:error, reason}
+      error -> {:error, error}
     end
   end
 
@@ -32,4 +27,12 @@ defmodule Pleroma.Web.Auth.PleromaAuthenticator do
   end
 
   def auth_template, do: nil
+
+  def authenticate(%User{password_hash: hash} = _user, password) do
+    if Pbkdf2.checkpw(password, hash) do
+      :ok
+    else
+      :error
+    end
+  end
 end

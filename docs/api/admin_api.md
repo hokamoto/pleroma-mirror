@@ -218,7 +218,13 @@ Note: Available `:permission_group` is currently moderator and admin. 404 is ret
 ## `/api/pleroma/admin/password_reset`
 
 ### Get a password reset token for a given nickname
-
 - Methods: `GET`
 - Params: none
 - Response: password reset token (base64 string)
+
+## `/api/pleroma/admin/user/disable_2fa`
+### Disable 2fa for user's account.
+- Method: `PUT`
+- Params:
+    - `nickname`
+- Response: User’s nickname

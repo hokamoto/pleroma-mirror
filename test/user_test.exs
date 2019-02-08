@@ -1125,4 +1125,39 @@ defmodule Pleroma.UserTest do
     assert {:ok, user_state3} = User.bookmark(user, id2)
     assert user_state3.bookmarks == [id2]
   end
+
+  describe "2fa" do
+    test "enable_2fa" do
+      user = insert(:user, otp_enabled: false)
+      User.enable_2fa(user)
+      assert refresh_record(user).otp_enabled
+    end
+
+    test "disable_2fa" do
+      user = insert(:user, otp_enabled: true)
+      User.disable_2fa(user)
+      refute refresh_record(user).otp_enabled
+    end
+
+    test "set_2fa_secret" do
+      user = insert(:user)
+      refute refresh_record(user).otp_secret
+      User.set_2fa_secret(user)
+      assert refresh_record(user).otp_secret
+    end
+
+    test "update_2fa_backup_codes" do
+      user = insert(:user)
+      assert refresh_record(user).otp_backup_codes == []
+      User.update_2fa_backup_codes(user, ["1", "3"])
+      assert refresh_record(user).otp_backup_codes == ["1", "3"]
+    end
+
+    test "invalidate_2fa_backup_code" do
+      user = insert(:user, otp_backup_codes: ["1", "3", "4"])
+      assert refresh_record(user).otp_backup_codes == ["1", "3", "4"]
+      User.invalidate_2fa_backup_code(user, "3")
+      assert refresh_record(user).otp_backup_codes == ["1", "4"]
+    end
+  end
 end

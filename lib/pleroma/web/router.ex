@@ -149,6 +149,7 @@ defmodule Pleroma.Web.Router do
     delete("/user", AdminAPIController, :user_delete)
     patch("/users/:nickname/toggle_activation", AdminAPIController, :user_toggle_activation)
     post("/user", AdminAPIController, :user_create)
+    put("/user/disable_2fa", AdminAPIController, :disable_2fa)
     put("/users/tag", AdminAPIController, :tag_users)
     delete("/users/tag", AdminAPIController, :untag_users)
 
@@ -202,6 +203,11 @@ defmodule Pleroma.Web.Router do
 
       post("/notifications/read", UtilController, :notifications_read)
     end
+
+    post("/2fa/disable", TwoFactorAuthenticationController, :disable)
+    get("/2fa/provisioning_uri", TwoFactorAuthenticationController, :provisioning_uri)
+    post("/2fa/enable", TwoFactorAuthenticationController, :enable)
+    get("/2fa/backup_codes", TwoFactorAuthenticationController, :backup_codes)
   end
 
   scope "/oauth", Pleroma.Web.OAuth do

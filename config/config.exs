@@ -183,7 +183,16 @@ config :pleroma, :instance,
   welcome_user_nickname: nil,
   welcome_message: nil,
   max_report_comment_size: 1000,
-  safe_dm_mentions: false
+  safe_dm_mentions: false,
+  two_factor_authentication: [
+    # digits 6 or 8
+    digits: 6,
+    period: 30,
+    backup_codes: [
+      number: 5,
+      code_length: 16
+    ]
+  ]
 
 config :pleroma, :markup,
   # XXX - unfortunately, inline images must be enabled by default right now, because

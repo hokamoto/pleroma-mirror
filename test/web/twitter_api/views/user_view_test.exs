@@ -321,4 +321,11 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
     userview = UserView.render("show.json", %{user: user})
     assert userview["fields"] == fields
   end
+
+  test "a user with enabled 2fa" do
+    user = insert(:user, otp_enabled: true)
+
+    userview = UserView.render("show.json", %{user: user, for: user})
+    assert userview["otp_enabled"] == true
+  end
 end

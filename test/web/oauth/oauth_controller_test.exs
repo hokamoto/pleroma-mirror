@@ -7,6 +7,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
   import Pleroma.Factory
 
   alias Pleroma.Repo
+  alias Pleroma.Web.Auth.TOTP
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.Token
 
@@ -369,6 +370,76 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert resp = json_response(conn, 400)
       assert %{"error" => _} = json_response(conn, 400)
       refute Map.has_key?(resp, "access_token")
+    end
+  end
+
+  describe "2fa" do
+    test "issues a token for `password` grant_type with valid credentials and backup code" do
+      password = "testpassword"
+      otp_secret = Pleroma.Web.Auth.TOTP.generate_secret()
+
+      user =
+        insert(:user,
+          otp_enabled: true,
+          otp_secret: otp_secret,
+          password_hash: Comeonin.Pbkdf2.hashpwsalt(password)
+        )
+
+      [code | _] = backup_codes = Pleroma.Web.Auth.TOTP.generate_backup_codes()
+
+      [_ | unused_codes] =
+        hashed_codes =
+        backup_codes
+        |> Enum.map(&Comeonin.Pbkdf2.hashpwsalt(&1))
+
+      Pleroma.User.update_2fa_backup_codes(user, hashed_codes)
+
+      app = insert(:oauth_app)
+
+      conn =
+        build_conn()
+        |> post("/oauth/token", %{
+          "grant_type" => "password",
+          "username" => user.nickname,
+          "password" => password,
+          "client_id" => app.client_id,
+          "client_secret" => app.client_secret,
+          "otp_token" => code
+        })
+
+      assert %{"access_token" => token} = json_response(conn, 200)
+      assert Repo.get_by(Token, token: token)
+      user = refresh_record(user)
+      assert user.otp_backup_codes == unused_codes
+    end
+
+    test "issues a token for `password` grant_type with valid credentials" do
+      password = "testpassword"
+      otp_secret = TOTP.generate_secret()
+
+      user =
+        insert(:user,
+          otp_enabled: true,
+          otp_secret: otp_secret,
+          password_hash: Comeonin.Pbkdf2.hashpwsalt(password)
+        )
+
+      app = insert(:oauth_app)
+      otp_token = TOTP.generate_token(otp_secret)
+
+      conn =
+        build_conn()
+        |> post("/oauth/token", %{
+          "grant_type" => "password",
+          "username" => user.nickname,
+          "password" => password,
+          "client_id" => app.client_id,
+          "client_secret" => app.client_secret,
+          "otp_token" => otp_token
+        })
+
+      assert %{"access_token" => token} = json_response(conn, 200)
+      assert Repo.get_by(Token, token: token)
     end
   end
 end

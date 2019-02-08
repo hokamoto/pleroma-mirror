@@ -80,7 +80,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       user = insert(:user)
       follower = insert(:user)
 
-      conn =
+      _conn =
         build_conn()
         |> assign(:user, admin)
         |> put_req_header("accept", "application/json")
@@ -104,7 +104,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
       User.follow(follower, user)
 
-      conn =
+      _conn =
         build_conn()
         |> assign(:user, admin)
         |> put_req_header("accept", "application/json")
@@ -641,5 +641,18 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                "local" => true,
                "tags" => []
              }
+  end
+
+  test "PUT /api/pleroma/admin/user/disable_2fa" do
+    admin = insert(:user, info: %{is_admin: true})
+    user = insert(:user, otp_enabled: true, otp_secret: "xxx")
+
+    conn =
+      build_conn()
+      |> assign(:user, admin)
+      |> put("/api/pleroma/admin/user/disable_2fa", %{nickname: user.nickname})
+
+    assert json_response(conn, 200) == user.nickname
+    refute refresh_record(user).otp_enabled
   end
 end

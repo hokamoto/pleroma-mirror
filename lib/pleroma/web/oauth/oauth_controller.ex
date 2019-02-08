@@ -8,6 +8,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web.Auth.Authenticator
+  alias Pleroma.Web.Auth.TOTPAuthenticator
   alias Pleroma.Web.ControllerHelper
   alias Pleroma.Web.OAuth.App
   alias Pleroma.Web.OAuth.Authorization
@@ -127,15 +128,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          %User{} = user <- User.get_by_id(auth.user_id),
          {:ok, token} <- Token.exchange_token(app, auth),
          {:ok, inserted_at} <- DateTime.from_naive(token.inserted_at, "Etc/UTC") do
-      response = %{
-        token_type: "Bearer",
-        access_token: token.token,
-        refresh_token: token.refresh_token,
-        created_at: DateTime.to_unix(inserted_at),
-        expires_in: 60 * 10,
-        scope: Enum.join(token.scopes, " "),
-        me: user.ap_id
-      }
+      response = build_response(user, token, %{created_at: DateTime.to_unix(inserted_at)})
 
       json(conn, response)
     else
@@ -145,29 +138,63 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     end
   end
 
+  # Replaces `name` param on `username` and perform token_exchange.
+  #
   def token_exchange(
         conn,
-        %{"grant_type" => "password"} = params
+        %{"grant_type" => "password", "name" => name, "password" => _password} = params
       ) do
-    with {_, {:ok, %User{} = user}} <- {:get_user, Authenticator.get_user(conn)},
-         %App{} = app <- get_app_from_request(conn, params),
-         {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
+    params =
+      params
+      |> Map.delete("name")
+      |> Map.put("username", name)
+
+    token_exchange(conn, params)
+  end
+
+  # Authenticate by username\login with otp token.
+  # Second step multi factor authentication
+  #
+  def token_exchange(conn, %{"grant_type" => "password", "otp_token" => _} = params) do
+    with {:ok, %User{} = user} <- Authenticator.get_user(conn),
+         {_, {:ok, _}} <- {:verify_mfa, TOTPAuthenticator.verify(conn, user)} do
+      token_exchange(conn, user, params)
+    else
+      {:verify_mfa, _res} ->
+        {:error, :verify_2fa_failded}
+
+      _error ->
+        {:error, :invalid_credentails}
+    end
+  end
+
+  # Authenticate by username\login
+  # and add 'required_otp' param to response if user enabled MFA.
+  #
+  def token_exchange(conn, %{"grant_type" => "password"} = params) do
+    with {:ok, %User{} = user} <- Authenticator.get_user(conn),
+         {_, false} <- {:mfa_required, User.mfa_required?(user)} do
+      token_exchange(conn, user, params)
+    else
+      {:mfa_required, true} ->
+        # 2FA enabled for the user and we need to go to 2fa step
+        json(conn, Map.merge(params, %{"required_otp" => true}))
+
+      _error ->
+        {:error, :invalid_credentails}
+    end
+  end
+
+  # Checks confirmed user and returns token
+  #
+  defp token_exchange(conn, %User{} = user, %{"grant_type" => "password"} = params) do
+    with {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
          {:user_active, true} <- {:user_active, !user.info.deactivated},
-         scopes <- oauth_scopes(params, app.scopes),
-         [] <- scopes -- app.scopes,
-         true <- Enum.any?(scopes),
+         %App{} = app <- get_app_from_request(conn, params),
+         {:ok, scopes} <- verify_user_scopes(app, params),
          {:ok, auth} <- Authorization.create_authorization(app, user, scopes),
          {:ok, token} <- Token.exchange_token(app, auth) do
-      response = %{
-        token_type: "Bearer",
-        access_token: token.token,
-        refresh_token: token.refresh_token,
-        expires_in: 60 * 10,
-        scope: Enum.join(token.scopes, " "),
-        me: user.ap_id
-      }
-
-      json(conn, response)
+      json(conn, build_response(user, token))
     else
       {:auth_active, false} ->
         # Per https://github.com/tootsuite/mastodon/blob/
@@ -182,21 +209,20 @@ defmodule Pleroma.Web.OAuth.OAuthController do
         |> json(%{error: "Your account is currently disabled"})
 
       _error ->
-        put_status(conn, 400)
-        |> json(%{error: "Invalid credentials"})
+        {:error, :invalid_credentails}
     end
   end
 
-  def token_exchange(
-        conn,
-        %{"grant_type" => "password", "name" => name, "password" => _password} = params
-      ) do
-    params =
-      params
-      |> Map.delete("name")
-      |> Map.put("username", name)
-
-    token_exchange(conn, params)
+  defp build_response(%User{} = user, token, opts \\ %{}) do
+    %{
+      token_type: "Bearer",
+      access_token: token.token,
+      refresh_token: token.refresh_token,
+      expires_in: 60 * 10,
+      scope: Enum.join(token.scopes, " "),
+      me: user.ap_id
+    }
+    |> Map.merge(opts)
   end
 
   def token_revoke(conn, %{"token" => token} = params) do
@@ -248,4 +274,18 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   defp redirect_uri(conn, "."), do: mastodon_api_url(conn, :login)
 
   defp redirect_uri(_conn, redirect_uri), do: redirect_uri
+
+  defp verify_user_scopes(app, params) do
+    with scopes <- oauth_scopes(params, app.scopes),
+         {:unsupported, []} <- {:unsupported, scopes -- app.scopes},
+         {:missing, true} <- {:missing, Enum.any?(scopes)} do
+      {:ok, scopes}
+    else
+      {scopes_issue, _} when scopes_issue in [:unsupported, :missing] ->
+        {:error, scopes_issue}
+
+      _ ->
+        {:error, :unverify}
+    end
+  end
 end

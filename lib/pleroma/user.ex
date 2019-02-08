@@ -18,6 +18,7 @@ defmodule Pleroma.User do
   alias Pleroma.Web
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Utils
+  alias Pleroma.Web.Auth.TOTP
   alias Pleroma.Web.CommonAPI.Utils, as: CommonUtils
   alias Pleroma.Web.OAuth
   alias Pleroma.Web.OStatus
@@ -54,6 +55,10 @@ defmodule Pleroma.User do
     field(:tags, {:array, :string}, default: [])
     field(:bookmarks, {:array, :string}, default: [])
     field(:last_refreshed_at, :naive_datetime_usec)
+    field(:otp_enabled, :boolean, default: false)
+    field(:otp_secret, :string)
+    field(:otp_backup_codes, {:array, :string}, default: [])
+
     has_many(:notifications, Notification)
     embeds_one(:info, Pleroma.User.Info)
 
@@ -498,6 +503,7 @@ defmodule Pleroma.User do
     get_cached_by_id(nickname_or_id) || get_cached_by_nickname(nickname_or_id)
   end
 
+  @spec get_by_nickname(String.t()) :: User.t() | nil
   def get_by_nickname(nickname) do
     Repo.get_by(User, nickname: nickname) ||
       if Regex.match?(~r(@#{Pleroma.Web.Endpoint.host()})i, nickname) do
@@ -1375,5 +1381,53 @@ defmodule Pleroma.User do
 
   def showing_reblogs?(%User{} = user, %User{} = target) do
     target.ap_id not in user.info.muted_reblogs
+  end
+
+  def mfa_required?(%User{otp_enabled: true} = _), do: true
+  def mfa_required?(_), do: false
+
+  @doc "Enable 2fa for account."
+  @spec enable_2fa(User.t()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def enable_2fa(%User{} = user) do
+    user
+    |> cast(%{otp_enabled: true}, [:otp_enabled])
+    |> Repo.update()
+  end
+
+  @doc "Disable 2fa for account."
+  @spec disable_2fa(User.t()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def disable_2fa(%User{} = user) do
+    user
+    |> cast(
+      %{otp_enabled: false, otp_backup_codes: [], otp_secret: nil},
+      [:otp_enabled, :otp_backup_codes, :otp_secret]
+    )
+    |> Repo.update()
+  end
+
+  @doc "Generates and set secret key for 2fa"
+  @spec set_2fa_secret(User.t()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def set_2fa_secret(%User{} = user) do
+    user
+    |> cast(%{otp_secret: TOTP.generate_secret()}, [:otp_secret])
+    |> Repo.update()
+  end
+
+  @doc "Updates backup codes for 2fa"
+  @spec update_2fa_backup_codes(User.t(), list(String.t())) ::
+          {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def update_2fa_backup_codes(%User{} = user, hashed_codes) do
+    user
+    |> cast(%{otp_backup_codes: hashed_codes}, [:otp_backup_codes])
+    |> Repo.update()
+  end
+
+  @doc "clears backup code of 2fa"
+  @spec invalidate_2fa_backup_code(User.t(), String.t()) ::
+          {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def invalidate_2fa_backup_code(%User{otp_backup_codes: hash_codes} = user, hash_code) do
+    user
+    |> cast(%{otp_backup_codes: hash_codes -- [hash_code]}, [:otp_backup_codes])
+    |> Repo.update()
   end
 end

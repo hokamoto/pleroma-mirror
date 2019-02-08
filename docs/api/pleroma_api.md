@@ -27,14 +27,14 @@ Request parameters can be passed via [query strings](https://en.wikipedia.org/wi
 * Method: `GET`
 * Authentication: not required
 * Params: none
-* Response: Provider specific JSON, the only guaranteed parameter is `type` 
+* Response: Provider specific JSON, the only guaranteed parameter is `type`
 * Example response: `{"type": "kocaptcha", "token": "whatever", "url": "https://captcha.kotobank.ch/endpoint"}`
 
 ## `/api/pleroma/delete_account`
 ### Delete an account
 * Method `POST`
 * Authentication: required
-* Params: 
+* Params:
     * `password`: user's password
 * Response: JSON. Returns `{"status": "success"}` if the deletion was successful, `{"error": "[error message]"}` otherwise
 * Example response: `{"error": "Invalid password."}`
@@ -90,6 +90,44 @@ Request parameters can be passed via [query strings](https://en.wikipedia.org/wi
 	"statusnet_blocking": false,
 	"statusnet_profile_url": "https://pleroma.soykaf.com/users/lain"
 }
+
+## `/api/pleroma/2fa/provisioning_uri`
+#### Generates secret key and uri to generate qrcode
+* method: `GET`
+* Authentication: required
+* Params: none
+* Response: JSON. Returns `{"status": "success", "provisioning_uri": [uri]})}`, `{"error": "[error message]"}` otherwise
+* Example response: `{"status": "success", "provisioning_uri": "otpauth://totp/test@example.com?digits=8&issuer=Plerome-42&period=60&secret=test-secrcet"}`
+
+
+## `/api/pleroma/2fa/enable`
+#### Enables 2FA support for user account.
+* method: `POST`
+* Authentication: required
+* Params:
+    * `password`: user's password
+    * `otp_token`: token from TOTP App
+* Response: JSON. Returns `{"status": "success"}` if the enable was successful, `{"error": "[error message]"}` otherwise
+* Example response: `{"error": "Invalid password."}`
+
+## `/api/pleroma/2fa/disable`
+####  Disables 2FA for user account.
+* method: `POST`
+* Authentication: required
+* Params:
+    * `password`: user's password
+* Response: JSON. Returns `{"status": "success"}` if the disable was successful, `{"error": "[error message]"}` otherwise
+* Example response: `{"error": "Invalid password."}`
+
+## `/api/pleroma/2fa/backup_codes`
+####  Generstes backup codes 2FA for user account.
+* method: `GET`
+* Authentication: required
+* Params:
+    * `password`: user's password
+* Response: JSON. Returns `{"status": "success", "codes": codes}`, `{"error": "[error message]"}` otherwise
+
+
 ```
 
 ## `/api/pleroma/admin/`…

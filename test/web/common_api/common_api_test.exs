@@ -167,7 +167,7 @@ defmodule Pleroma.Web.CommonAPITest do
 
       user = refresh_record(user)
 
-      assert %User{info: %{pinned_activities: []}} = user
+      assert user.info.pinned_activities == []
     end
 
     test "should unpin when deleting a status", %{user: user, activity: activity} do
@@ -179,7 +179,7 @@ defmodule Pleroma.Web.CommonAPITest do
 
       user = refresh_record(user)
 
-      assert %User{info: %{pinned_activities: []}} = user
+      assert user.info.pinned_activities == []
     end
   end
 

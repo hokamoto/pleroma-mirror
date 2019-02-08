@@ -4,6 +4,8 @@
 
 defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   use Pleroma.Web, :controller
+
+  alias Ecto.Changeset
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.Relay
   alias Pleroma.Web.AdminAPI.AccountView
@@ -18,11 +20,11 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   action_fallback(:errors)
 
   def user_delete(conn, %{"nickname" => nickname}) do
-    User.get_by_nickname(nickname)
+    nickname
+    |> User.get_by_nickname()
     |> User.delete()
 
-    conn
-    |> json(nickname)
+    json(conn, nickname)
   end
 
   def user_follow(conn, %{"follower" => follower_nick, "followed" => followed_nick}) do
@@ -61,8 +63,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     changeset = User.register_changeset(%User{}, user_data, confirmed: true)
     {:ok, user} = User.register(changeset)
 
-    conn
-    |> json(user.nickname)
+    json(conn, user.nickname)
   end
 
   def user_show(conn, %{"nickname" => nickname}) do
@@ -140,8 +141,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
     cng =
       user
-      |> Ecto.Changeset.change()
-      |> Ecto.Changeset.put_embed(:info, info_cng)
+      |> Changeset.change()
+      |> Changeset.put_embed(:info, info_cng)
 
     {:ok, _user} = User.update_and_set_cache(cng)
 
@@ -186,8 +187,9 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
       info_cng = User.Info.admin_api_update(user.info, info)
 
       cng =
-        Ecto.Changeset.change(user)
-        |> Ecto.Changeset.put_embed(:info, info_cng)
+        user
+        |> Changeset.change()
+        |> Changeset.put_embed(:info, info_cng)
 
       {:ok, _user} = User.update_and_set_cache(cng)
 
@@ -247,8 +249,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   def get_invite_token(conn, _params) do
     {:ok, token} = Pleroma.UserInviteToken.create_token()
 
-    conn
-    |> json(token.token)
+    json(conn, token.token)
   end
 
   @doc "Get a password reset token (base64 string) for given nickname"
@@ -256,8 +257,15 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     (%User{local: true} = user) = User.get_by_nickname(nickname)
     {:ok, token} = Pleroma.PasswordResetToken.create_token(user)
 
-    conn
-    |> json(token.token)
+    json(conn, token.token)
+  end
+
+  @doc "Disable 2fa for user's account."
+  def disable_2fa(conn, %{"nickname" => nickname}) do
+    with user = %User{} <- User.get_by_nickname(nickname),
+         do: User.disable_2fa(user)
+
+    json(conn, nickname)
   end
 
   def errors(conn, {:error, :not_found}) do

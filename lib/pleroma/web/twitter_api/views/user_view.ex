@@ -122,6 +122,13 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
     }
 
     data =
+      if for_user && for_user.id == user.id do
+        Map.put(data, "otp_enabled", user.otp_enabled)
+      else
+        data
+      end
+
+    data =
       if(user.info.is_admin || user.info.is_moderator,
         do: maybe_with_role(data, user, for_user),
         else: data
