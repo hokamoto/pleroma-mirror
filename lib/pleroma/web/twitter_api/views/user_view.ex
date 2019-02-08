@@ -8,6 +8,7 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
   alias Pleroma.Formatter
   alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.MediaProxy
+  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.HTML
 
   def render("show.json", %{user: user = %User{}} = assigns) do
@@ -74,11 +75,30 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
       |> Enum.filter(fn %{"type" => t} -> t == "PropertyValue" end)
       |> Enum.map(fn fields -> Map.take(fields, ["name", "value"]) end)
 
+    # fetch media count
+    params = %{
+      "only_media" => "1",
+      "user_id" => user.id
+    }
+
+    media_notes = ActivityPub.fetch_user_activities(user, user, params)
+
+    # fetch favorites count
+    params = %{
+      "type" => "Create",
+      "favorited_by" => user.ap_id,
+      "user_id" => user.id,
+      "blocking_user" => user
+    }
+
+    favorited_notes = ActivityPub.fetch_public_activities(params)
+
     data = %{
       "created_at" => user.inserted_at |> Utils.format_naive_asctime(),
       "description" => HTML.strip_tags((user.bio || "") |> String.replace("<br>", "\n")),
       "description_html" => HTML.filter_tags(user.bio, User.html_filter_policy(for_user)),
-      "favourites_count" => 0,
+      "favourites_count" => length(favorited_notes),
+      "media_count" => length(media_notes),
       "followers_count" => user_info[:follower_count],
       "following" => following,
       "follows_you" => follows_you,
