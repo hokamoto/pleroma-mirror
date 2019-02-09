@@ -14,9 +14,9 @@ Environment="MIX_ENV=prod"
 
 ; Make sure that all paths fit your installation.
 ; Path to the home directory of the user running the Pleroma service.
-Environment="HOME=/home/pleroma"
+Environment="HOME=/var/lib/pleroma"
 ; Path to the folder containing the Pleroma installation.
-WorkingDirectory=/home/pleroma/pleroma
+WorkingDirectory=/opt/pleroma
 ; Path to the Mix binary.
 ExecStart=/usr/bin/mix phx.server
 
