@@ -23,7 +23,7 @@ ExecStart=/usr/bin/mix phx.server
 ; Some security directives.
 ; Use private /tmp and /var/tmp folders inside a new file system namespace, which are discarded after the process stops.
 PrivateTmp=true
-; The /home, /root, and /run/user folders can not be accessed by this service anymore. If your Pleroma user has its home folder in one of the restricted places, or use one of these folders as your working directory, you have to set this to false.
+; The /home, /root, and /run/user folders can not be accessed by this service anymore. If your Pleroma user has its home folder in one of the restricted places, or use one of these folders as its working directory, you have to set this to false.
 ProtectHome=true
 ; Mount /usr, /boot, and /etc as read-only for processes invoked by this service.
 ProtectSystem=full
