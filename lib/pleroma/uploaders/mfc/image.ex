@@ -32,7 +32,7 @@ defmodule Pleroma.Uploaders.MFC.Image do
   @convert_path "/api/v1/images"
   @preview_suffix ".preview.jpg"
   @auto_orient true
-  @quality 94
+  @quality 85
   @resolution "2048x2048"
   @preview_resolution "800x800"
   @convert_method "resize"
