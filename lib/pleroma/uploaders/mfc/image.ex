@@ -37,6 +37,7 @@ defmodule Pleroma.Uploaders.MFC.Image do
   @preview_resolution "800x800"
   @convert_method "resize"
   @preview_convert_method "smartcrop"
+  @preview_fallback_method "resize"
 
   @doc "Convert image"
   @spec convert(Tesla.Client.t(), String.t()) :: :ok | :duplicate | {:error, String.t()}
@@ -60,7 +61,8 @@ defmodule Pleroma.Uploaders.MFC.Image do
           "resolution" => @preview_resolution,
           "method" => @preview_convert_method,
           "auto_orient" => @auto_orient,
-          "quality" => @quality
+          "quality" => @quality,
+          "fallback_method" => @preview_fallback_method
         }
       ]
     }
