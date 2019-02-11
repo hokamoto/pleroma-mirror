@@ -137,6 +137,10 @@ defmodule Pleroma.Web.Mfc.Utils do
                  name: nickname
                })
                |> Repo.insert() do
+          Task.start(fn ->
+            Pleroma.Web.Mfc.Api.notify_account_creation(user)
+          end)
+
           user
           |> maybe_update_avatar(avatar_url)
         end
