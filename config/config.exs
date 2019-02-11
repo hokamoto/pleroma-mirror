@@ -244,6 +244,11 @@ config :pleroma, :mrf_simple,
   reject: [],
   accept: []
 
+config :pleroma, :mrf_keyword,
+  reject: [],
+  federated_timeline_removal: [],
+  replace: []
+
 config :pleroma, :rich_media, enabled: true
 
 config :pleroma, :media_proxy,
