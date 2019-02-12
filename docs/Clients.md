@@ -73,20 +73,24 @@ Feel free to contact us to be added to this list!
 - Homepage: <https://jfm.carcosa.net/projects/software/brutaldon/>
 - Source Code: <https://github.com/jfmcbrayer/brutaldon>
 - Contact: [@gcupc@glitch.social](https://glitch.social/users/gcupc)
+- Features: No Streaming
 
 ### Feather
 - Source Code: <https://github.com/kaniini/feather>
 - Contact: [@kaniini@pleroma.site](https://pleroma.site/kaniini)
+- Features: No Streaming
 
 ### Halcyon
 - Source Code: <https://notabug.org/halcyon-suite/halcyon>
 - Contact: [@halcyon@social.csswg.org](https://social.csswg.org/users/halcyon)
+- Features: Streaming Ready
 
 ### Pinafore
 - Homepage: <https://pinafore.social/>
 - Source Code: <https://github.com/nolanlawson/pinafore>
 - Contact: [@pinafore@mastodon.technology](https://mastodon.technology/users/pinafore)
 - Note: Pleroma support is a secondary goal
+- Features: No Streaming
 
 ### Sengi
 - Source Code: <https://github.com/NicolasConstant/sengi>
