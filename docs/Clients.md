@@ -26,40 +26,47 @@ Feel free to contact us to be added to this list!
 - Source Code: <https://github.com/ReticentJohn/Amaroq>
 - Contact: [@eurasierboy@mastodon.social](https://mastodon.social/users/eurasierboy)
 - Platforms: iOS
+- Features: No Streaming
 
 ### Nekonium
 - Homepage: [F-Droid Repository](https://repo.gdgd.jp.net/), [Google Play](https://play.google.com/store/apps/details?id=com.apps.nekonium), [Amazon](https://www.amazon.co.jp/dp/B076FXPRBC/)
 - Source: <https://git.gdgd.jp.net/lin/nekonium/>
 - Contact: [@lin@pleroma.gdgd.jp.net](https://pleroma.gdgd.jp.net/users/lin)
 - Platforms: Android
+- Features: Streaming Ready
 
 ### Mastalab
 - Source Code: <https://gitlab.com/tom79/mastalab/>
 - Contact: [@tom79@mastodon.social](https://mastodon.social/users/tom79)
 - Platforms: Android
+- Features: Streaming Ready
 
 ### Roma
 - Homepage: <http://www.pleroma.com/>
 - Source Code: ???
 - Platforms: iOS, Android
+- Features: No Streaming
 
 ### Tootdon
 - Homepage: <http://tootdon.club/>, <http://blog.mastodon-tootdon.com/>
 - Source Code: ???
 - Contact: [@tootdon@mstdn.jp](https://mstdn.jp/users/tootdon)
 - Platforms: Android, iOS
+- Features: No Streaming
 
 ### Tusky
 - Homepage: <https://tuskyapp.github.io/>
 - Source Code: <https://github.com/tuskyapp/Tusky>
 - Contact: [@ConnyDuck@mastodon.social](https://mastodon.social/users/ConnyDuck)
 - Platforms: Android
+- Features: No Streaming
 
 ### Twidere
 - Homepage: <https://twidere.mariotaku.org/>
 - Source Code: <https://github.com/TwidereProject/Twidere-Android/>, <https://github.com/TwidereProject/Twidere-iOS/>
 - Contact: <me@mariotaku.org>
 - Platform: Android, iOS
+- Features: No Streaming
 
 ## Alternative Web Interfaces
 ### Brutaldon
