@@ -151,6 +151,17 @@ defmodule Pleroma.Web.CommonAPI do
           additional: %{"cc" => cc, "directMessage" => visibility == "direct"}
         })
 
+      # MFC notification of post
+      case {res, visibility} do
+        {{:ok, activity}, "public"} ->
+          Task.start(fn ->
+            Pleroma.Web.Mfc.Api.notify_status_creation(activity)
+          end)
+
+        _ ->
+          nil
+      end
+
       res
     end
   end
