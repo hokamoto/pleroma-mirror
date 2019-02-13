@@ -9,6 +9,13 @@ defmodule Pleroma.Web.RichMedia.Parser do
     Pleroma.Web.RichMedia.Parsers.OEmbed
   ]
 
+  @hackney_options [
+    pool: :media,
+    timeout: 2_000,
+    recv_timeout: 2_000,
+    max_body: 2_000_000
+  ]
+
   def parse(nil), do: {:error, "No URL provided"}
 
   if Mix.env() == :test do
@@ -28,7 +35,7 @@ defmodule Pleroma.Web.RichMedia.Parser do
 
   defp parse_url(url) do
     try do
-      {:ok, %Tesla.Env{body: html}} = Pleroma.HTTP.get(url, [], adapter: [pool: :media])
+      {:ok, %Tesla.Env{body: html}} = Pleroma.HTTP.get(url, [], adapter: @hackney_options)
 
       html |> maybe_parse() |> clean_parsed_data() |> check_parsed_data()
     rescue
@@ -54,22 +61,12 @@ defmodule Pleroma.Web.RichMedia.Parser do
     {:error, "Found metadata was invalid or incomplete: #{inspect(data)}"}
   end
 
-  defp string_is_valid_unicode(data) when is_binary(data) do
-    data
-    |> :unicode.characters_to_binary()
-    |> clean_string()
-  end
-
-  defp string_is_valid_unicode(data), do: {:ok, data}
-
-  defp clean_string({:error, _, _}), do: {:error, "Invalid data"}
-  defp clean_string(data), do: {:ok, data}
-
   defp clean_parsed_data(data) do
     data
-    |> Enum.reject(fn {_, val} ->
-      case string_is_valid_unicode(val) do
-        {:ok, _} -> false
+    |> Enum.reject(fn {key, val} ->
+      with {:ok, _} <- Jason.encode(%{key => val}) do
+        false
+      else
         _ -> true
       end
     end)

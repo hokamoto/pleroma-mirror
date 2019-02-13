@@ -5,12 +5,15 @@
 defmodule Pleroma.Web.ActivityPub.ActivityPubController do
   use Pleroma.Web, :controller
 
-  alias Pleroma.{Activity, User, Object}
-  alias Pleroma.Web.ActivityPub.{ObjectView, UserView}
+  alias Pleroma.Activity
+  alias Pleroma.User
+  alias Pleroma.Object
+  alias Pleroma.Web.ActivityPub.ObjectView
+  alias Pleroma.Web.ActivityPub.UserView
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Relay
-  alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.ActivityPub.Transmogrifier
+  alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.Federator
 
   require Logger
@@ -197,6 +200,14 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
       nil -> {:error, :not_found}
     end
   end
+
+  def whoami(%{assigns: %{user: %User{} = user}} = conn, _params) do
+    conn
+    |> put_resp_header("content-type", "application/activity+json")
+    |> json(UserView.render("user.json", %{user: user}))
+  end
+
+  def whoami(_conn, _params), do: {:error, :not_found}
 
   def read_inbox(%{assigns: %{user: user}} = conn, %{"nickname" => nickname} = params) do
     if nickname == user.nickname do

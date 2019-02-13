@@ -6,9 +6,9 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   @moduledoc """
   A module to handle coding from internal to wire ActivityPub and back.
   """
+  alias Pleroma.Activity
   alias Pleroma.User
   alias Pleroma.Object
-  alias Pleroma.Activity
   alias Pleroma.Repo
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Utils
@@ -312,6 +312,8 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     object
     |> Map.put("tag", combined)
   end
+
+  def fix_tag(%{"tag" => %{} = tag} = object), do: Map.put(object, "tag", [tag])
 
   def fix_tag(object), do: object
 

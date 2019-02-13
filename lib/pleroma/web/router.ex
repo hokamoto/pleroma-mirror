@@ -198,6 +198,8 @@ defmodule Pleroma.Web.Router do
     post("/statuses/:id/unpin", MastodonAPIController, :unpin_status)
     post("/statuses/:id/bookmark", MastodonAPIController, :bookmark_status)
     post("/statuses/:id/unbookmark", MastodonAPIController, :unbookmark_status)
+    post("/statuses/:id/mute", MastodonAPIController, :mute_conversation)
+    post("/statuses/:id/unmute", MastodonAPIController, :unmute_conversation)
 
     post("/notifications/clear", MastodonAPIController, :clear_notifications)
     post("/notifications/dismiss", MastodonAPIController, :dismiss_notification)
@@ -454,6 +456,7 @@ defmodule Pleroma.Web.Router do
   scope "/", Pleroma.Web.ActivityPub do
     pipe_through([:activitypub_client])
 
+    get("/api/ap/whoami", ActivityPubController, :whoami)
     get("/users/:nickname/inbox", ActivityPubController, :read_inbox)
     post("/users/:nickname/outbox", ActivityPubController, :update_outbox)
   end

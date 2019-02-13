@@ -9,10 +9,11 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   alias Pleroma.HTML
   alias Pleroma.Repo
   alias Pleroma.User
+  alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.CommonAPI.Utils
-  alias Pleroma.Web.MediaProxy
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MastodonAPI.StatusView
+  alias Pleroma.Web.MediaProxy
 
   # TODO: Add cached version.
   defp get_replied_to_activities(activities) do
@@ -160,7 +161,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       reblogged: present?(repeated),
       favourited: present?(favorited),
       bookmarked: present?(bookmarked),
-      muted: false,
+      muted: CommonAPI.thread_muted?(user, activity),
       pinned: pinned?(activity, user),
       sensitive: sensitive,
       spoiler_text: object["summary"] || "",
@@ -182,8 +183,25 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   end
 
   def render("card.json", %{rich_media: rich_media, page_url: page_url}) do
-    page_url = rich_media[:url] || page_url
     page_url_data = URI.parse(page_url)
+
+    page_url_data =
+      if rich_media[:url] != nil do
+        URI.merge(page_url_data, URI.parse(rich_media[:url]))
+      else
+        page_url_data
+      end
+
+    page_url = page_url_data |> to_string
+
+    image_url =
+      if rich_media[:image] != nil do
+        URI.merge(page_url_data, URI.parse(rich_media[:image]))
+        |> to_string
+      else
+        nil
+      end
+
     site_name = rich_media[:site_name] || page_url_data.host
 
     %{
@@ -191,7 +209,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       provider_name: site_name,
       provider_url: page_url_data.scheme <> "://" <> page_url_data.host,
       url: page_url,
-      image: rich_media[:image] |> MediaProxy.url(),
+      image: image_url |> MediaProxy.url(),
       title: rich_media[:title],
       description: rich_media[:description],
       pleroma: %{
