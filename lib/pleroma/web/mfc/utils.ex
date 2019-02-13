@@ -136,7 +136,7 @@ defmodule Pleroma.Web.Mfc.Utils do
                  mfc_id: mfc_id,
                  name: nickname
                })
-               |> Repo.insert() do
+               |> User.register() do
           user
           |> maybe_update_avatar(avatar_url)
         end
