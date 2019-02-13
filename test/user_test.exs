@@ -487,6 +487,22 @@ defmodule Pleroma.UserTest do
       assert Enum.member?(res, followed_two)
       refute Enum.member?(res, not_followed)
     end
+
+    test "gets all friends (followed users) for a given user without pagination" do
+      user = insert(:user)
+
+      for i <- 0..30, i > 0 do
+        followed = insert(:user)
+        {:ok, _} = User.follow(user, followed)
+      end
+
+      user = User.get_by_ap_id(user.ap_id)
+
+      {:ok, res_no_page} = User.get_friends(user, nil, true)
+      {:ok, res_page} = User.get_friends(user, 1)
+      assert Enum.count(res_no_page) == 30
+      assert Enum.count(res_page) == 20
+    end
   end
 
   describe "updating note and follower count" do
