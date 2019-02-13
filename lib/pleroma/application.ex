@@ -111,9 +111,7 @@ defmodule Pleroma.Application do
           worker(Pleroma.Web.Federator.RetryQueue, []),
           worker(Pleroma.Web.Federator, []),
           worker(Pleroma.Stats, []),
-          worker(Pleroma.Web.Push, []),
-          worker(Pleroma.MfcFollowerSync, []),
-          worker(Pleroma.MfcOnlineStateSync, [])
+          worker(Pleroma.Web.Push, [])
         ] ++
         streamer_child() ++
         chat_child() ++
@@ -121,7 +119,15 @@ defmodule Pleroma.Application do
           # Start the endpoint when the application starts
           supervisor(Pleroma.Web.Endpoint, []),
           worker(Pleroma.Gopher.Server, [])
-        ]
+        ] ++
+        if Pleroma.Config.get([:mfc, :enable_sync]) do
+          [
+            worker(Pleroma.MfcFollowerSync, []),
+            worker(Pleroma.MfcOnlineStateSync, [])
+          ]
+        else
+          []
+        end
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options
