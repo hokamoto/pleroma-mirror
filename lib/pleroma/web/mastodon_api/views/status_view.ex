@@ -9,11 +9,12 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   alias Pleroma.HTML
   alias Pleroma.Repo
   alias Pleroma.User
+  alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.CommonAPI.Utils
-  alias Pleroma.Web.MediaProxy
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MastodonAPI.StatusView
   alias Pleroma.Uploaders.Uploader
+  alias Pleroma.Web.MediaProxy
 
   # TODO: Add cached version.
   defp get_replied_to_activities(activities) do
@@ -166,7 +167,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       reblogged: present?(repeated),
       favourited: present?(favorited),
       bookmarked: present?(bookmarked),
-      muted: false,
+      muted: CommonAPI.thread_muted?(user, activity),
       pinned: pinned?(activity, user),
       sensitive: sensitive,
       spoiler_text: object["summary"] || "",

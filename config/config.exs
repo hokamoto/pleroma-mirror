@@ -244,6 +244,11 @@ config :pleroma, :mrf_simple,
   reject: [],
   accept: []
 
+config :pleroma, :mrf_keyword,
+  reject: [],
+  federated_timeline_removal: [],
+  replace: []
+
 config :pleroma, :rich_media, enabled: true
 
 config :pleroma, :media_proxy,
@@ -308,6 +313,7 @@ config :pleroma, :mfc,
   bookmarks_endpoint: "https://mfc/bookmarks",
   following_endpoint: "https://mfc/following",
   models_state_endpoint: "https://mfc/models_online",
+  enable_sync: false,
   client_version: "Pleroma",
   server_ip: "127.0.0.1",
   client_ip: "127.0.0.1",
