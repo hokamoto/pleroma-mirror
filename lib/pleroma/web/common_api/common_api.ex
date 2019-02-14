@@ -152,8 +152,8 @@ defmodule Pleroma.Web.CommonAPI do
         })
 
       # MFC notification of post
-      case {res, visibility} do
-        {{:ok, activity}, "public"} ->
+      case {res, visibility, Pleroma.Config.get([:mfc, :enable_sync])} do
+        {{:ok, activity}, "public", true} ->
           Task.start(fn ->
             Pleroma.Web.Mfc.Api.notify_status_creation(activity)
           end)
