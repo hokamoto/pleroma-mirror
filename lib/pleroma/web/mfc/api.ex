@@ -15,7 +15,7 @@ defmodule Pleroma.Web.Mfc.Api do
   def generate_hmac_data(time \\ nil, service_id \\ "2", client_ip \\ nil, secret \\ nil) do
     secret = secret || Pleroma.Config.get([:mfc, :share_hmac_secret])
     time = time || DateTime.utc_now() |> DateTime.to_unix() |> to_string()
-    client_ip = client_ip || Pleroma.Config.get([:mfc, :client_ip])
+    client_ip = client_ip || Pleroma.Config.get([:mfc, :server_ip])
 
     hashed_string = [client_ip, service_id, time] |> Enum.join()
 
