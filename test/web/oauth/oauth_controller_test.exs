@@ -8,7 +8,8 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
   alias Pleroma.Repo
   alias Pleroma.User
-  alias Pleroma.Web.OAuth.{Authorization, Token}
+  alias Pleroma.Web.OAuth.Authorization
+  alias Pleroma.Web.OAuth.Token
 
   import Mock
 
