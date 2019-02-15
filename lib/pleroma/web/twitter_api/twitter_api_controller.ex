@@ -20,6 +20,7 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   alias Pleroma.Notification
   alias Pleroma.Repo
   alias Pleroma.User
+  alias Pleroma.Web.MediaProxy
 
   require Logger
 
@@ -450,9 +451,16 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   end
 
   def update_avatar(%{assigns: %{user: user}} = conn, params) do
-    {:ok, object} = ActivityPub.upload(params, type: :avatar)
-    change = Changeset.change(user, %{avatar: object.data})
-    {:ok, user} = User.update_and_set_cache(change)
+    change =
+      if Map.has_key?(params, "img") do
+        {:ok, object} = ActivityPub.upload(params, type: :avatar)
+        %{avatar: object.data}
+      else
+        %{avatar: nil}
+      end
+
+    changeset = Changeset.change(user, change)
+    {:ok, user} = User.update_and_set_cache(changeset)
     CommonAPI.update(user)
 
     conn
@@ -461,32 +469,45 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   end
 
   def update_banner(%{assigns: %{user: user}} = conn, params) do
-    with {:ok, object} <- ActivityPub.upload(%{"img" => params["banner"]}, type: :banner),
-         new_info <- %{"banner" => object.data},
-         info_cng <- User.Info.profile_update(user.info, new_info),
-         changeset <- Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_cng),
-         {:ok, user} <- User.update_and_set_cache(changeset) do
-      CommonAPI.update(user)
-      %{"url" => [%{"href" => href} | _]} = object.data
-      response = %{url: href} |> Jason.encode!()
+    change =
+      if Map.has_key?(params, "banner") do
+        {:ok, object} = ActivityPub.upload(%{"img" => params["banner"]}, type: :banner)
+        %{"banner" => object.data}
+      else
+        %{"banner" => nil}
+      end
 
-      conn
-      |> json_reply(200, response)
-    end
+    info_cng = User.Info.profile_update(user.info, change)
+    changeset = Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_cng)
+    {:ok, user} = User.update_and_set_cache(changeset)
+    CommonAPI.update(user)
+
+    response = %{url: User.banner_url(user) |> MediaProxy.url()} |> Jason.encode!()
+
+    conn
+    |> json_reply(200, response)
   end
 
-  def update_background(%{assigns: %{user: user}} = conn, params) do
-    with {:ok, object} <- ActivityPub.upload(params, type: :background),
-         new_info <- %{"background" => object.data},
-         info_cng <- User.Info.profile_update(user.info, new_info),
-         changeset <- Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_cng),
-         {:ok, _user} <- User.update_and_set_cache(changeset) do
-      %{"url" => [%{"href" => href} | _]} = object.data
-      response = %{url: href} |> Jason.encode!()
+  defp image_url(%{"url" => [%{"href" => href} | _]}), do: href
+  defp image_url(_), do: nil
 
-      conn
-      |> json_reply(200, response)
-    end
+  def update_background(%{assigns: %{user: user}} = conn, params) do
+    change =
+      if Map.has_key?(params, "img") do
+        {:ok, object} = ActivityPub.upload(params, type: :background)
+        %{"background" => object.data}
+      else
+        %{"background" => nil}
+      end
+
+    info_cng = User.Info.profile_update(user.info, change)
+    changeset = Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_cng)
+    {:ok, _user} = User.update_and_set_cache(changeset)
+
+    response = %{url: image_url(change["background"]) |> MediaProxy.url()} |> Jason.encode!()
+
+    conn
+    |> json_reply(200, response)
   end
 
   def external_profile(%{assigns: %{user: current_user}} = conn, %{"profileurl" => uri}) do

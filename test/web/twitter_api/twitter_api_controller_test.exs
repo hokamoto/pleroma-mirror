@@ -31,6 +31,18 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
       user = refresh_record(user)
       assert user.info.banner["type"] == "Image"
     end
+
+    test "without banner param, it resets the banner", %{conn: conn} do
+      user = insert(:user)
+
+      conn
+      |> assign(:user, user)
+      |> post(authenticated_twitter_api__path(conn, :update_banner), %{})
+      |> json_response(200)
+
+      user = refresh_record(user)
+      assert user.info.banner == nil
+    end
   end
 
   describe "POST /api/qvitter/update_background_image" do
@@ -44,6 +56,18 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
 
       user = refresh_record(user)
       assert user.info.background["type"] == "Image"
+    end
+
+    test "without img param, it resets the background", %{conn: conn} do
+      user = insert(:user)
+
+      conn
+      |> assign(:user, user)
+      |> post(authenticated_twitter_api__path(conn, :update_background), %{})
+      |> json_response(200)
+
+      user = refresh_record(user)
+      assert user.info.background == nil
     end
   end
 
@@ -744,6 +768,15 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
 
       assert json_response(conn, 200) ==
                UserView.render("show.json", %{user: current_user, for: current_user})
+    end
+
+    test "without img param, it resets the avatar", %{conn: conn, user: current_user} do
+      conn
+      |> with_credentials(current_user.nickname, "test")
+      |> post("/api/qvitter/update_avatar.json", %{})
+
+      current_user = Repo.get(User, current_user.id)
+      assert current_user.avatar == nil
     end
   end
 
