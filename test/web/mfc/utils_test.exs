@@ -43,7 +43,7 @@ defmodule Pleroma.Web.Mfc.UtilsTest do
       friends_url = "#{Pleroma.Config.get([:mfc, :friends_endpoint])}/1"
       twitter_friends_url = "#{Pleroma.Config.get([:mfc, :twitter_friends_endpoint])}/1"
       bookmarks_url = "#{Pleroma.Config.get([:mfc, :bookmarks_endpoint])}/1"
-      following_url = "#{Pleroma.Config.get([:mfc, :following_endpoint])}&user_id=1"
+      following_url = "#{Pleroma.Config.get([:mfc, :following_endpoint_v2])}"
 
       Tesla.Mock.mock(fn
         %{url: ^twitter_friends_url} ->
@@ -99,7 +99,7 @@ defmodule Pleroma.Web.Mfc.UtilsTest do
       friends_url = "#{Pleroma.Config.get([:mfc, :friends_endpoint])}/1"
       twitter_friends_url = "#{Pleroma.Config.get([:mfc, :twitter_friends_endpoint])}/1"
       bookmarks_url = "#{Pleroma.Config.get([:mfc, :bookmarks_endpoint])}/1"
-      following_url = "#{Pleroma.Config.get([:mfc, :following_endpoint])}&user_id=1"
+      following_url = "#{Pleroma.Config.get([:mfc, :following_endpoint_v2])}"
 
       Tesla.Mock.mock(fn
         %{url: ^twitter_friends_url} ->
