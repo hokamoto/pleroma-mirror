@@ -4,8 +4,6 @@ defmodule Mix.Tasks.Mfc.PushAccountsToShare do
 
   import Ecto.Query
 
-  require Logger
-
   def run([]) do
     Common.start_pleroma()
 
@@ -15,12 +13,19 @@ defmodule Mix.Tasks.Mfc.PushAccountsToShare do
         where: not is_nil(u.nickname)
       )
 
-    q
-    |> Pleroma.Repo.all()
+    users =
+      q
+      |> Pleroma.Repo.all()
+
+    IO.inspect("Pushing #{length(users)} users")
+
+    users
     |> Enum.each(fn user ->
-      Logger.info("Pushing #{user.nickname}, mfc id #{user.mfc_id}")
+      IO.inspect("Pushing #{user.nickname}, mfc id #{user.mfc_id}")
       res = Pleroma.Web.Mfc.Api.notify_account_creation(user)
-      Logger.info("Result: #{inspect(res)}")
+      IO.inspect("Result: #{inspect(res)}")
+      IO.inspect("waiting a second")
+      :timer.sleep(1000)
     end)
   end
 end
