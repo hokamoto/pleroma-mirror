@@ -474,7 +474,7 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
         {:ok, object} = ActivityPub.upload(%{"img" => params["banner"]}, type: :banner)
         %{"banner" => object.data}
       else
-        %{"banner" => nil}
+        %{"banner" => %{}}
       end
 
     info_cng = User.Info.profile_update(user.info, change)
@@ -497,7 +497,7 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
         {:ok, object} = ActivityPub.upload(params, type: :background)
         %{"background" => object.data}
       else
-        %{"background" => nil}
+        %{"background" => %{}}
       end
 
     info_cng = User.Info.profile_update(user.info, change)

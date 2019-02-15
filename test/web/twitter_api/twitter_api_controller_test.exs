@@ -41,7 +41,7 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
       |> json_response(200)
 
       user = refresh_record(user)
-      assert user.info.banner == nil
+      assert user.info.banner == %{}
     end
   end
 
@@ -67,7 +67,7 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
       |> json_response(200)
 
       user = refresh_record(user)
-      assert user.info.background == nil
+      assert user.info.background == %{}
     end
   end
 

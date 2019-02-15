@@ -103,6 +103,9 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "hide_follows" => false,
       "hide_followers" => false,
       "fields" => [],
+      "is_default_avatar" => true,
+      "is_default_banner" => true,
+      "is_default_background" => true,
       "pleroma" => %{
         "confirmation_pending" => false,
         "tags" => []
@@ -151,6 +154,9 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "hide_follows" => false,
       "hide_followers" => false,
       "fields" => [],
+      "is_default_avatar" => true,
+      "is_default_banner" => true,
+      "is_default_background" => true,
       "pleroma" => %{
         "confirmation_pending" => false,
         "tags" => []
@@ -200,6 +206,9 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "hide_follows" => false,
       "hide_followers" => false,
       "fields" => [],
+      "is_default_avatar" => true,
+      "is_default_banner" => true,
+      "is_default_background" => true,
       "pleroma" => %{
         "confirmation_pending" => false,
         "tags" => []
@@ -279,6 +288,9 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "hide_follows" => false,
       "hide_followers" => false,
       "fields" => [],
+      "is_default_avatar" => true,
+      "is_default_banner" => true,
+      "is_default_background" => true,
       "pleroma" => %{
         "confirmation_pending" => false,
         "tags" => []

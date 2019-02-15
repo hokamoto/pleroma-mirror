@@ -111,7 +111,9 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
       "hide_followers" => user.info.hide_followers,
       "hide_follows" => user.info.hide_follows,
       "fields" => fields,
-
+      "is_default_avatar" => user.avatar == nil,
+      "is_default_banner" => user.info.banner == %{},
+      "is_default_background" => user.info.background == %{},
       # Pleroma extension
       "pleroma" => %{
         "confirmation_pending" => user_info.confirmation_pending,
