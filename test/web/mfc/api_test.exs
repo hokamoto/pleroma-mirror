@@ -18,9 +18,25 @@ defmodule Pleroma.Web.Mfc.ApiTest do
       %Tesla.Env{status: 200}
     end)
 
-    Api.authenticated_request(:get, url, data)
+    Api.authenticated_request(:post, url, data)
 
     assert_received(:called_api)
+  end
+
+  test "it fetches the users another user is following" do
+    body =
+      "{\"err\":0,\"data\":[{\"id\":372,\"nick\":\"Tenshi\",\"access_level\":1},{\"id\":18062,\"nick\":\"CornDogLover\",\"access_level\":1}]}"
+
+    url = Pleroma.Config.get([:mfc, :following_endpoint_v2])
+
+    Tesla.Mock.mock(fn %{url: ^url} ->
+      %Tesla.Env{status: 200, body: body}
+    end)
+
+    user_ids = Api.get_following_for_mfc_id("123")
+
+    assert "18062" in user_ids
+    assert "372" in user_ids
   end
 
   test "it calls the account creation endpoint" do

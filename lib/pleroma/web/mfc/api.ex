@@ -9,7 +9,10 @@ defmodule Pleroma.Web.Mfc.Api do
       data
       |> Map.merge(hmac_data)
 
-    request(method: method, url: url, body: data)
+    case method do
+      :get -> request(method: method, url: url, query: data)
+      _ -> request(method: method, url: url, body: data)
+    end
   end
 
   def generate_hmac_data(time \\ nil, service_id \\ "2", client_ip \\ nil, secret \\ nil) do
@@ -54,5 +57,17 @@ defmodule Pleroma.Web.Mfc.Api do
       last_post_id: activity.id,
       last_post_url: activity.data["object"]["id"]
     })
+  end
+
+  def get_following_for_mfc_id(id) do
+    url = Pleroma.Config.get([:mfc, :following_endpoint_v2])
+
+    with {:ok, %{status: 200, body: body}} <- authenticated_request(:get, url, %{user_id: id}),
+         {:ok, %{"data" => data}} <- Jason.decode(body) do
+      data
+      |> Enum.map(fn %{"id" => id} -> to_string(id) end)
+    else
+      _ -> []
+    end
   end
 end
