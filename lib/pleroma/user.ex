@@ -261,6 +261,7 @@ defmodule Pleroma.User do
   def register(%Ecto.Changeset{} = changeset) do
     with {:ok, user} <- Repo.insert(changeset),
          {:ok, user} <- autofollow_users(user),
+         {:ok, _} <- Pleroma.User.WelcomeMessage.post_welcome_message_to_user(user),
          {:ok, _} <- try_send_confirmation_email(user) do
       {:ok, user}
     end
@@ -616,6 +617,32 @@ defmodule Pleroma.User do
           ^%{"object" => user.ap_id}
         )
     )
+  end
+
+  def update_follow_request_count(%User{} = user) do
+    subquery =
+      user
+      |> User.get_follow_requests_query()
+      |> select([a], %{count: count(a.id)})
+
+    User
+    |> where(id: ^user.id)
+    |> join(:inner, [u], s in subquery(subquery))
+    |> update([u, s],
+      set: [
+        info:
+          fragment(
+            "jsonb_set(?, '{follow_request_count}', ?::varchar::jsonb, true)",
+            u.info,
+            s.count
+          )
+      ]
+    )
+    |> Repo.update_all([], returning: true)
+    |> case do
+      {1, [user]} -> {:ok, user}
+      _ -> {:error, user}
+    end
   end
 
   def get_follow_requests(%User{} = user) do
