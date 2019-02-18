@@ -133,6 +133,69 @@ defmodule Pleroma.Web.Mfc.UtilsTest do
 
       assert User.following?(user, friend_user)
     end
+
+    test "it works with `since` parameter" do
+      user = insert(:user, %{mfc_id: "1"})
+      friend_user = insert(:user, %{mfc_id: "2"})
+      bookmark_user = insert(:user, %{mfc_id: "3"})
+      following_user = insert(:user, %{mfc_id: "4"})
+      non_followed_user = insert(:user, %{mfc_id: "5"})
+      twitter_friend_user = insert(:user, %{mfc_id: "6"})
+
+      friends_url = "#{Pleroma.Config.get([:mfc, :friends_endpoint])}/1"
+      twitter_friends_url = "#{Pleroma.Config.get([:mfc, :twitter_friends_endpoint])}/1"
+      bookmarks_url = "#{Pleroma.Config.get([:mfc, :bookmarks_endpoint])}/1"
+      following_url = "#{Pleroma.Config.get([:mfc, :following_endpoint_v2])}"
+
+      time =
+        DateTime.utc_now()
+        |> DateTime.to_unix()
+        |> to_string()
+
+      Tesla.Mock.mock(fn
+        %{url: ^twitter_friends_url} = req ->
+          assert req.query.since
+
+          %Tesla.Env{
+            status: 200,
+            body: Jason.encode!(%{err: 0, data: [%{following_id: 6}]})
+          }
+
+        %{url: ^friends_url} = req ->
+          assert req.query.since
+
+          %Tesla.Env{
+            status: 200,
+            body: Jason.encode!(%{err: 0, data: [%{id: 2}]})
+          }
+
+        %{url: ^bookmarks_url} = req ->
+          assert req.query.since
+
+          %Tesla.Env{
+            status: 200,
+            body: Jason.encode!(%{err: 0, data: [%{id: 3}]})
+          }
+
+        %{url: ^following_url} = req ->
+          assert req.query.since
+
+          %Tesla.Env{
+            status: 200,
+            body: Jason.encode!(%{err: 0, data: [%{id: 4}]})
+          }
+      end)
+
+      Utils.sync_follows(user, %{since: time})
+
+      user = Repo.get(User, user.id)
+
+      assert User.following?(user, friend_user)
+      assert User.following?(user, twitter_friend_user)
+      assert User.following?(user, bookmark_user)
+      assert User.following?(user, following_user)
+      refute User.following?(user, non_followed_user)
+    end
   end
 
   describe "avatar updating" do

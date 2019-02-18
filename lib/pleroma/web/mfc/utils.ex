@@ -83,8 +83,8 @@ defmodule Pleroma.Web.Mfc.Utils do
     end
   end
 
-  defp get_ids_for_url(url) do
-    with {:ok, %{status: 200, body: body}} <- Tesla.get(url),
+  defp get_ids_for_url(url, params) do
+    with {:ok, %{status: 200, body: body}} <- Tesla.get(url, query: params),
          ids <- get_ids_from_body(body) do
       ids
     else
@@ -92,13 +92,19 @@ defmodule Pleroma.Web.Mfc.Utils do
     end
   end
 
-  def sync_follows(%{mfc_id: mfc_id, info: %{mfc_follower_sync: true}} = user) do
-    with friends <- get_ids_for_url("#{Pleroma.Config.get([:mfc, :friends_endpoint])}/#{mfc_id}"),
+  def sync_follows(user, params \\ %{})
+
+  def sync_follows(%{mfc_id: mfc_id, info: %{mfc_follower_sync: true}} = user, params) do
+    with friends <-
+           get_ids_for_url("#{Pleroma.Config.get([:mfc, :friends_endpoint])}/#{mfc_id}", params),
          bookmarks <-
-           get_ids_for_url("#{Pleroma.Config.get([:mfc, :bookmarks_endpoint])}/#{mfc_id}"),
+           get_ids_for_url("#{Pleroma.Config.get([:mfc, :bookmarks_endpoint])}/#{mfc_id}", params),
          twitter_friends <-
-           get_ids_for_url("#{Pleroma.Config.get([:mfc, :twitter_friends_endpoint])}/#{mfc_id}"),
-         following <- Api.get_following_for_mfc_id(mfc_id),
+           get_ids_for_url(
+             "#{Pleroma.Config.get([:mfc, :twitter_friends_endpoint])}/#{mfc_id}",
+             params
+           ),
+         following <- Api.get_following_for_mfc_id(mfc_id, params),
          candidates <- Enum.uniq(friends ++ bookmarks ++ following ++ twitter_friends) do
       query =
         from(u in User,
@@ -114,7 +120,7 @@ defmodule Pleroma.Web.Mfc.Utils do
     end
   end
 
-  def sync_follows(user), do: user
+  def sync_follows(user, _params), do: user
 
   def tags_for_level(2), do: ["mfc_premium_member"]
   def tags_for_level(4), do: ["mfc_model"]
