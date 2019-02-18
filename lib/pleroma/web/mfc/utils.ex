@@ -144,6 +144,10 @@ defmodule Pleroma.Web.Mfc.Utils do
                })
                |> User.register() do
           Task.start(fn ->
+            Pleroma.Web.Mfc.Utils.sync_follows(user)
+          end)
+
+          Task.start(fn ->
             Pleroma.Web.Mfc.Api.notify_account_creation(user)
           end)
 
