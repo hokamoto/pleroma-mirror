@@ -12,6 +12,7 @@ defmodule Pleroma.User.Info do
     field(:source_data, :map, default: %{})
     field(:note_count, :integer, default: 0)
     field(:follower_count, :integer, default: 0)
+    field(:follow_request_count, :integer, default: 0)
     field(:locked, :boolean, default: false)
     field(:confirmation_pending, :boolean, default: false)
     field(:confirmation_token, :string, default: nil)
@@ -36,6 +37,7 @@ defmodule Pleroma.User.Info do
     field(:pinned_activities, {:array, :string}, default: [])
     field(:mfc_follower_sync, :boolean, default: true)
     field(:mfc_model_online, :boolean, default: false)
+    field(:flavour, :string, default: nil)
 
     # Found in the wild
     # ap_id -> Where is this used?
@@ -187,6 +189,14 @@ defmodule Pleroma.User.Info do
     info
     |> cast(params, [:settings])
     |> validate_required([:settings])
+  end
+
+  def mastodon_flavour_update(info, flavour) do
+    params = %{flavour: flavour}
+
+    info
+    |> cast(params, [:flavour])
+    |> validate_required([:flavour])
   end
 
   def set_source_data(info, source_data) do
