@@ -36,7 +36,7 @@ defmodule Pleroma.Uploaders.MFC.Video do
       "source_key" => path,
       "dest_key" => Path.rootname(path) <> @video_ext,
       "still_key" => build_preview_url(Path.rootname(path) <> @video_ext),
-      "still_seek_time" => 0
+      "still_seek_percentage" => 50
     }
 
     case Client.post(client, @convert_path, data) do
