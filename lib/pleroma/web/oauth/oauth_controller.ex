@@ -60,7 +60,6 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          {_, user} <-
            {:user_tag,
             User.tag(user, Pleroma.Web.Mfc.Utils.tags_for_level(user_data["access_level"]))},
-         {_, user} <- {:user_follow_sync, Pleroma.Web.Mfc.Utils.sync_follows(user)},
          %App{} = app <- Repo.get_by(App, client_id: client_id),
          true <- redirect_uri in String.split(app.redirect_uris),
          {:ok, auth} <- Authorization.create_authorization(app, user) do
