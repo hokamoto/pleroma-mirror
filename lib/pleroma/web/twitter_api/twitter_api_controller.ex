@@ -486,7 +486,12 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
     {:ok, user} = User.update_and_set_cache(changeset)
     CommonAPI.update(user)
 
-    response = %{url: User.banner_url(user) |> MediaProxy.url()} |> Jason.encode!()
+    response =
+      %{
+        url: User.banner_url(user) |> MediaProxy.url(),
+        is_default_banner: change["banner"] == %{}
+      }
+      |> Jason.encode!()
 
     conn
     |> json_reply(200, response)
@@ -508,7 +513,12 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
     changeset = Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_cng)
     {:ok, _user} = User.update_and_set_cache(changeset)
 
-    response = %{url: image_url(change["background"]) |> MediaProxy.url()} |> Jason.encode!()
+    response =
+      %{
+        url: image_url(change["background"]) |> MediaProxy.url(),
+        is_default_background: change["background"] == %{}
+      }
+      |> Jason.encode!()
 
     conn
     |> json_reply(200, response)
