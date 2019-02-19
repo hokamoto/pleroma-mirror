@@ -115,17 +115,18 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
       "fields" => fields,
 
       # Pleroma extension
-      "pleroma" => %{
-        "confirmation_pending" => user_info.confirmation_pending,
-        "tags" => user.tags
-      },
+      "pleroma" =>
+        %{
+          "confirmation_pending" => user_info.confirmation_pending,
+          "tags" => user.tags
+        }
+        |> maybe_with_follow_request_count(user, for_user),
 
       # MFC fields
       "mfc" => %{
         "mfc_follower_sync" => user.info.mfc_follower_sync,
         "mfc_model_online" => user.info.mfc_model_online
       }
-      |> maybe_with_follow_request_count(user, for_user)
     }
 
     data =
