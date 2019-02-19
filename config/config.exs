@@ -341,7 +341,8 @@ config :pleroma, Pleroma.Web.Federator.RetryQueue,
 
 config :pleroma, Pleroma.Jobs,
   federator_incoming: [max_jobs: 50],
-  federator_outgoing: [max_jobs: 50]
+  federator_outgoing: [max_jobs: 50],
+  mailer: [max_jobs: 10]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
