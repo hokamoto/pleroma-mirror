@@ -8,9 +8,9 @@
     "colors": {
       "bg": "#fcfcfc",
       "text": "#333333",
-      "link": "#006900",
+      "link": "#3b7d22",
       "fg": "#f4f4f4",
-      "topBarText": "#006900",
+      "topBarText": "#3b7d22",
       "cRed": "#e0245e",
       "cBlue": "#1b95e0",
       "cGreen": "#008000",
