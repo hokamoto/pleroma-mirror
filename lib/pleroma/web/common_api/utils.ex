@@ -5,12 +5,15 @@
 defmodule Pleroma.Web.CommonAPI.Utils do
   alias Calendar.Strftime
   alias Comeonin.Pbkdf2
-  alias Pleroma.{Activity, Formatter, Object, Repo}
+  alias Pleroma.Activity
+  alias Pleroma.Formatter
+  alias Pleroma.Object
+  alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web
-  alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.Endpoint
   alias Pleroma.Web.MediaProxy
+  alias Pleroma.Web.ActivityPub.Utils
 
   # This is a hack for twidere.
   def get_by_id_or_ap_id(id) do
@@ -32,9 +35,25 @@ defmodule Pleroma.Web.CommonAPI.Utils do
 
   def get_replied_to_activity(_), do: nil
 
-  def attachments_from_ids(ids) do
+  def attachments_from_ids(data) do
+    if Map.has_key?(data, "descriptions") do
+      attachments_from_ids_descs(data["media_ids"], data["descriptions"])
+    else
+      attachments_from_ids_no_descs(data["media_ids"])
+    end
+  end
+
+  def attachments_from_ids_no_descs(ids) do
     Enum.map(ids || [], fn media_id ->
       Repo.get(Object, media_id).data
+    end)
+  end
+
+  def attachments_from_ids_descs(ids, descs_str) do
+    {_, descs} = Jason.decode(descs_str)
+
+    Enum.map(ids || [], fn media_id ->
+      Map.put(Repo.get(Object, media_id).data, "name", descs[media_id])
     end)
   end
 
@@ -95,7 +114,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   def make_context(%Activity{data: %{"context" => context}}), do: context
   def make_context(_), do: Utils.generate_context_id()
 
-  def maybe_add_attachments(text, _attachments, _no_links = true), do: text
+  def maybe_add_attachments(text, _attachments, true = _no_links), do: text
 
   def maybe_add_attachments(text, attachments, _no_links) do
     add_attachments(text, attachments)
@@ -261,6 +280,48 @@ defmodule Pleroma.Web.CommonAPI.Utils do
       }
     end)
   end
+
+  def maybe_notify_to_recipients(
+        recipients,
+        %Activity{data: %{"to" => to, "type" => _type}} = _activity
+      ) do
+    recipients ++ to
+  end
+
+  def maybe_notify_mentioned_recipients(
+        recipients,
+        %Activity{data: %{"to" => _to, "type" => type} = data} = _activity
+      )
+      when type == "Create" do
+    object = Object.normalize(data["object"])
+
+    object_data =
+      cond do
+        !is_nil(object) ->
+          object.data
+
+        is_map(data["object"]) ->
+          data["object"]
+
+        true ->
+          %{}
+      end
+
+    tagged_mentions = maybe_extract_mentions(object_data)
+
+    recipients ++ tagged_mentions
+  end
+
+  def maybe_notify_mentioned_recipients(recipients, _), do: recipients
+
+  def maybe_extract_mentions(%{"tag" => tag}) do
+    tag
+    |> Enum.filter(fn x -> is_map(x) end)
+    |> Enum.filter(fn x -> x["type"] == "Mention" end)
+    |> Enum.map(fn x -> x["href"] end)
+  end
+
+  def maybe_extract_mentions(_), do: []
 
   def make_report_content_html(nil), do: {:ok, nil}
 

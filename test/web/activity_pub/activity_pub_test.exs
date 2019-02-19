@@ -7,11 +7,15 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.CommonAPI
-  alias Pleroma.{Activity, Object, User}
+  alias Pleroma.Activity
+  alias Pleroma.Object
+  alias Pleroma.User
+  alias Pleroma.Instances
   alias Pleroma.Builders.ActivityBuilder
 
   import Pleroma.Factory
   import Tesla.Mock
+  import Mock
 
   setup do
     mock(fn env -> apply(HttpRequestMock, :request, [env]) end)
@@ -64,6 +68,34 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       assert user.info.ap_enabled
       assert user.follower_address == "http://mastodon.example.org/users/admin/followers"
     end
+
+    test "it fetches the appropriate tag-restricted posts" do
+      user = insert(:user)
+
+      {:ok, status_one} = CommonAPI.post(user, %{"status" => ". #test"})
+      {:ok, status_two} = CommonAPI.post(user, %{"status" => ". #essais"})
+      {:ok, status_three} = CommonAPI.post(user, %{"status" => ". #test #reject"})
+
+      fetch_one = ActivityPub.fetch_activities([], %{"tag" => "test"})
+      fetch_two = ActivityPub.fetch_activities([], %{"tag" => ["test", "essais"]})
+
+      fetch_three =
+        ActivityPub.fetch_activities([], %{
+          "tag" => ["test", "essais"],
+          "tag_reject" => ["reject"]
+        })
+
+      fetch_four =
+        ActivityPub.fetch_activities([], %{
+          "tag" => ["test"],
+          "tag_all" => ["test", "reject"]
+        })
+
+      assert fetch_one == [status_one, status_three]
+      assert fetch_two == [status_one, status_two, status_three]
+      assert fetch_three == [status_one, status_two]
+      assert fetch_four == [status_three]
+    end
   end
 
   describe "insertion" do
@@ -83,6 +115,17 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       }
 
       assert {:error, {:remote_limit_error, _}} = ActivityPub.insert(data)
+    end
+
+    test "doesn't drop activities with content being null" do
+      data = %{
+        "ok" => true,
+        "object" => %{
+          "content" => nil
+        }
+      }
+
+      assert {:ok, _} = ActivityPub.insert(data)
     end
 
     test "returns the activity if one with the same id is already in" do
@@ -160,7 +203,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
 
       assert activity.data["to"] == ["user1", "user2"]
       assert activity.actor == user.ap_id
-      assert activity.recipients == ["user1", "user2"]
+      assert activity.recipients == ["user1", "user2", user.ap_id]
     end
   end
 
@@ -584,8 +627,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
           "in_reply_to_status_id" => private_activity_2.id
         })
 
-      assert user1.following == [user3.ap_id <> "/followers", user1.ap_id]
-
       activities = ActivityPub.fetch_activities([user1.ap_id | user1.following])
 
       assert [public_activity, private_activity_1, private_activity_3] == activities
@@ -688,6 +729,115 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
                "object" => [^target_ap_id, ^activity_ap_id]
              }
            } = activity
+  end
+
+  describe "publish_one/1" do
+    test_with_mock "calls `Instances.set_reachable` on successful federation if `unreachable_since` is not specified",
+                   Instances,
+                   [:passthrough],
+                   [] do
+      actor = insert(:user)
+      inbox = "http://200.site/users/nick1/inbox"
+
+      assert {:ok, _} = ActivityPub.publish_one(%{inbox: inbox, json: "{}", actor: actor, id: 1})
+
+      assert called(Instances.set_reachable(inbox))
+    end
+
+    test_with_mock "calls `Instances.set_reachable` on successful federation if `unreachable_since` is set",
+                   Instances,
+                   [:passthrough],
+                   [] do
+      actor = insert(:user)
+      inbox = "http://200.site/users/nick1/inbox"
+
+      assert {:ok, _} =
+               ActivityPub.publish_one(%{
+                 inbox: inbox,
+                 json: "{}",
+                 actor: actor,
+                 id: 1,
+                 unreachable_since: NaiveDateTime.utc_now()
+               })
+
+      assert called(Instances.set_reachable(inbox))
+    end
+
+    test_with_mock "does NOT call `Instances.set_reachable` on successful federation if `unreachable_since` is nil",
+                   Instances,
+                   [:passthrough],
+                   [] do
+      actor = insert(:user)
+      inbox = "http://200.site/users/nick1/inbox"
+
+      assert {:ok, _} =
+               ActivityPub.publish_one(%{
+                 inbox: inbox,
+                 json: "{}",
+                 actor: actor,
+                 id: 1,
+                 unreachable_since: nil
+               })
+
+      refute called(Instances.set_reachable(inbox))
+    end
+
+    test_with_mock "calls `Instances.set_unreachable` on target inbox on non-2xx HTTP response code",
+                   Instances,
+                   [:passthrough],
+                   [] do
+      actor = insert(:user)
+      inbox = "http://404.site/users/nick1/inbox"
+
+      assert {:error, _} =
+               ActivityPub.publish_one(%{inbox: inbox, json: "{}", actor: actor, id: 1})
+
+      assert called(Instances.set_unreachable(inbox))
+    end
+
+    test_with_mock "it calls `Instances.set_unreachable` on target inbox on request error of any kind",
+                   Instances,
+                   [:passthrough],
+                   [] do
+      actor = insert(:user)
+      inbox = "http://connrefused.site/users/nick1/inbox"
+
+      assert {:error, _} =
+               ActivityPub.publish_one(%{inbox: inbox, json: "{}", actor: actor, id: 1})
+
+      assert called(Instances.set_unreachable(inbox))
+    end
+
+    test_with_mock "does NOT call `Instances.set_unreachable` if target is reachable",
+                   Instances,
+                   [:passthrough],
+                   [] do
+      actor = insert(:user)
+      inbox = "http://200.site/users/nick1/inbox"
+
+      assert {:ok, _} = ActivityPub.publish_one(%{inbox: inbox, json: "{}", actor: actor, id: 1})
+
+      refute called(Instances.set_unreachable(inbox))
+    end
+
+    test_with_mock "does NOT call `Instances.set_unreachable` if target instance has non-nil `unreachable_since`",
+                   Instances,
+                   [:passthrough],
+                   [] do
+      actor = insert(:user)
+      inbox = "http://connrefused.site/users/nick1/inbox"
+
+      assert {:error, _} =
+               ActivityPub.publish_one(%{
+                 inbox: inbox,
+                 json: "{}",
+                 actor: actor,
+                 id: 1,
+                 unreachable_since: NaiveDateTime.utc_now()
+               })
+
+      refute called(Instances.set_unreachable(inbox))
+    end
   end
 
   def data_uri do

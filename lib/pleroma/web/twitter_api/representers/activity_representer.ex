@@ -2,16 +2,21 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
+# FIXME: Remove this module?
 # THIS MODULE IS DEPRECATED! DON'T USE IT!
 # USE THE Pleroma.Web.TwitterAPI.Views.ActivityView MODULE!
 defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
   use Pleroma.Web.TwitterAPI.Representers.BaseRepresenter
   alias Pleroma.Web.TwitterAPI.Representers.ObjectRepresenter
-  alias Pleroma.{Activity, User}
-  alias Pleroma.Web.TwitterAPI.{TwitterAPI, UserView, ActivityView}
-  alias Pleroma.Web.CommonAPI.Utils
+  alias Pleroma.Activity
   alias Pleroma.Formatter
   alias Pleroma.HTML
+  alias Pleroma.User
+  alias Pleroma.Web.TwitterAPI.ActivityView
+  alias Pleroma.Web.TwitterAPI.TwitterAPI
+  alias Pleroma.Web.TwitterAPI.UserView
+  alias Pleroma.Web.CommonAPI.Utils
+  alias Pleroma.Web.MastodonAPI.StatusView
 
   defp user_by_ap_id(user_list, ap_id) do
     Enum.find(user_list, fn %{ap_id: user_id} -> ap_id == user_id end)
@@ -158,7 +163,9 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
     mentions = opts[:mentioned] || []
 
     attentions =
-      activity.recipients
+      []
+      |> Utils.maybe_notify_to_recipients(activity)
+      |> Utils.maybe_notify_mentioned_recipients(activity)
       |> Enum.map(fn ap_id -> Enum.find(mentions, fn user -> ap_id == user.ap_id end) end)
       |> Enum.filter(& &1)
       |> Enum.map(fn user -> UserView.render("show.json", %{user: user, for: opts[:for]}) end)
@@ -183,6 +190,12 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
     reply_user = reply_parent && User.get_cached_by_ap_id(reply_parent.actor)
 
     summary = HTML.strip_tags(object["summary"])
+
+    card =
+      StatusView.render(
+        "card.json",
+        Pleroma.Web.RichMedia.Helpers.fetch_data_for_activity(activity)
+      )
 
     %{
       "id" => activity.id,
@@ -212,7 +225,8 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ActivityRepresenter do
       "possibly_sensitive" => possibly_sensitive,
       "visibility" => Pleroma.Web.MastodonAPI.StatusView.get_visibility(object),
       "summary" => summary,
-      "summary_html" => summary |> Formatter.emojify(object["emoji"])
+      "summary_html" => summary |> Formatter.emojify(object["emoji"]),
+      "card" => card
     }
   end
 

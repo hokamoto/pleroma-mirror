@@ -6,9 +6,9 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   @moduledoc """
   A module to handle coding from internal to wire ActivityPub and back.
   """
+  alias Pleroma.Activity
   alias Pleroma.User
   alias Pleroma.Object
-  alias Pleroma.Activity
   alias Pleroma.Repo
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Utils
@@ -141,11 +141,11 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> Map.put("actor", get_actor(%{"actor" => actor}))
   end
 
-  def fix_likes(%{"likes" => likes} = object)
-      when is_bitstring(likes) do
-    # Check for standardisation
-    # This is what Peertube does
-    # curl -H 'Accept: application/activity+json' $likes | jq .totalItems
+  # Check for standardisation
+  # This is what Peertube does
+  # curl -H 'Accept: application/activity+json' $likes | jq .totalItems
+  # Prismo returns only an integer (count) as "likes"
+  def fix_likes(%{"likes" => likes} = object) when not is_map(likes) do
     object
     |> Map.put("likes", [])
     |> Map.put("like_count", 0)
@@ -313,6 +313,8 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> Map.put("tag", combined)
   end
 
+  def fix_tag(%{"tag" => %{} = tag} = object), do: Map.put(object, "tag", [tag])
+
   def fix_tag(object), do: object
 
   # content map usually only has one language so this will do for now.
@@ -404,7 +406,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
       if not User.locked?(followed) do
         ActivityPub.accept(%{
           to: [follower.ap_id],
-          actor: followed.ap_id,
+          actor: followed,
           object: data,
           local: true
         })
@@ -430,7 +432,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
            ActivityPub.accept(%{
              to: follow_activity.data["to"],
              type: "Accept",
-             actor: followed.ap_id,
+             actor: followed,
              object: follow_activity.data["id"],
              local: false
            }) do
@@ -453,10 +455,10 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
          {:ok, follow_activity} <- Utils.update_follow_state(follow_activity, "reject"),
          %User{local: true} = follower <- User.get_cached_by_ap_id(follow_activity.data["actor"]),
          {:ok, activity} <-
-           ActivityPub.accept(%{
+           ActivityPub.reject(%{
              to: follow_activity.data["to"],
-             type: "Accept",
-             actor: followed.ap_id,
+             type: "Reject",
+             actor: followed,
              object: follow_activity.data["id"],
              local: false
            }) do
@@ -647,7 +649,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     if object = Object.normalize(id), do: {:ok, object}, else: nil
   end
 
-  def set_reply_to_uri(%{"inReplyTo" => inReplyTo} = object) do
+  def set_reply_to_uri(%{"inReplyTo" => inReplyTo} = object) when is_binary(inReplyTo) do
     with false <- String.starts_with?(inReplyTo, "http"),
          {:ok, %{data: replied_to_object}} <- get_obj_helper(inReplyTo) do
       Map.put(object, "inReplyTo", replied_to_object["external_url"] || inReplyTo)
@@ -763,12 +765,18 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   def add_hashtags(object) do
     tags =
       (object["tag"] || [])
-      |> Enum.map(fn tag ->
-        %{
-          "href" => Pleroma.Web.Endpoint.url() <> "/tags/#{tag}",
-          "name" => "##{tag}",
-          "type" => "Hashtag"
-        }
+      |> Enum.map(fn
+        # Expand internal representation tags into AS2 tags.
+        tag when is_binary(tag) ->
+          %{
+            "href" => Pleroma.Web.Endpoint.url() <> "/tags/#{tag}",
+            "name" => "##{tag}",
+            "type" => "Hashtag"
+          }
+
+        # Do not process tags which are already AS2 tag objects.
+        tag when is_map(tag) ->
+          tag
       end)
 
     object
@@ -900,15 +908,10 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
 
     maybe_retire_websub(user.ap_id)
 
-    # Only do this for recent activties, don't go through the whole db.
-    # Only look at the last 1000 activities.
-    since = (Repo.aggregate(Activity, :max, :id) || 0) - 1_000
-
     q =
       from(
         a in Activity,
         where: ^old_follower_address in a.recipients,
-        where: a.id > ^since,
         update: [
           set: [
             recipients:

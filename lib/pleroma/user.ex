@@ -5,17 +5,29 @@
 defmodule Pleroma.User do
   use Ecto.Schema
 
-  import Ecto.{Changeset, Query}
-  alias Pleroma.{Repo, User, Object, Web, Activity, Notification}
+  import Ecto.Changeset
+  import Ecto.Query
+
+  alias Pleroma.Repo
+  alias Pleroma.User
+  alias Pleroma.Object
+  alias Pleroma.Web
+  alias Pleroma.Activity
+  alias Pleroma.Notification
   alias Comeonin.Pbkdf2
   alias Pleroma.Formatter
   alias Pleroma.Web.CommonAPI.Utils, as: CommonUtils
-  alias Pleroma.Web.{OStatus, Websub, OAuth}
-  alias Pleroma.Web.ActivityPub.{Utils, ActivityPub}
+  alias Pleroma.Web.OStatus
+  alias Pleroma.Web.Websub
+  alias Pleroma.Web.OAuth
+  alias Pleroma.Web.ActivityPub.Utils
+  alias Pleroma.Web.ActivityPub.ActivityPub
 
   require Logger
 
   @type t :: %__MODULE__{}
+
+  @primary_key {:id, Pleroma.FlakeId, autogenerate: true}
 
   @email_regex ~r/^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
 
@@ -37,6 +49,7 @@ defmodule Pleroma.User do
     field(:follower_address, :string)
     field(:search_rank, :float, virtual: true)
     field(:tags, {:array, :string}, default: [])
+    field(:bookmarks, {:array, :string}, default: [])
     field(:last_refreshed_at, :naive_datetime)
     has_many(:notifications, Notification)
     embeds_one(:info, Pleroma.User.Info)
@@ -91,12 +104,6 @@ defmodule Pleroma.User do
 
   def ap_followers(%User{} = user) do
     "#{ap_id(user)}/followers"
-  end
-
-  def follow_changeset(struct, params \\ %{}) do
-    struct
-    |> cast(params, [:following])
-    |> validate_required([:following])
   end
 
   def user_info(%User{} = user) do
@@ -253,8 +260,9 @@ defmodule Pleroma.User do
   @doc "Inserts provided changeset, performs post-registration actions (confirmation email sending etc.)"
   def register(%Ecto.Changeset{} = changeset) do
     with {:ok, user} <- Repo.insert(changeset),
-         {:ok, _} <- try_send_confirmation_email(user),
-         {:ok, user} <- autofollow_users(user) do
+         {:ok, user} <- autofollow_users(user),
+         {:ok, _} <- Pleroma.User.WelcomeMessage.post_welcome_message_to_user(user),
+         {:ok, _} <- try_send_confirmation_email(user) do
       {:ok, user}
     end
   end
@@ -304,23 +312,36 @@ defmodule Pleroma.User do
     end
   end
 
-  @doc "A mass follow for local users. Ignores blocks and has no side effects"
+  @doc "A mass follow for local users. Respects blocks in both directions but does not create activities."
   @spec follow_all(User.t(), list(User.t())) :: {atom(), User.t()}
   def follow_all(follower, followeds) do
-    following =
-      (follower.following ++ Enum.map(followeds, fn %{follower_address: fa} -> fa end))
-      |> Enum.uniq()
+    followed_addresses =
+      followeds
+      |> Enum.reject(fn followed -> blocks?(follower, followed) || blocks?(followed, follower) end)
+      |> Enum.map(fn %{follower_address: fa} -> fa end)
 
-    {:ok, follower} =
-      follower
-      |> follow_changeset(%{following: following})
-      |> update_and_set_cache
+    q =
+      from(u in User,
+        where: u.id == ^follower.id,
+        update: [
+          set: [
+            following:
+              fragment(
+                "array(select distinct unnest (array_cat(?, ?)))",
+                u.following,
+                ^followed_addresses
+              )
+          ]
+        ]
+      )
+
+    {1, [follower]} = Repo.update_all(q, [], returning: true)
 
     Enum.each(followeds, fn followed ->
       update_follower_count(followed)
     end)
 
-    {:ok, follower}
+    set_cache(follower)
   end
 
   def follow(%User{} = follower, %User{info: info} = followed) do
@@ -341,18 +362,17 @@ defmodule Pleroma.User do
           Websub.subscribe(follower, followed)
         end
 
-        following =
-          [ap_followers | follower.following]
-          |> Enum.uniq()
+        q =
+          from(u in User,
+            where: u.id == ^follower.id,
+            update: [push: [following: ^ap_followers]]
+          )
 
-        follower =
-          follower
-          |> follow_changeset(%{following: following})
-          |> update_and_set_cache
+        {1, [follower]} = Repo.update_all(q, [], returning: true)
 
         {:ok, _} = update_follower_count(followed)
 
-        follower
+        set_cache(follower)
     end
   end
 
@@ -360,16 +380,17 @@ defmodule Pleroma.User do
     ap_followers = followed.follower_address
 
     if following?(follower, followed) and follower.ap_id != followed.ap_id do
-      following =
-        follower.following
-        |> List.delete(ap_followers)
+      q =
+        from(u in User,
+          where: u.id == ^follower.id,
+          update: [pull: [following: ^ap_followers]]
+        )
 
-      {:ok, follower} =
-        follower
-        |> follow_changeset(%{following: following})
-        |> update_and_set_cache
+      {1, [follower]} = Repo.update_all(q, [], returning: true)
 
       {:ok, followed} = update_follower_count(followed)
+
+      set_cache(follower)
 
       {:ok, follower, Utils.fetch_latest_follow(follower, followed)}
     else
@@ -405,7 +426,7 @@ defmodule Pleroma.User do
   end
 
   def get_by_id(id) do
-    Repo.get(User, id)
+    Repo.get_by(User, id: id)
   end
 
   def get_by_ap_id(ap_id) do
@@ -421,12 +442,16 @@ defmodule Pleroma.User do
     get_by_nickname(nickname)
   end
 
+  def set_cache(user) do
+    Cachex.put(:user_cache, "ap_id:#{user.ap_id}", user)
+    Cachex.put(:user_cache, "nickname:#{user.nickname}", user)
+    Cachex.put(:user_cache, "user_info:#{user.id}", user_info(user))
+    {:ok, user}
+  end
+
   def update_and_set_cache(changeset) do
     with {:ok, user} <- Repo.update(changeset) do
-      Cachex.put(:user_cache, "ap_id:#{user.ap_id}", user)
-      Cachex.put(:user_cache, "nickname:#{user.nickname}", user)
-      Cachex.put(:user_cache, "user_info:#{user.id}", user_info(user))
-      {:ok, user}
+      set_cache(user)
     else
       e -> e
     end
@@ -443,9 +468,31 @@ defmodule Pleroma.User do
     Cachex.fetch!(:user_cache, key, fn _ -> get_by_ap_id(ap_id) end)
   end
 
+  def get_cached_by_id(id) do
+    key = "id:#{id}"
+
+    ap_id =
+      Cachex.fetch!(:user_cache, key, fn _ ->
+        user = get_by_id(id)
+
+        if user do
+          Cachex.put(:user_cache, "ap_id:#{user.ap_id}", user)
+          {:commit, user.ap_id}
+        else
+          {:ignore, ""}
+        end
+      end)
+
+    get_cached_by_ap_id(ap_id)
+  end
+
   def get_cached_by_nickname(nickname) do
     key = "nickname:#{nickname}"
     Cachex.fetch!(:user_cache, key, fn _ -> get_or_fetch_by_nickname(nickname) end)
+  end
+
+  def get_cached_by_nickname_or_id(nickname_or_id) do
+    get_cached_by_id(nickname_or_id) || get_cached_by_nickname(nickname_or_id)
   end
 
   def get_by_nickname(nickname) do
@@ -572,6 +619,32 @@ defmodule Pleroma.User do
     )
   end
 
+  def update_follow_request_count(%User{} = user) do
+    subquery =
+      user
+      |> User.get_follow_requests_query()
+      |> select([a], %{count: count(a.id)})
+
+    User
+    |> where(id: ^user.id)
+    |> join(:inner, [u], s in subquery(subquery))
+    |> update([u, s],
+      set: [
+        info:
+          fragment(
+            "jsonb_set(?, '{follow_request_count}', ?::varchar::jsonb, true)",
+            u.info,
+            s.count
+          )
+      ]
+    )
+    |> Repo.update_all([], returning: true)
+    |> case do
+      {1, [user]} -> {:ok, user}
+      _ -> {:error, user}
+    end
+  end
+
   def get_follow_requests(%User{} = user) do
     q = get_follow_requests_query(user)
     reqs = Repo.all(q)
@@ -685,7 +758,7 @@ defmodule Pleroma.User do
     # Strip the beginning @ off if there is a query
     query = String.trim_leading(query, "@")
 
-    if resolve, do: User.get_or_fetch_by_nickname(query)
+    if resolve, do: get_or_fetch(query)
 
     fts_results = do_search(fts_search_subquery(query), for_user)
 
@@ -1130,6 +1203,22 @@ defmodule Pleroma.User do
       |> Repo.update()
 
     updated_user
+  end
+
+  def bookmark(%User{} = user, status_id) do
+    bookmarks = Enum.uniq(user.bookmarks ++ [status_id])
+    update_bookmarks(user, bookmarks)
+  end
+
+  def unbookmark(%User{} = user, status_id) do
+    bookmarks = Enum.uniq(user.bookmarks -- [status_id])
+    update_bookmarks(user, bookmarks)
+  end
+
+  def update_bookmarks(%User{} = user, bookmarks) do
+    user
+    |> change(%{bookmarks: bookmarks})
+    |> update_and_set_cache
   end
 
   defp normalize_tags(tags) do

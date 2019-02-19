@@ -7,14 +7,17 @@ defmodule Pleroma.Web.OAuth.Token do
 
   import Ecto.Query
 
-  alias Pleroma.{User, Repo}
-  alias Pleroma.Web.OAuth.{Token, App, Authorization}
+  alias Pleroma.User
+  alias Pleroma.Repo
+  alias Pleroma.Web.OAuth.Token
+  alias Pleroma.Web.OAuth.App
+  alias Pleroma.Web.OAuth.Authorization
 
   schema "oauth_tokens" do
     field(:token, :string)
     field(:refresh_token, :string)
     field(:valid_until, :naive_datetime)
-    belongs_to(:user, Pleroma.User)
+    belongs_to(:user, Pleroma.User, type: Pleroma.FlakeId)
     belongs_to(:app, App)
 
     timestamps()
@@ -28,8 +31,8 @@ defmodule Pleroma.Web.OAuth.Token do
   end
 
   def create_token(%App{} = app, %User{} = user) do
-    token = :crypto.strong_rand_bytes(32) |> Base.url_encode64()
-    refresh_token = :crypto.strong_rand_bytes(32) |> Base.url_encode64()
+    token = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
+    refresh_token = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
 
     token = %Token{
       token: token,
@@ -44,9 +47,27 @@ defmodule Pleroma.Web.OAuth.Token do
 
   def delete_user_tokens(%User{id: user_id}) do
     from(
-      t in Pleroma.Web.OAuth.Token,
+      t in Token,
       where: t.user_id == ^user_id
     )
     |> Repo.delete_all()
+  end
+
+  def delete_user_token(%User{id: user_id}, token_id) do
+    from(
+      t in Token,
+      where: t.user_id == ^user_id,
+      where: t.id == ^token_id
+    )
+    |> Repo.delete_all()
+  end
+
+  def get_user_tokens(%User{id: user_id}) do
+    from(
+      t in Token,
+      where: t.user_id == ^user_id
+    )
+    |> Repo.all()
+    |> Repo.preload(:app)
   end
 end

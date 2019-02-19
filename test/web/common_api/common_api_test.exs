@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Web.CommonAPI.Test do
+defmodule Pleroma.Web.CommonAPITest do
   use Pleroma.DataCase
   alias Pleroma.Web.CommonAPI
   alias Pleroma.User
@@ -162,6 +162,32 @@ defmodule Pleroma.Web.CommonAPI.Test do
       user = refresh_record(user)
 
       assert %User{info: %{pinned_activities: []}} = user
+    end
+  end
+
+  describe "mute tests" do
+    setup do
+      user = insert(:user)
+
+      activity = insert(:note_activity)
+
+      [user: user, activity: activity]
+    end
+
+    test "add mute", %{user: user, activity: activity} do
+      {:ok, _} = CommonAPI.add_mute(user, activity)
+      assert CommonAPI.thread_muted?(user, activity)
+    end
+
+    test "remove mute", %{user: user, activity: activity} do
+      CommonAPI.add_mute(user, activity)
+      {:ok, _} = CommonAPI.remove_mute(user, activity)
+      refute CommonAPI.thread_muted?(user, activity)
+    end
+
+    test "check that mutes can't be duplicate", %{user: user, activity: activity} do
+      CommonAPI.add_mute(user, activity)
+      {:error, _} = CommonAPI.add_mute(user, activity)
     end
   end
 

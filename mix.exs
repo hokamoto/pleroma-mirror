@@ -21,7 +21,14 @@ defmodule Pleroma.Mixfile do
       homepage_url: "https://pleroma.social/",
       docs: [
         logo: "priv/static/static/logo.png",
-        extras: ["README.md", "docs/config.md", "docs/Pleroma-API.md", "docs/Admin-API.md"],
+        extras: [
+          "README.md",
+          "docs/config.md",
+          "docs/Pleroma-API.md",
+          "docs/Admin-API.md",
+          "docs/Clients.md",
+          "docs/Differences-in-MastodonAPI-Responses.md"
+        ],
         main: "readme",
         output: "priv/static/doc"
       ]
@@ -59,6 +66,7 @@ defmodule Pleroma.Mixfile do
       {:pbkdf2_elixir, "~> 0.12.3"},
       {:trailing_format_plug, "~> 0.0.7"},
       {:html_sanitize_ex, "~> 1.3.0"},
+      {:html_entities, "~> 0.4"},
       {:phoenix_html, "~> 2.10"},
       {:calendar, "~> 0.17.4"},
       {:cachex, "~> 3.0.2"},

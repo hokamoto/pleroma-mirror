@@ -3,7 +3,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.CommonAPI do
-  alias Pleroma.{User, Repo, Activity, Object}
+  alias Pleroma.User
+  alias Pleroma.Repo
+  alias Pleroma.Activity
+  alias Pleroma.Object
+  alias Pleroma.ThreadMute
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Formatter
@@ -91,7 +95,7 @@ defmodule Pleroma.Web.CommonAPI do
     limit = Pleroma.Config.get([:instance, :limit])
 
     with status <- String.trim(status),
-         attachments <- attachments_from_ids(data["media_ids"]),
+         attachments <- attachments_from_ids(data),
          mentions <- Formatter.parse_mentions(status),
          inReplyTo <- get_replied_to_activity(data["in_reply_to_status_id"]),
          {to, cc} <- to_for_user_and_mentions(user, mentions, inReplyTo, visibility),
@@ -214,6 +218,29 @@ defmodule Pleroma.Web.CommonAPI do
 
       _ ->
         {:error, "Could not unpin"}
+    end
+  end
+
+  def add_mute(user, activity) do
+    with {:ok, _} <- ThreadMute.add_mute(user.id, activity.data["context"]) do
+      {:ok, activity}
+    else
+      {:error, _} -> {:error, "conversation is already muted"}
+    end
+  end
+
+  def remove_mute(user, activity) do
+    ThreadMute.remove_mute(user.id, activity.data["context"])
+    {:ok, activity}
+  end
+
+  def thread_muted?(%{id: nil} = _user, _activity), do: false
+
+  def thread_muted?(user, activity) do
+    with [] <- ThreadMute.check_muted(user.id, activity.data["context"]) do
+      false
+    else
+      _ -> true
     end
   end
 

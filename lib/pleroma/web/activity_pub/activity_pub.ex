@@ -3,13 +3,22 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.ActivityPub do
-  alias Pleroma.{Activity, Repo, Object, Upload, User, Notification}
-  alias Pleroma.Web.ActivityPub.{Transmogrifier, MRF}
+  alias Pleroma.Activity
+  alias Pleroma.Repo
+  alias Pleroma.Object
+  alias Pleroma.Upload
+  alias Pleroma.User
+  alias Pleroma.Notification
+  alias Pleroma.Instances
+  alias Pleroma.Web.ActivityPub.Transmogrifier
+  alias Pleroma.Web.ActivityPub.MRF
   alias Pleroma.Web.WebFinger
   alias Pleroma.Web.Federator
   alias Pleroma.Web.OStatus
+
   import Ecto.Query
   import Pleroma.Web.ActivityPub.Utils
+
   require Logger
 
   @httpoison Application.get_env(:pleroma, :httpoison)
@@ -19,20 +28,28 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   defp get_recipients(%{"type" => "Announce"} = data) do
     to = data["to"] || []
     cc = data["cc"] || []
-    recipients = to ++ cc
     actor = User.get_cached_by_ap_id(data["actor"])
 
-    recipients
-    |> Enum.filter(fn recipient ->
-      case User.get_cached_by_ap_id(recipient) do
-        nil ->
-          true
+    recipients =
+      (to ++ cc)
+      |> Enum.filter(fn recipient ->
+        case User.get_cached_by_ap_id(recipient) do
+          nil ->
+            true
 
-        user ->
-          User.following?(user, actor)
-      end
-    end)
+          user ->
+            User.following?(user, actor)
+        end
+      end)
 
+    {recipients, to, cc}
+  end
+
+  defp get_recipients(%{"type" => "Create"} = data) do
+    to = data["to"] || []
+    cc = data["cc"] || []
+    actor = data["actor"] || []
+    recipients = (to ++ cc ++ [actor]) |> Enum.uniq()
     {recipients, to, cc}
   end
 
@@ -56,7 +73,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     end
   end
 
-  defp check_remote_limit(%{"object" => %{"content" => content}}) do
+  defp check_remote_limit(%{"object" => %{"content" => content}}) when not is_nil(content) do
     limit = Pleroma.Config.get([:instance, :remote_limit])
     String.length(content) <= limit
   end
@@ -79,6 +96,10 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
           actor: map["actor"],
           recipients: recipients
         })
+
+      Task.start(fn ->
+        Pleroma.Web.RichMedia.Helpers.fetch_data_for_activity(activity)
+      end)
 
       Notification.create_notifications(activity)
       stream_out(activity)
@@ -107,7 +128,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
           activity.data["object"]
           |> Map.get("tag", [])
           |> Enum.filter(fn tag -> is_bitstring(tag) end)
-          |> Enum.map(fn tag -> Pleroma.Web.Streamer.stream("hashtag:" <> tag, activity) end)
+          |> Enum.each(fn tag -> Pleroma.Web.Streamer.stream("hashtag:" <> tag, activity) end)
 
           if activity.data["object"]["attachment"] != [] do
             Pleroma.Web.Streamer.stream("public:media", activity)
@@ -151,9 +172,10 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     # only accept false as false value
     local = !(params[:local] == false)
 
-    with data <- %{"to" => to, "type" => "Accept", "actor" => actor, "object" => object},
+    with data <- %{"to" => to, "type" => "Accept", "actor" => actor.ap_id, "object" => object},
          {:ok, activity} <- insert(data, local),
-         :ok <- maybe_federate(activity) do
+         :ok <- maybe_federate(activity),
+         _ <- User.update_follow_request_count(actor) do
       {:ok, activity}
     end
   end
@@ -162,9 +184,10 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     # only accept false as false value
     local = !(params[:local] == false)
 
-    with data <- %{"to" => to, "type" => "Reject", "actor" => actor, "object" => object},
+    with data <- %{"to" => to, "type" => "Reject", "actor" => actor.ap_id, "object" => object},
          {:ok, activity} <- insert(data, local),
-         :ok <- maybe_federate(activity) do
+         :ok <- maybe_federate(activity),
+         _ <- User.update_follow_request_count(actor) do
       {:ok, activity}
     end
   end
@@ -262,7 +285,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   def follow(follower, followed, activity_id \\ nil, local \\ true) do
     with data <- make_follow_data(follower, followed, activity_id),
          {:ok, activity} <- insert(data, local),
-         :ok <- maybe_federate(activity) do
+         :ok <- maybe_federate(activity),
+         _ <- User.update_follow_request_count(followed) do
       {:ok, activity}
     end
   end
@@ -272,7 +296,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
          {:ok, follow_activity} <- update_follow_state(follow_activity, "cancelled"),
          unfollow_data <- make_unfollow_data(follower, followed, follow_activity, activity_id),
          {:ok, activity} <- insert(unfollow_data, local),
-         :ok <- maybe_federate(activity) do
+         :ok <- maybe_federate(activity),
+         _ <- User.update_follow_request_count(followed) do
       {:ok, activity}
     end
   end
@@ -435,13 +460,42 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> Enum.reverse()
   end
 
+  defp restrict_since(query, %{"since_id" => ""}), do: query
+
   defp restrict_since(query, %{"since_id" => since_id}) do
     from(activity in query, where: activity.id > ^since_id)
   end
 
   defp restrict_since(query, _), do: query
 
-  defp restrict_tag(query, %{"tag" => tag}) do
+  defp restrict_tag_reject(query, %{"tag_reject" => tag_reject})
+       when is_list(tag_reject) and tag_reject != [] do
+    from(
+      activity in query,
+      where: fragment("(not (? #> '{\"object\",\"tag\"}') \\?| ?)", activity.data, ^tag_reject)
+    )
+  end
+
+  defp restrict_tag_reject(query, _), do: query
+
+  defp restrict_tag_all(query, %{"tag_all" => tag_all})
+       when is_list(tag_all) and tag_all != [] do
+    from(
+      activity in query,
+      where: fragment("(? #> '{\"object\",\"tag\"}') \\?& ?", activity.data, ^tag_all)
+    )
+  end
+
+  defp restrict_tag_all(query, _), do: query
+
+  defp restrict_tag(query, %{"tag" => tag}) when is_list(tag) do
+    from(
+      activity in query,
+      where: fragment("(? #> '{\"object\",\"tag\"}') \\?| ?", activity.data, ^tag)
+    )
+  end
+
+  defp restrict_tag(query, %{"tag" => tag}) when is_binary(tag) do
     from(
       activity in query,
       where: fragment("? <@ (? #> '{\"object\",\"tag\"}')", ^tag, activity.data)
@@ -490,6 +544,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp restrict_local(query, _), do: query
 
+  defp restrict_max(query, %{"max_id" => ""}), do: query
+
   defp restrict_max(query, %{"max_id" => max_id}) do
     from(activity in query, where: activity.id < ^max_id)
   end
@@ -503,7 +559,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   defp restrict_actor(query, _), do: query
 
   defp restrict_type(query, %{"type" => type}) when is_binary(type) do
-    restrict_type(query, %{"type" => [type]})
+    from(activity in query, where: fragment("?->>'type' = ?", activity.data, ^type))
   end
 
   defp restrict_type(query, %{"type" => type}) do
@@ -588,6 +644,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     base_query
     |> restrict_recipients(recipients, opts["user"])
     |> restrict_tag(opts)
+    |> restrict_tag_reject(opts)
+    |> restrict_tag_all(opts)
     |> restrict_since(opts)
     |> restrict_local(opts)
     |> restrict_limit(opts)
@@ -714,7 +772,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   end
 
   def publish(actor, activity) do
-    followers =
+    remote_followers =
       if actor.follower_address in activity.recipients do
         {:ok, followers} = User.get_followers(actor)
         followers |> Enum.filter(&(!&1.local))
@@ -724,29 +782,29 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
     public = is_public?(activity)
 
-    remote_inboxes =
-      (Pleroma.Web.Salmon.remote_users(activity) ++ followers)
-      |> Enum.filter(fn user -> User.ap_enabled?(user) end)
-      |> Enum.map(fn %{info: %{source_data: data}} ->
-        (is_map(data["endpoints"]) && Map.get(data["endpoints"], "sharedInbox")) || data["inbox"]
-      end)
-      |> Enum.uniq()
-      |> Enum.filter(fn inbox -> should_federate?(inbox, public) end)
-
     {:ok, data} = Transmogrifier.prepare_outgoing(activity.data)
     json = Jason.encode!(data)
 
-    Enum.each(remote_inboxes, fn inbox ->
-      Federator.enqueue(:publish_single_ap, %{
+    (Pleroma.Web.Salmon.remote_users(activity) ++ remote_followers)
+    |> Enum.filter(fn user -> User.ap_enabled?(user) end)
+    |> Enum.map(fn %{info: %{source_data: data}} ->
+      (is_map(data["endpoints"]) && Map.get(data["endpoints"], "sharedInbox")) || data["inbox"]
+    end)
+    |> Enum.uniq()
+    |> Enum.filter(fn inbox -> should_federate?(inbox, public) end)
+    |> Instances.filter_reachable()
+    |> Enum.each(fn {inbox, unreachable_since} ->
+      Federator.publish_single_ap(%{
         inbox: inbox,
         json: json,
         actor: actor,
-        id: activity.data["id"]
+        id: activity.data["id"],
+        unreachable_since: unreachable_since
       })
     end)
   end
 
-  def publish_one(%{inbox: inbox, json: json, actor: actor, id: id}) do
+  def publish_one(%{inbox: inbox, json: json, actor: actor, id: id} = params) do
     Logger.info("Federating #{id} to #{inbox}")
     host = URI.parse(inbox).host
 
@@ -759,15 +817,26 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         digest: digest
       })
 
-    @httpoison.post(
-      inbox,
-      json,
-      [
-        {"Content-Type", "application/activity+json"},
-        {"signature", signature},
-        {"digest", digest}
-      ]
-    )
+    with {:ok, %{status: code}} when code in 200..299 <-
+           result =
+             @httpoison.post(
+               inbox,
+               json,
+               [
+                 {"Content-Type", "application/activity+json"},
+                 {"signature", signature},
+                 {"digest", digest}
+               ]
+             ) do
+      if !Map.has_key?(params, :unreachable_since) || params[:unreachable_since],
+        do: Instances.set_reachable(inbox)
+
+      result
+    else
+      {_post_result, response} ->
+        unless params[:unreachable_since], do: Instances.set_unreachable(inbox)
+        {:error, response}
+    end
   end
 
   # TODO:
@@ -776,8 +845,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     if object = Object.get_cached_by_ap_id(id) do
       {:ok, object}
     else
-      Logger.info("Fetching #{id} via AP")
-
       with {:ok, data} <- fetch_and_contain_remote_object_from_id(id),
            nil <- Object.normalize(data),
            params <- %{
@@ -809,7 +876,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   end
 
   def fetch_and_contain_remote_object_from_id(id) do
-    Logger.info("Fetching #{id} via AP")
+    Logger.info("Fetching object #{id} via AP")
 
     with true <- String.starts_with?(id, "http"),
          {:ok, %{body: body, status: code}} when code in 200..299 <-

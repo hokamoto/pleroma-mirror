@@ -5,8 +5,11 @@
 defmodule Pleroma.Web.OAuth.OAuthController do
   use Pleroma.Web, :controller
 
-  alias Pleroma.Web.OAuth.{Authorization, Token, App}
-  alias Pleroma.{Repo, User}
+  alias Pleroma.Web.OAuth.Authorization
+  alias Pleroma.Web.OAuth.Token
+  alias Pleroma.Web.OAuth.App
+  alias Pleroma.Repo
+  alias Pleroma.User
   alias Comeonin.Pbkdf2
 
   plug(:fetch_session)
@@ -37,6 +40,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          true <- Pbkdf2.checkpw(password, user.password_hash),
          {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
          %App{} = app <- Repo.get_by(App, client_id: client_id),
+         true <- redirect_uri in String.split(app.redirect_uris),
          {:ok, auth} <- Authorization.create_authorization(app, user) do
       # Special case: Local MastodonFE.
       redirect_uri =
@@ -169,7 +173,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     token
     |> URI.decode()
     |> Base.url_decode64!(padding: false)
-    |> Base.url_encode64()
+    |> Base.url_encode64(padding: false)
   end
 
   defp get_app_from_request(conn, params) do

@@ -4,10 +4,15 @@
 
 defmodule Pleroma.Activity do
   use Ecto.Schema
-  alias Pleroma.{Repo, Activity, Notification}
+
+  alias Pleroma.Repo
+  alias Pleroma.Activity
+  alias Pleroma.Notification
+
   import Ecto.Query
 
   @type t :: %__MODULE__{}
+  @primary_key {:id, Pleroma.FlakeId, autogenerate: true}
 
   # https://github.com/tootsuite/mastodon/blob/master/app/models/notification.rb#L19
   @mastodon_notification_types %{

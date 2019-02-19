@@ -3,11 +3,19 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.Utils do
-  alias Pleroma.{Repo, Web, Object, Activity, User, Notification}
+  alias Pleroma.Repo
+  alias Pleroma.Web
+  alias Pleroma.Object
+  alias Pleroma.Activity
+  alias Pleroma.User
+  alias Pleroma.Notification
   alias Pleroma.Web.Router.Helpers
   alias Pleroma.Web.Endpoint
-  alias Ecto.{Changeset, UUID}
+  alias Ecto.Changeset
+  alias Ecto.UUID
+
   import Ecto.Query
+
   require Logger
 
   @supported_object_types ["Article", "Note", "Video", "Page"]
@@ -156,7 +164,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
         _ -> 5
       end
 
-    Pleroma.Web.Federator.enqueue(:publish, activity, priority)
+    Pleroma.Web.Federator.publish(activity, priority)
     :ok
   end
 
@@ -285,7 +293,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
            |> Map.put("#{property}_count", length(element))
            |> Map.put("#{property}s", element),
          changeset <- Changeset.change(object, data: new_data),
-         {:ok, object} <- Repo.update(changeset),
+         {:ok, object} <- Object.update_and_set_cache(changeset),
          _ <- update_object_in_activities(object) do
       {:ok, object}
     end
@@ -316,6 +324,25 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   @doc """
   Updates a follow activity's state (for locked accounts).
   """
+  def update_follow_state(
+        %Activity{data: %{"actor" => actor, "object" => object, "state" => "pending"}} = activity,
+        state
+      ) do
+    try do
+      Ecto.Adapters.SQL.query!(
+        Repo,
+        "UPDATE activities SET data = jsonb_set(data, '{state}', $1) WHERE data->>'type' = 'Follow' AND data->>'actor' = $2 AND data->>'object' = $3 AND data->>'state' = 'pending'",
+        [state, actor, object]
+      )
+
+      activity = Repo.get(Activity, activity.id)
+      {:ok, activity}
+    rescue
+      e ->
+        {:error, e}
+    end
+  end
+
   def update_follow_state(%Activity{} = activity, state) do
     with new_data <-
            activity.data

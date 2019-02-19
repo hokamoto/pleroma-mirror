@@ -4,8 +4,13 @@
 
 defmodule Pleroma.Web.TwitterAPI.TwitterAPITest do
   use Pleroma.DataCase
-  alias Pleroma.Web.TwitterAPI.{TwitterAPI, UserView}
-  alias Pleroma.{Activity, User, Object, Repo, UserInviteToken}
+  alias Pleroma.Web.TwitterAPI.TwitterAPI
+  alias Pleroma.Web.TwitterAPI.UserView
+  alias Pleroma.Activity
+  alias Pleroma.User
+  alias Pleroma.Object
+  alias Pleroma.Repo
+  alias Pleroma.UserInviteToken
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.TwitterAPI.ActivityView
 
@@ -200,12 +205,27 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPITest do
 
   test "it favorites a status, returns the updated activity" do
     user = insert(:user)
+    other_user = insert(:user)
     note_activity = insert(:note_activity)
 
     {:ok, status} = TwitterAPI.fav(user, note_activity.id)
     updated_activity = Activity.get_by_ap_id(note_activity.data["id"])
+    assert ActivityView.render("activity.json", %{activity: updated_activity})["fave_num"] == 1
+
+    object = Object.normalize(note_activity.data["object"])
+
+    assert object.data["like_count"] == 1
 
     assert status == updated_activity
+
+    {:ok, _status} = TwitterAPI.fav(other_user, note_activity.id)
+
+    object = Object.normalize(note_activity.data["object"])
+
+    assert object.data["like_count"] == 2
+
+    updated_activity = Activity.get_by_ap_id(note_activity.data["id"])
+    assert ActivityView.render("activity.json", %{activity: updated_activity})["fave_num"] == 2
   end
 
   test "it unfavorites a status, returns the updated activity" do

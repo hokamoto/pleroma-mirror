@@ -9,10 +9,11 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   alias Pleroma.HTML
   alias Pleroma.Repo
   alias Pleroma.User
+  alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.CommonAPI.Utils
-  alias Pleroma.Web.MediaProxy
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MastodonAPI.StatusView
+  alias Pleroma.Web.MediaProxy
 
   # TODO: Add cached version.
   defp get_replied_to_activities(activities) do
@@ -49,12 +50,11 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     replied_to_activities = get_replied_to_activities(opts.activities)
 
     opts.activities
-    |> render_many(
+    |> safe_render_many(
       StatusView,
       "status.json",
       Map.put(opts, :replied_to_activities, replied_to_activities)
     )
-    |> Enum.filter(fn x -> not is_nil(x) end)
   end
 
   def render(
@@ -88,6 +88,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       favourites_count: 0,
       reblogged: false,
       favourited: false,
+      bookmarked: false,
       muted: false,
       pinned: pinned?(activity, user),
       sensitive: false,
@@ -122,6 +123,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
     repeated = opts[:for] && opts[:for].ap_id in (object["announcements"] || [])
     favorited = opts[:for] && opts[:for].ap_id in (object["likes"] || [])
+    bookmarked = opts[:for] && object["id"] in opts[:for].bookmarks
 
     attachment_data = object["attachment"] || []
     attachments = render_many(attachment_data, StatusView, "attachment.json", as: :attachment)
@@ -140,6 +142,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         __MODULE__
       )
 
+    card = render("card.json", Pleroma.Web.RichMedia.Helpers.fetch_data_for_activity(activity))
+
     %{
       id: to_string(activity.id),
       uri: object["id"],
@@ -148,6 +152,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       in_reply_to_id: reply_to && to_string(reply_to.id),
       in_reply_to_account_id: reply_to_user && to_string(reply_to_user.id),
       reblog: nil,
+      card: card,
       content: content,
       created_at: created_at,
       reblogs_count: announcement_count,
@@ -155,12 +160,13 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       favourites_count: like_count,
       reblogged: present?(repeated),
       favourited: present?(favorited),
-      muted: false,
+      bookmarked: present?(bookmarked),
+      muted: CommonAPI.thread_muted?(user, activity),
       pinned: pinned?(activity, user),
       sensitive: sensitive,
       spoiler_text: object["summary"] || "",
       visibility: get_visibility(object),
-      media_attachments: attachments |> Enum.take(4),
+      media_attachments: attachments,
       mentions: mentions,
       tags: build_tags(tags),
       application: %{
@@ -173,6 +179,46 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   end
 
   def render("status.json", _) do
+    nil
+  end
+
+  def render("card.json", %{rich_media: rich_media, page_url: page_url}) do
+    page_url_data = URI.parse(page_url)
+
+    page_url_data =
+      if rich_media[:url] != nil do
+        URI.merge(page_url_data, URI.parse(rich_media[:url]))
+      else
+        page_url_data
+      end
+
+    page_url = page_url_data |> to_string
+
+    image_url =
+      if rich_media[:image] != nil do
+        URI.merge(page_url_data, URI.parse(rich_media[:image]))
+        |> to_string
+      else
+        nil
+      end
+
+    site_name = rich_media[:site_name] || page_url_data.host
+
+    %{
+      type: "link",
+      provider_name: site_name,
+      provider_url: page_url_data.scheme <> "://" <> page_url_data.host,
+      url: page_url,
+      image: image_url |> MediaProxy.url(),
+      title: rich_media[:title],
+      description: rich_media[:description],
+      pleroma: %{
+        opengraph: rich_media
+      }
+    }
+  end
+
+  def render("card.json", _) do
     nil
   end
 

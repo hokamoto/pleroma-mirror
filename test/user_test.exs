@@ -4,7 +4,9 @@
 
 defmodule Pleroma.UserTest do
   alias Pleroma.Builders.UserBuilder
-  alias Pleroma.{User, Repo, Activity}
+  alias Pleroma.Activity
+  alias Pleroma.Repo
+  alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   use Pleroma.DataCase
 
@@ -50,13 +52,39 @@ defmodule Pleroma.UserTest do
 
   test "follow_all follows mutliple users" do
     user = insert(:user)
+    followed_zero = insert(:user)
     followed_one = insert(:user)
     followed_two = insert(:user)
+    blocked = insert(:user)
+    not_followed = insert(:user)
+    reverse_blocked = insert(:user)
 
-    {:ok, user} = User.follow_all(user, [followed_one, followed_two])
+    {:ok, user} = User.block(user, blocked)
+    {:ok, reverse_blocked} = User.block(reverse_blocked, user)
+
+    {:ok, user} = User.follow(user, followed_zero)
+
+    {:ok, user} = User.follow_all(user, [followed_one, followed_two, blocked, reverse_blocked])
 
     assert User.following?(user, followed_one)
     assert User.following?(user, followed_two)
+    assert User.following?(user, followed_zero)
+    refute User.following?(user, not_followed)
+    refute User.following?(user, blocked)
+    refute User.following?(user, reverse_blocked)
+  end
+
+  test "follow_all follows mutliple users without duplicating" do
+    user = insert(:user)
+    followed_zero = insert(:user)
+    followed_one = insert(:user)
+    followed_two = insert(:user)
+
+    {:ok, user} = User.follow_all(user, [followed_zero, followed_one])
+    assert length(user.following) == 3
+
+    {:ok, user} = User.follow_all(user, [followed_one, followed_two])
+    assert length(user.following) == 4
   end
 
   test "follow takes a user and another user" do
@@ -168,6 +196,26 @@ defmodule Pleroma.UserTest do
 
       assert User.following?(registered_user, user)
       refute User.following?(registered_user, remote_user)
+
+      Pleroma.Config.put([:instance, :autofollowed_nicknames], [])
+    end
+
+    test "it sends a welcome message if it is set" do
+      welcome_user = insert(:user)
+
+      Pleroma.Config.put([:instance, :welcome_user_nickname], welcome_user.nickname)
+      Pleroma.Config.put([:instance, :welcome_message], "Hello, this is a cool site")
+
+      cng = User.register_changeset(%User{}, @full_user_data)
+      {:ok, registered_user} = User.register(cng)
+
+      activity = Repo.one(Pleroma.Activity)
+      assert registered_user.ap_id in activity.recipients
+      assert activity.data["object"]["content"] =~ "cool site"
+      assert activity.actor == welcome_user.ap_id
+
+      Pleroma.Config.put([:instance, :welcome_user_nickname], nil)
+      Pleroma.Config.put([:instance, :welcome_message], nil)
     end
 
     test "it requires an email, name, nickname and password, bio is optional" do
@@ -672,12 +720,13 @@ defmodule Pleroma.UserTest do
         "status" => "hey @#{addressed.nickname} @#{addressed_remote.nickname}"
       })
 
-    assert [addressed] == User.get_recipients_from_activity(activity)
+    assert Enum.map([actor, addressed], & &1.ap_id) --
+             Enum.map(User.get_recipients_from_activity(activity), & &1.ap_id) == []
 
     {:ok, user} = User.follow(user, actor)
     {:ok, _user_two} = User.follow(user_two, actor)
     recipients = User.get_recipients_from_activity(activity)
-    assert length(recipients) == 2
+    assert length(recipients) == 3
     assert user in recipients
     assert addressed in recipients
   end
@@ -849,6 +898,16 @@ defmodule Pleroma.UserTest do
         assert [] == User.search(query)
       end)
     end
+
+    test "works with URIs" do
+      results = User.search("http://mastodon.example.org/users/admin", true)
+      result = results |> List.first()
+
+      user = User.get_by_ap_id("http://mastodon.example.org/users/admin")
+
+      assert length(results) == 1
+      assert user == result |> Map.put(:search_rank, nil)
+    end
   end
 
   test "auth_active?/1 works correctly" do
@@ -943,5 +1002,32 @@ defmodule Pleroma.UserTest do
 
       assert expected_text == User.parse_bio(bio, user)
     end
+  end
+
+  test "bookmarks" do
+    user = insert(:user)
+
+    {:ok, activity1} =
+      CommonAPI.post(user, %{
+        "status" => "heweoo!"
+      })
+
+    id1 = activity1.data["object"]["id"]
+
+    {:ok, activity2} =
+      CommonAPI.post(user, %{
+        "status" => "heweoo!"
+      })
+
+    id2 = activity2.data["object"]["id"]
+
+    assert {:ok, user_state1} = User.bookmark(user, id1)
+    assert user_state1.bookmarks == [id1]
+
+    assert {:ok, user_state2} = User.unbookmark(user, id1)
+    assert user_state2.bookmarks == []
+
+    assert {:ok, user_state3} = User.bookmark(user, id2)
+    assert user_state3.bookmarks == [id2]
   end
 end

@@ -15,6 +15,20 @@ config :pleroma, Pleroma.Captcha,
   seconds_valid: 60,
   method: Pleroma.Captcha.Kocaptcha
 
+config :pleroma, :hackney_pools,
+  federation: [
+    max_connections: 50,
+    timeout: 150_000
+  ],
+  media: [
+    max_connections: 50,
+    timeout: 150_000
+  ],
+  upload: [
+    max_connections: 25,
+    timeout: 300_000
+  ]
+
 config :pleroma, Pleroma.Captcha.Kocaptcha, endpoint: "https://captcha.kotobank.ch"
 
 # Upload configuration
@@ -22,7 +36,14 @@ config :pleroma, Pleroma.Upload,
   uploader: Pleroma.Uploaders.Local,
   filters: [],
   proxy_remote: false,
-  proxy_opts: []
+  proxy_opts: [
+    redirect_on_failure: false,
+    max_body_length: 25 * 1_048_576,
+    http: [
+      follow_redirect: true,
+      pool: :upload
+    ]
+  ]
 
 config :pleroma, Pleroma.Uploaders.Local, uploads: "uploads"
 
@@ -94,7 +115,7 @@ config :logger, :console,
 config :logger, :ex_syslogger,
   level: :debug,
   ident: "Pleroma",
-  format: "$date $time $metadata[$level] $message",
+  format: "$metadata[$level] $message",
   metadata: [:request_id]
 
 config :mime, :types, %{
@@ -125,6 +146,7 @@ config :pleroma, :instance,
   banner_upload_limit: 4_000_000,
   registrations_open: true,
   federating: true,
+  federation_reachability_timeout_days: 7,
   allow_relay: true,
   rewrite_policy: Pleroma.Web.ActivityPub.MRF.NoOpPolicy,
   public: true,
@@ -141,6 +163,8 @@ config :pleroma, :instance,
   autofollowed_nicknames: [],
   max_pinned_statuses: 1,
   no_attachment_links: false,
+  welcome_user_nickname: nil,
+  welcome_message: nil,
   max_report_comment_size: 1000
 
 config :pleroma, :markup,
@@ -155,6 +179,7 @@ config :pleroma, :markup,
     Pleroma.HTML.Scrubber.Default
   ]
 
+# Deprecated, will be gone in 1.0
 config :pleroma, :fe,
   theme: "pleroma-dark",
   logo: "/static/logo.png",
@@ -173,6 +198,24 @@ config :pleroma, :fe,
   subject_line_behavior: "email",
   always_show_subject_input: true
 
+config :pleroma, :frontend_configurations,
+  pleroma_fe: %{
+    theme: "pleroma-dark",
+    logo: "/static/logo.png",
+    background: "/images/city.jpg",
+    redirectRootNoLogin: "/main/all",
+    redirectRootLogin: "/main/friends",
+    showInstanceSpecificPanel: true,
+    scopeOptionsEnabled: false,
+    formattingOptionsEnabled: false,
+    collapseMessageWithSubject: false,
+    hidePostStats: false,
+    hideUserStats: false,
+    scopeCopy: true,
+    subjectLineBehavior: "email",
+    alwaysShowSubjectInput: true
+  }
+
 config :pleroma, :activitypub,
   accept_blocks: true,
   unfollow_blocked: true,
@@ -187,7 +230,9 @@ config :pleroma, :mrf_rejectnonpublic,
   allow_followersonly: false,
   allow_direct: false
 
-config :pleroma, :mrf_hellthread, threshold: 10
+config :pleroma, :mrf_hellthread,
+  delist_threshold: 10,
+  reject_threshold: 20
 
 config :pleroma, :mrf_simple,
   media_removal: [],
@@ -196,7 +241,23 @@ config :pleroma, :mrf_simple,
   reject: [],
   accept: []
 
-config :pleroma, :media_proxy, enabled: false
+config :pleroma, :mrf_keyword,
+  reject: [],
+  federated_timeline_removal: [],
+  replace: []
+
+config :pleroma, :rich_media, enabled: true
+
+config :pleroma, :media_proxy,
+  enabled: false,
+  proxy_opts: [
+    redirect_on_failure: false,
+    max_body_length: 25 * 1_048_576,
+    http: [
+      follow_redirect: true,
+      pool: :media
+    ]
+  ]
 
 config :pleroma, :chat, enabled: true
 
@@ -208,6 +269,8 @@ config :pleroma, :gopher,
   enabled: false,
   ip: {0, 0, 0, 0},
   port: 9999
+
+config :pleroma, Pleroma.Web.Metadata, providers: [], unfurl_nsfw: false
 
 config :pleroma, :suggestions,
   enabled: false,
@@ -270,13 +333,15 @@ config :pleroma, Pleroma.User,
     "web"
   ]
 
-config :pleroma, Pleroma.Web.Federator, max_jobs: 50
-
 config :pleroma, Pleroma.Web.Federator.RetryQueue,
   enabled: false,
   max_jobs: 20,
   initial_timeout: 30,
   max_retries: 5
+
+config :pleroma, Pleroma.Jobs,
+  federator_incoming: [max_jobs: 50],
+  federator_outgoing: [max_jobs: 50]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

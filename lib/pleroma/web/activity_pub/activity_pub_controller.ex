@@ -4,12 +4,16 @@
 
 defmodule Pleroma.Web.ActivityPub.ActivityPubController do
   use Pleroma.Web, :controller
-  alias Pleroma.{Activity, User, Object}
-  alias Pleroma.Web.ActivityPub.{ObjectView, UserView}
+
+  alias Pleroma.Activity
+  alias Pleroma.User
+  alias Pleroma.Object
+  alias Pleroma.Web.ActivityPub.ObjectView
+  alias Pleroma.Web.ActivityPub.UserView
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Relay
-  alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.ActivityPub.Transmogrifier
+  alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.Federator
 
   require Logger
@@ -17,6 +21,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
   action_fallback(:errors)
 
   plug(Pleroma.Web.FederatingPlug when action in [:inbox, :relay])
+  plug(:set_requester_reachable when action in [:inbox])
   plug(:relay_active? when action in [:relay])
 
   def relay_active?(conn, _) do
@@ -150,13 +155,13 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     with %User{} = user <- User.get_cached_by_nickname(nickname),
          true <- Utils.recipient_in_message(user.ap_id, params),
          params <- Utils.maybe_splice_recipient(user.ap_id, params) do
-      Federator.enqueue(:incoming_ap_doc, params)
+      Federator.incoming_ap_doc(params)
       json(conn, "ok")
     end
   end
 
   def inbox(%{assigns: %{valid_signature: true}} = conn, params) do
-    Federator.enqueue(:incoming_ap_doc, params)
+    Federator.incoming_ap_doc(params)
     json(conn, "ok")
   end
 
@@ -195,6 +200,14 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
       nil -> {:error, :not_found}
     end
   end
+
+  def whoami(%{assigns: %{user: %User{} = user}} = conn, _params) do
+    conn
+    |> put_resp_header("content-type", "application/activity+json")
+    |> json(UserView.render("user.json", %{user: user}))
+  end
+
+  def whoami(_conn, _params), do: {:error, :not_found}
 
   def read_inbox(%{assigns: %{user: user}} = conn, %{"nickname" => nickname} = params) do
     if nickname == user.nickname do
@@ -288,5 +301,14 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     conn
     |> put_status(500)
     |> json("error")
+  end
+
+  defp set_requester_reachable(%Plug.Conn{} = conn, _) do
+    with actor <- conn.params["actor"],
+         true <- is_binary(actor) do
+      Pleroma.Instances.set_reachable(actor)
+    end
+
+    conn
   end
 end

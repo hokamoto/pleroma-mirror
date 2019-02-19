@@ -5,23 +5,26 @@
 defmodule Pleroma.Web.OAuth.Authorization do
   use Ecto.Schema
 
-  alias Pleroma.{User, Repo}
-  alias Pleroma.Web.OAuth.{Authorization, App}
+  alias Pleroma.User
+  alias Pleroma.Repo
+  alias Pleroma.Web.OAuth.Authorization
+  alias Pleroma.Web.OAuth.App
 
-  import Ecto.{Changeset, Query}
+  import Ecto.Changeset
+  import Ecto.Query
 
   schema "oauth_authorizations" do
     field(:token, :string)
     field(:valid_until, :naive_datetime)
     field(:used, :boolean, default: false)
-    belongs_to(:user, Pleroma.User)
+    belongs_to(:user, Pleroma.User, type: Pleroma.FlakeId)
     belongs_to(:app, App)
 
     timestamps()
   end
 
   def create_authorization(%App{} = app, %User{} = user) do
-    token = :crypto.strong_rand_bytes(32) |> Base.url_encode64()
+    token = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
 
     authorization = %Authorization{
       token: token,

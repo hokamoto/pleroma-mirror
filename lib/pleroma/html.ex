@@ -58,6 +58,22 @@ defmodule Pleroma.HTML do
       "#{signature}#{to_string(scrubber)}"
     end)
   end
+
+  def extract_first_external_url(_, nil), do: {:error, "No content"}
+
+  def extract_first_external_url(object, content) do
+    key = "URL|#{object.id}"
+
+    Cachex.fetch!(:scrubber_cache, key, fn _key ->
+      result =
+        content
+        |> Floki.filter_out("a.mention")
+        |> Floki.attribute("a", "href")
+        |> Enum.at(0)
+
+      {:commit, {:ok, result}}
+    end)
+  end
 end
 
 defmodule Pleroma.HTML.Scrubber.TwitterText do
@@ -67,8 +83,7 @@ defmodule Pleroma.HTML.Scrubber.TwitterText do
   """
 
   @markup Application.get_env(:pleroma, :markup)
-  @uri_schemes Application.get_env(:pleroma, :uri_schemes, [])
-  @valid_schemes Keyword.get(@uri_schemes, :valid_schemes, [])
+  @valid_schemes Pleroma.Config.get([:uri_schemes, :valid_schemes], [])
 
   require HtmlSanitizeEx.Scrubber.Meta
   alias HtmlSanitizeEx.Scrubber.Meta
@@ -110,10 +125,11 @@ defmodule Pleroma.HTML.Scrubber.Default do
 
   require HtmlSanitizeEx.Scrubber.Meta
   alias HtmlSanitizeEx.Scrubber.Meta
+  # credo:disable-for-previous-line
+  # No idea how to fix this one…
 
   @markup Application.get_env(:pleroma, :markup)
-  @uri_schemes Application.get_env(:pleroma, :uri_schemes, [])
-  @valid_schemes Keyword.get(@uri_schemes, :valid_schemes, [])
+  @valid_schemes Pleroma.Config.get([:uri_schemes, :valid_schemes], [])
 
   Meta.remove_cdata_sections_before_scrub()
   Meta.strip_comments()
