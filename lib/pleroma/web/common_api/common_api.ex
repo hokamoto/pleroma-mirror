@@ -245,8 +245,8 @@ defmodule Pleroma.Web.CommonAPI do
   end
 
   def report(user, data) do
-    with %{"account_id" => account_id} <- data,
-         %User{} = account <- User.get_by_id(account_id),
+    with {:account_id, %{"account_id" => account_id}} <- {:account_id, data},
+         {:account, %User{} = account} <- {:account, User.get_by_id(account_id)},
          {:ok, content_html} <- make_report_content_html(data["comment"]),
          {:ok, statuses} <- get_report_statuses(account, data),
          {:ok, activity} <-
@@ -257,20 +257,17 @@ defmodule Pleroma.Web.CommonAPI do
              statuses: statuses,
              content: content_html
            }) do
-      Task.async(fn ->
-        User.all_superusers()
-        |> Enum.each(fn superuser ->
-          superuser
-          |> Pleroma.AdminEmail.report(user, account, statuses, content_html)
-          |> Pleroma.Mailer.deliver()
-        end)
+      Enum.each(User.all_superusers(), fn superuser ->
+        superuser
+        |> Pleroma.AdminEmail.report(user, account, statuses, content_html)
+        |> Pleroma.Mailer.deliver_async()
       end)
 
       {:ok, activity}
     else
       {:error, err} -> {:error, err}
-      %{} -> {:error, "Valid `account_id` required"}
-      nil -> {:error, "Account not found"}
+      {:account_id, %{}} -> {:error, "Valid `account_id` required"}
+      {:account, nil} -> {:error, "Account not found"}
     end
   end
 end
