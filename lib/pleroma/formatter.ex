@@ -50,7 +50,7 @@ defmodule Pleroma.Formatter do
   end
 
   @doc """
-  Parses a text and replace plain text links with HTML, returns a tuple with a result text, found mentions and hashtags.
+  Parses a text and replace plain text links with HTML. Returns a tuple with a result text, mentions, and hashtags.
   """
   @spec linkify(String.t(), keyword()) ::
           {String.t(), [{String.t(), User.t()}], [{String.t(), String.t()}]}
