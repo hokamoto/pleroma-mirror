@@ -298,7 +298,14 @@ defmodule Pleroma.Web.Router do
       delete("/domain_blocks", MastodonAPIController, :unblock_domain)
     end
 
+    scope [] do
+      pipe_through(:oauth_push)
 
+      post("/push/subscription", MastodonAPIController, :create_push_subscription)
+      get("/push/subscription", MastodonAPIController, :get_push_subscription)
+      put("/push/subscription", MastodonAPIController, :update_push_subscription)
+      delete("/push/subscription", MastodonAPIController, :delete_push_subscription)
+    end
   end
 
   scope "/api/web", Pleroma.Web.MastodonAPI do
