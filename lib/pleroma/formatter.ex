@@ -14,13 +14,7 @@ defmodule Pleroma.Formatter do
   @auto_linker_config hashtag: true,
                       hashtag_handler: &Pleroma.Formatter.hashtag_handler/4,
                       mention: true,
-                      mention_handler: &Pleroma.Formatter.mention_handler/4,
-                      scheme: true,
-                      extra: true,
-                      class: false,
-                      new_window: false,
-                      rel: false,
-                      strip_prefix: false
+                      mention_handler: &Pleroma.Formatter.mention_handler/4
 
   def mention_handler("@" <> nickname, buffer, opts, acc) do
     case User.get_cached_by_nickname(nickname) do
