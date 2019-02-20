@@ -353,6 +353,31 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     end
   end
 
+  def flag(
+        %{
+          actor: actor,
+          context: context,
+          account: account,
+          statuses: statuses,
+          content: content
+        } = params
+      ) do
+    additional = params[:additional] || %{}
+
+    # only accept false as false value
+    local = !(params[:local] == false)
+
+    %{
+      actor: actor,
+      context: context,
+      account: account,
+      statuses: statuses,
+      content: content
+    }
+    |> make_flag_data(additional)
+    |> insert(local)
+  end
+
   def fetch_activities_for_context(context, opts \\ %{}) do
     public = ["https://www.w3.org/ns/activitystreams#Public"]
 
@@ -576,6 +601,18 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp restrict_reblogs(query, _), do: query
 
+  defp restrict_muted(query, %{"muting_user" => %User{info: info}}) do
+    mutes = info.mutes
+
+    from(
+      activity in query,
+      where: fragment("not (? = ANY(?))", activity.actor, ^mutes),
+      where: fragment("not (?->'to' \\?| ?)", activity.data, ^mutes)
+    )
+  end
+
+  defp restrict_muted(query, _), do: query
+
   defp restrict_blocked(query, %{"blocking_user" => %User{info: info}}) do
     blocks = info.blocks || []
     domain_blocks = info.domain_blocks || []
@@ -629,6 +666,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> restrict_type(opts)
     |> restrict_favorited_by(opts)
     |> restrict_blocked(opts)
+    |> restrict_muted(opts)
     |> restrict_media(opts)
     |> restrict_visibility(opts)
     |> restrict_replies(opts)
