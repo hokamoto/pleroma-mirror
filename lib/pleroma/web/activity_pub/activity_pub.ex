@@ -601,6 +601,18 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp restrict_reblogs(query, _), do: query
 
+  defp restrict_muted(query, %{"muting_user" => %User{info: info}}) do
+    mutes = info.mutes
+
+    from(
+      activity in query,
+      where: fragment("not (? = ANY(?))", activity.actor, ^mutes),
+      where: fragment("not (?->'to' \\?| ?)", activity.data, ^mutes)
+    )
+  end
+
+  defp restrict_muted(query, _), do: query
+
   defp restrict_blocked(query, %{"blocking_user" => %User{info: info}}) do
     blocks = info.blocks || []
     domain_blocks = info.domain_blocks || []
@@ -654,6 +666,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> restrict_type(opts)
     |> restrict_favorited_by(opts)
     |> restrict_blocked(opts)
+    |> restrict_muted(opts)
     |> restrict_media(opts)
     |> restrict_visibility(opts)
     |> restrict_replies(opts)
@@ -903,7 +916,12 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   end
 
   def is_private?(activity) do
-    !is_public?(activity) && Enum.any?(activity.data["to"], &String.contains?(&1, "/followers"))
+    unless is_public?(activity) do
+      follower_address = User.get_cached_by_ap_id(activity.data["actor"]).follower_address
+      Enum.any?(activity.data["to"], &(&1 == follower_address))
+    else
+      false
+    end
   end
 
   def is_direct?(%Activity{data: %{"directMessage" => true}}), do: true

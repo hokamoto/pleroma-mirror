@@ -1206,6 +1206,42 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     assert id == to_string(other_user.id)
   end
 
+  test "muting / unmuting a user", %{conn: conn} do
+    user = insert(:user)
+    other_user = insert(:user)
+
+    conn =
+      conn
+      |> assign(:user, user)
+      |> post("/api/v1/accounts/#{other_user.id}/mute")
+
+    assert %{"id" => _id, "muting" => true} = json_response(conn, 200)
+
+    user = Repo.get(User, user.id)
+
+    conn =
+      build_conn()
+      |> assign(:user, user)
+      |> post("/api/v1/accounts/#{other_user.id}/unmute")
+
+    assert %{"id" => _id, "muting" => false} = json_response(conn, 200)
+  end
+
+  test "getting a list of mutes", %{conn: conn} do
+    user = insert(:user)
+    other_user = insert(:user)
+
+    {:ok, user} = User.mute(user, other_user)
+
+    conn =
+      conn
+      |> assign(:user, user)
+      |> get("/api/v1/mutes")
+
+    other_user_id = to_string(other_user.id)
+    assert [%{"id" => ^other_user_id}] = json_response(conn, 200)
+  end
+
   test "blocking / unblocking a user", %{conn: conn} do
     user = insert(:user)
     other_user = insert(:user)
@@ -1282,26 +1318,10 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     assert "even.worse.site" in domain_blocks
   end
 
-  test "unimplemented mute endpoints" do
-    user = insert(:user)
-    other_user = insert(:user)
-
-    ["mute", "unmute"]
-    |> Enum.each(fn endpoint ->
-      conn =
-        build_conn()
-        |> assign(:user, user)
-        |> post("/api/v1/accounts/#{other_user.id}/#{endpoint}")
-
-      assert %{"id" => id} = json_response(conn, 200)
-      assert id == to_string(other_user.id)
-    end)
-  end
-
-  test "unimplemented mutes, follow_requests, blocks, domain blocks" do
+  test "unimplemented follow_requests, blocks, domain blocks" do
     user = insert(:user)
 
-    ["blocks", "domain_blocks", "mutes", "follow_requests"]
+    ["blocks", "domain_blocks", "follow_requests"]
     |> Enum.each(fn endpoint ->
       conn =
         build_conn()
@@ -1535,6 +1555,24 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
       assert user_response = json_response(conn, 200)
       assert user_response["header"] != User.banner_url(user)
+    end
+
+    test "requires 'write' permission", %{conn: conn} do
+      token1 = insert(:oauth_token, scopes: ["read"])
+      token2 = insert(:oauth_token, scopes: ["write", "follow"])
+
+      for token <- [token1, token2] do
+        conn =
+          conn
+          |> put_req_header("authorization", "Bearer #{token.token}")
+          |> patch("/api/v1/accounts/update_credentials", %{})
+
+        if token == token1 do
+          assert %{"error" => "Insufficient permissions: write."} == json_response(conn, 403)
+        else
+          assert json_response(conn, 200)
+        end
+      end
     end
   end
 
