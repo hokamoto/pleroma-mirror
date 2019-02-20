@@ -327,13 +327,13 @@ defmodule Pleroma.Web.CommonAPI.Utils do
 
   def maybe_extract_mentions(_), do: []
 
-  def make_report_content_html(nil), do: {:ok, nil}
+  def make_report_content_html(nil), do: {:ok, {nil, [], []}}
 
   def make_report_content_html(comment) do
     max_size = Pleroma.Config.get([:instance, :max_report_comment_size], 1000)
 
     if String.length(comment) <= max_size do
-      {:ok, format_input(comment, [], [], "text/plain")}
+      {:ok, format_input(comment, "text/plain")}
     else
       {:error, "Comment must be up to #{max_size} characters"}
     end
