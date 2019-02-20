@@ -92,7 +92,7 @@ defmodule Pleroma.Mixfile do
       {:ex_syslogger, github: "slashmili/ex_syslogger", tag: "1.4.0"},
       {:auto_linker,
        git: "https://git.pleroma.social/pleroma/auto_linker.git",
-       ref: "01de0bccc2ad262c5f7833fa06b08d31cb91720b"}
+       ref: "ae032126cdcda07dcf8eebb50de3190536cc3fc4"}
     ]
   end
 
