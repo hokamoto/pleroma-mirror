@@ -34,10 +34,15 @@ defmodule Pleroma.Web.Mfc.Api do
     }
   end
 
-  def notify_account_creation(%Pleroma.User{mfc_id: mfc_id, inserted_at: inserted_at}) do
+  def notify_account_creation(%Pleroma.User{
+        mfc_id: mfc_id,
+        inserted_at: inserted_at,
+        nickname: nickname
+      }) do
     url = Pleroma.Config.get([:mfc, :account_creation_endpoint])
 
     authenticated_request(:post, url, %{
+      username: nickname,
       mfc_id: mfc_id,
       social_created_at: inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
     })

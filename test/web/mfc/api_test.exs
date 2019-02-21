@@ -47,6 +47,8 @@ defmodule Pleroma.Web.Mfc.ApiTest do
     Tesla.Mock.mock(fn %{url: ^url, body: body} ->
       assert body =~ "mfc_id=1"
 
+      assert body =~ "username=#{user.nickname}"
+
       assert body =~ "social_created_at=#{expected_time}"
 
       send(self(), :called_api)
