@@ -33,6 +33,9 @@ defmodule Pleroma.Web.OStatus.OStatusController do
       "activity+json" ->
         ActivityPubController.call(conn, :user)
 
+      "json" ->
+        ActivityPubController.call(conn, :user)
+
       _ ->
         with %User{} = user <- User.get_cached_by_nickname(nickname) do
           redirect(conn, external: OStatus.feed_path(user))
@@ -94,7 +97,7 @@ defmodule Pleroma.Web.OStatus.OStatusController do
   end
 
   def object(conn, %{"uuid" => uuid}) do
-    if get_format(conn) == "activity+json" do
+    if get_format(conn) in ["activity+json", "json"] do
       ActivityPubController.call(conn, :object)
     else
       with id <- o_status_url(conn, :object, uuid),
@@ -119,7 +122,7 @@ defmodule Pleroma.Web.OStatus.OStatusController do
   end
 
   def activity(conn, %{"uuid" => uuid}) do
-    if get_format(conn) == "activity+json" do
+    if get_format(conn) in ["activity+json", "json"] do
       ActivityPubController.call(conn, :activity)
     else
       with id <- o_status_url(conn, :activity, uuid),
@@ -153,6 +156,7 @@ defmodule Pleroma.Web.OStatus.OStatusController do
             %Object{} = object = Object.normalize(activity.data["object"])
 
             Fallback.RedirectController.redirector_with_meta(conn, %{
+              activity_id: activity.id,
               object: object,
               url:
                 Pleroma.Web.Router.Helpers.o_status_url(
@@ -181,6 +185,30 @@ defmodule Pleroma.Web.OStatus.OStatusController do
 
       e ->
         e
+    end
+  end
+
+  # Returns an HTML embedded <audio> or <video> player suitable for embed iframes.
+  def notice_player(conn, %{"id" => id}) do
+    with %Activity{data: %{"type" => "Create"}} = activity <- Activity.get_by_id(id),
+         true <- ActivityPub.is_public?(activity),
+         %Object{} = object <- Object.normalize(activity.data["object"]),
+         %{data: %{"attachment" => [%{"url" => [url | _]} | _]}} <- object,
+         true <- String.starts_with?(url["mediaType"], ["audio", "video"]) do
+      conn
+      |> put_layout(:metadata_player)
+      |> put_resp_header("x-frame-options", "ALLOW")
+      |> put_resp_header(
+        "content-security-policy",
+        "default-src 'none';style-src 'self' 'unsafe-inline';img-src 'self' data: https:; media-src 'self' https:;"
+      )
+      |> put_view(Pleroma.Web.Metadata.PlayerView)
+      |> render("player.html", url)
+    else
+      _error ->
+        conn
+        |> put_status(404)
+        |> Fallback.RedirectController.redirector(nil, 404)
     end
   end
 

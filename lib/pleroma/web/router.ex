@@ -488,11 +488,11 @@ defmodule Pleroma.Web.Router do
   end
 
   pipeline :ap_relay do
-    plug(:accepts, ["activity+json"])
+    plug(:accepts, ["activity+json", "json"])
   end
 
   pipeline :ostatus do
-    plug(:accepts, ["html", "xml", "atom", "activity+json"])
+    plug(:accepts, ["html", "xml", "atom", "activity+json", "json"])
   end
 
   pipeline :oembed do
@@ -505,6 +505,7 @@ defmodule Pleroma.Web.Router do
     get("/objects/:uuid", OStatus.OStatusController, :object)
     get("/activities/:uuid", OStatus.OStatusController, :activity)
     get("/notice/:id", OStatus.OStatusController, :notice)
+    get("/notice/:id/embed_player", OStatus.OStatusController, :notice_player)
     get("/users/:nickname/feed", OStatus.OStatusController, :feed)
     get("/users/:nickname", OStatus.OStatusController, :feed_redirect)
 
@@ -521,7 +522,7 @@ defmodule Pleroma.Web.Router do
   end
 
   pipeline :activitypub do
-    plug(:accepts, ["activity+json"])
+    plug(:accepts, ["activity+json", "json"])
     plug(Pleroma.Web.Plugs.HTTPSignaturePlug)
   end
 
@@ -536,7 +537,7 @@ defmodule Pleroma.Web.Router do
   end
 
   pipeline :activitypub_client do
-    plug(:accepts, ["activity+json"])
+    plug(:accepts, ["activity+json", "json"])
     plug(:fetch_session)
     plug(Pleroma.Plugs.OAuthPlug)
     plug(Pleroma.Plugs.BasicAuthDecoderPlug)
