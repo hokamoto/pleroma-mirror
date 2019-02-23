@@ -5,6 +5,50 @@
 defmodule Pleroma.Web.ActivityPub.MRF do
   @callback filter(Map.t()) :: {:ok | :reject, Map.t()}
 
+  alias Pleroma.Repo
+  alias __MODULE__
+  import Ecto.Changeset
+  use Ecto.Schema
+
+  @primary_key {:id, Pleroma.FlakeId, autogenerate: true}
+  schema "mrf_policies" do
+    field(:data, :map)
+    field(:policy, :string)
+
+    timestamps()
+  end
+
+  @doc false
+  def changeset(schema, attrs) do
+    schema
+    |> cast(attrs, [:policy, :data])
+    |> validate_required([:policy, :data])
+  end
+
+  @doc """
+  This function takes a map of two fields:
+
+  1. `:policy`, which is a PascalCase string representing the name of the policy.
+     ex: "KeywordPolicy", "HellThread", etc.
+
+  2. `:data`, which is the actual policy data. This field should be converted from the appropriate struct beforehand. Upstream code should normalise this data with a struct, but need to convert it to a map before sending it to `save_policy`, in order to strip the unnecessary fields.
+
+  This function performs an upsert in the database and in the application environment. New values become instantaneously accessible with `Pleroma.Config.get`
+  """
+  def save_policy(attrs) when is_map(attrs) do
+    case attrs.policy do
+      "KeywordPolicy" -> Pleroma.Config.put(:mrf_keyword, attrs.data)
+      "RejectNonPublic" -> Pleroma.Config.put(:mrf_rejectnonpublic, attrs.data)
+      "NormalizeMarkup" -> Pleroma.Config.put(:mrf_normalize_markup, attrs.data)
+      "HellThread" -> Pleroma.Config.put(:mrf_hellthread, attrs.data)
+      "Simple" -> Pleroma.Config.put(:mrf_simple, attrs.data)
+      _ -> raise(ArgumentError, "Wrong MRF Policy name!")
+    end
+
+    changeset = changeset(%MRF{}, attrs)
+    Repo.insert(changeset, on_conflict: :replace_all, conflict_target: :data)
+  end
+
   def filter(object) do
     get_policies()
     |> Enum.reduce({:ok, object}, fn
