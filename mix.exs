@@ -93,7 +93,7 @@ defmodule Pleroma.Mixfile do
       {:timex, "~> 3.5"},
       {:auto_linker,
        git: "https://git.pleroma.social/pleroma/auto_linker.git",
-       ref: "ae032126cdcda07dcf8eebb50de3190536cc3fc4"}
+       ref: "94193ca5f97c1f9fdf3d1469653e2d46fac34bcd"}
     ]
   end
 

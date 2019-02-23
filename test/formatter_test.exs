@@ -25,10 +25,10 @@ defmodule Pleroma.FormatterTest do
     end
 
     test "does not turn html characters to tags" do
-      text = "Fact #3: pleroma does what mastodon't"
+      text = "#fact_3: pleroma does what mastodon't"
 
       expected_text =
-        "Fact <a class='hashtag' data-tag='3' href='http://localhost:4001/tag/3' rel='tag'>#3</a>: pleroma does what mastodon't"
+        "<a class='hashtag' data-tag='fact_3' href='http://localhost:4001/tag/fact_3' rel='tag'>#fact_3</a>: pleroma does what mastodon't"
 
       assert {^expected_text, [], _tags} = Formatter.linkify(text)
     end
