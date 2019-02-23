@@ -4,6 +4,20 @@
 
 defmodule Pleroma.Web.ActivityPub.MRF.KeywordPolicy do
   @behaviour Pleroma.Web.ActivityPub.MRF
+
+  alias __MODULE__
+  alias Pleroma.Web.ActivityPub.MRF
+
+  @type t :: %__MODULE__{}
+
+  defstruct federated_timeline_removal: [],
+            reject: [],
+            replace: %{}
+
+  def save_keyword_policy(%KeywordPolicy{} = keyword_policy) do
+    keyword_policy |> serialise_map |> MRF.save_policy()
+  end
+
   defp string_matches?(string, pattern) when is_binary(pattern) do
     String.contains?(string, pattern)
   end
@@ -57,6 +71,10 @@ defmodule Pleroma.Web.ActivityPub.MRF.KeywordPolicy do
      message
      |> put_in(["object", "content"], content)
      |> put_in(["object", "summary"], summary)}
+  end
+
+  def serialise_map(%KeywordPolicy{} = kp) do
+    %{data: Map.from_struct(kp), policy: "KeywordPolicy"}
   end
 
   @impl true
