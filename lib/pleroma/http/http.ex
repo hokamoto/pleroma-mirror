@@ -33,6 +33,10 @@ defmodule Pleroma.HTTP do
 
     params = Keyword.get(options, :params, [])
 
+    # Tesla will not timeout when given an incorrect URL,
+    # so we'll add a temporary workaround to make sure that
+    # a URL is valid our side
+    # See: issues/672, merge_requests/862 
     url
     |> validate_url()
     |> case do
