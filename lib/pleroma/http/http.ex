@@ -34,10 +34,7 @@ defmodule Pleroma.HTTP do
     params = Keyword.get(options, :params, [])
 
     url
-    |> URI.parse()
-    |> Map.get(:host)
-    |> to_charlist()
-    |> :inet.gethostbyname()
+    |> validate_url()
     |> case do
       {:ok, _} ->
         %{}
@@ -52,6 +49,22 @@ defmodule Pleroma.HTTP do
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  if Mix.env() == :test do
+    defp validate_url(url), do: {:ok, url}
+  else
+    defp validate_url(url) do
+      url
+      |> URI.parse()
+      |> Map.get(:host)
+      |> to_charlist()
+      |> :inet.gethostbyname()
+      |> case do
+        {:ok, _} -> {:ok, url}
+        {:error, reason} -> {:error, reason}
+      end
     end
   end
 
