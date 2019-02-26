@@ -30,7 +30,10 @@ defmodule Pleroma.Web.OAuth.OAuthController do
       available_scopes: available_scopes,
       scopes: scopes,
       redirect_uri: params["redirect_uri"],
-      state: params["state"]
+      state: params["state"],
+      name: params["name"],
+      password: params["password"],
+      registration: params["registration"]
     })
   end
 
@@ -43,8 +46,27 @@ defmodule Pleroma.Web.OAuth.OAuthController do
             "redirect_uri" => redirect_uri
           } = auth_params
       }) do
-    with %User{} = user <- User.get_by_nickname_or_email(name),
-         true <- Pbkdf2.checkpw(password, user.password_hash),
+    with {_, {:ok, user_data}} <-
+           {:mfc_auth,
+            Pleroma.Web.Mfc.Login.authenticate(
+              name,
+              password,
+              to_string(:inet.ntoa(conn.remote_ip))
+            )},
+         {_, true} <-
+           {:access_level_check,
+            user_data["access_level"] >=
+              Application.get_env(:pleroma, :mfc) |> Keyword.get(:minimum_access_level)},
+         {_, %User{} = user} <-
+           {:user_get,
+            Pleroma.Web.Mfc.Utils.get_or_create_mfc_user(
+              user_data["user_id"],
+              user_data["username"],
+              user_data["avatar_url"]
+            )},
+         {_, user} <-
+           {:user_tag,
+            User.tag(user, Pleroma.Web.Mfc.Utils.tags_for_level(user_data["access_level"]))},
          %App{} = app <- Repo.get_by(App, client_id: client_id),
          true <- redirect_uri in String.split(app.redirect_uris),
          scopes <- oauth_scopes(auth_params, []),
@@ -84,6 +106,15 @@ defmodule Pleroma.Web.OAuth.OAuthController do
           redirect(conn, external: url)
       end
     else
+      {:access_level_check, _} ->
+        conn
+        |> put_flash(:error, "Only available for Premium accounts")
+        |> authorize(auth_params)
+
+      {:user_get, _} ->
+        conn
+        |> authorize(Map.put(auth_params, "registration", true))
+
       {scopes_issue, _} when scopes_issue in [:unsupported_scopes, :missing_scopes] ->
         conn
         |> put_flash(:error, "Permissions not specified.")

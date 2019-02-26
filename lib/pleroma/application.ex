@@ -25,6 +25,7 @@ defmodule Pleroma.Application do
     import Cachex.Spec
 
     Pleroma.Config.DeprecationWarnings.warn()
+    setup_instrumenters()
 
     # Define workers and child supervisors to be supervised
     children =
@@ -119,12 +120,29 @@ defmodule Pleroma.Application do
           # Start the endpoint when the application starts
           supervisor(Pleroma.Web.Endpoint, []),
           worker(Pleroma.Gopher.Server, [])
-        ]
+        ] ++
+        if Pleroma.Config.get([:mfc, :enable_sync]) do
+          [
+            worker(Pleroma.MfcFollowerSync, []),
+            worker(Pleroma.MfcOnlineStateSync, [])
+          ]
+        else
+          []
+        end
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Pleroma.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  defp setup_instrumenters() do
+    require Prometheus.Registry
+    Prometheus.Registry.register_collector(:prometheus_process_collector)
+    Pleroma.Web.Endpoint.MetricsExporter.setup()
+    Pleroma.Web.Endpoint.PipelineInstrumenter.setup()
+    Pleroma.Web.Endpoint.Instrumenter.setup()
+    Pleroma.Repo.Instrumenter.setup()
   end
 
   def enabled_hackney_pools() do

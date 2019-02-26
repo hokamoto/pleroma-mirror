@@ -5,10 +5,14 @@
 # is restricted to this project.
 use Mix.Config
 
+config :tesla, adapter: Tesla.Adapter.Hackney
+
 # General application configuration
 config :pleroma, ecto_repos: [Pleroma.Repo]
 
-config :pleroma, Pleroma.Repo, types: Pleroma.PostgresTypes
+config :pleroma, Pleroma.Repo,
+  types: Pleroma.PostgresTypes,
+  loggers: [Pleroma.Repo.Instrumenter, Ecto.LogEntry]
 
 config :pleroma, Pleroma.Captcha,
   enabled: false,
@@ -88,6 +92,7 @@ websocket_config = [
 
 # Configures the endpoint
 config :pleroma, Pleroma.Web.Endpoint,
+  instrumenters: [Pleroma.Web.Endpoint.Instrumenter],
   url: [host: "localhost"],
   http: [
     dispatch: [
@@ -101,6 +106,7 @@ config :pleroma, Pleroma.Web.Endpoint,
     ]
   ],
   protocol: "https",
+  # reverse_proxies: ["10.0.0.0/8"],
   secret_key_base: "aK4Abxf29xU9TTDKre9coZPUgevcVCFQJe/5xP/7Lt4BEif6idBIbjupVbOrbKxl",
   signing_salt: "CqaoopA2",
   render_errors: [view: Pleroma.Web.ErrorView, accepts: ~w(json)],
@@ -301,6 +307,25 @@ config :cors_plug,
   credentials: true,
   headers: ["Authorization", "Content-Type", "Idempotency-Key"]
 
+config :pleroma, :mfc,
+  login_secret: "I70Xk+ga0dBN/7QiIHWfxNovwC+RPyB/4Gu+gf1EaBV8QZVK8tSnjEt5gHRUoB/p",
+  passcode_cookie_endpoint: "https://passcookie/login",
+  login_endpoint: "https://passcookie/login/passcode",
+  friends_endpoint: "https://mfc/friends",
+  twitter_friends_endpoint: "https://mfc/twitter_friends",
+  bookmarks_endpoint: "https://mfc/bookmarks",
+  following_endpoint: "https://mfc/following",
+  following_endpoint_v2: "https://mfc/v2/following",
+  models_state_endpoint: "https://mfc/models_online",
+  enable_sync: false,
+  client_version: "Pleroma",
+  server_ip: "127.0.0.1",
+  client_ip: "127.0.0.1",
+  minimum_access_level: 2,
+  account_creation_endpoint: "https://mfc/account_creation",
+  status_creation_endpoint: "https://mfc/status_creation",
+  share_hmac_secret: "309c4847-459f-4219-a98f-7a95a7d3f149"
+
 config :pleroma, Pleroma.User,
   restricted_nicknames: [
     ".well-known",
@@ -338,6 +363,8 @@ config :pleroma, Pleroma.Web.Federator.RetryQueue,
   max_jobs: 20,
   initial_timeout: 30,
   max_retries: 5
+
+config :prometheus, Pleroma.Web.Endpoint.MetricsExporter, path: "/api/pleroma/app_metrics"
 
 config :pleroma, Pleroma.Jobs,
   federator_incoming: [max_jobs: 50],

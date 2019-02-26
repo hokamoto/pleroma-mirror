@@ -13,6 +13,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MastodonAPI.StatusView
+  alias Pleroma.Uploaders.Uploader
   alias Pleroma.Web.MediaProxy
 
   # TODO: Add cached version.
@@ -106,7 +107,10 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     }
   end
 
-  def render("status.json", %{activity: %{data: %{"object" => object}} = activity} = opts) do
+  def render(
+        "status.json",
+        %{activity: %{local: local, data: %{"object" => object}} = activity} = opts
+      ) do
     user = get_user(activity.data["actor"])
 
     like_count = object["like_count"] || 0
@@ -126,7 +130,9 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     bookmarked = opts[:for] && object["id"] in opts[:for].bookmarks
 
     attachment_data = object["attachment"] || []
-    attachments = render_many(attachment_data, StatusView, "attachment.json", as: :attachment)
+
+    attachments =
+      render_many(attachment_data, StatusView, "attachment.json", as: :attachment, local: local)
 
     created_at = Utils.to_masto_date(object["published"])
 
@@ -229,7 +235,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     nil
   end
 
-  def render("attachment.json", %{attachment: attachment}) do
+  def render("attachment.json", %{attachment: attachment} = assigns) do
     [attachment_url | _] = attachment["url"]
     media_type = attachment_url["mediaType"] || attachment_url["mimeType"] || "image"
     href = attachment_url["href"] |> MediaProxy.url()
@@ -242,13 +248,20 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         true -> "unknown"
       end
 
+    preview_href =
+      if Map.get(assigns, :local) do
+        Uploader.preview_url(media_type, href)
+      else
+        href
+      end
+
     <<hash_id::signed-32, _rest::binary>> = :crypto.hash(:md5, href)
 
     %{
       id: to_string(attachment["id"] || hash_id),
       url: href,
       remote_url: href,
-      preview_url: href,
+      preview_url: preview_href,
       text_url: href,
       type: type,
       description: attachment["name"]
