@@ -77,6 +77,14 @@ defmodule Pleroma.Web.ActivityPub.MRF.KeywordPolicy do
     %{data: Map.from_struct(kp), policy: "KeywordPolicy"}
   end
 
+  def serialise_map(%MRF{} = mrf) do
+    %{
+      federated_timeline_removal: mrf.data["federated_timeline_removal"],
+      reject: mrf.data["reject"],
+      replace: mrf.data["replace"]
+    }
+  end
+
   @impl true
   def filter(%{"object" => %{"content" => nil}} = message) do
     {:ok, message}
