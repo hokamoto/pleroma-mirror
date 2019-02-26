@@ -13,6 +13,7 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   alias Pleroma.{Repo, Activity, Object, User, Notification}
   alias Pleroma.Web.OAuth.Token
   alias Pleroma.Web.ActivityPub.ActivityPub
+  alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.TwitterAPI.ActivityView
@@ -268,7 +269,7 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
 
   def fetch_status(%{assigns: %{user: user}} = conn, %{"id" => id}) do
     with %Activity{} = activity <- Repo.get(Activity, id),
-         true <- ActivityPub.visible_for_user?(activity, user) do
+         true <- Visibility.visible_for_user?(activity, user) do
       conn
       |> put_view(ActivityView)
       |> render("activity.json", %{activity: activity, for: user})
@@ -646,7 +647,14 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
 
   defp build_info_cng(user, params) do
     info_params =
-      ["no_rich_text", "locked", "hide_followers", "hide_follows", "show_role", "mfc_follower_sync"]
+      [
+        "no_rich_text",
+        "locked",
+        "hide_followers",
+        "hide_follows",
+        "show_role",
+        "mfc_follower_sync"
+      ]
       |> Enum.reduce(%{}, fn key, res ->
         if value = params[key] do
           Map.put(res, key, value == "true")

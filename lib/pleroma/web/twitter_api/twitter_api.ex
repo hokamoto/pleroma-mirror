@@ -220,7 +220,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
          {:ok, token_record} <- Pleroma.PasswordResetToken.create_token(user) do
       user
       |> UserEmail.password_reset_email(token_record.token)
-      |> Mailer.deliver()
+      |> Mailer.deliver_async()
     else
       false ->
         {:error, "bad user identifier"}

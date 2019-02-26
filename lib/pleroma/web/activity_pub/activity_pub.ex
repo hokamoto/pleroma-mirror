@@ -18,6 +18,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   import Ecto.Query
   import Pleroma.Web.ActivityPub.Utils
+  import Pleroma.Web.ActivityPub.Visibility
 
   require Logger
 
@@ -353,6 +354,31 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     end
   end
 
+  def flag(
+        %{
+          actor: actor,
+          context: context,
+          account: account,
+          statuses: statuses,
+          content: content
+        } = params
+      ) do
+    additional = params[:additional] || %{}
+
+    # only accept false as false value
+    local = !(params[:local] == false)
+
+    %{
+      actor: actor,
+      context: context,
+      account: account,
+      statuses: statuses,
+      content: content
+    }
+    |> make_flag_data(additional)
+    |> insert(local)
+  end
+
   def fetch_activities_for_context(context, opts \\ %{}) do
     public = ["https://www.w3.org/ns/activitystreams#Public"]
 
@@ -576,6 +602,18 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp restrict_reblogs(query, _), do: query
 
+  defp restrict_muted(query, %{"muting_user" => %User{info: info}}) do
+    mutes = info.mutes
+
+    from(
+      activity in query,
+      where: fragment("not (? = ANY(?))", activity.actor, ^mutes),
+      where: fragment("not (?->'to' \\?| ?)", activity.data, ^mutes)
+    )
+  end
+
+  defp restrict_muted(query, _), do: query
+
   defp restrict_blocked(query, %{"blocking_user" => %User{info: info}}) do
     blocks = info.blocks || []
     domain_blocks = info.domain_blocks || []
@@ -629,6 +667,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> restrict_type(opts)
     |> restrict_favorited_by(opts)
     |> restrict_blocked(opts)
+    |> restrict_muted(opts)
     |> restrict_media(opts)
     |> restrict_visibility(opts)
     |> restrict_replies(opts)
@@ -785,11 +824,16 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
     digest = "SHA-256=" <> (:crypto.hash(:sha256, json) |> Base.encode64())
 
+    date =
+      NaiveDateTime.utc_now()
+      |> Timex.format!("{WDshort}, {D} {Mshort} {YYYY} {h24}:{m}:{s} GMT")
+
     signature =
       Pleroma.Web.HTTPSignatures.sign(actor, %{
         host: host,
         "content-length": byte_size(json),
-        digest: digest
+        digest: digest,
+        date: date
       })
 
     with {:ok, %{status: code}} when code in 200..299 <-
@@ -799,6 +843,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
                json,
                [
                  {"Content-Type", "application/activity+json"},
+                 {"Date", date},
                  {"signature", signature},
                  {"digest", digest}
                ]
@@ -867,52 +912,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         {:error, e}
     end
   end
-
-  def is_public?(%Object{data: %{"type" => "Tombstone"}}), do: false
-  def is_public?(%Object{data: data}), do: is_public?(data)
-  def is_public?(%Activity{data: data}), do: is_public?(data)
-  def is_public?(%{"directMessage" => true}), do: false
-
-  def is_public?(data) do
-    "https://www.w3.org/ns/activitystreams#Public" in (data["to"] ++ (data["cc"] || []))
-  end
-
-  def is_private?(activity) do
-    !is_public?(activity) && Enum.any?(activity.data["to"], &String.contains?(&1, "/followers"))
-  end
-
-  def is_direct?(%Activity{data: %{"directMessage" => true}}), do: true
-  def is_direct?(%Object{data: %{"directMessage" => true}}), do: true
-
-  def is_direct?(activity) do
-    !is_public?(activity) && !is_private?(activity)
-  end
-
-  def visible_for_user?(activity, nil) do
-    is_public?(activity)
-  end
-
-  def visible_for_user?(activity, user) do
-    x = [user.ap_id | user.following]
-    y = activity.data["to"] ++ (activity.data["cc"] || [])
-    visible_for_user?(activity, nil) || Enum.any?(x, &(&1 in y))
-  end
-
-  # guard
-  def entire_thread_visible_for_user?(nil, _user), do: false
-
-  # child
-  def entire_thread_visible_for_user?(
-        %Activity{data: %{"object" => %{"inReplyTo" => parent_id}}} = tail,
-        user
-      )
-      when is_binary(parent_id) do
-    parent = Activity.get_in_reply_to_activity(tail)
-    visible_for_user?(tail, user) && entire_thread_visible_for_user?(parent, user)
-  end
-
-  # root
-  def entire_thread_visible_for_user?(tail, user), do: visible_for_user?(tail, user)
 
   # filter out broken threads
   def contain_broken_threads(%Activity{} = activity, %User{} = user) do
