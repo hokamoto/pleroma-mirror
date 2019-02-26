@@ -7,6 +7,21 @@ defmodule Pleroma.Config do
     defexception [:message]
   end
 
+  alias Pleroma.Repo
+
+  @doc """
+  This function takes:
+  1. A path into the configuration;
+  2. An ecto query that will fetch the new data from the database;
+  3. An optional callback that will be applied to said data before it is saved into application environment.
+
+  If no callback is provided, the identity function is applied on the query's result.
+  """
+  def update_from_storage(config_path, ecto_query, callback \\ & &1) do
+    result = Repo.all(ecto_query)
+    put(config_path, callback.(result))
+  end
+
   def get(key), do: get(key, nil)
 
   def get([key], default), do: get(key, default)
