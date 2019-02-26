@@ -36,7 +36,6 @@ defmodule Pleroma.User.Info do
     field(:hide_follows, :boolean, default: false)
     field(:pinned_activities, {:array, :string}, default: [])
     field(:mfc_follower_sync, :boolean, default: true)
-    field(:mfc_model_online, :boolean, default: false)
     field(:flavour, :string, default: nil)
 
     # Found in the wild

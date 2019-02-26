@@ -24,10 +24,10 @@ defmodule Pleroma.Web.Mfc.UtilsTest do
 
       Utils.update_online_status()
 
-      assert Repo.get(User, user.id).info.mfc_model_online == false
-      assert Repo.get(User, online_model.id).info.mfc_model_online == true
-      assert Repo.get(User, online_model_two.id).info.mfc_model_online == true
-      assert Repo.get(User, offline_model.id).info.mfc_model_online == false
+      assert Utils.model_online?(Repo.get(User, user.id)) == false
+      assert Utils.model_online?(Repo.get(User, online_model.id)) == true
+      assert Utils.model_online?(Repo.get(User, online_model_two.id)) == true
+      assert Utils.model_online?(Repo.get(User, offline_model.id)) == false
     end
   end
 

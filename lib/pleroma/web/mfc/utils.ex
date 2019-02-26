@@ -5,6 +5,12 @@ defmodule Pleroma.Web.Mfc.Utils do
   import Ecto.Query
   require Logger
 
+  def model_online?(user) do
+    {:ok, state} = Cachex.get(:model_state_cache, user.nickname)
+
+    !!state
+  end
+
   defp parse_model_states_body(body) do
     try do
       model_states =
@@ -31,7 +37,6 @@ defmodule Pleroma.Web.Mfc.Utils do
   defp filter_public_streaming(model_states) do
     model_states
     |> Enum.filter(fn {_, %{state: state}} -> state != "90" end)
-    |> Enum.into(%{})
     |> (&{:ok, &1}).()
   end
 
@@ -41,32 +46,7 @@ defmodule Pleroma.Web.Mfc.Utils do
     with {:ok, %{status: 200, body: body}} <- Tesla.get(endpoint),
          {:ok, model_states} <- parse_model_states_body(body),
          {:ok, model_states} <- filter_public_streaming(model_states) do
-      names = Map.keys(model_states)
-
-      Repo.transaction(fn ->
-        online =
-          from(u in User,
-            where: u.nickname in ^names,
-            update: [
-              set: [
-                info: fragment("jsonb_set(?, '{mfc_model_online}', to_jsonb(true))", u.info)
-              ]
-            ]
-          )
-
-        offline =
-          from(u in User,
-            where: not (u.nickname in ^names),
-            update: [
-              set: [
-                info: fragment("jsonb_set(?, '{mfc_model_online}', to_jsonb(false))", u.info)
-              ]
-            ]
-          )
-
-        Repo.update_all(online, [])
-        Repo.update_all(offline, [])
-      end)
+      Cachex.put_many(:model_state_cache, model_states)
     else
       e -> Logger.error("Could not fetch models' online state: #{inspect(e)}")
     end
