@@ -23,9 +23,15 @@ defmodule Pleroma.Application do
   # for more information on OTP Applications
   def start(_type, _args) do
     import Cachex.Spec
+    import Ecto.Query
+    import Pleroma.Web.ActivityPub.MRF.KeywordPolicy, only: [serialise_map: 1]
+    alias Pleroma.Web.ActivityPub.MRF
 
     Pleroma.Config.DeprecationWarnings.warn()
-    load_keyword_policy_from_storage()
+
+    kp_query = from(kp in MRF, limit: 1, order_by: [desc: :updated_at])
+    kp_callback = &(&1 |> hd |> serialise_map())
+    MRF.config_update("KeywordPolicy", :mrf_keyword, kp_query, kp_callback)
 
     # Define workers and child supervisors to be supervised
     children =
@@ -164,21 +170,5 @@ defmodule Pleroma.Application do
       options = Pleroma.Config.get([:hackney_pools, pool])
       :hackney_pool.child_spec(pool, options)
     end
-  end
-
-  defp load_keyword_policy_from_storage do
-    import Ecto.Query
-    import Pleroma.Web.ActivityPub.MRF.KeywordPolicy, only: [serialise_map: 1]
-    alias Pleroma.Web.ActivityPub.MRF
-
-    kp_query =
-      from(kp in MRF, where: kp.policy == "KeywordPolicy", limit: 1, order_by: [desc: :updated_at])
-
-    kp_callback = &(&1 |> hd |> serialise_map())
-
-    spawn(fn ->
-      :timer.sleep(2000) &&
-        Pleroma.Config.update_from_storage(:mrf_keyword, kp_query, kp_callback)
-    end)
   end
 end

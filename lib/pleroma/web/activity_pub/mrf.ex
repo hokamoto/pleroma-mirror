@@ -9,6 +9,8 @@ defmodule Pleroma.Web.ActivityPub.MRF do
   alias __MODULE__
   import Ecto.Changeset
   use Ecto.Schema
+  import Ecto.Query
+  import Pleroma.Config, only: [update_from_storage: 3]
 
   @primary_key {:id, Pleroma.FlakeId, autogenerate: true}
   schema "mrf_policies" do
@@ -47,6 +49,13 @@ defmodule Pleroma.Web.ActivityPub.MRF do
 
     changeset = changeset(%MRF{}, attrs)
     Repo.insert(changeset, on_conflict: :replace_all, conflict_target: :data)
+  end
+
+  def config_update(policy, config_path, query, callback) do
+    spawn(fn ->
+      :timer.sleep(2000) &&
+        update_from_storage(config_path, where(query, policy: ^policy), callback)
+    end)
   end
 
   def filter(object) do
