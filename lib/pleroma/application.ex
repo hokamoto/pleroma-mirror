@@ -104,6 +104,20 @@ defmodule Pleroma.Application do
           ],
           id: :cachex_idem
         ),
+        worker(
+          Cachex,
+          [
+            :model_state_cache,
+            [
+              expiration:
+                expiration(
+                  default: :timer.seconds(5 * 60),
+                  interval: :timer.seconds(60)
+                )
+            ]
+          ],
+          id: :cachex_model_state
+        ),
         worker(Pleroma.FlakeId, [])
       ] ++
         hackney_pool_children() ++

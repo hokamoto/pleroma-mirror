@@ -125,7 +125,7 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
       # MFC fields
       "mfc" => %{
         "mfc_follower_sync" => user.info.mfc_follower_sync,
-        "mfc_model_online" => user.info.mfc_model_online
+        "mfc_model_online" => Pleroma.Web.Mfc.Utils.model_online?(user)
       }
     }
 
