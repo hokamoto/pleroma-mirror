@@ -37,14 +37,15 @@ defmodule Pleroma.Web.ActivityPub.MRF do
 
   This function performs an upsert in the database and in the application environment. New values become instantaneously accessible with `Pleroma.Config.get`
   """
-  def save_policy(attrs) when is_map(attrs) do
-    case attrs.policy do
+  @spec save_policy(%{policy: String.t(), data: map()}) :: :ok | {:error, String.t()}
+  def save_policy(%{policy: policy}=attrs) do
+    case policy do
       "KeywordPolicy" -> Pleroma.Config.put(:mrf_keyword, attrs.data)
       "RejectNonPublic" -> Pleroma.Config.put(:mrf_rejectnonpublic, attrs.data)
       "NormalizeMarkup" -> Pleroma.Config.put(:mrf_normalize_markup, attrs.data)
       "HellThread" -> Pleroma.Config.put(:mrf_hellthread, attrs.data)
       "Simple" -> Pleroma.Config.put(:mrf_simple, attrs.data)
-      _ -> raise(ArgumentError, "Wrong MRF Policy name!")
+      _ -> {:error, "Wrong MRF Policy name!"}
     end
 
     changeset = changeset(%MRF{}, attrs)
