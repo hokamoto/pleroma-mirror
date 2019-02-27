@@ -11,6 +11,7 @@ defmodule Pleroma.Web.ActivityPub.MRF do
   use Ecto.Schema
   import Ecto.Query
   import Pleroma.Config, only: [update_from_storage: 3]
+  alias Pleroma.Web.ActiviyPub.MRF.KeywordPolicy, as: KP
 
   @primary_key {:id, Pleroma.FlakeId, autogenerate: true}
   schema "mrf_policies" do
@@ -52,10 +53,13 @@ defmodule Pleroma.Web.ActivityPub.MRF do
     Repo.insert(changeset, on_conflict: :replace_all, conflict_target: :data)
   end
 
-  def config_update(policy, config_path, query, callback) do
+  def config_update("KeywordPolicy") do
+    query = from(kp in MRF, limit: 1, order_by: [desc: :updated_at])
+    callback = &(&1 |> hd |> KP.serialise_map())
+
     spawn(fn ->
       :timer.sleep(2000) &&
-        update_from_storage(config_path, where(query, policy: ^policy), callback)
+        update_from_storage(:mrf_keyword, where(query, policy: ^policy), callback)
     end)
   end
 
