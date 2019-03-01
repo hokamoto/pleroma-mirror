@@ -5,6 +5,10 @@
 defmodule Pleroma.Repo do
   use Ecto.Repo, otp_app: :pleroma
 
+  defmodule Instrumenter do
+    use Prometheus.EctoInstrumenter
+  end
+
   @doc """
   Dynamically loads the repository url from the
   DATABASE_URL environment variable.

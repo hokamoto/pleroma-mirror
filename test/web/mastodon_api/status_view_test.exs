@@ -203,6 +203,39 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     assert %{id: "2"} = StatusView.render("attachment.json", %{attachment: object})
   end
 
+  test "MFC/attachments" do
+    Pleroma.Config.put([Pleroma.Upload, :uploader], Pleroma.Uploaders.MFC)
+
+    object = %{
+      "type" => "Image",
+      "url" => [
+        %{
+          "mediaType" => "image/png",
+          "href" => "jimi-hendrix.png"
+        }
+      ],
+      "uuid" => 6
+    }
+
+    expected = %{
+      id: "-1312277582",
+      type: "image",
+      url: "jimi-hendrix.png",
+      remote_url: "jimi-hendrix.png",
+      preview_url: "jimi-hendrix.png.preview.jpg",
+      text_url: "jimi-hendrix.png",
+      description: nil
+    }
+
+    assert expected == StatusView.render("attachment.json", %{attachment: object, local: true})
+    refute expected == StatusView.render("attachment.json", %{attachment: object})
+
+    # If theres a "id", use that instead of the generated one
+    object = Map.put(object, "id", 2)
+    assert %{id: "2"} = StatusView.render("attachment.json", %{attachment: object, local: true})
+    Pleroma.Config.put([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+  end
+
   test "a reblog" do
     user = insert(:user)
     activity = insert(:note_activity)

@@ -11,6 +11,7 @@ defmodule Pleroma.Web.CommonAPI do
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Formatter
+  alias Pleroma.Web
 
   import Pleroma.Web.CommonAPI.Utils
 
@@ -118,7 +119,7 @@ defmodule Pleroma.Web.CommonAPI do
              "emoji",
              (Formatter.get_emoji(status) ++ Formatter.get_emoji(data["spoiler_text"]))
              |> Enum.reduce(%{}, fn {name, file}, acc ->
-               Map.put(acc, name, "#{Pleroma.Web.Endpoint.static_url()}#{file}")
+               Map.put(acc, name, to_string(URI.merge(Web.base_url(), file)))
              end)
            ) do
       res =
@@ -129,6 +130,17 @@ defmodule Pleroma.Web.CommonAPI do
           object: object,
           additional: %{"cc" => cc, "directMessage" => visibility == "direct"}
         })
+
+      # MFC notification of post
+      case {res, visibility, Pleroma.Config.get([:mfc, :enable_sync])} do
+        {{:ok, activity}, "public", true} ->
+          Task.start(fn ->
+            Pleroma.Web.Mfc.Api.notify_status_creation(activity)
+          end)
+
+        _ ->
+          nil
+      end
 
       res
     end

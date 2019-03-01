@@ -131,6 +131,12 @@ defmodule Pleroma.Web.Router do
     get("/captcha", UtilController, :captcha)
   end
 
+  scope "/api/pleroma/uploaders", Pleroma.Uploaders do
+    pipe_through(:pleroma_api)
+
+    post("/mfc/:action", MFC.Controller, :callbacks)
+  end
+
   scope "/api/pleroma", Pleroma.Web do
     pipe_through(:pleroma_api)
     post("/uploader_callback/:upload_path", UploaderController, :callback)
@@ -138,6 +144,9 @@ defmodule Pleroma.Web.Router do
 
   scope "/api/pleroma/admin", Pleroma.Web.AdminAPI do
     pipe_through([:admin_api, :oauth_write])
+
+    post("/user/follow", AdminAPIController, :user_follow)
+    post("/user/unfollow", AdminAPIController, :user_unfollow)
 
     get("/users", AdminAPIController, :list_users)
     delete("/user", AdminAPIController, :user_delete)
@@ -506,7 +515,8 @@ defmodule Pleroma.Web.Router do
 
     get("/objects/:uuid", OStatus.OStatusController, :object)
     get("/activities/:uuid", OStatus.OStatusController, :activity)
-    get("/notice/:id", OStatus.OStatusController, :notice)
+    get("/status/:id", OStatus.OStatusController, :notice)
+    get("/notice/:id", OStatus.OStatusController, :notice, as: :old_notice)
     get("/notice/:id/embed_player", OStatus.OStatusController, :notice_player)
     get("/users/:nickname/feed", OStatus.OStatusController, :feed)
     get("/users/:nickname", OStatus.OStatusController, :feed_redirect)

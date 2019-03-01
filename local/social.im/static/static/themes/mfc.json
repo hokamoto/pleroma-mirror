@@ -1,0 +1,29 @@
+{
+  "_pleroma_theme_version": 2,
+  "name": "MFC",
+  "theme": {
+    "fonts": {},
+    "shadows": {},
+    "opacity": {},
+    "colors": {
+      "bg": "#fcfcfc",
+      "text": "#333333",
+      "link": "#006900",
+      "fg": "#f4f4f4",
+      "topBarText": "#006900",
+      "cRed": "#e0245e",
+      "cBlue": "#1b95e0",
+      "cGreen": "#008000",
+      "cOrange": "#fab81e"
+    },
+    "radii": {
+      "btn": 4,
+      "input": 4,
+      "panel": 10,
+      "avatar": 5,
+      "avatarAlt": 50,
+      "tooltip": 2,
+      "attachment": 5
+    }
+  }
+}

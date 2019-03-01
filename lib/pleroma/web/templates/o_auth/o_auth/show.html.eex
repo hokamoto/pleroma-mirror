@@ -4,26 +4,35 @@
 <%= if get_flash(@conn, :error) do %>
 <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
 <% end %>
-<h2>OAuth Authorization</h2>
+<h2>Please log in with your MFC credentials</h2>
 <%= form_for @conn, o_auth_path(@conn, :authorize), [as: "authorization"], fn f -> %>
-<%= label f, :name, "Name or email" %>
-<%= text_input f, :name %>
-<br>
-<br>
-<%= label f, :password, "Password" %>
-<%= password_input f, :password %>
-<br>
-<br>
-
-<%= label f, :scope, "Permissions" %>
-<br>
-<%= for scope <- @available_scopes do %>
-  <%# Note: using hidden input with `unchecked_value` in order to distinguish user's empty selection from `scope` param being omitted %>
-  <%= checkbox f, :"scope_#{scope}", value: scope in @scopes && scope, checked_value: scope, unchecked_value: "", name: "authorization[scope][]" %>
-  <%= label f, :"scope_#{scope}", String.capitalize(scope) %>
+<%= if @registration do %>
+<h3>This is the first time you visit! Please enter your Pleroma handle.</h3>
+<p>Choose carefully! You won't be able to change this later. You will be able to change your display name, though.</p>
+<p>Please only use lowercase letters and no special characters</p>
+  <%= label f, :nickname, "Pleroma Handle" %>
+  <%= text_input f, :nickname, placeholder: "lain" %>
+  <%= hidden_input f, :name, value: @name %>
+  <%= hidden_input f, :password, value: @password %>
   <br>
+<% else %>
+  <%= label f, :name, "Username" %>
+  <%= text_input f, :name, value: @name %>
+  <br>
+  <%= label f, :password, "Password" %>
+  <%= password_input f, :password, value: @password  %>
+  <br>
+  <br>
+  <%= label f, :scope, "Permissions" %>
+  <br>
+  <%= for scope <- @available_scopes do %>
+    <%# Note: using hidden input with `unchecked_value` in order to distinguish user's empty selection from `scope` param being omitted %>
+    <%= checkbox f, :"scope_#{scope}", value: scope in @scopes && scope, checked_value: scope, unchecked_value: "", name: "authorization[scope][]" %>
+    <%= label f, :"scope_#{scope}", String.capitalize(scope) %>
+    <br>
+  <% end %>
+<br>
 <% end %>
-
 <%= hidden_input f, :client_id, value: @client_id %>
 <%= hidden_input f, :response_type, value: @response_type %>
 <%= hidden_input f, :redirect_uri, value: @redirect_uri %>

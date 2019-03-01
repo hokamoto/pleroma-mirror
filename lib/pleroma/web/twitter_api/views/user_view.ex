@@ -122,6 +122,8 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
       "locked" => user.info.locked,
       "default_scope" => user.info.default_scope,
       "no_rich_text" => user.info.no_rich_text,
+      # Deprecated, moved to new namespace
+      "mfc_follower_sync" => user.info.mfc_follower_sync,
       "hide_followers" => user.info.hide_followers,
       "hide_follows" => user.info.hide_follows,
       "fields" => fields,
@@ -133,7 +135,13 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
           "tags" => user.tags
         }
         |> maybe_with_activation_status(user, for_user)
-        |> maybe_with_follow_request_count(user, for_user)
+        |> maybe_with_follow_request_count(user, for_user),
+
+      # MFC fields
+      "mfc" => %{
+        "mfc_follower_sync" => user.info.mfc_follower_sync,
+        "mfc_model_online" => Pleroma.Web.Mfc.Utils.model_online?(user)
+      }
     }
 
     data =

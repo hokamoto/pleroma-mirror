@@ -123,7 +123,7 @@ defmodule Pleroma.Web.Push do
     case type do
       "Create" -> "New Mention"
       "Follow" -> "New Follower"
-      "Announce" -> "New Repeat"
+      "Announce" -> "New Repost"
       "Like" -> "New Favorite"
     end
   end
@@ -132,8 +132,8 @@ defmodule Pleroma.Web.Push do
     case type do
       "Create" -> "@#{actor.nickname} has mentioned you"
       "Follow" -> "@#{actor.nickname} has followed you"
-      "Announce" -> "@#{actor.nickname} has repeated your post"
-      "Like" -> "@#{actor.nickname} has favorited your post"
+      "Announce" -> "@#{actor.nickname} has reposted your status"
+      "Like" -> "@#{actor.nickname} has favorited your status"
     end
   end
 end
