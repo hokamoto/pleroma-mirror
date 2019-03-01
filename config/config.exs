@@ -7,10 +7,6 @@ use Mix.Config
 
 config :tesla, adapter: Tesla.Adapter.Hackney
 
-# MFC-specific settings
-config :pleroma, :app_layout, "app_mfc.html"
-config :pleroma, Pleroma.Web.Auth.Authenticator, Pleroma.Web.Auth.MfcAuthenticator
-
 # General application configuration
 config :pleroma, ecto_repos: [Pleroma.Repo]
 
