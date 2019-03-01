@@ -637,9 +637,10 @@ defmodule Pleroma.User do
         ),
       where:
         fragment(
-          "? @> ?",
+          "coalesce((?)->'object'->>'id', (?)->>'object') = ?",
           a.data,
-          ^%{"object" => user.ap_id}
+          a.data,
+          ^user.ap_id
         )
     )
   end
@@ -984,6 +985,7 @@ defmodule Pleroma.User do
     update_and_set_cache(cng)
   end
 
+  def mutes?(nil, _), do: false
   def mutes?(user, %{ap_id: ap_id}), do: Enum.member?(user.info.mutes, ap_id)
 
   def blocks?(user, %{ap_id: ap_id}) do

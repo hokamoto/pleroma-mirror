@@ -5,6 +5,7 @@
 defmodule Pleroma.Web.OAuth.OAuthController do
   use Pleroma.Web, :controller
 
+  alias Pleroma.Web.Auth.Authenticator
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.Token
   alias Pleroma.Web.OAuth.App
@@ -24,49 +25,25 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     available_scopes = (app && app.scopes) || []
     scopes = oauth_scopes(params, nil) || available_scopes
 
-    render(conn, "show.html", %{
+    render(conn, Authenticator.auth_template(), %{
       response_type: params["response_type"],
       client_id: params["client_id"],
       available_scopes: available_scopes,
       scopes: scopes,
       redirect_uri: params["redirect_uri"],
       state: params["state"],
-      name: params["name"],
-      password: params["password"],
-      registration: params["registration"]
+      params: params
     })
   end
 
   def create_authorization(conn, %{
         "authorization" =>
           %{
-            "name" => name,
-            "password" => password,
             "client_id" => client_id,
             "redirect_uri" => redirect_uri
           } = auth_params
       }) do
-    with {_, {:ok, user_data}} <-
-           {:mfc_auth,
-            Pleroma.Web.Mfc.Login.authenticate(
-              name,
-              password,
-              to_string(:inet.ntoa(conn.remote_ip))
-            )},
-         {_, true} <-
-           {:access_level_check,
-            user_data["access_level"] >=
-              Application.get_env(:pleroma, :mfc) |> Keyword.get(:minimum_access_level)},
-         {_, %User{} = user} <-
-           {:user_get,
-            Pleroma.Web.Mfc.Utils.get_or_create_mfc_user(
-              user_data["user_id"],
-              user_data["username"],
-              user_data["avatar_url"]
-            )},
-         {_, user} <-
-           {:user_tag,
-            User.tag(user, Pleroma.Web.Mfc.Utils.tags_for_level(user_data["access_level"]))},
+    with {_, {:ok, %User{} = user}} <- {:get_user, Authenticator.get_user(conn)},
          %App{} = app <- Repo.get_by(App, client_id: client_id),
          true <- redirect_uri in String.split(app.redirect_uris),
          scopes <- oauth_scopes(auth_params, []),
@@ -75,9 +52,9 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          {:missing_scopes, false} <- {:missing_scopes, scopes == []},
          {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
          {:ok, auth} <- Authorization.create_authorization(app, user, scopes) do
-      # Special case: Local MastodonFE.
       redirect_uri =
         if redirect_uri == "." do
+          # Special case: Local MastodonFE
           mastodon_api_url(conn, :login)
         else
           redirect_uri
@@ -106,15 +83,6 @@ defmodule Pleroma.Web.OAuth.OAuthController do
           redirect(conn, external: url)
       end
     else
-      {:access_level_check, _} ->
-        conn
-        |> put_flash(:error, "Only available for Premium accounts")
-        |> authorize(auth_params)
-
-      {:user_get, _} ->
-        conn
-        |> authorize(Map.put(auth_params, "registration", true))
-
       {scopes_issue, _} when scopes_issue in [:unsupported_scopes, :missing_scopes] ->
         conn
         |> put_flash(:error, "Permissions not specified.")
@@ -128,7 +96,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
         |> authorize(auth_params)
 
       error ->
-        error
+        Authenticator.handle_error(conn, error)
     end
   end
 
