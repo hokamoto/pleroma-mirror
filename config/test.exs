@@ -1,10 +1,6 @@
 use Mix.Config
 config :tesla, adapter: Tesla.Mock
 
-# MFC-specific settings
-config :pleroma, :app_layout, "app_mfc.html"
-config :pleroma, Pleroma.Web.Auth.Authenticator, Pleroma.Web.Auth.MfcAuthenticator
-
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :pleroma, Pleroma.Web.Endpoint,
