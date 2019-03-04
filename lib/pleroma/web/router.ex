@@ -149,6 +149,7 @@ defmodule Pleroma.Web.Router do
     post("/user/unfollow", AdminAPIController, :user_unfollow)
 
     get("/users", AdminAPIController, :list_users)
+    get("/users/search", AdminAPIController, :search_users)
     delete("/user", AdminAPIController, :user_delete)
     patch("/users/:nickname/toggle_activation", AdminAPIController, :user_toggle_activation)
     post("/user", AdminAPIController, :user_create)

@@ -9,7 +9,6 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.MediaProxy
-  alias Pleroma.Web.TwitterAPI.UserView
 
   def render("show.json", %{user: user = %User{}} = assigns) do
     render_one(user, Pleroma.Web.TwitterAPI.UserView, "user.json", assigns)
@@ -25,19 +24,6 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
     if User.visible_for?(user, assigns[:for]),
       do: do_render("user.json", assigns),
       else: %{}
-  end
-
-  def render("index_for_admin.json", %{users: users} = opts) do
-    users
-    |> render_many(UserView, "show_for_admin.json", opts)
-  end
-
-  def render("show_for_admin.json", %{user: user}) do
-    %{
-      "id" => user.id,
-      "nickname" => user.nickname,
-      "deactivated" => user.info.deactivated
-    }
   end
 
   def render("short.json", %{
@@ -134,8 +120,7 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
           "confirmation_pending" => user_info.confirmation_pending,
           "tags" => user.tags
         }
-        |> maybe_with_activation_status(user, for_user)
-        |> maybe_with_follow_request_count(user, for_user),
+        |> maybe_with_activation_status(user, for_user),
 
       # MFC fields
       "mfc" => %{
@@ -162,14 +147,6 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
   end
 
   defp maybe_with_activation_status(data, _, _), do: data
-
-  defp maybe_with_follow_request_count(data, %User{id: id, info: %{locked: true}} = user, %User{
-         id: id
-       }) do
-    Map.put(data, "follow_request_count", user.info.follow_request_count)
-  end
-
-  defp maybe_with_follow_request_count(data, _, _), do: data
 
   defp maybe_with_role(data, %User{id: id} = user, %User{id: id}) do
     Map.merge(data, %{"role" => role(user), "show_role" => user.info.show_role})

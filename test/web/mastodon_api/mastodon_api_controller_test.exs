@@ -248,6 +248,33 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     assert status["url"] != direct.data["id"]
   end
 
+  test "doesn't include DMs from blocked users", %{conn: conn} do
+    blocker = insert(:user)
+    blocked = insert(:user)
+    user = insert(:user)
+    {:ok, blocker} = User.block(blocker, blocked)
+
+    {:ok, _blocked_direct} =
+      CommonAPI.post(blocked, %{
+        "status" => "Hi @#{blocker.nickname}!",
+        "visibility" => "direct"
+      })
+
+    {:ok, direct} =
+      CommonAPI.post(user, %{
+        "status" => "Hi @#{blocker.nickname}!",
+        "visibility" => "direct"
+      })
+
+    res_conn =
+      conn
+      |> assign(:user, user)
+      |> get("api/v1/timelines/direct")
+
+    [status] = json_response(res_conn, 200)
+    assert status["id"] == direct.id
+  end
+
   test "replying to a status", %{conn: conn} do
     user = insert(:user)
 
@@ -946,7 +973,6 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       other_user = Repo.get(User, other_user.id)
 
       assert User.following?(other_user, user) == false
-      assert user.info.follow_request_count == 1
 
       conn =
         build_conn()
@@ -960,7 +986,6 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       other_user = Repo.get(User, other_user.id)
 
       assert User.following?(other_user, user) == true
-      assert user.info.follow_request_count == 0
     end
 
     test "verify_credentials", %{conn: conn} do
@@ -982,7 +1007,6 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       {:ok, _activity} = ActivityPub.follow(other_user, user)
 
       user = Repo.get(User, user.id)
-      assert user.info.follow_request_count == 1
 
       conn =
         build_conn()
@@ -996,7 +1020,6 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       other_user = Repo.get(User, other_user.id)
 
       assert User.following?(other_user, user) == false
-      assert user.info.follow_request_count == 0
     end
   end
 
