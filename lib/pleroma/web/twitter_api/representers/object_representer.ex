@@ -15,7 +15,8 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ObjectRepresenter do
       mimetype: url["mediaType"] || url["mimeType"],
       id: data["uuid"],
       oembed: false,
-      description: data["name"]
+      description: data["name"],
+      meta: Map.get(data, "meta", %{})
     }
   end
 
@@ -25,7 +26,8 @@ defmodule Pleroma.Web.TwitterAPI.Representers.ObjectRepresenter do
       mimetype: data["mediaType"] || data["mimeType"],
       id: data["uuid"],
       oembed: false,
-      description: data["name"]
+      description: data["name"],
+      meta: Map.get(data, "meta", %{})
     }
   end
 

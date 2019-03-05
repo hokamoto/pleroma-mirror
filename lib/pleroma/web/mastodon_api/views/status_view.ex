@@ -264,7 +264,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       preview_url: preview_href,
       text_url: href,
       type: type,
-      description: attachment["name"]
+      description: attachment["name"],
+      meta: Map.get(attachment, "meta", %{})
     }
   end
 
