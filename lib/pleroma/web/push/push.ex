@@ -29,16 +29,14 @@ defmodule Pleroma.Web.Push do
     end
   end
 
-  def send(notification) do
-    if enabled() do
-      GenServer.cast(__MODULE__, {:send, notification})
-    end
-  end
+  def send(notification),
+    do: GenServer.cast(__MODULE__, {:send, notification})
 
   ####################
   # Server Callbacks #
   ####################
 
+  @impl true
   def init(:ok) do
     if enabled() do
       {:ok, nil}
@@ -55,8 +53,12 @@ defmodule Pleroma.Web.Push do
     end
   end
 
+  @impl true
   def handle_cast({:send, notification}, state) do
-    Impl.perform_send(notification)
+    if enabled() do
+      Impl.perform_send(notification)
+    end
+
     {:noreply, state}
   end
 end

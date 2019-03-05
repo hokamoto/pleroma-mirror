@@ -240,4 +240,22 @@ defmodule Pleroma.Factory do
       valid_until: NaiveDateTime.add(NaiveDateTime.utc_now(), 60 * 10)
     }
   end
+
+  def push_subscription_factory do
+    %Pleroma.Web.Push.Subscription{
+      user: build(:user),
+      token: build(:oauth_token),
+      endpoint: "https://example.com/example/1234",
+      key_auth: "8eDyX_uCN0XRhSbY5hs7Hg==",
+      key_p256dh:
+        "BCIWgsnyXDv1VkhqL2P7YRBvdeuDnlwAPT2guNhdIoW3IP7GmHh1SMKPLxRf7x8vJy6ZFK3ol2ohgn_-0yP7QQA=",
+      data: %{}
+    }
+  end
+
+  def notification_factory do
+    %Pleroma.Notification{
+      user: build(:user)
+    }
+  end
 end
