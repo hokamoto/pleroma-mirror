@@ -13,6 +13,7 @@ defmodule Pleroma.Web.MastodonAPI.SubscriptionController do
   action_fallback(:errors)
 
   # Creates PushSubscription
+  # POST /api/v1/push/subscription
   #
   def create(%{assigns: %{user: user, token: token}} = conn, params) do
     with true <- Push.enabled(),
@@ -24,16 +25,18 @@ defmodule Pleroma.Web.MastodonAPI.SubscriptionController do
   end
 
   # Gets PushSubscription
+  # GET /api/v1/push/subscription
   #
   def get(%{assigns: %{user: user, token: token}} = conn, _params) do
     with true <- Push.enabled(),
-         subscription <- Subscription.get(user, token) do
+         {:ok, subscription} <- Subscription.get(user, token) do
       view = View.render("push_subscription.json", subscription: subscription)
       json(conn, view)
     end
   end
 
   # Updates PushSubscription
+  # PUT /api/v1/push/subscription
   #
   def update(%{assigns: %{user: user, token: token}} = conn, params) do
     with true <- Push.enabled(),
@@ -44,6 +47,7 @@ defmodule Pleroma.Web.MastodonAPI.SubscriptionController do
   end
 
   # Deletes PushSubscription
+  # DELETE /api/v1/push/subscription
   #
   def delete(%{assigns: %{user: user, token: token}} = conn, _params) do
     with true <- Push.enabled(),
@@ -53,6 +57,12 @@ defmodule Pleroma.Web.MastodonAPI.SubscriptionController do
 
   # fallback action
   #
+  def errors(conn, {:error, :not_found}) do
+    conn
+    |> put_status(404)
+    |> json("Not found")
+  end
+
   def errors(conn, _) do
     conn
     |> put_status(500)
