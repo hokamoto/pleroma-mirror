@@ -73,7 +73,7 @@ defmodule Pleroma.Application do
           [
             :rich_media_cache,
             [
-              default_ttl: :timer.minutes(120),
+              default_ttl: :timer.minutes(60),
               limit: 5000
             ]
           ],
