@@ -31,8 +31,12 @@ defmodule Pleroma.Uploaders.MFC do
   def put_file(%Upload{content_type: "image/" <> type} = upload)
       when type not in @image_conversion_ignore do
     with {:ok, {:file, _path}} <- store().put_file(rename_original_path(upload)),
-         {:ok, _versions} <- Image.convert(Image.Client.client(), upload.path) do
-      {:ok, {:file, upload.path}}
+         {:ok, versions} <- Image.convert(Image.Client.client(), upload.path) do
+      upload_result = %{
+        url_spec: {:file, upload.path},
+        meta: Map.get(versions, "versions", %{})
+      }
+      {:ok, {:upload_result, upload_result}}
     else
       :duplicate ->
         {:ok, {:file, upload.path}}

@@ -55,6 +55,16 @@ defmodule Pleroma.Upload do
         }
   defstruct [:id, :name, :tempfile, :content_type, :path]
 
+  # TODO: Find a more general way to pass meta data to minimize the changes needed in Uploader.
+  # Prob. add an ability to add metadata from any Uploader since other uploaders will most likely need to perform minifications too.
+  def normalize_upload_result(upload_result) do
+    case upload_result do
+      {:file, _path} -> %{url_spec: upload_result, meta: %{}}
+      {:url, _url} -> %{url_spec: upload_result, meta: %{}}
+      {:upload_result, upload_result} -> upload_result
+    end
+  end
+
   @spec store(source, options :: [option()]) :: {:ok, Map.t()} | {:error, any()}
   def store(upload, opts \\ []) do
     opts = get_opts(opts)
@@ -62,7 +72,9 @@ defmodule Pleroma.Upload do
     with {:ok, upload} <- prepare_upload(upload, opts),
          upload = %__MODULE__{upload | path: upload.path || "#{upload.id}/#{upload.name}"},
          {:ok, upload} <- Pleroma.Upload.Filter.filter(opts.filters, upload),
-         {:ok, url_spec} <- Pleroma.Uploaders.Uploader.put_file(opts.uploader, upload) do
+         {:ok, uploaded_file} <- Pleroma.Uploaders.Uploader.put_file(opts.uploader, upload) do
+      %{url_spec: url_spec, meta: meta} = normalize_upload_result(uploaded_file)
+
       {:ok,
        %{
          "type" => opts.activity_type,
@@ -73,6 +85,7 @@ defmodule Pleroma.Upload do
              "href" => url_from_spec(opts.base_url, url_spec)
            }
          ],
+         "meta" => meta,
          "name" => Map.get(opts, :description) || upload.name
        }}
     else

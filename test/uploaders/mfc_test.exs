@@ -28,11 +28,32 @@ defmodule Pleroma.Uploaders.MFCTest do
     end
   end
 
+  @image_versions %{
+    original: %{
+      width: 2048,
+      height: 2048,
+      size: "2048x2048",
+      aspect: 1.2484394506866416,
+      method: "resize",
+      dest_key: "original.png",
+      content_type: "image/png"
+    },
+    small: %{
+      width: 800,
+      height: 800,
+      size: "800x800",
+      aspect: 1.2483426823049464,
+      method: "smartcrop",
+      dest_key: "small.png",
+      content_type: "image/png"
+    }
+  }
+
   describe "uploads image files" do
-    test "returns a url" do
+    test "returns a url and meta from encoding-api" do
       mock(fn
         %{method: :post, url: "http://test.test/api/v2/images"} ->
-          json(["output_resize1000x1000.png"])
+          json(%{versions: @image_versions})
       end)
 
       file = %Pleroma.Upload{
@@ -43,10 +64,32 @@ defmodule Pleroma.Uploaders.MFCTest do
         name: "image_tmp.jpg"
       }
 
-      assert {
-               :ok,
-               {:file, "some_path/image_tmp.jpg"}
-             } = Pleroma.Uploaders.MFC.put_file(file)
+      {:ok, {:upload_result, upload_result}} = Pleroma.Uploaders.MFC.put_file(file)
+
+      assert upload_result ==
+               %{
+                 meta: %{
+                   "original" => %{
+                      "height" => 2048,
+                      "width" => 2048,
+                      "size" => "2048x2048",
+                      "aspect" => 1.2484394506866416,
+                      "method" => "resize",
+                      "dest_key" => "original.png",
+                      "content_type" => "image/png"
+                    },
+                    "small" => %{
+                      "height" => 800,
+                      "width" => 800,
+                      "size" => "800x800",
+                      "aspect" => 1.2483426823049464,
+                      "method" => "smartcrop",
+                      "dest_key" => "small.png",
+                      "content_type" => "image/png"
+                    }
+                 },
+                 url_spec: {:file, "some_path/image_tmp.jpg"}
+               }
     end
   end
 
