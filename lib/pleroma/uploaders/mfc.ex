@@ -15,8 +15,13 @@ defmodule Pleroma.Uploaders.MFC do
     with {:ok, {:file, path}} <- store().put_file(rename_original_path(upload)),
          _ <- :global.register_name({__MODULE__, path}, self()),
          :ok <- Video.convert(Video.Client.client(), path),
-         {:ok, path} <- wait_for_conversion() do
-      {:ok, {:file, path}}
+         {:ok, conversion_result} <- wait_for_conversion() do
+      upload_result = %{
+        url_spec: {:file, Map.get(conversion_result, :path)},
+        meta: Map.get(conversion_result, :meta, %{})
+      }
+
+      {:ok, {:upload_result, upload_result}}
     else
       :duplicate ->
         {:ok, {:file, Path.rootname(upload.path) <> ".mp4"}}
@@ -36,6 +41,7 @@ defmodule Pleroma.Uploaders.MFC do
         url_spec: {:file, upload.path},
         meta: Map.get(versions, "versions", %{})
       }
+
       {:ok, {:upload_result, upload_result}}
     else
       :duplicate ->
