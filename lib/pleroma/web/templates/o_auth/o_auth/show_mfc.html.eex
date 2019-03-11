@@ -12,29 +12,35 @@
   <h3>This is the first time you visit! Please enter your Pleroma handle.</h3>
   <p>Choose carefully! You won't be able to change this later. You will be able to change your display name, though.</p>
   <p>Please only use lowercase letters and no special characters</p>
-  <%= label f, :nickname, "Pleroma Handle" %>
-  <%= text_input f, :nickname, placeholder: "lain" %>
+  <div class="input">
+    <%= label f, :nickname, "Pleroma Handle" %>
+    <%= text_input f, :nickname, placeholder: "lain" %>
+  </div>
   <%= hidden_input f, :name, value: @params["name"] %>
   <%= hidden_input f, :password, value: @params["password"] %>
   <br>
 
 <% else %>
-  <%= label f, :name, "Username" %>
-  <%= text_input f, :name %>
-  <br>
-  <%= label f, :password, "Password" %>
-  <%= password_input f, :password %>
-  <br>
-  <br>
-  <%= label f, :scope, "Permissions" %>
-  <br>
-  <%= for scope <- @available_scopes do %>
-    <%# Note: using hidden input with `unchecked_value` in order to distinguish user's empty selection from `scope` param being omitted %>
-    <%= checkbox f, :"scope_#{scope}", value: scope in @scopes && scope, checked_value: scope, unchecked_value: "", name: "authorization[scope][]" %>
-    <%= label f, :"scope_#{scope}", String.capitalize(scope) %>
-    <br>
-  <% end %>
-  <br>
+  <div class="input">
+    <%= label f, :name, "Username" %>
+    <%= text_input f, :name %>
+  </div>
+  <div class="input">
+    <%= label f, :password, "Password" %>
+    <%= password_input f, :password %>
+  </div>
+  <div class="scopes-input">
+    <%= label f, :scope, "Permissions" %>
+    <div class="scopes">
+      <%= for scope <- @available_scopes do %>
+        <%# Note: using hidden input with `unchecked_value` in order to distinguish user's empty selection from `scope` param being omitted %>
+        <div class="scope">
+          <%= checkbox f, :"scope_#{scope}", value: scope in @scopes && scope, checked_value: scope, unchecked_value: "", name: "authorization[scope][]" %>
+          <%= label f, :"scope_#{scope}", String.capitalize(scope) %>
+        </div>
+      <% end %>
+    </div>
+  </div>
 <% end %>
 
 <%= hidden_input f, :client_id, value: @client_id %>
