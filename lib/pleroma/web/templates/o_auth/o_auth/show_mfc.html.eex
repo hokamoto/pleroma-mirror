@@ -29,15 +29,23 @@
     <%= label f, :password, "Password" %>
     <%= password_input f, :password %>
   </div>
+  <%= submit "Authorize" %>
   <div class="scopes-input">
-    <%= label f, :scope, "Permissions" %>
+    <%= label f, :scope, "The following permissions will be granted" %>
     <div class="scopes">
       <%= for scope <- @available_scopes do %>
         <%# Note: using hidden input with `unchecked_value` in order to distinguish user's empty selection from `scope` param being omitted %>
-        <div class="scope">
+        <%= if scope in @scopes do %>
+          <div class="scope">
+            <%= checkbox f, :"scope_#{scope}", value: scope in @scopes && scope, checked_value: scope, unchecked_value: "", name: "authorization[scope][]" %>
+            <%= label f, :"scope_#{scope}", String.capitalize(scope) %>
+            <%= if scope in @scopes && scope do %>
+              <%= String.capitalize(scope) %>
+            <% end %>
+          </div>
+        <% else %>
           <%= checkbox f, :"scope_#{scope}", value: scope in @scopes && scope, checked_value: scope, unchecked_value: "", name: "authorization[scope][]" %>
-          <%= label f, :"scope_#{scope}", String.capitalize(scope) %>
-        </div>
+        <% end %>
       <% end %>
     </div>
   </div>
@@ -47,5 +55,4 @@
 <%= hidden_input f, :response_type, value: @response_type %>
 <%= hidden_input f, :redirect_uri, value: @redirect_uri %>
 <%= hidden_input f, :state, value: @state %>
-<%= submit "Authorize" %>
 <% end %>
