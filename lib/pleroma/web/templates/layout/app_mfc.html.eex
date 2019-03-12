@@ -1,109 +1,191 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1,minimal-ui" />
-    <title>
-    <%= Application.get_env(:pleroma, :instance)[:name] %>
-    </title>
-    <style>
-      body {
-        background-color: #333333;
-        font-family: sans-serif;
-        color:white;
-        text-align: center;
-      }
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,minimal-ui" />
+  <title>
+  <%= Application.get_env(:pleroma, :instance)[:name] %>
+  </title>
+  <style>
+    body {
+      background-color: #404550;
+      font-family: sans-serif;
+      color: #205030;;
+      text-align: center;
+    }
 
+    .container {
+      max-width: 420px;
+      padding: 20px;
+      background-color: #f0f0f4;
+      border-radius: 4px;
+      margin: auto;
+      margin-top: 10vh;
+      box-shadow: 0 1px 3px 0px rgba(0, 0, 0, 0.3), 0 2px 8px 0px rgba(0, 0, 0, 0.4);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    h2 {
+      color: #305040;
+      font-weight: normal;
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+
+    form {
+      width: 100%;
+    }
+
+    .input {
+      text-align: left;
+      color: #687868;
+      display: flex;
+      flex-direction: column;
+    }
+
+    input {
+      box-sizing: content-box;
+      padding: 10px;
+      margin-top: 5px;
+      margin-bottom: 10px;
+      background-color: #e0e0e8;
+      color: #305040;
+      border: 0;
+      transition-property: border-bottom;
+      transition-duration: 0.35s;
+      border-bottom: 2px solid #b0b0c0;
+      font-size: 14px;
+    }
+
+    .scopes-input {
+      display: flex;
+      margin-top: 1em;
+      text-align: left;
+      color: #687868;
+    }
+
+    .scopes-input label:first-child {
+      flex-basis: 40%;
+    }
+
+    .scopes {
+      display: flex;
+      flex-wrap: wrap;
+      text-align: left;
+      color: #305040;
+    }
+
+    .scope {
+      flex-basis: 100%;
+      display: flex;
+      height: 2em;
+      align-items: center;
+    }
+
+    [type="checkbox"] + label {
+      cursor: pointer;
+      margin: 0.5em;
+    }
+
+    [type="checkbox"] {
+      display: none;
+    }
+
+    [type="checkbox"] + label:before {
+      cursor: pointer;
+      display: inline-block;
+      color: white;
+      background-color: #e0e0e8;
+      border: 4px solid #e0e0e8;
+      box-shadow: 0px 0px 1px 0 #006900;
+      box-sizing: border-box;
+      width: 1.2em;
+      height: 1.2em;
+      margin-right: 1.0em;
+      content: "";
+      transition-property: background-color;
+      transition-duration: 0.35s;
+      color: #121a24;
+      margin-bottom: -0.2em;
+      border-radius: 2px;
+    }
+
+    [type="checkbox"]:checked + label:before {
+      background-color: #006900;
+    }
+
+    input:focus {
+      outline: none;
+      border-bottom: 2px solid #006900;
+    }
+
+    button {
+      box-sizing: border-box;
+      width: 100%;
+      background-color: #006900;
+      color: #f0fff0;
+      border-radius: 4px;
+      border: none;
+      padding: 10px;
+      margin-top: 30px;
+      text-transform: uppercase;
+      font-size: 16px;
+      box-shadow: 0px 1px 1px 0px #608060,
+        0px 2px 0px 0px rgba(255, 255, 255, 0.2) inset,
+        0px -2px 0px 0px rgba(0, 0, 0, 0.1) inset;
+    }
+
+    button:hover {
+      cursor: pointer;
+      background-color: #109010;
+    }
+
+    .alert-danger {
+      box-sizing: border-box;
+      width: 100%;
+      background-color: #931014;
+      border-radius: 4px;
+      border: none;
+      padding: 10px;
+      margin-top: 20px;
+      font-weight: 500;
+      font-size: 16px;
+    }
+
+    .alert-info {
+      box-sizing: border-box;
+      width: 100%;
+      border-radius: 4px;
+      border: 1px solid #7d796a;
+      padding: 10px;
+      margin-top: 20px;
+      font-weight: 500;
+      font-size: 16px;
+    }
+
+    @media all and (max-width: 440px) {
       .container {
-        margin: 50px auto;
-        max-width: 320px;
-        padding: 0;
-        padding: 40px 40px 40px 40px;
-        background-color: #006900;
-        border-radius: 4px;
+        margin-top: 0
       }
 
-      h1 {
-        margin: 0;
+      .scopes-input {
+        flex-direction: column;
       }
 
-      h2 {
-        color: #f4f4f4;
-        font-weight: normal;
-        font-size: 20px;
-        margin-bottom: 40px;
+      .scope {
+        flex-basis: 50%;
       }
-
-      form {
-        width: 100%;
-      }
-
-      input {
-        box-sizing: border-box;
-        width: 100%;
-        padding: 10px;
-        margin-top: 15px;
-        margin-bottom: 15px;
-        background-color: rgba(0,0,0,.1);
-        color: white;
-        border: 0;
-        border-bottom: 2px solid #f4f4f4;
-        font-size: 14px;
-      }
-
-      input:focus {
-        border-bottom: 2px solid #1b95e0;
-      }
-
-      input[type="checkbox"] {
-        width: auto;
-      }
-
-      button {
-        box-sizing: border-box;
-        width: 100%;
-        color: #f4f4f4;
-        background-color: #fab81e;
-        border-radius: 4px;
-        border: none;
-        padding: 10px;
-        margin-top: 20px;
-        text-transform: uppercase;
-        font-weight: 500;
-        font-size: 16px;
-      }
-
-      .alert-danger {
-        box-sizing: border-box;
-        width: 100%;
-        color: #D8000C;
-        background-color: #FFD2D2;
-        border-radius: 4px;
-        border: none;
-        padding: 10px;
-        margin-top: 20px;
-        font-weight: 500;
-        font-size: 16px;
-      }
-
-      .alert-info {
-        box-sizing: border-box;
-        width: 100%;
-        color: #00529B;
-        background-color: #BDE5F8;
-        border-radius: 4px;
-        border: none;
-        padding: 10px;
-        margin-top: 20px;
-        font-weight: 500;
-        font-size: 16px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1>MFC Social</h1>
-      <%= render @view_module, @view_template, assigns %>
-    </div>
-  </body>
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>MFC Social</h1>
+    <%= render @view_module, @view_template, assigns %>
+  </div>
+</body>
 </html>
