@@ -29,7 +29,7 @@
     <%= label f, :password, "Password" %>
     <%= password_input f, :password %>
   </div>
-  <%= submit "Authorize" %>
+  <%= submit "Log In & Authorize" %>
   <div class="scopes-input">
     <%= label f, :scope, "The following permissions will be granted" %>
     <div class="scopes">
