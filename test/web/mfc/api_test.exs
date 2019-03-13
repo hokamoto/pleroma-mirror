@@ -73,12 +73,26 @@ defmodule Pleroma.Web.Mfc.ApiTest do
       assert body =~ "status_count=1"
       assert body =~ "last_post_id=#{activity.id}"
       assert body =~ "last_post_url=#{URI.encode_www_form(activity.data["object"]["id"])}"
-
       send(self(), :called_api)
+
       %Tesla.Env{status: 200}
     end)
 
     assert Pleroma.Web.Mfc.Api.notify_status_creation(activity)
     assert_received(:called_api)
+
+    {:ok, reply} = Pleroma.Web.CommonAPI.post(user, %{"status" => "Hello", "in_reply_to_status_id" => activity.id})
+    Tesla.Mock.mock(fn %{url: ^url, body: body} ->
+      assert body =~ "mfc_id=1"
+      assert body =~ "status_count=2"
+      assert body =~ "last_post_id=#{reply.id}"
+      assert body =~ "in_reply_to_id=#{activity.id}"
+      send(self(), :called_reply_api)
+
+      %Tesla.Env{status: 200}
+    end)
+
+    assert Pleroma.Web.Mfc.Api.notify_status_creation(reply)
+    assert_received(:called_reply_api)
   end
 end

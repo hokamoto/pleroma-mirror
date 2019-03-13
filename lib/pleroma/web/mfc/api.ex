@@ -60,7 +60,8 @@ defmodule Pleroma.Web.Mfc.Api do
       last_post_content: content,
       status_count: user.info.note_count,
       last_post_id: activity.id,
-      last_post_url: activity.data["object"]["id"]
+      last_post_url: activity.data["object"]["id"],
+      in_reply_to_id: activity.data["object"]["inReplyToStatusId"]
     })
   end
 
