@@ -5,6 +5,7 @@
 defmodule Pleroma.Web.MastodonAPI.Admin.AccountView do
   use Pleroma.Web, :view
 
+  alias Pleroma.User.Info
   alias Pleroma.Web.MastodonAPI.Admin.AccountView
 
   def render("index.json", %{users: users, count: count, page_size: page_size}) do
@@ -19,7 +20,8 @@ defmodule Pleroma.Web.MastodonAPI.Admin.AccountView do
     %{
       "id" => user.id,
       "nickname" => user.nickname,
-      "deactivated" => user.info.deactivated
+      "deactivated" => user.info.deactivated,
+      "roles" => Info.roles(user.info)
     }
   end
 end

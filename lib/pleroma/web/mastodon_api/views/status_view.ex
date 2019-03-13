@@ -103,7 +103,10 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         website: nil
       },
       language: nil,
-      emojis: []
+      emojis: [],
+      pleroma: %{
+        local: activity.local
+      }
     }
   end
 
@@ -187,7 +190,10 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         website: nil
       },
       language: nil,
-      emojis: build_emojis(activity.data["object"]["emoji"])
+      emojis: build_emojis(activity.data["object"]["emoji"]),
+      pleroma: %{
+        local: activity.local
+      }
     }
   end
 
