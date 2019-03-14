@@ -59,6 +59,26 @@ defmodule Pleroma.Web.Mfc.ApiTest do
     assert_received(:called_api)
   end
 
+  test "it calls the status deletion endpoint" do
+    url = Pleroma.Config.get([:mfc, :status_deletion_endpoint])
+    user = insert(:user, %{mfc_id: "1"})
+    mod = insert(:user, %{mfc_id: "2"})
+
+    {:ok, activity} = Pleroma.Web.CommonAPI.post(user, %{"status" => "Hello"})
+
+    Tesla.Mock.mock(fn %{url: ^url, body: body} ->
+      send(self(), :called_api)
+      assert body =~ "mfc_id=1"
+      assert body =~ "deleted_by_id=2"
+      assert body =~ "post_id=#{activity.id}"
+
+      %Tesla.Env{status: 200}
+    end)
+
+    assert Pleroma.Web.Mfc.Api.notify_status_deletion(activity, mod)
+    assert_received(:called_api)
+  end
+
   test "it calls the status creation endpoint" do
     url = Pleroma.Config.get([:mfc, :status_creation_endpoint])
     user = insert(:user, %{mfc_id: "1"})
@@ -81,7 +101,12 @@ defmodule Pleroma.Web.Mfc.ApiTest do
     assert Pleroma.Web.Mfc.Api.notify_status_creation(activity)
     assert_received(:called_api)
 
-    {:ok, reply} = Pleroma.Web.CommonAPI.post(user, %{"status" => "Hello", "in_reply_to_status_id" => activity.id})
+    {:ok, reply} =
+      Pleroma.Web.CommonAPI.post(user, %{
+        "status" => "Hello",
+        "in_reply_to_status_id" => activity.id
+      })
+
     Tesla.Mock.mock(fn %{url: ^url, body: body} ->
       assert body =~ "mfc_id=1"
       assert body =~ "status_count=2"

@@ -36,6 +36,7 @@ defmodule Pleroma.Uploaders.MFC do
         url_spec: {:file, upload.path},
         meta: Map.get(versions, "versions", %{})
       }
+
       {:ok, {:upload_result, upload_result}}
     else
       :duplicate ->
