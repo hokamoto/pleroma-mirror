@@ -65,14 +65,15 @@ defmodule Pleroma.Web.Mfc.Api do
     })
   end
 
-  def notify_status_deletion(activity, deleter) do
+  def notify_status_deletion(activity, deleter, deleted_at) do
     url = Pleroma.Config.get([:mfc, :status_deletion_endpoint])
     user = Pleroma.User.get_cached_by_ap_id(activity.actor)
 
     authenticated_request(:post, url, %{
       mfc_id: user.mfc_id,
       deleted_by_id: deleter.mfc_id,
-      post_id: activity.id
+      post_id: activity.id,
+      deleted_at: deleted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix(),
     })
   end
 

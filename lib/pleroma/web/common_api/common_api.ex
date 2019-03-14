@@ -38,7 +38,7 @@ defmodule Pleroma.Web.CommonAPI do
       # MFC notification of deletion
       if Pleroma.Config.get([:mfc, :enable_sync]) do
         Task.start(fn ->
-          Pleroma.Web.Mfc.Api.notify_status_deletion(activity, user)
+          Pleroma.Web.Mfc.Api.notify_status_deletion(activity, user, delete.inserted_at)
         end)
       end
 
