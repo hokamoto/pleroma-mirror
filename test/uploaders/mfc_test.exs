@@ -70,23 +70,23 @@ defmodule Pleroma.Uploaders.MFCTest do
                %{
                  meta: %{
                    "original" => %{
-                      "height" => 2048,
-                      "width" => 2048,
-                      "size" => "2048x2048",
-                      "aspect" => 1.2484394506866416,
-                      "method" => "resize",
-                      "dest_key" => "original.png",
-                      "content_type" => "image/png"
-                    },
-                    "small" => %{
-                      "height" => 800,
-                      "width" => 800,
-                      "size" => "800x800",
-                      "aspect" => 1.2483426823049464,
-                      "method" => "smartcrop",
-                      "dest_key" => "small.png",
-                      "content_type" => "image/png"
-                    }
+                     "height" => 2048,
+                     "width" => 2048,
+                     "size" => "2048x2048",
+                     "aspect" => 1.2484394506866416,
+                     "method" => "resize",
+                     "dest_key" => "original.png",
+                     "content_type" => "image/png"
+                   },
+                   "small" => %{
+                     "height" => 800,
+                     "width" => 800,
+                     "size" => "800x800",
+                     "aspect" => 1.2483426823049464,
+                     "method" => "smartcrop",
+                     "dest_key" => "small.png",
+                     "content_type" => "image/png"
+                   }
                  },
                  url_spec: {:file, "some_path/image_tmp.jpg"}
                }

@@ -65,6 +65,17 @@ defmodule Pleroma.Web.Mfc.Api do
     })
   end
 
+  def notify_status_deletion(activity, deleter) do
+    url = Pleroma.Config.get([:mfc, :status_deletion_endpoint])
+    user = Pleroma.User.get_cached_by_ap_id(activity.actor)
+
+    authenticated_request(:post, url, %{
+      mfc_id: user.mfc_id,
+      deleted_by_id: deleter.mfc_id,
+      post_id: activity.id
+    })
+  end
+
   def get_following_for_mfc_id(id, params \\ %{}) do
     url = Pleroma.Config.get([:mfc, :following_endpoint_v2])
 

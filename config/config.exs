@@ -335,6 +335,7 @@ config :pleroma, :mfc,
   minimum_access_level: 2,
   account_creation_endpoint: "https://mfc/account_creation",
   status_creation_endpoint: "https://mfc/status_creation",
+  status_deletion_endpoint: "https://mfc/status_deletion",
   share_hmac_secret: "309c4847-459f-4219-a98f-7a95a7d3f149"
 
 config :pleroma, Pleroma.User,
