@@ -65,17 +65,19 @@ defmodule Pleroma.Web.Mfc.ApiTest do
     mod = insert(:user, %{mfc_id: "2"})
 
     {:ok, activity} = Pleroma.Web.CommonAPI.post(user, %{"status" => "Hello"})
+    expected_time = activity.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
 
     Tesla.Mock.mock(fn %{url: ^url, body: body} ->
       send(self(), :called_api)
       assert body =~ "mfc_id=1"
       assert body =~ "deleted_by_id=2"
       assert body =~ "post_id=#{activity.id}"
+      assert body =~ "deleted_at=#{expected_time}"
 
       %Tesla.Env{status: 200}
     end)
 
-    assert Pleroma.Web.Mfc.Api.notify_status_deletion(activity, mod)
+    assert Pleroma.Web.Mfc.Api.notify_status_deletion(activity, mod, activity.inserted_at)
     assert_received(:called_api)
   end
 
