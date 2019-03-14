@@ -4,14 +4,15 @@
 
 defmodule Pleroma.Web.ActivityPub.MRF do
   @callback filter(Map.t()) :: {:ok | :reject, Map.t()}
+  @callback serialise_config(Map.t()) :: Map.t()
+  @callback deserialise_config(Map.t()) :: Map.t()
 
   alias Pleroma.Repo
+  alias Pleroma.Web.ActiviyPub.MRF.KeywordPolicy, as: KP
   alias __MODULE__
   import Ecto.Changeset
-  use Ecto.Schema
   import Ecto.Query
-  import Pleroma.Config, only: [update_from_storage: 3]
-  alias Pleroma.Web.ActiviyPub.MRF.KeywordPolicy, as: KP
+  use Ecto.Schema
 
   @primary_key {:id, Pleroma.FlakeId, autogenerate: true}
   schema "mrf_policies" do
@@ -39,7 +40,7 @@ defmodule Pleroma.Web.ActivityPub.MRF do
   This function performs an upsert in the database and in the application environment. New values become instantaneously accessible with `Pleroma.Config.get`
   """
   @spec save_policy(%{policy: String.t(), data: map()}) :: :ok | {:error, String.t()}
-  def save_policy(%{policy: policy}=attrs) do
+  def save_policy(%{policy: policy} = attrs) do
     case policy do
       "KeywordPolicy" -> Pleroma.Config.put(:mrf_keyword, attrs.data)
       "RejectNonPublic" -> Pleroma.Config.put(:mrf_rejectnonpublic, attrs.data)
@@ -53,14 +54,11 @@ defmodule Pleroma.Web.ActivityPub.MRF do
     Repo.insert(changeset, on_conflict: :replace_all, conflict_target: :data)
   end
 
-  def config_update("KeywordPolicy") do
-    query = from(kp in MRF, limit: 1, order_by: [desc: :updated_at])
-    callback = &(&1 |> hd |> KP.serialise_map())
-
-    spawn(fn ->
-      :timer.sleep(2000) &&
-        update_from_storage(:mrf_keyword, where(query, policy: ^policy), callback)
-    end)
+  def config_update do
+    # Put other policies in there
+    for policy <- [KP] do
+      spawn(fn -> policy.config_update() end)
+    end
   end
 
   def filter(object) do

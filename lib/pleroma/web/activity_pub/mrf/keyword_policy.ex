@@ -5,8 +5,10 @@
 defmodule Pleroma.Web.ActivityPub.MRF.KeywordPolicy do
   @behaviour Pleroma.Web.ActivityPub.MRF
 
-  alias __MODULE__
   alias Pleroma.Web.ActivityPub.MRF
+  import Ecto.Query
+  alias __MODULE__
+  import Pleroma.Config, only: [update_from_storage: 3]
 
   @type t :: %__MODULE__{}
 
@@ -14,8 +16,14 @@ defmodule Pleroma.Web.ActivityPub.MRF.KeywordPolicy do
             reject: [],
             replace: %{}
 
+  def config_update() do
+    query = from(kp in MRF, limit: 1, order_by: [desc: :updated_at])
+    callback = &(&1 |> hd |> serialise_config())
+    update_from_storage(:mrf_keyword, where(query, policy: "KeywordPolicy"), callback)
+  end
+
   def save_keyword_policy(%KeywordPolicy{} = keyword_policy) do
-    keyword_policy |> serialise_map |> MRF.save_policy()
+    keyword_policy |> deserialise_config |> MRF.save_policy()
   end
 
   defp string_matches?(string, pattern) when is_binary(pattern) do
@@ -73,17 +81,21 @@ defmodule Pleroma.Web.ActivityPub.MRF.KeywordPolicy do
      |> put_in(["object", "summary"], summary)}
   end
 
-  def serialise_map(%KeywordPolicy{} = kp) do
-    %{data: Map.from_struct(kp), policy: "KeywordPolicy"}
-  end
-
-  def serialise_map(%MRF{} = mrf) do
+  @impl true
+  def serialise_config(%MRF{} = mrf) do
     %{
       federated_timeline_removal: mrf.data["federated_timeline_removal"],
       reject: mrf.data["reject"],
       replace: mrf.data["replace"]
     }
   end
+
+  @impl true
+  def deserialise_config(%__MODULE__{} = kp) do
+    %{data: Map.from_struct(kp), policy: "KeywordPolicy"}
+  end
+
+  def deserialize_config(_, _), do: :ok
 
   @impl true
   def filter(%{"object" => %{"content" => nil}} = message) do

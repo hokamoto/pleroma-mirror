@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Application do
   use Application
+  alias Pleroma.Web.ActivityPub.MRF
   import Supervisor.Spec
 
   @name Mix.Project.config()[:name]
@@ -25,7 +26,7 @@ defmodule Pleroma.Application do
     import Cachex.Spec
 
     Pleroma.Config.DeprecationWarnings.warn()
-    MRF.config_update("KeywordPolicy")
+    MRF.config_update()
 
     # Define workers and child supervisors to be supervised
     children =
