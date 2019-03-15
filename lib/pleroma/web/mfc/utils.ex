@@ -127,9 +127,11 @@ defmodule Pleroma.Web.Mfc.Utils do
             Pleroma.Web.Mfc.Utils.sync_follows(user)
           end)
 
-          Task.start(fn ->
-            Pleroma.Web.Mfc.Api.notify_account_creation(user)
-          end)
+          if Pleroma.Config.get([:mfc, :enable_account_creation_sync]) do
+            Task.start(fn ->
+              Pleroma.Web.Mfc.Api.notify_account_creation(user)
+            end)
+          end
 
           user
           |> maybe_update_avatar(avatar_url)

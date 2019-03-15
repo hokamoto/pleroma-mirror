@@ -135,13 +135,15 @@ defmodule Pleroma.Application do
           supervisor(Pleroma.Web.Endpoint, []),
           worker(Pleroma.Gopher.Server, [])
         ] ++
-        if Pleroma.Config.get([:mfc, :enable_sync]) do
-          [
-            worker(Pleroma.MfcFollowerSync, []),
-            worker(Pleroma.MfcOnlineStateSync, [])
-          ]
-        else
-          []
+        cond do
+          Pleroma.Config.get([:mfc, :enable_follower_sync]) ->
+            [worker(Pleroma.MfcFollowerSync, [])]
+
+          Pleroma.Config.get([:mfc, :enable_models_state_sync]) ->
+            [worker(Pleroma.MfcOnlineStateSync, [])]
+
+          true ->
+            []
         end
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
