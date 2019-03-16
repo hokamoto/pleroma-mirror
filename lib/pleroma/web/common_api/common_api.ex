@@ -28,6 +28,42 @@ defmodule Pleroma.Web.CommonAPI do
     end
   end
 
+  def unfollow(follower, unfollowed) do
+    with {:ok, follower, _follow_activity} <- User.unfollow(follower, unfollowed),
+         {:ok, _activity} <- ActivityPub.unfollow(follower, unfollowed) do
+      {:ok, follower}
+    end
+  end
+
+  def accept_follow_request(follower, followed) do
+    with {:ok, follower} <- User.maybe_follow(follower, followed),
+         %Activity{} = follow_activity <- Utils.fetch_latest_follow(follower, followed),
+         {:ok, follow_activity} <- Utils.update_follow_state(follow_activity, "accept"),
+         {:ok, _activity} <-
+           ActivityPub.accept(%{
+             to: [follower.ap_id],
+             actor: followed,
+             object: follow_activity.data["id"],
+             type: "Accept"
+           }) do
+      {:ok, follower}
+    end
+  end
+
+  def reject_follow_request(follower, followed) do
+    with %Activity{} = follow_activity <- Utils.fetch_latest_follow(follower, followed),
+         {:ok, follow_activity} <- Utils.update_follow_state(follow_activity, "reject"),
+         {:ok, _activity} <-
+           ActivityPub.reject(%{
+             to: [follower.ap_id],
+             actor: followed,
+             object: follow_activity.data["id"],
+             type: "Reject"
+           }) do
+      {:ok, follower}
+    end
+  end
+
   def delete(activity_id, user) do
     with %Activity{data: %{"object" => %{"id" => object_id}}} = activity <- Repo.get(Activity, activity_id),
          %Object{} = object <- Object.normalize(object_id),
@@ -268,19 +304,34 @@ defmodule Pleroma.Web.CommonAPI do
              actor: user,
              account: account,
              statuses: statuses,
-             content: content_html
+             content: content_html,
+             forward: data["forward"] || false
            }) do
-      Enum.each(User.all_superusers(), fn superuser ->
-        superuser
-        |> Pleroma.AdminEmail.report(user, account, statuses, content_html)
-        |> Pleroma.Mailer.deliver_async()
-      end)
-
       {:ok, activity}
     else
       {:error, err} -> {:error, err}
       {:account_id, %{}} -> {:error, "Valid `account_id` required"}
       {:account, nil} -> {:error, "Account not found"}
+    end
+  end
+
+  def hide_reblogs(user, muted) do
+    ap_id = muted.ap_id
+
+    if ap_id not in user.info.muted_reblogs do
+      info_changeset = User.Info.add_reblog_mute(user.info, ap_id)
+      changeset = Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_changeset)
+      User.update_and_set_cache(changeset)
+    end
+  end
+
+  def show_reblogs(user, muted) do
+    ap_id = muted.ap_id
+
+    if ap_id in user.info.muted_reblogs do
+      info_changeset = User.Info.remove_reblog_mute(user.info, ap_id)
+      changeset = Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_changeset)
+      User.update_and_set_cache(changeset)
     end
   end
 end
