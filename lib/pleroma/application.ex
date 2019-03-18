@@ -139,6 +139,10 @@ defmodule Pleroma.Application do
           Pleroma.Config.get([:mfc, :enable_follower_sync]) ->
             [worker(Pleroma.MfcFollowerSync, [])]
 
+          true ->
+            []
+        end ++
+        cond do
           Pleroma.Config.get([:mfc, :enable_models_state_sync]) ->
             [worker(Pleroma.MfcOnlineStateSync, [])]
 
