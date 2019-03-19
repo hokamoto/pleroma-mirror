@@ -229,6 +229,12 @@
       "src": "fontawesome"
     },
     {
+      "uid": "d35a1d35efeb784d1dc9ac18b9b6c2b6",
+      "css": "pencil",
+      "code": 59416,
+      "src": "fontawesome"
+    },
+    {
       "uid": "9bd60140934a1eb9236fd7a8ab1ff6ba",
       "css": "spin4",
       "code": 59444,
@@ -237,7 +243,7 @@
     {
       "uid": "9f6bfbb6c0186e8e6bfe682c2fa87031",
       "css": "verified",
-      "code": 59416,
+      "code": 59417,
       "src": "custom_icons",
       "selected": true,
       "svg": {

@@ -23,7 +23,8 @@
 .icon-plus:before { content: '\e815'; } /* '' */
 .icon-adjust:before { content: '\e816'; } /* '' */
 .icon-edit:before { content: '\e817'; } /* '' */
-.icon-verified:before { content: '\e818'; } /* '' */
+.icon-pencil:before { content: '\e818'; } /* '' */
+.icon-verified:before { content: '\e819'; } /* '' */
 .icon-spin3:before { content: '\e832'; } /* '' */
 .icon-spin4:before { content: '\e834'; } /* '' */
 .icon-link-ext:before { content: '\f08e'; } /* '' */
