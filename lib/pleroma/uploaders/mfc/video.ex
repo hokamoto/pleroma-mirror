@@ -69,6 +69,9 @@ defmodule Pleroma.Uploaders.MFC.Video do
       [Pleroma.Uploaders.MFC, :video_conversion, :postfix_preview_name]
       |> Pleroma.Config.get(@default_postfix_preview)
 
-    "#{path}#{postfix_preview_name}"
+    uri = URI.parse(path)
+
+    %URI{uri | path: uri.path <> postfix_preview_name}
+    |> to_string
   end
 end

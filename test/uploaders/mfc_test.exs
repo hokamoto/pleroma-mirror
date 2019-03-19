@@ -95,4 +95,47 @@ defmodule Pleroma.Uploaders.MFCTest do
 
   describe "uploads not video\image files" do
   end
+
+  describe "generates preview urls" do
+    setup do
+      video_config = [Pleroma.Uploaders.MFC, :video_conversion, :postfix_preview_name]
+      image_config = [Pleroma.Uploaders.MFC, :image_conversion, :postfix_preview_name]
+      video_postfix = Pleroma.Config.get(video_config)
+
+      image_postfix = Pleroma.Config.get(image_config)
+
+      Pleroma.Config.put(video_config, ".video.jpg")
+
+      Pleroma.Config.put(image_config, ".image.jpg")
+
+      on_exit(fn ->
+        Pleroma.Config.put(video_config, video_postfix)
+        Pleroma.Config.put(image_config, image_postfix)
+      end)
+    end
+
+    test "generates preview url for images" do
+      assert Pleroma.Uploaders.MFC.preview_url(
+               "image/webp",
+               "https://pleroma.gov/f72cf8edfad39b5c0608e71f140f2b882f409e00006821467a46dc4822a942fa.png?name=corndog.png"
+             ) ==
+               "https://pleroma.gov/f72cf8edfad39b5c0608e71f140f2b882f409e00006821467a46dc4822a942fa.png.image.jpg?name=corndog.png"
+    end
+
+    test "generates preview url for videos" do
+      assert Pleroma.Uploaders.MFC.preview_url(
+               "video/webm",
+               "https://pleroma.gov/f26ad03462b03c20f033825c32a9b44b00d550358a4f0424d104fa5b2c48a5e9.webm?name=jotaro_yes.webm"
+             ) ==
+               "https://pleroma.gov/f26ad03462b03c20f033825c32a9b44b00d550358a4f0424d104fa5b2c48a5e9.webm.video.jpg?name=jotaro_yes.webm"
+    end
+
+    test "returns the same url if asked to generate a preview url for an unsupported type" do
+      assert Pleroma.Uploaders.MFC.preview_url(
+               "application/octet-stream",
+               "https://pleroma.gov/518c7a756a9b3cc1a5a202fb8ca7bc1f141e6c4b8b4e1d0f9b7e79339f8c5867.sfc?name=badapple.sfc"
+             ) ==
+               "https://pleroma.gov/518c7a756a9b3cc1a5a202fb8ca7bc1f141e6c4b8b4e1d0f9b7e79339f8c5867.sfc?name=badapple.sfc"
+    end
+  end
 end
