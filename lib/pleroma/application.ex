@@ -135,11 +135,13 @@ defmodule Pleroma.Application do
           supervisor(Pleroma.Web.Endpoint, []),
           worker(Pleroma.Gopher.Server, [])
         ] ++
-        if Pleroma.Config.get([:mfc, :enable_sync]) do
-          [
-            worker(Pleroma.MfcFollowerSync, []),
-            worker(Pleroma.MfcOnlineStateSync, [])
-          ]
+        if Pleroma.Config.get([:mfc, :enable_follower_sync]) do
+          [worker(Pleroma.MfcFollowerSync, [])]
+        else
+          []
+        end ++
+        if Pleroma.Config.get([:mfc, :enable_models_state_sync]) do
+          [worker(Pleroma.MfcOnlineStateSync, [])]
         else
           []
         end
