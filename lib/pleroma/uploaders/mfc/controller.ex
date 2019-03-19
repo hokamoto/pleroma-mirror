@@ -2,7 +2,7 @@ defmodule Pleroma.Uploaders.MFC.Controller do
   use Pleroma.Web, :controller
   alias Pleroma.Uploaders.MFC
 
-  def callbacks(conn, params = %{"source_key" => key}) do
+  def callbacks(conn, %{"source_key" => key} = params) do
     process_callback(conn, :global.whereis_name({MFC, key}), params)
   end
 
@@ -10,9 +10,10 @@ defmodule Pleroma.Uploaders.MFC.Controller do
     send_resp(conn, 400, "invalid request")
   end
 
-  defp process_callback(conn, pid, %{"action" => "success", "dest_key" => path} = _)
+  defp process_callback(conn, pid, %{"action" => "success"} = params)
        when is_pid(pid) do
-    send(pid, {MFC, {:ok, path}})
+    conversion_result = Pleroma.Uploaders.MFC.Video.parse_conversion_result(params)
+    send(pid, {MFC, conversion_result})
     send_resp(conn, 200, "ok")
   end
 
