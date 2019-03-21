@@ -86,10 +86,13 @@ defmodule Pleroma.Uploaders.MFC.Image do
   @doc "Build preview url"
   @spec build_preview_url(String.t()) :: String.t()
   def build_preview_url(path) do
-    suffix_preview_name =
+    postfix_preview_name =
       [Pleroma.Uploaders.MFC, :image_conversion, :postfix_preview_name]
       |> Pleroma.Config.get(@preview_suffix)
 
-    "#{path}#{suffix_preview_name}"
+    uri = URI.parse(path)
+
+    %URI{uri | path: uri.path <> postfix_preview_name}
+    |> to_string
   end
 end
