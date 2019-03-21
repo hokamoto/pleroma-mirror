@@ -252,6 +252,7 @@ defmodule Pleroma.Web.Router do
       pipe_through(:oauth_write)
 
       patch("/accounts/update_credentials", MastodonAPIController, :update_credentials)
+      post("/accounts/update_avatar", MastodonAPIController, :update_avatar)
 
       post("/statuses", MastodonAPIController, :post_status)
       delete("/statuses/:id", MastodonAPIController, :delete_status)

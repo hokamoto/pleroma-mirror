@@ -1807,6 +1807,33 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     end
   end
 
+  describe "updating avatar" do
+    test "with credentials", %{conn: conn} do
+      user = insert(:user)
+      avatar_image = File.read!("test/fixtures/avatar_data_uri")
+
+      conn =
+        conn
+        |> assign(:user, user)
+        |> post("/api/v1/accounts/update_avatar", %{"avatar" => avatar_image})
+
+      assert user_response = json_response(conn, 200)
+      assert user_response["avatar"] != User.avatar_url(user)
+    end
+
+    test "without img param, it resets the avatar", %{conn: conn} do
+      user = insert(:user)
+
+      conn =
+        conn
+        |> assign(:user, user)
+        |> post("/api/v1/accounts/update_avatar", %{})
+
+      assert user_response = json_response(conn, 200)
+      assert user_response["avatar"] == User.avatar_url(%{avatar: nil})
+    end
+  end
+
   test "get instance information", %{conn: conn} do
     user = insert(:user, %{local: true})
 

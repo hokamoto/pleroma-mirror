@@ -127,6 +127,27 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     end
   end
 
+  def update_avatar(%{assigns: %{user: user}} = conn, params) do
+    change =
+      if Map.has_key?(params, "avatar") do
+        {:ok, object} = ActivityPub.upload(%{"img" => params["avatar"]}, type: :avatar)
+        %{avatar: object.data}
+      else
+        %{avatar: nil}
+      end
+
+    with changeset <- User.update_changeset(user, change),
+         {:ok, user} <- User.update_and_set_cache(changeset) do
+      CommonAPI.update(user)
+      json(conn, AccountView.render("account.json", %{user: user, for: user}))
+    else
+      _e ->
+        conn
+        |> put_status(403)
+        |> json(%{error: "Invalid request"})
+    end
+  end
+
   def verify_credentials(%{assigns: %{user: user}} = conn, _) do
     account = AccountView.render("account.json", %{user: user, for: user})
     json(conn, account)
