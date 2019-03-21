@@ -16,13 +16,13 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.CommonAPI
+  alias Pleroma.Web.MediaProxy
   alias Pleroma.Web.OAuth.Token
   alias Pleroma.Web.TwitterAPI.ActivityView
   alias Pleroma.Web.TwitterAPI.NotificationView
   alias Pleroma.Web.TwitterAPI.TokenView
   alias Pleroma.Web.TwitterAPI.TwitterAPI
   alias Pleroma.Web.TwitterAPI.UserView
-  alias Pleroma.Web.MediaProxy
 
   require Logger
 
