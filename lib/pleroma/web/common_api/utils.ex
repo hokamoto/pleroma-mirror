@@ -101,7 +101,8 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   def make_content_html(
         status,
         attachments,
-        data
+        data,
+        visibility
       ) do
     no_attachment_links =
       data
@@ -110,8 +111,15 @@ defmodule Pleroma.Web.CommonAPI.Utils do
 
     content_type = get_content_type(data["content_type"])
 
+    options =
+      if visibility == "direct" && Config.get([:instance, :safe_dm_mentions]) do
+        [safe_mention: true]
+      else
+        []
+      end
+
     status
-    |> format_input(content_type)
+    |> format_input(content_type, options)
     |> maybe_add_attachments(attachments, no_attachment_links)
     |> maybe_add_nsfw_tag(data)
   end
@@ -344,4 +352,33 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   end
 
   def get_report_statuses(_, _), do: {:ok, nil}
+
+  # DEPRECATED mostly, context objects are now created at insertion time.
+  def context_to_conversation_id(context) do
+    with %Object{id: id} <- Object.get_cached_by_ap_id(context) do
+      id
+    else
+      _e ->
+        changeset = Object.context_mapping(context)
+
+        case Repo.insert(changeset) do
+          {:ok, %{id: id}} ->
+            id
+
+          # This should be solved by an upsert, but it seems ecto
+          # has problems accessing the constraint inside the jsonb.
+          {:error, _} ->
+            Object.get_cached_by_ap_id(context).id
+        end
+    end
+  end
+
+  def conversation_id_to_context(id) do
+    with %Object{data: %{"id" => context}} <- Repo.get(Object, id) do
+      context
+    else
+      _e ->
+        {:error, "No such conversation"}
+    end
+  end
 end

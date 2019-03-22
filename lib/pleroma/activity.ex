@@ -22,6 +22,10 @@ defmodule Pleroma.Activity do
     "Like" => "favourite"
   }
 
+  @mastodon_to_ap_notification_types for {k, v} <- @mastodon_notification_types,
+                                         into: %{},
+                                         do: {v, k}
+
   schema "activities" do
     field(:data, :map)
     field(:local, :boolean, default: true)
@@ -109,7 +113,8 @@ defmodule Pleroma.Activity do
 
   def delete_by_ap_id(id) when is_binary(id) do
     by_object_ap_id(id)
-    |> Repo.delete_all(returning: true)
+    |> select([u], u)
+    |> Repo.delete_all()
     |> elem(1)
     |> Enum.find(fn
       %{data: %{"type" => "Create", "object" => %{"id" => ap_id}}} -> ap_id == id
@@ -125,6 +130,10 @@ defmodule Pleroma.Activity do
   end
 
   def mastodon_notification_type(%Activity{}), do: nil
+
+  def from_mastodon_notification_type(type) do
+    Map.get(@mastodon_to_ap_notification_types, type)
+  end
 
   def all_by_actor_and_id(actor, status_ids \\ [])
   def all_by_actor_and_id(_actor, []), do: []
