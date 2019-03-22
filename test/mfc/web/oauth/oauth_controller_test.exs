@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Web.OAuth.OAuthControllerTest do
+defmodule PleromaMfc.Web.OAuth.OAuthControllerTest do
   use Pleroma.Test.MfcCase
 
   use Pleroma.Web.ConnCase

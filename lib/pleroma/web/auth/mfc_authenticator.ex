@@ -6,7 +6,14 @@ defmodule Pleroma.Web.Auth.MfcAuthenticator do
   @controller Pleroma.Web.OAuth.OAuthController
 
   def get_user(%Plug.Conn{} = conn) do
-    %{"authorization" => %{"name" => name, "password" => password}} = conn.params
+    {name, password} =
+      case conn.params do
+        %{"authorization" => %{"name" => name, "password" => password}} ->
+          {name, password}
+
+        %{"grant_type" => "password", "username" => name, "password" => password} ->
+          {name, password}
+      end
 
     with {_, {:ok, user_data}} <-
            {:mfc_auth,
