@@ -25,6 +25,25 @@ defmodule Pleroma.Uploaders.MFCTest do
     "status" => "ok"
   }
 
+  @video_without_audio %{
+    "source_key" => "test/fixtures/video.mp4",
+    "dest_key" => "out_full_n3.mp4",
+    "still_key" => "out_full_preview.png",
+    "meta" => %{
+      "duration" => 15.11,
+      "bitrate" => 891_066,
+      "filesize" => 1_683_002,
+      "video_stream" => "h264 (High) (avc1 / 0x31637661), yuv420p, 720x404 [SAR 1:1 DAR 180:101]",
+      "video_codec" => "h264",
+      "colorspace" => "yuv420p",
+      "resolution" => "720x404",
+      "width" => 720,
+      "height" => 404,
+      "frame_rate" => "13500000/451451"
+    },
+    "status" => "ok"
+  }
+
   describe "uploads video files" do
     test "returns a preview url of video" do
       origin_path = "test/fixtures/video.mp4_original"

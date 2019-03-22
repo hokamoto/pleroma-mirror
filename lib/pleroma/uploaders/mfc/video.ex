@@ -64,7 +64,7 @@ defmodule Pleroma.Uploaders.MFC.Video do
     end
   end
 
-  # The the video API response format:
+  # The video API response format:
   #
   # {
   #   "source_key": "out_full.mp4",
@@ -117,52 +117,50 @@ defmodule Pleroma.Uploaders.MFC.Video do
   #    }
   #  }
   #
-  def parse_conversion_result(%{
-        "dest_key" => path,
-        "meta" =>
-          %{
-            "duration" => duration,
-            "bitrate" => bitrate,
-            "resolution" => resolution,
-            "width" => width,
-            "height" => height,
-            "frame_rate" => frame_rate,
-            "audio_stream" => audio_stream,
-            "audio_sample_rate" => audio_sample_rate
-          } = meta
-      }) do
-    aspect = width / height
-    audio_channels = if meta["audio_channels"] == 1, do: "mono", else: @default_audio_channel
-
-    meta = %{
-      "duration" => duration,
-      "audio_encode" => get_audio_encode(audio_stream),
-      "audio_bitrate" => "#{audio_sample_rate} Hz",
-      "audio_channels" => audio_channels,
-      "fps" => get_fps(frame_rate),
-      "size" => resolution,
-      "width" => width,
-      "height" => height,
-      "aspect" => aspect,
-      "original" => %{
-        "width" => width,
-        "height" => height,
-        "frame_rate" => frame_rate,
-        "duration" => duration,
-        "bitrate" => bitrate
-      },
-      "small" => %{
-        "width" => width,
-        "height" => height,
-        "size" => resolution,
-        "aspect" => aspect
-      }
-    }
-
-    {:ok, %{meta: meta, path: path}}
+  def parse_conversion_result(%{"dest_key" => path} = params) do
+    try do
+      {:ok, meta} = parse_meta(params)
+      {:ok, %{meta: meta, path: path}}
+    rescue
+      _ -> {:ok, %{meta: %{}, path: path}}
+    end
   end
 
-  def parse_conversion_result(conversion_result) do
+  def parse_meta(%{
+        "meta" => %{"resolution" => resolution, "width" => width, "height" => height} = meta
+      }) do
+    meta =
+      %{
+        "size" => resolution,
+        "width" => width,
+        "height" => height,
+        "original" =>
+          %{
+            "width" => width,
+            "height" => height
+          }
+          |> maybe_with_field("bitrate", meta)
+          |> maybe_with_field("frame_rate", meta)
+          |> maybe_with_field("duration", meta),
+        "small" =>
+          %{
+            "width" => width,
+            "height" => height,
+            "size" => resolution
+          }
+          |> maybe_with_field("aspect", meta)
+      }
+      |> maybe_with_field("audio_encode", meta)
+      |> maybe_with_field("audio_bitrate", meta)
+      |> maybe_with_field("audio_channels", meta)
+      |> maybe_with_field("fps", meta)
+      |> maybe_with_field("duration", meta)
+      |> maybe_with_field("aspect", meta)
+
+    {:ok, meta}
+  end
+
+  def parse_meta(conversion_result) do
     Logger.error(
       "#{__MODULE__}: The conversion result doesn't match the expected format: #{
         inspect(conversion_result)
@@ -172,19 +170,50 @@ defmodule Pleroma.Uploaders.MFC.Video do
     {:error, "Unknown format"}
   end
 
-  def get_fps(frame_rate) do
+  def maybe_with_field(data, "audio_encode" = field, %{"audio_stream" => audio_stream})
+      when is_binary(audio_stream) do
+    result = audio_stream |> String.split(",") |> List.first()
+    Map.put(data, field, result)
+  end
+
+  def maybe_with_field(data, "audio_bitrate" = field, %{"audio_sample_rate" => audio_sample_rate})
+      when not is_nil(audio_sample_rate) do
+    Map.put(data, field, "#{audio_sample_rate} Hz")
+  end
+
+  def maybe_with_field(data, "audio_channels" = field, %{"audio_channels" => audio_channels})
+      when not is_nil(audio_channels) do
+    result = if audio_channels == 1, do: "mono", else: @default_audio_channel
+    Map.put(data, field, result)
+  end
+
+  def maybe_with_field(data, "fps" = field, %{"frame_rate" => frame_rate})
+      when is_binary(frame_rate) do
     with [a, b] <- String.split(frame_rate, "/"),
          [{a, _}, {b, _}] when is_integer(a) and is_integer(b) <-
            Enum.map([a, b], &Integer.parse(&1)) do
-      round(a / b)
+      result = round(a / b)
+      Map.put(data, field, result)
     else
-      _ -> nil
+      _ -> data
     end
   end
 
-  def get_audio_encode(audio_stream) do
-    audio_stream |> String.split(",") |> List.first()
+  def maybe_with_field(data, "aspect" = field, %{"width" => width, "height" => height})
+      when is_integer(width) and is_integer(height) do
+    result = width / height
+    Map.put(data, field, result)
   end
+
+  def maybe_with_field(data, field, meta) when field in ["bitrate", "frame_rate", "duration"] do
+    if value = Map.get(meta, field) do
+      Map.put(data, field, value)
+    else
+      data
+    end
+  end
+
+  def maybe_with_field(data, _, _), do: data
 
   @doc "Build preview url"
   @spec build_preview_url(String.t()) :: String.t()
