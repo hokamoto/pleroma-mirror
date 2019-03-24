@@ -73,7 +73,7 @@ defmodule Pleroma.Web.Mfc.Api do
       mfc_id: user.mfc_id,
       deleted_by_id: deleter.mfc_id,
       post_id: activity.id,
-      deleted_at: deleted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix(),
+      deleted_at: deleted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
     })
   end
 
