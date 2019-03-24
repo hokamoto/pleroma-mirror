@@ -10,7 +10,8 @@ defmodule Mix.Tasks.Mfc.PushNotesToShare do
     q =
       from(a in Pleroma.Activity,
         where: fragment("?->>'type' = ?", a.data, "Create"),
-        where: fragment("activity_visibility(?, ?, ?) = ?", a.actor, a.recipients, a.data, "public")
+        where:
+          fragment("activity_visibility(?, ?, ?) = ?", a.actor, a.recipients, a.data, "public")
       )
 
     activities =

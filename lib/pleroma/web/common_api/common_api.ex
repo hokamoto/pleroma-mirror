@@ -65,12 +65,12 @@ defmodule Pleroma.Web.CommonAPI do
   end
 
   def delete(activity_id, user) do
-    with %Activity{data: %{"object" => %{"id" => object_id}}} = activity <- Repo.get(Activity, activity_id),
+    with %Activity{data: %{"object" => %{"id" => object_id}}} = activity <-
+           Repo.get(Activity, activity_id),
          %Object{} = object <- Object.normalize(object_id),
          true <- User.superuser?(user) || user.ap_id == object.data["actor"],
          {:ok, _} <- unpin(activity_id, user),
          {:ok, delete} <- ActivityPub.delete(object) do
-
       # MFC notification of deletion
       if Pleroma.Config.get([:mfc, :enable_status_deletion_sync]) do
         Task.start(fn ->
