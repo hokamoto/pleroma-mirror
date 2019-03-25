@@ -1,9 +1,9 @@
 defmodule Pleroma.Uploaders.MFC do
   @behaviour Pleroma.Uploaders.Uploader
 
-  alias Pleroma.Upload
-  alias __MODULE__.Video
   alias __MODULE__.Image
+  alias __MODULE__.Video
+  alias Pleroma.Upload
 
   @image_conversion_ignore ["gif"]
 
