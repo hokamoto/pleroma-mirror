@@ -78,7 +78,7 @@ defmodule Pleroma.Uploaders.MFC do
 
   defp store, do: Pleroma.Config.get([__MODULE__, :store], Pleroma.Uploaders.S3)
 
-  defp wait_for_conversion() do
+  defp wait_for_conversion do
     receive do
       {__MODULE__, {:ok, path}} -> {:ok, path}
       {__MODULE__, {:error, error}} -> {:error, error}

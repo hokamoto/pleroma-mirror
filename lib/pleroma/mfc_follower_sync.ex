@@ -4,7 +4,8 @@
 
 defmodule Pleroma.MfcFollowerSync do
   import Ecto.Query
-  alias Pleroma.{User, Repo}
+  alias Pleroma.Repo
+  alias Pleroma.User
 
   # 6 hours
   @sleep_time 60 * 60 * 6

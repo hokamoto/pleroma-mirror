@@ -1,6 +1,6 @@
 defmodule Pleroma.Web.Mfc.Utils do
-  alias Pleroma.User
   alias Pleroma.Repo
+  alias Pleroma.User
   alias Pleroma.Web.Mfc.Api
   import Ecto.Query
   require Logger

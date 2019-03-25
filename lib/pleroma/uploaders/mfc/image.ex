@@ -10,7 +10,7 @@ defmodule Pleroma.Uploaders.MFC.Image do
   defmodule Client do
     use Tesla
 
-    def client() do
+    def client do
       config = Pleroma.Config.get!([MFC, :image_conversion])
 
       middleware = [

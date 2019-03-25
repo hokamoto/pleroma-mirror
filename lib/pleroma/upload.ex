@@ -56,7 +56,8 @@ defmodule Pleroma.Upload do
   defstruct [:id, :name, :tempfile, :content_type, :path]
 
   # TODO: Find a more general way to pass meta data to minimize the changes needed in Uploader.
-  # Prob. add an ability to add metadata from any Uploader since other uploaders will most likely need to perform minifications too.
+  # Prob. add an ability to add metadata from any Uploader since other uploaders will most likely
+  # need to perform minifications too.
   def normalize_upload_result(upload_result) do
     case upload_result do
       {:file, _path} -> %{url_spec: upload_result, meta: %{}}

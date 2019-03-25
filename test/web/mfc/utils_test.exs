@@ -1,9 +1,9 @@
 defmodule Pleroma.Web.Mfc.UtilsTest do
   use Pleroma.DataCase
   import Pleroma.Factory
-  alias Pleroma.Web.Mfc.Utils
-  alias Pleroma.User
   alias Pleroma.Repo
+  alias Pleroma.User
+  alias Pleroma.Web.Mfc.Utils
 
   describe "model online status" do
     test "it pulls the state form the web and sets the online state for the model" do

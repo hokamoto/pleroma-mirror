@@ -6,7 +6,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   @users_page_size 50
 
   use Pleroma.Web, :controller
-  alias Pleroma.{User, Repo}
+  alias Pleroma.Repo
+  alias Pleroma.User
   alias Pleroma.Web.ActivityPub.Relay
   alias Pleroma.Web.AdminAPI.AccountView
 

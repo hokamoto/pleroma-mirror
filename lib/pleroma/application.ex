@@ -152,7 +152,7 @@ defmodule Pleroma.Application do
     Supervisor.start_link(children, opts)
   end
 
-  defp setup_instrumenters() do
+  defp setup_instrumenters do
     require Prometheus.Registry
 
     :ok =

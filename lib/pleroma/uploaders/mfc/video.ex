@@ -11,7 +11,7 @@ defmodule Pleroma.Uploaders.MFC.Video do
   defmodule Client do
     use Tesla
 
-    def client() do
+    def client do
       middleware = [
         {
           Tesla.Middleware.BaseUrl,
