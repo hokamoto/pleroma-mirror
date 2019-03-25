@@ -3,6 +3,9 @@ defmodule Pleroma.Uploaders.MFC.Video do
   The module represents functions to upload videos and take screenshot.
   """
 
+  alias Pleroma.Config
+  alias Pleroma.Uploaders.MFC
+
   require Logger
 
   defmodule Client do
@@ -12,7 +15,7 @@ defmodule Pleroma.Uploaders.MFC.Video do
       middleware = [
         {
           Tesla.Middleware.BaseUrl,
-          Pleroma.Config.get!([Pleroma.Uploaders.MFC, :video_conversion, :endpoint])
+          Config.get!([MFC, :video_conversion, :endpoint])
         },
         Tesla.Middleware.JSON
       ]
@@ -30,7 +33,7 @@ defmodule Pleroma.Uploaders.MFC.Video do
   @doc "Uploads video to take screenshot."
   @spec convert(Tesla.Client.t(), String.t()) :: :ok | :duplicate | {:error, String.t()}
   def convert(client, path) do
-    config = Pleroma.Config.get!([Pleroma.Uploaders.MFC, :video_conversion])
+    config = Config.get!([MFC, :video_conversion])
 
     data = %{
       "client" => Keyword.fetch!(config, :client),
@@ -219,8 +222,8 @@ defmodule Pleroma.Uploaders.MFC.Video do
   @spec build_preview_url(String.t()) :: String.t()
   def build_preview_url(path) do
     postfix_preview_name =
-      [Pleroma.Uploaders.MFC, :video_conversion, :postfix_preview_name]
-      |> Pleroma.Config.get(@default_postfix_preview)
+      [MFC, :video_conversion, :postfix_preview_name]
+      |> Config.get(@default_postfix_preview)
 
     uri = URI.parse(path)
 
