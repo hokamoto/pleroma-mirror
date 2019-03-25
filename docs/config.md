@@ -356,3 +356,10 @@ Pleroma account will be created with the same name as the LDAP user name.
 
 * `Pleroma.Web.Auth.PleromaAuthenticator`: default database authenticator
 * `Pleroma.Web.Auth.LDAPAuthenticator`: LDAP authentication
+
+## :etag_plug
+
+This plug adds an ETag header to outgoing responses.  Depending on the
+Pleroma client, this could save a lot of bandwidth.  See
+[ETag.Plug's](https://hexdocs.pm/etag_plug/ETag.Plug.html#content)
+documentation for more details.
