@@ -154,6 +154,15 @@ defmodule Pleroma.Application do
 
   defp setup_instrumenters() do
     require Prometheus.Registry
+
+    :ok =
+      :telemetry.attach(
+        "prometheus-ecto",
+        [:pleroma, :repo, :query],
+        &Pleroma.Repo.Instrumenter.handle_event/4,
+        %{}
+      )
+
     Prometheus.Registry.register_collector(:prometheus_process_collector)
     Pleroma.Web.Endpoint.MetricsExporter.setup()
     Pleroma.Web.Endpoint.PipelineInstrumenter.setup()
