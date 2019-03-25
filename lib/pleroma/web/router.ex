@@ -17,6 +17,7 @@ defmodule Pleroma.Web.Router do
     plug(Pleroma.Plugs.UserEnabledPlug)
     plug(Pleroma.Plugs.SetUserSessionIdPlug)
     plug(Pleroma.Plugs.EnsureUserKeyPlug)
+    plug(ETag.Plug)
   end
 
   pipeline :authenticated_api do
@@ -31,6 +32,7 @@ defmodule Pleroma.Web.Router do
     plug(Pleroma.Plugs.UserEnabledPlug)
     plug(Pleroma.Plugs.SetUserSessionIdPlug)
     plug(Pleroma.Plugs.EnsureAuthenticatedPlug)
+    plug(ETag.Plug)
   end
 
   pipeline :admin_api do
@@ -47,6 +49,7 @@ defmodule Pleroma.Web.Router do
     plug(Pleroma.Plugs.SetUserSessionIdPlug)
     plug(Pleroma.Plugs.EnsureAuthenticatedPlug)
     plug(Pleroma.Plugs.UserIsAdminPlug)
+    plug(ETag.Plug)
   end
 
   pipeline :mastodon_html do
@@ -61,6 +64,7 @@ defmodule Pleroma.Web.Router do
     plug(Pleroma.Plugs.UserEnabledPlug)
     plug(Pleroma.Plugs.SetUserSessionIdPlug)
     plug(Pleroma.Plugs.EnsureUserKeyPlug)
+    plug(ETag.Plug)
   end
 
   pipeline :pleroma_html do
@@ -72,6 +76,7 @@ defmodule Pleroma.Web.Router do
     plug(Pleroma.Plugs.SessionAuthenticationPlug)
     plug(Pleroma.Plugs.AuthenticationPlug)
     plug(Pleroma.Plugs.EnsureUserKeyPlug)
+    plug(ETag.Plug)
   end
 
   pipeline :oauth_read_or_unauthenticated do
