@@ -6,6 +6,7 @@ defmodule Pleroma.Web.CommonAPI do
   alias Pleroma.Activity
   alias Pleroma.Formatter
   alias Pleroma.Object
+  alias Pleroma.Repo
   alias Pleroma.ThreadMute
   alias Pleroma.User
   alias Pleroma.Web
