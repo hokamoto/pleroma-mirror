@@ -84,7 +84,7 @@ defmodule Pleroma.Web.CommonAPI do
 
   def repeat(id_or_ap_id, user) do
     with %Activity{} = activity <- get_by_id_or_ap_id(id_or_ap_id),
-         object <- Object.normalize(activity.data["object"]["id"]),
+         object <- Object.normalize(activity),
          nil <- Utils.get_existing_announce(user.ap_id, object) do
       ActivityPub.announce(user, object)
     else
@@ -95,7 +95,7 @@ defmodule Pleroma.Web.CommonAPI do
 
   def unrepeat(id_or_ap_id, user) do
     with %Activity{} = activity <- get_by_id_or_ap_id(id_or_ap_id),
-         object <- Object.normalize(activity.data["object"]["id"]) do
+         object <- Object.normalize(activity) do
       ActivityPub.unannounce(user, object)
     else
       _ ->
@@ -105,7 +105,7 @@ defmodule Pleroma.Web.CommonAPI do
 
   def favorite(id_or_ap_id, user) do
     with %Activity{} = activity <- get_by_id_or_ap_id(id_or_ap_id),
-         object <- Object.normalize(activity.data["object"]["id"]),
+         object <- Object.normalize(activity),
          nil <- Utils.get_existing_like(user.ap_id, object) do
       ActivityPub.like(user, object)
     else
@@ -116,7 +116,7 @@ defmodule Pleroma.Web.CommonAPI do
 
   def unfavorite(id_or_ap_id, user) do
     with %Activity{} = activity <- get_by_id_or_ap_id(id_or_ap_id),
-         object <- Object.normalize(activity.data["object"]["id"]) do
+         object <- Object.normalize(activity) do
       ActivityPub.unlike(user, object)
     else
       _ ->

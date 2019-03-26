@@ -61,14 +61,10 @@ defmodule Pleroma.User do
     timestamps()
   end
 
-  def auth_active?(%User{local: false}), do: true
-
-  def auth_active?(%User{info: %User.Info{confirmation_pending: false}}), do: true
-
   def auth_active?(%User{info: %User.Info{confirmation_pending: true}}),
     do: !Pleroma.Config.get([:instance, :account_activation_required])
 
-  def auth_active?(_), do: false
+  def auth_active?(%User{}), do: true
 
   def visible_for?(user, for_user \\ nil)
 
@@ -1134,13 +1130,15 @@ defmodule Pleroma.User do
     friends
     |> Enum.each(fn followed -> User.unfollow(user, followed) end)
 
-    query = from(a in Activity, where: a.actor == ^user.ap_id)
+    query =
+      from(a in Activity, where: a.actor == ^user.ap_id)
+      |> Activity.with_preloaded_object()
 
     Repo.all(query)
     |> Enum.each(fn activity ->
       case activity.data["type"] do
         "Create" ->
-          ActivityPub.delete(Object.normalize(activity.data["object"]))
+          ActivityPub.delete(Object.normalize(activity))
 
         # TODO: Do something with likes, follows, repeats.
         _ ->
