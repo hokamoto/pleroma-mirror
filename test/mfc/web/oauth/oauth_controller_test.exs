@@ -259,7 +259,7 @@ defmodule PleromaMfc.Web.OAuth.OAuthControllerTest do
           }
         })
 
-      assert html_response(conn, 401) =~ "Permissions not specified."
+      assert html_response(conn, 401) =~ "This action is outside the authorized scopes"
     end
   end
 
@@ -295,7 +295,7 @@ defmodule PleromaMfc.Web.OAuth.OAuthControllerTest do
           }
         })
 
-      assert html_response(conn, 401) =~ "Permissions not specified."
+      assert html_response(conn, 401) =~ "This action is outside the authorized scopes"
     end
   end
 end
