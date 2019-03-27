@@ -161,6 +161,17 @@ defmodule Mix.Tasks.Pleroma.UserTest do
       assert_received {:mix_shell, :error, [message]}
       assert message =~ "No user"
     end
+
+    test "remote user cannot be unsubscribed" do
+      user = insert(:user, %{local: false})
+
+      Mix.Tasks.Pleroma.User.run(["unsubscribe", user.nickname])
+
+      assert_received {:mix_shell, :error, [message]}
+      assert message =~ "No user #{user.nickname}"
+
+      refute user.info.deactivated
+    end
   end
 
   describe "running set" do

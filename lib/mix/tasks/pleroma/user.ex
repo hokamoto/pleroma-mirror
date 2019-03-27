@@ -195,7 +195,7 @@ defmodule Mix.Tasks.Pleroma.User do
   def run(["unsubscribe", nickname]) do
     Common.start_pleroma()
 
-    with %User{} = user <- User.get_by_nickname(nickname) do
+    with %User{local: true} = user <- User.get_by_nickname(nickname) do
       Mix.shell().info("Deactivating #{user.nickname}")
       User.deactivate(user)
 
