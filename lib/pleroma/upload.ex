@@ -82,7 +82,7 @@ defmodule Pleroma.Upload do
          "url" => [
            %{
              "type" => "Link",
-             "mediaType" => upload.content_type,
+             "mediaType" => meta["content_type"] || upload.content_type,
              "href" => url_from_spec(upload, opts.base_url, url_spec)
            }
          ],
