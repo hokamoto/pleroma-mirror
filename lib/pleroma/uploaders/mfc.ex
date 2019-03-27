@@ -64,7 +64,7 @@ defmodule Pleroma.Uploaders.MFC do
   def preview_url("video" <> _, url), do: Video.build_preview_url(url)
   def preview_url("image/gif" <> _, url), do: Video.build_preview_url(url)
 
-  def preview_url("image", url) do
+  def preview_url("image" <> _type, url) do
     Image.build_preview_url(url)
   end
 
