@@ -34,7 +34,16 @@ defmodule Pleroma.Uploaders.MFC do
   end
 
   def put_file(%Upload{content_type: "image/gif"} = upload) do
-    put_file(upload, :video_or_gif)
+    with {:ok, {:upload_result, upload_result}} <- put_file(upload, :video_or_gif) do
+      {:ok,
+       {:upload_result,
+        %{
+          url_spec: upload_result[:url_spec],
+          meta: Map.put(upload_result[:meta], "content_type", "image/gifv")
+        }}}
+    else
+      e -> e
+    end
   end
 
   # put image file

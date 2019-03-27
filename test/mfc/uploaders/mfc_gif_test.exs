@@ -47,7 +47,7 @@ defmodule Pleroma.Uploaders.MFCGifTest do
         %Tesla.Env{status: 200, body: %{}}
     end)
 
-    conn =
+    res_conn =
       conn
       |> assign(:user, user)
       |> post("/api/statusnet/media/upload", %{"media" => upload})
@@ -71,11 +71,56 @@ defmodule Pleroma.Uploaders.MFCGifTest do
         "size" => "720x404",
         "width" => 720
       },
-      "width" => 720
+      "width" => 720,
+      "content_type" => "image/gifv"
     }
 
-    assert response(conn, 200)
     assert [%{data: %{"meta" => meta}}] = Pleroma.Repo.all(Pleroma.Object)
     assert expected_meta == meta
+    assert response(res_conn, 200) =~ "image/gifv"
+  end
+
+  test "gif callback, mastodon version", %{conn: conn, upload: upload} do
+    user = insert(:user)
+
+    mock(fn
+      %{method: :post, url: "http://test.test/api/v1/videos"} = env ->
+        response = Jason.decode!(env.body)
+        video_meta = Map.put(@video_meta, "source_key", response["source_key"])
+        post(conn, "/api/pleroma/uploaders/mfc/success", video_meta)
+        %Tesla.Env{status: 200, body: %{}}
+    end)
+
+    res_conn =
+      conn
+      |> assign(:user, user)
+      |> post("/api/v1/media", %{"file" => upload})
+
+    expected_meta = %{
+      "aspect" => 1.7821782178217822,
+      "duration" => 15.11,
+      "fps" => 30,
+      "height" => 404,
+      "original" => %{
+        "bitrate" => 891_066,
+        "duration" => 15.11,
+        "frame_rate" => "13500000/451451",
+        "height" => 404,
+        "width" => 720
+      },
+      "size" => "720x404",
+      "small" => %{
+        "aspect" => 1.7821782178217822,
+        "height" => 404,
+        "size" => "720x404",
+        "width" => 720
+      },
+      "width" => 720,
+      "content_type" => "image/gifv"
+    }
+
+    assert [%{data: %{"meta" => meta}}] = Pleroma.Repo.all(Pleroma.Object)
+    assert expected_meta == meta
+    assert json_response(res_conn, 200)["type"] == "gifv"
   end
 end

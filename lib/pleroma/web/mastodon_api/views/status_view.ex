@@ -257,6 +257,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
     type =
       cond do
+        String.contains?(media_type, "gifv") -> "gifv"
         String.contains?(media_type, "image") -> "image"
         String.contains?(media_type, "video") -> "video"
         String.contains?(media_type, "audio") -> "audio"
