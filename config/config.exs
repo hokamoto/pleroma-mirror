@@ -348,7 +348,7 @@ config :pleroma, Pleroma.Web.Federator.RetryQueue,
   initial_timeout: 30,
   max_retries: 5
 
-config :pleroma_job_queue,
+config :pleroma_job_queue, :queues,
   federator_incoming: 50,
   federator_outgoing: 50,
   mailer: 10

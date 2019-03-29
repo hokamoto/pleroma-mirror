@@ -48,6 +48,8 @@ config :web_push_encryption, :vapid_details,
 
 config :web_push_encryption, :http_client, Pleroma.Web.WebPushHttpClientMock
 
+config :pleroma_job_queue, disabled: true
+
 try do
   import_config "test.secret.exs"
 rescue
