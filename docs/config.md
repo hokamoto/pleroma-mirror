@@ -260,7 +260,7 @@ curl "http://localhost:4000/api/pleroma/admin/invite_token?admin_token=somerando
 Example:
 
 ```elixir
-config :pleroma_job_queue,
+config :pleroma_job_queue, :queues,
   federator_incoming: 50,
   federator_outgoing: 50
 ```
