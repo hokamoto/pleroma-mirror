@@ -4,7 +4,6 @@
 
 defmodule Pleroma.Web.Federator do
   alias Pleroma.Activity
-  alias Pleroma.Jobs
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Relay
@@ -16,6 +15,7 @@ defmodule Pleroma.Web.Federator do
   alias Pleroma.Web.Salmon
   alias Pleroma.Web.WebFinger
   alias Pleroma.Web.Websub
+  alias PleromaJobQueue, as: Jobs
 
   require Logger
 
