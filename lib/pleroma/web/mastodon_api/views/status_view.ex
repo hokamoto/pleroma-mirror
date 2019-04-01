@@ -265,7 +265,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       end
 
     preview_href =
-      if Map.get(assigns, :local) do
+      if Map.get(assigns, :local) && media_type != "image/gif" do
         Uploader.preview_url(media_type, href)
       else
         href
