@@ -123,6 +123,12 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         is_moderator: user.info.is_moderator,
         is_admin: user.info.is_admin,
         relationship: relationship
+      },
+
+      # MFC extensions
+      mfc: %{
+        mfc_follower_sync: user.info.mfc_follower_sync,
+        mfc_model_online: Pleroma.Web.Mfc.Utils.model_online?(user)
       }
     }
   end
