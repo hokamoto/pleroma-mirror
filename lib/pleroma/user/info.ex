@@ -38,6 +38,7 @@ defmodule Pleroma.User.Info do
     field(:hide_followers, :boolean, default: false)
     field(:hide_follows, :boolean, default: false)
     field(:pinned_activities, {:array, :string}, default: [])
+    field(:mfc_follower_sync, :boolean, default: true)
     field(:flavour, :string, default: nil)
 
     # Found in the wild
@@ -169,6 +170,7 @@ defmodule Pleroma.User.Info do
       :hide_follows,
       :hide_followers,
       :background,
+      :mfc_follower_sync,
       :show_role
     ])
   end

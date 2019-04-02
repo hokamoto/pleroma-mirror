@@ -181,6 +181,27 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
              Enum.map([user, actor], fn u -> AccountView.render("mention.json", %{user: u}) end)
   end
 
+  @meta %{
+    "original" => %{
+      "width" => 2048,
+      "height" => 2048,
+      "size" => "2048x2048",
+      "aspect" => 1.2484394506866416,
+      "content_type" => "image/png",
+      "dest_key" => "original.png",
+      "method" => "resize"
+    },
+    "small" => %{
+      "width" => 800,
+      "height" => 800,
+      "size" => "800x800",
+      "aspect" => 1.2484394506866416,
+      "content_type" => "image/png",
+      "dest_key" => "small.png",
+      "method" => "smartcrop"
+    }
+  }
+
   test "attachments" do
     object = %{
       "type" => "Image",
@@ -190,7 +211,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
           "href" => "someurl"
         }
       ],
-      "uuid" => 6
+      "uuid" => 6,
+      "meta" => @meta
     }
 
     expected = %{
@@ -201,6 +223,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
       preview_url: "someurl",
       text_url: "someurl",
       description: nil,
+      meta: @meta,
       pleroma: %{mime_type: "image/png"}
     }
 
@@ -209,6 +232,42 @@ defmodule Pleroma.Web.MastodonAPI.StatusViewTest do
     # If theres a "id", use that instead of the generated one
     object = Map.put(object, "id", 2)
     assert %{id: "2"} = StatusView.render("attachment.json", %{attachment: object})
+  end
+
+  test "MFC/attachments" do
+    Pleroma.Config.put([Pleroma.Upload, :uploader], Pleroma.Uploaders.MFC)
+
+    object = %{
+      "type" => "Image",
+      "url" => [
+        %{
+          "mediaType" => "image/png",
+          "href" => "jimi-hendrix.png"
+        }
+      ],
+      "uuid" => 6,
+      "meta" => @meta
+    }
+
+    expected = %{
+      id: "-1312277582",
+      type: "image",
+      url: "jimi-hendrix.png",
+      remote_url: "jimi-hendrix.png",
+      preview_url: "jimi-hendrix.png.preview.jpg",
+      text_url: "jimi-hendrix.png",
+      description: nil,
+      meta: @meta,
+      pleroma: %{mime_type: "image/png"}
+    }
+
+    assert expected == StatusView.render("attachment.json", %{attachment: object, local: true})
+    refute expected == StatusView.render("attachment.json", %{attachment: object})
+
+    # If theres a "id", use that instead of the generated one
+    object = Map.put(object, "id", 2)
+    assert %{id: "2"} = StatusView.render("attachment.json", %{attachment: object, local: true})
+    Pleroma.Config.put([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
   end
 
   test "a reblog" do

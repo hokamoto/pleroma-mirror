@@ -1251,6 +1251,30 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
              )
     end
 
+    test "it sets and un-sets mfc_follower_sync", %{conn: conn} do
+      user = insert(:user)
+
+      conn
+      |> assign(:user, user)
+      |> post("/api/account/update_profile.json", %{
+        "mfc_follower_sync" => "true"
+      })
+
+      user = Repo.get!(User, user.id)
+      assert user.info.mfc_follower_sync == true
+
+      conn =
+        conn
+        |> assign(:user, user)
+        |> post("/api/account/update_profile.json", %{
+          "mfc_follower_sync" => "false"
+        })
+
+      user = Repo.get!(User, user.id)
+      assert user.info.mfc_follower_sync == false
+      assert json_response(conn, 200) == UserView.render("user.json", %{user: user, for: user})
+    end
+
     test "it returns empty when hide_followers is set to true", %{conn: conn} do
       user = insert(:user, %{info: %{hide_followers: true}})
       follower_one = insert(:user)
@@ -1577,6 +1601,22 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
 
       user = Repo.get!(User, user.id)
       assert user.info.locked == true
+
+      assert json_response(conn, 200) == UserView.render("user.json", %{user: user, for: user})
+    end
+
+    test "it doesn't lock an account if it's an mfc model", %{conn: conn} do
+      user = insert(:user, %{tags: ["mfc_model"]})
+
+      conn =
+        conn
+        |> assign(:user, user)
+        |> post("/api/account/update_profile.json", %{
+          "locked" => "true"
+        })
+
+      user = Repo.get!(User, user.id)
+      refute user.info.locked == true
 
       assert json_response(conn, 200) == UserView.render("user.json", %{user: user, for: user})
     end

@@ -100,12 +100,17 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "locked" => false,
       "default_scope" => "public",
       "no_rich_text" => false,
+      "mfc_follower_sync" => true,
       "hide_follows" => false,
       "hide_followers" => false,
       "fields" => [],
       "pleroma" => %{
         "confirmation_pending" => false,
         "tags" => []
+      },
+      "mfc" => %{
+        "mfc_follower_sync" => true,
+        "mfc_model_online" => false
       }
     }
 
@@ -148,12 +153,17 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "locked" => false,
       "default_scope" => "public",
       "no_rich_text" => false,
+      "mfc_follower_sync" => true,
       "hide_follows" => false,
       "hide_followers" => false,
       "fields" => [],
       "pleroma" => %{
         "confirmation_pending" => false,
         "tags" => []
+      },
+      "mfc" => %{
+        "mfc_follower_sync" => true,
+        "mfc_model_online" => false
       }
     }
 
@@ -197,12 +207,17 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "locked" => false,
       "default_scope" => "public",
       "no_rich_text" => false,
+      "mfc_follower_sync" => true,
       "hide_follows" => false,
       "hide_followers" => false,
       "fields" => [],
       "pleroma" => %{
         "confirmation_pending" => false,
         "tags" => []
+      },
+      "mfc" => %{
+        "mfc_follower_sync" => true,
+        "mfc_model_online" => false
       }
     }
 
@@ -283,12 +298,17 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
       "locked" => false,
       "default_scope" => "public",
       "no_rich_text" => false,
+      "mfc_follower_sync" => true,
       "hide_follows" => false,
       "hide_followers" => false,
       "fields" => [],
       "pleroma" => %{
         "confirmation_pending" => false,
         "tags" => []
+      },
+      "mfc" => %{
+        "mfc_follower_sync" => true,
+        "mfc_model_online" => false
       }
     }
 

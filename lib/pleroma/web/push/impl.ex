@@ -108,7 +108,7 @@ defmodule Pleroma.Web.Push.Impl do
     %Activity{data: %{"object" => %{"id" => object_id}}} = Activity.get_by_ap_id(activity_id)
     %Object{data: %{"content" => content}} = Object.get_by_ap_id(object_id)
 
-    "@#{actor.nickname} repeated: #{Utils.scrub_html_and_truncate(content, 80)}"
+    "@#{actor.nickname} reposted: #{Utils.scrub_html_and_truncate(content, 80)}"
   end
 
   def format_body(
@@ -126,7 +126,7 @@ defmodule Pleroma.Web.Push.Impl do
     case type do
       "Create" -> "New Mention"
       "Follow" -> "New Follower"
-      "Announce" -> "New Repeat"
+      "Announce" -> "New Repost"
       "Like" -> "New Favorite"
     end
   end

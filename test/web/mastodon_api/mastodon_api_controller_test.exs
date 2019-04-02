@@ -1789,6 +1789,18 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       assert user["locked"] == true
     end
 
+    test "doesn't update the user's locking status if it's an mfc_model", %{conn: conn} do
+      user = insert(:user, %{tags: ["mfc_model"]})
+
+      conn =
+        conn
+        |> assign(:user, user)
+        |> patch("/api/v1/accounts/update_credentials", %{locked: "true"})
+
+      assert user = json_response(conn, 200)
+      assert user["locked"] == false
+    end
+
     test "updates the user's name", %{conn: conn} do
       user = insert(:user)
 
