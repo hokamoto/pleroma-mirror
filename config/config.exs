@@ -382,10 +382,10 @@ config :pleroma, Pleroma.Web.Federator.RetryQueue,
 
 config :prometheus, Pleroma.Web.Endpoint.MetricsExporter, path: "/api/pleroma/app_metrics"
 
-config :pleroma, Pleroma.Jobs,
-  federator_incoming: [max_jobs: 50],
-  federator_outgoing: [max_jobs: 50],
-  mailer: [max_jobs: 10]
+config :pleroma_job_queue, :queues,
+  federator_incoming: 50,
+  federator_outgoing: 50,
+  mailer: 10
 
 config :pleroma, :fetch_initial_posts,
   enabled: false,
@@ -411,6 +411,8 @@ config :pleroma, :ldap,
   tlsopts: [],
   base: System.get_env("LDAP_BASE") || "dc=example,dc=com",
   uid: System.get_env("LDAP_UID") || "cn"
+
+config :pleroma, Pleroma.Mailer, adapter: Swoosh.Adapters.Sendmail
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

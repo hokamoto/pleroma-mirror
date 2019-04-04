@@ -125,7 +125,6 @@ defmodule Pleroma.Application do
           worker(Pleroma.Web.Federator.RetryQueue, []),
           worker(Pleroma.Stats, []),
           worker(Pleroma.Web.Push, []),
-          worker(Pleroma.Jobs, []),
           worker(Task, [&Pleroma.Web.Federator.init/0], restart: :temporary)
         ] ++
         streamer_child() ++
