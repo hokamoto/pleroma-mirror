@@ -378,6 +378,8 @@ config :pleroma, :ldap,
   base: System.get_env("LDAP_BASE") || "dc=example,dc=com",
   uid: System.get_env("LDAP_UID") || "cn"
 
+config :pleroma, Pleroma.Mailer, adapter: Swoosh.Adapters.Sendmail
+
 config :etag_plug,
   generator: ETag.Generator.SHA1,
   methods: ["GET"],
