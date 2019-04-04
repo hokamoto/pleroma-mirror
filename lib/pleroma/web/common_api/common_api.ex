@@ -181,13 +181,16 @@ defmodule Pleroma.Web.CommonAPI do
              end)
            ) do
       res =
-        ActivityPub.create(%{
-          to: to,
-          actor: user,
-          context: context,
-          object: object,
-          additional: %{"cc" => cc, "directMessage" => visibility == "direct"}
-        })
+        ActivityPub.create(
+          %{
+            to: to,
+            actor: user,
+            context: context,
+            object: object,
+            additional: %{"cc" => cc, "directMessage" => visibility == "direct"}
+          },
+          Pleroma.Web.ControllerHelper.truthy_param?(data["preview"]) || false
+        )
 
       # MFC notification of post
       case {res, visibility, Pleroma.Config.get([:mfc, :enable_status_creation_sync])} do
