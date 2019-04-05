@@ -445,7 +445,11 @@ defmodule Pleroma.User do
     get_by_nickname(nickname)
   end
 
-  def set_cache(user) do
+  @spec set_cache(User.t() | {:ok, User.t()} | {:error, any()}) ::
+          {:ok, User.t()} | {:error, any()}
+  def set_cache({:ok, user}), do: set_cache(user)
+  def set_cache({:error, err}), do: {:error, err}
+  def set_cache(%User{} = user) do
     Cachex.put(:user_cache, "ap_id:#{user.ap_id}", user)
     Cachex.put(:user_cache, "nickname:#{user.nickname}", user)
     Cachex.put(:user_cache, "user_info:#{user.id}", user_info(user))
@@ -1208,13 +1212,11 @@ defmodule Pleroma.User do
   defp blank?(n), do: n
 
   def insert_or_update_user(data) do
-    data =
-      data
-      |> Map.put(:name, blank?(data[:name]) || data[:nickname])
-
-    cs = User.remote_user_creation(data)
-
-    Repo.insert(cs, on_conflict: :replace_all, conflict_target: :nickname)
+    data
+    |> Map.put(:name, blank?(data[:name]) || data[:nickname])
+    |> remote_user_creation()
+    |> Repo.insert(on_conflict: :replace_all, conflict_target: :nickname)
+    |> set_cache()
   end
 
   def ap_enabled?(%User{local: true}), do: true
