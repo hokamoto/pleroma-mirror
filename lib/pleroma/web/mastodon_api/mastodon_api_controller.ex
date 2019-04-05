@@ -1283,7 +1283,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   defp local_mastodon_root_path(conn) do
     case get_session(conn, :return_to) do
-      path when path in [nil, "/web"] ->
+      nil ->
         mastodon_api_path(conn, :index, ["getting-started"])
 
       return_to ->
