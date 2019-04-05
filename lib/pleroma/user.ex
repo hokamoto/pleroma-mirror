@@ -445,8 +445,6 @@ defmodule Pleroma.User do
     get_cached_by_nickname(nickname)
   end
 
-  @spec set_cache(User.t() | {:ok, User.t()} | {:error, any()}) ::
-          {:ok, User.t()} | {:error, any()}
   def set_cache({:ok, user}), do: set_cache(user)
   def set_cache({:error, err}), do: {:error, err}
 
