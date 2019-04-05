@@ -570,7 +570,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
           data
       )
       when object_type in ["Person", "Application", "Service", "Organization"] do
-    with %User{ap_id: ^actor_id} = actor <- User.get_by_ap_id(object["id"]) do
+    with %User{ap_id: ^actor_id} = actor <- User.get_cached_by_ap_id(object["id"]) do
       {:ok, new_user_data} = ActivityPub.user_data_from_user_object(object)
 
       banner = new_user_data[:info]["banner"]
@@ -1000,13 +1000,13 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   end
 
   def upgrade_user_from_ap_id(ap_id, async \\ true) do
-    with %User{local: false} = user <- User.get_by_ap_id(ap_id),
+    with %User{local: false} = user <- User.get_cached_by_ap_id(ap_id),
          {:ok, data} <- ActivityPub.fetch_and_prepare_user_from_ap_id(ap_id) do
       already_ap = User.ap_enabled?(user)
 
       {:ok, user} =
         User.upgrade_changeset(user, data)
-        |> Repo.update()
+        |> User.update_and_set_cache()
 
       if !already_ap do
         # This could potentially take a long time, do it in the background

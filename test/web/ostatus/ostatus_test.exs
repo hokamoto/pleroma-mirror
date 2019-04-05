@@ -29,7 +29,7 @@ defmodule Pleroma.Web.OStatusTest do
     incoming = File.read!("test/fixtures/incoming_note_activity.xml")
     {:ok, [activity]} = OStatus.handle_incoming(incoming)
 
-    user = User.get_by_ap_id(activity.data["actor"])
+    user = User.get_cached_by_ap_id(activity.data["actor"])
     assert user.info.note_count == 1
     assert activity.data["type"] == "Create"
     assert activity.data["object"]["type"] == "Note"
@@ -285,8 +285,8 @@ defmodule Pleroma.Web.OStatusTest do
     assert activity.data["object"] == "https://pawoo.net/users/pekorino"
     refute activity.local
 
-    follower = User.get_by_ap_id(activity.data["actor"])
-    followed = User.get_by_ap_id(activity.data["object"])
+    follower = User.get_cached_by_ap_id(activity.data["actor"])
+    followed = User.get_cached_by_ap_id(activity.data["object"])
 
     assert User.following?(follower, followed)
   end
@@ -309,8 +309,8 @@ defmodule Pleroma.Web.OStatusTest do
     assert activity.data["object"]["object"] == "https://pawoo.net/users/pekorino"
     refute activity.local
 
-    follower = User.get_by_ap_id(activity.data["actor"])
-    followed = User.get_by_ap_id(activity.data["object"]["object"])
+    follower = User.get_cached_by_ap_id(activity.data["actor"])
+    followed = User.get_cached_by_ap_id(activity.data["object"]["object"])
 
     refute User.following?(follower, followed)
   end
@@ -344,7 +344,7 @@ defmodule Pleroma.Web.OStatusTest do
 
       {:ok, user} = OStatus.find_or_make_user(uri)
 
-      user = Pleroma.User.get_by_id(user.id)
+      user = Pleroma.User.get_cached_by_id(user.id)
       assert user.name == "Constance Variable"
       assert user.nickname == "lambadalambda@social.heldscal.la"
       assert user.local == false
