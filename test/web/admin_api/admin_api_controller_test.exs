@@ -80,17 +80,16 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       user = insert(:user)
       follower = insert(:user)
 
-      conn =
-        build_conn()
-        |> assign(:user, admin)
-        |> put_req_header("accept", "application/json")
-        |> post("/api/pleroma/admin/user/follow", %{
-          "follower" => follower.nickname,
-          "followed" => user.nickname
-        })
+      build_conn()
+      |> assign(:user, admin)
+      |> put_req_header("accept", "application/json")
+      |> post("/api/pleroma/admin/user/follow", %{
+        "follower" => follower.nickname,
+        "followed" => user.nickname
+      })
 
-      user = User.get_by_id(user.id)
-      follower = User.get_by_id(follower.id)
+      user = User.get_cached_by_id(user.id)
+      follower = User.get_cached_by_id(follower.id)
 
       assert User.following?(follower, user)
     end
@@ -104,17 +103,16 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
       User.follow(follower, user)
 
-      conn =
-        build_conn()
-        |> assign(:user, admin)
-        |> put_req_header("accept", "application/json")
-        |> post("/api/pleroma/admin/user/unfollow", %{
-          "follower" => follower.nickname,
-          "followed" => user.nickname
-        })
+      build_conn()
+      |> assign(:user, admin)
+      |> put_req_header("accept", "application/json")
+      |> post("/api/pleroma/admin/user/unfollow", %{
+        "follower" => follower.nickname,
+        "followed" => user.nickname
+      })
 
-      user = User.get_by_id(user.id)
-      follower = User.get_by_id(follower.id)
+      user = User.get_cached_by_id(user.id)
+      follower = User.get_cached_by_id(follower.id)
 
       refute User.following?(follower, user)
     end

@@ -26,8 +26,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   end
 
   def user_follow(conn, %{"follower" => follower_nick, "followed" => followed_nick}) do
-    with %User{} = follower <- User.get_by_nickname(follower_nick),
-         %User{} = followed <- User.get_by_nickname(followed_nick) do
+    with %User{} = follower <- User.get_cached_by_nickname(follower_nick),
+         %User{} = followed <- User.get_cached_by_nickname(followed_nick) do
       User.follow(follower, followed)
     end
 
@@ -36,8 +36,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   end
 
   def user_unfollow(conn, %{"follower" => follower_nick, "followed" => followed_nick}) do
-    with %User{} = follower <- User.get_by_nickname(follower_nick),
-         %User{} = followed <- User.get_by_nickname(followed_nick) do
+    with %User{} = follower <- User.get_cached_by_nickname(follower_nick),
+         %User{} = followed <- User.get_cached_by_nickname(followed_nick) do
       User.unfollow(follower, followed)
     end
 
