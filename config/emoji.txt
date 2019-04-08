@@ -1,5 +1,5 @@
-firefox, /emoji/Firefox.gif
-blank, /emoji/blank.png
+firefox, /emoji/Firefox.gif, Gif,Fun
+blank, /emoji/blank.png, Fun
 f_00b, /emoji/f_00b.png
 f_00b11b, /emoji/f_00b11b.png
 f_00b33b, /emoji/f_00b33b.png

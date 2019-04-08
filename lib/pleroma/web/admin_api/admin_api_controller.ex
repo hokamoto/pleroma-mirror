@@ -4,7 +4,6 @@
 
 defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   use Pleroma.Web, :controller
-  alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.Relay
   alias Pleroma.Web.AdminAPI.AccountView
@@ -27,8 +26,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   end
 
   def user_follow(conn, %{"follower" => follower_nick, "followed" => followed_nick}) do
-    with %User{} = follower <- Repo.get_by(User, %{nickname: follower_nick}),
-         %User{} = followed <- Repo.get_by(User, %{nickname: followed_nick}) do
+    with %User{} = follower <- User.get_by_nickname(follower_nick),
+         %User{} = followed <- User.get_by_nickname(followed_nick) do
       User.follow(follower, followed)
     end
 
@@ -37,8 +36,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   end
 
   def user_unfollow(conn, %{"follower" => follower_nick, "followed" => followed_nick}) do
-    with %User{} = follower <- Repo.get_by(User, %{nickname: follower_nick}),
-         %User{} = followed <- Repo.get_by(User, %{nickname: followed_nick}) do
+    with %User{} = follower <- User.get_by_nickname(follower_nick),
+         %User{} = followed <- User.get_by_nickname(followed_nick) do
       User.unfollow(follower, followed)
     end
 

@@ -5,7 +5,11 @@ defmodule Pleroma.Web.Auth.MfcAuthenticator do
   @base Pleroma.Web.Auth.PleromaAuthenticator
   @controller Pleroma.Web.OAuth.OAuthController
 
-  def get_user(%Plug.Conn{} = conn) do
+  defdelegate get_registration(conn, params), to: @base
+
+  defdelegate create_from_registration(conn, params, registration), to: @base
+
+  def get_user(%Plug.Conn{} = conn, _params) do
     {name, password} =
       case conn.params do
         %{"authorization" => %{"name" => name, "password" => password}} ->
@@ -43,7 +47,8 @@ defmodule Pleroma.Web.Auth.MfcAuthenticator do
   end
 
   def handle_error(%Plug.Conn{} = conn, error) do
-    auth_params = conn.params["authorization"]
+    # Note: `auth_params` arg (not necessarily equal to `conn.params`) will be added in upstream
+    auth_params = conn.params["authorization"] || conn.params
 
     case error do
       {:get_user, {:error, {:access_level_check, _}}} ->
@@ -61,4 +66,6 @@ defmodule Pleroma.Web.Auth.MfcAuthenticator do
   end
 
   def auth_template, do: "show_mfc.html"
+
+  def oauth_consumer_template, do: nil
 end

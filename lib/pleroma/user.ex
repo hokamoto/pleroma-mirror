@@ -13,6 +13,7 @@ defmodule Pleroma.User do
   alias Pleroma.Formatter
   alias Pleroma.Notification
   alias Pleroma.Object
+  alias Pleroma.Registration
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web
@@ -56,6 +57,7 @@ defmodule Pleroma.User do
     field(:last_refreshed_at, :naive_datetime_usec)
     field(:mfc_id, :string)
     has_many(:notifications, Notification)
+    has_many(:registrations, Registration)
     embeds_one(:info, Pleroma.User.Info)
 
     timestamps()
@@ -240,7 +242,7 @@ defmodule Pleroma.User do
     changeset =
       struct
       |> cast(params, [:bio, :email, :name, :nickname, :password, :password_confirmation])
-      |> validate_required([:email, :name, :nickname, :password, :password_confirmation])
+      |> validate_required([:name, :nickname, :password, :password_confirmation])
       |> validate_confirmation(:password)
       |> unique_constraint(:email)
       |> unique_constraint(:nickname)
@@ -250,6 +252,13 @@ defmodule Pleroma.User do
       |> validate_length(:bio, max: 1000)
       |> validate_length(:name, min: 1, max: 100)
       |> put_change(:info, info_change)
+
+    changeset =
+      if opts[:external] do
+        changeset
+      else
+        validate_required(changeset, [:email])
+      end
 
     if changeset.valid? do
       hashed = Pbkdf2.hashpwsalt(changeset.changes[:password])
@@ -529,11 +538,10 @@ defmodule Pleroma.User do
       end
   end
 
+  def get_by_email(email), do: Repo.get_by(User, email: email)
+
   def get_by_nickname_or_email(nickname_or_email) do
-    case user = Repo.get_by(User, nickname: nickname_or_email) do
-      %User{} -> user
-      nil -> Repo.get_by(User, email: nickname_or_email)
-    end
+    get_by_nickname(nickname_or_email) || get_by_email(nickname_or_email)
   end
 
   def get_cached_user_info(user) do
