@@ -16,11 +16,8 @@ defmodule Pleroma.Web.Auth.PleromaAuthenticatorTest do
     password = "testpassword"
     name = "AgentSmith"
     user = insert(:user, nickname: name, password_hash: Comeonin.Pbkdf2.hashpwsalt(password))
-
-    res =
-      PleromaAuthenticator.get_user(%Plug.Conn{
-        params: %{"authorization" => %{"name" => name, "password" => password}}
-      })
+    params = %{"authorization" => %{"name" => name, "password" => password}}
+    res = PleromaAuthenticator.get_user(%Plug.Conn{params: params}, params)
 
     assert {:ok, user} == res
   end
@@ -29,11 +26,8 @@ defmodule Pleroma.Web.Auth.PleromaAuthenticatorTest do
     password = "testpassword"
     name = "AgentSmith"
     user = insert(:user, nickname: name, password_hash: Comeonin.Pbkdf2.hashpwsalt(password))
-
-    res =
-      PleromaAuthenticator.get_user(%Plug.Conn{
-        params: %{"authorization" => %{"name" => name, "password" => "password"}}
-      })
+    params = %{"authorization" => %{"name" => name, "password" => "password"}}
+    res = PleromaAuthenticator.get_user(%Plug.Conn{params: params}, params)
 
     assert {:error, user} == res
   end
@@ -42,11 +36,8 @@ defmodule Pleroma.Web.Auth.PleromaAuthenticatorTest do
     password = "testpassword"
     name = "AgentSmith"
     user = insert(:user, nickname: name, password_hash: Comeonin.Pbkdf2.hashpwsalt(password))
-
-    res =
-      PleromaAuthenticator.get_user(%Plug.Conn{
-        params: %{"grant_type" => "password", "username" => name, "password" => password}
-      })
+    params = %{"grant_type" => "password", "username" => name, "password" => password}
+    res = PleromaAuthenticator.get_user(%Plug.Conn{params: params}, params)
 
     assert {:ok, user} == res
   end
@@ -55,7 +46,7 @@ defmodule Pleroma.Web.Auth.PleromaAuthenticatorTest do
     password = "testpassword"
     name = "AgentSmith"
     _user = insert(:user, nickname: name, password_hash: Comeonin.Pbkdf2.hashpwsalt(password))
-    res = PleromaAuthenticator.get_user(%Plug.Conn{params: %{}})
+    res = PleromaAuthenticator.get_user(%Plug.Conn{params: %{}}, %{})
     assert {:error, :invalid_credentials} == res
   end
 end
