@@ -632,7 +632,14 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
 
   defp build_info_cng(user, params) do
     info_params =
-      ["no_rich_text", "locked", "hide_followers", "hide_follows", "show_role"]
+      [
+        "no_rich_text",
+        "locked",
+        "hide_followers",
+        "hide_follows",
+        "show_role",
+        "mfc_follower_sync"
+      ]
       |> Enum.reduce(%{}, fn key, res ->
         if value = params[key] do
           Map.put(res, key, value == "true")
@@ -644,6 +651,14 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
     info_params =
       if value = params["default_scope"] do
         Map.put(info_params, "default_scope", value)
+      else
+        info_params
+      end
+
+    # MFC specific, don't allow models to lock their accounts.
+    info_params =
+      if "mfc_model" in user.tags do
+        Map.put(info_params, "locked", false)
       else
         info_params
       end

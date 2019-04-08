@@ -69,4 +69,19 @@ defmodule Pleroma.Uploaders.Uploader do
       30_000 -> {:error, "Uploader callback timeout"}
     end
   end
+
+  @doc "Build preview media url"
+  def preview_url(content_type, url) do
+    [Pleroma.Upload, :uploader]
+    |> Pleroma.Config.get()
+    |> preview_url(content_type, url)
+  end
+
+  def preview_url(uploader, content_type, url) do
+    if Keyword.has_key?(uploader.__info__(:functions), :preview_url) do
+      uploader.preview_url(content_type, url)
+    else
+      url
+    end
+  end
 end

@@ -53,6 +53,19 @@ defmodule Pleroma.Web.CommonAPITest do
   end
 
   describe "posting" do
+    test "it adds an emoji on an external site" do
+      user = insert(:user)
+      {:ok, activity} = CommonAPI.post(user, %{"status" => "hey :external_emoji:"})
+
+      assert %{"external_emoji" => url} = activity.data["object"]["emoji"]
+      assert url == "https://example.com/emoji.png"
+
+      {:ok, activity} = CommonAPI.post(user, %{"status" => "hey :blank:"})
+
+      assert %{"blank" => url} = activity.data["object"]["emoji"]
+      assert url == "#{Pleroma.Web.base_url()}/emoji/blank.png"
+    end
+
     test "it filters out obviously bad tags when accepting a post as HTML" do
       user = insert(:user)
 

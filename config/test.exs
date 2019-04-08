@@ -1,4 +1,5 @@
 use Mix.Config
+config :tesla, adapter: Tesla.Mock
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
@@ -39,6 +40,21 @@ config :pleroma, :websub, Pleroma.Web.WebsubMock
 config :pleroma, :ostatus, Pleroma.Web.OStatusMock
 config :tesla, adapter: Tesla.Mock
 config :pleroma, :rich_media, enabled: false
+
+config :pleroma, Pleroma.Uploaders.MFC,
+  store: Pleroma.Uploaders.Test,
+  video_conversion: [
+    endpoint: "http://test.test",
+    client: "xxxx",
+    secret: "dddd",
+    conversion_wait: 5_000
+  ],
+  image_conversion: [
+    endpoint: "http://test.test",
+    client: "xxxx",
+    secret: "dddd",
+    conversion_wait: 5_000
+  ]
 
 config :web_push_encryption, :vapid_details,
   subject: "mailto:administrator@example.com",

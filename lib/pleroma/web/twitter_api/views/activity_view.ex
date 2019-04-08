@@ -297,7 +297,9 @@ defmodule Pleroma.Web.TwitterAPI.ActivityView do
       "in_reply_to_ostatus_uri" => reply_user && reply_user.ap_id,
       "in_reply_to_user_id" => reply_user && reply_user.id,
       "statusnet_conversation_id" => conversation_id,
-      "attachments" => (object["attachment"] || []) |> ObjectRepresenter.enum_to_list(opts),
+      "attachments" =>
+        (object["attachment"] || [])
+        |> ObjectRepresenter.enum_to_list(Map.put(opts, :local, activity.local)),
       "attentions" => attentions,
       "fave_num" => like_count,
       "repeat_num" => announcement_count,

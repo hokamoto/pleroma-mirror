@@ -8,6 +8,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   alias Pleroma.Activity
   alias Pleroma.HTML
   alias Pleroma.Repo
+  alias Pleroma.Uploaders.Uploader
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.CommonAPI.Utils
@@ -117,7 +118,10 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     }
   end
 
-  def render("status.json", %{activity: %{data: %{"object" => object}} = activity} = opts) do
+  def render(
+        "status.json",
+        %{activity: %{local: local, data: %{"object" => object}} = activity} = opts
+      ) do
     user = get_user(activity.data["actor"])
 
     like_count = object["like_count"] || 0
@@ -137,7 +141,9 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     bookmarked = opts[:for] && object["id"] in opts[:for].bookmarks
 
     attachment_data = object["attachment"] || []
-    attachments = render_many(attachment_data, StatusView, "attachment.json", as: :attachment)
+
+    attachments =
+      render_many(attachment_data, StatusView, "attachment.json", as: :attachment, local: local)
 
     created_at = Utils.to_masto_date(object["published"])
 
@@ -252,17 +258,25 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     nil
   end
 
-  def render("attachment.json", %{attachment: attachment}) do
+  def render("attachment.json", %{attachment: attachment} = assigns) do
     [attachment_url | _] = attachment["url"]
     media_type = attachment_url["mediaType"] || attachment_url["mimeType"] || "image"
     href = attachment_url["href"] |> MediaProxy.url()
 
     type =
       cond do
+        String.contains?(media_type, "gifv") -> "gifv"
         String.contains?(media_type, "image") -> "image"
         String.contains?(media_type, "video") -> "video"
         String.contains?(media_type, "audio") -> "audio"
         true -> "unknown"
+      end
+
+    preview_href =
+      if Map.get(assigns, :local) && media_type != "image/gif" do
+        Uploader.preview_url(media_type, href)
+      else
+        href
       end
 
     <<hash_id::signed-32, _rest::binary>> = :crypto.hash(:md5, href)
@@ -271,10 +285,11 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       id: to_string(attachment["id"] || hash_id),
       url: href,
       remote_url: href,
-      preview_url: href,
+      preview_url: preview_href,
       text_url: href,
       type: type,
       description: attachment["name"],
+      meta: Map.get(attachment, "meta", %{}),
       pleroma: %{mime_type: media_type}
     }
   end

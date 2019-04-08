@@ -81,6 +81,8 @@ defmodule Pleroma.Web.Metadata.Providers.OpenGraph do
     Enum.reduce(attachments, [], fn attachment, acc ->
       rendered_tags =
         Enum.reduce(attachment["url"], [], fn url, acc ->
+          content_type = url["mediaType"]
+
           media_type =
             Enum.find(["image", "audio", "video"], fn media_type ->
               String.starts_with?(url["mediaType"], media_type)
@@ -100,7 +102,13 @@ defmodule Pleroma.Web.Metadata.Providers.OpenGraph do
             "image" ->
               [
                 {:meta,
-                 [property: "og:" <> media_type, content: Utils.attachment_url(url["href"])], []},
+                 [
+                   property: "og:" <> media_type,
+                   content:
+                     Utils.attachment_url(
+                       Pleroma.Uploaders.Uploader.preview_url(content_type, url["href"])
+                     )
+                 ], []},
                 {:meta, [property: "og:image:width", content: 150], []},
                 {:meta, [property: "og:image:height", content: 150], []}
                 | acc

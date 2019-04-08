@@ -65,6 +65,10 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
         is_admin: false,
         is_moderator: false,
         relationship: %{}
+      },
+      mfc: %{
+        mfc_follower_sync: true,
+        mfc_model_online: false
       }
     }
 
@@ -109,6 +113,10 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
         is_admin: false,
         is_moderator: false,
         relationship: %{}
+      },
+      mfc: %{
+        mfc_follower_sync: true,
+        mfc_model_online: false
       }
     }
 
@@ -205,6 +213,10 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
           showing_reblogs: true,
           endorsed: false
         }
+      },
+      mfc: %{
+        mfc_follower_sync: true,
+        mfc_model_online: false
       }
     }
 

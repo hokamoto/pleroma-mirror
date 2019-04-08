@@ -137,7 +137,7 @@ defmodule Pleroma.Web.Push.ImplTest do
     announce_activity = insert(:announce_activity, %{user: user, note_activity: note_activity})
 
     assert Impl.format_body(%{activity: announce_activity}, user) ==
-             "@#{user.nickname} repeated: Lorem ipsum dolor sit amet, consectetur  adipiscing elit. Fusce sagittis fini..."
+             "@#{user.nickname} reposted: Lorem ipsum dolor sit amet, consectetur  adipiscing elit. Fusce sagittis fini..."
   end
 
   test "renders body for like activity" do
