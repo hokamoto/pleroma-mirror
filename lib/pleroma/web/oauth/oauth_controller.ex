@@ -106,7 +106,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     end
   end
 
-  defp handle_create_authorization_error(conn, {scopes_issue, _}, auth_params)
+  defp handle_create_authorization_error(conn, {:error, scopes_issue}, auth_params)
        when scopes_issue in [:unsupported_scopes, :missing_scopes] do
     # Per https://github.com/tootsuite/mastodon/blob/
     #   51e154f5e87968d6bb115e053689767ab33e80cd/app/controllers/api/base_controller.rb#L39
@@ -125,12 +125,12 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     |> authorize(auth_params)
   end
 
-  defp handle_create_authorization_error(conn, {:mfa_required, true}, auth_params) do
+  defp handle_create_authorization_error(conn, {:mfa, {:error, :required}}, auth_params) do
     conn
     |> authorize(Map.merge(auth_params, %{"required_mfa" => true}))
   end
 
-  defp handle_create_authorization_error(conn, {:verify_mfa, {:error, _}}, auth_params) do
+  defp handle_create_authorization_error(conn, {:mfa, {:error, :invalid_code}}, auth_params) do
     conn
     |> put_status(400)
     |> put_flash(:error, "Two-factor authentication failed.")
@@ -412,34 +412,6 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     end
   end
 
-  defp do_create_authorization(_conn, _params, _user \\ nil)
-
-  defp do_create_authorization(
-         conn,
-         %{
-           "authorization" =>
-             %{
-               "client_id" => client_id,
-               "redirect_uri" => redirect_uri,
-               "otp_token" => otp_token
-             } = auth_params
-         } = params,
-         user
-       ) do
-    with {_, {:ok, %User{} = user}} <-
-           {:get_user, (user && {:ok, user}) || Authenticator.get_user(conn, params)},
-         %App{} = app <- Repo.get_by(App, client_id: client_id),
-         true <- redirect_uri in String.split(app.redirect_uris),
-         scopes <- oauth_scopes(auth_params, []),
-         {:unsupported_scopes, []} <- {:unsupported_scopes, scopes -- app.scopes},
-         # Note: `scope` param is intentionally not optional in this context
-         {:missing_scopes, false} <- {:missing_scopes, scopes == []},
-         {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
-         {_, {:ok, _}} <- {:verify_mfa, TOTPAuthenticator.verify(otp_token, user)} do
-      Authorization.create_authorization(app, user, scopes)
-    end
-  end
-
   defp do_create_authorization(
          conn,
          %{
@@ -449,18 +421,15 @@ defmodule Pleroma.Web.OAuth.OAuthController do
                "redirect_uri" => redirect_uri
              } = auth_params
          } = params,
-         user
+         user \\ nil
        ) do
     with {_, {:ok, %User{} = user}} <-
            {:get_user, (user && {:ok, user}) || Authenticator.get_user(conn, params)},
          %App{} = app <- Repo.get_by(App, client_id: client_id),
          true <- redirect_uri in String.split(app.redirect_uris),
-         scopes <- oauth_scopes(auth_params, []),
-         {:unsupported_scopes, []} <- {:unsupported_scopes, scopes -- app.scopes},
-         # Note: `scope` param is intentionally not optional in this context
-         {:missing_scopes, false} <- {:missing_scopes, scopes == []},
+         {:ok, scopes} <- verify_user_scopes(app, auth_params),
          {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
-         {_, false} <- {:mfa_required, User.mfa_required?(user)} do
+         {_, {:ok, _}} <- {:mfa, verify_2fa(user, auth_params)} do
       Authorization.create_authorization(app, user, scopes)
     end
   end
@@ -510,15 +479,37 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
   defp verify_user_scopes(app, params) do
     with scopes <- oauth_scopes(params, app.scopes),
-         {:unsupported, []} <- {:unsupported, scopes -- app.scopes},
-         {:missing, true} <- {:missing, Enum.any?(scopes)} do
+         {:unsupported_scopes, []} <- {:unsupported_scopes, scopes -- app.scopes},
+         {:missing_scopes, true} <- {:missing_scopes, Enum.any?(scopes)} do
       {:ok, scopes}
     else
-      {scopes_issue, _} when scopes_issue in [:unsupported, :missing] ->
+      {scopes_issue, _} when scopes_issue in [:unsupported_scopes, :missing_scopes] ->
         {:error, scopes_issue}
 
       _ ->
         {:error, :unverify}
+    end
+  end
+
+  # Verify otp token if params containts otp_token parameter
+  # otherwise checks settings of 2fa
+  #
+  @spec verify_2fa(User.t(), map) ::
+          {:ok, :valid} | {:ok, :not_enabled} | {:error, :invalid_code} | {:error, :required}
+  defp verify_2fa(user, %{"otp_token" => otp_token} = _) do
+    with {:ok, _} <- TOTPAuthenticator.verify(otp_token, user) do
+      {:ok, :valid}
+    else
+      _ ->
+        {:error, :invalid_code}
+    end
+  end
+
+  defp verify_2fa(user, _params) do
+    if User.mfa_required?(user) do
+      {:error, :required}
+    else
+      {:ok, :not_enabled}
     end
   end
 end
