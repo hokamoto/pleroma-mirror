@@ -58,7 +58,13 @@ config :pleroma, Pleroma.Uploaders.MDII,
   cgi: "https://mdii.sakura.ne.jp/mdii-post.cgi",
   files: "https://mdii.sakura.ne.jp"
 
-config :pleroma, :emoji, shortcode_globs: ["/emoji/custom/**/*.png"]
+config :pleroma, :emoji,
+  shortcode_globs: ["/emoji/custom/**/*.png"],
+  groups: [
+    # Put groups that have higher priority than defaults here. Example in `docs/config/custom_emoji.md`
+    Finmoji: "/finmoji/128px/*-128.png",
+    Custom: ["/emoji/*.png", "/emoji/custom/*.png"]
+  ]
 
 config :pleroma, :uri_schemes,
   valid_schemes: [
@@ -361,7 +367,10 @@ config :pleroma, Pleroma.Web.Federator.RetryQueue,
 config :pleroma_job_queue, :queues,
   federator_incoming: 50,
   federator_outgoing: 50,
-  mailer: 10
+  web_push: 50,
+  mailer: 10,
+  transmogrifier: 20,
+  scheduled_activities: 10
 
 config :pleroma, :fetch_initial_posts,
   enabled: false,
@@ -388,14 +397,35 @@ config :pleroma, :ldap,
   base: System.get_env("LDAP_BASE") || "dc=example,dc=com",
   uid: System.get_env("LDAP_UID") || "cn"
 
-config :pleroma, Pleroma.Mailer, adapter: Swoosh.Adapters.Sendmail
+oauth_consumer_strategies = String.split(System.get_env("OAUTH_CONSUMER_STRATEGIES") || "")
 
-config :prometheus, Pleroma.Web.Endpoint.MetricsExporter, path: "/api/pleroma/app_metrics"
+ueberauth_providers =
+  for strategy <- oauth_consumer_strategies do
+    strategy_module_name = "Elixir.Ueberauth.Strategy.#{String.capitalize(strategy)}"
+    strategy_module = String.to_atom(strategy_module_name)
+    {String.to_atom(strategy), {strategy_module, [callback_params: ["state"]]}}
+  end
+
+config :ueberauth,
+       Ueberauth,
+       base_path: "/oauth",
+       providers: ueberauth_providers
 
 config :etag_plug,
   generator: ETag.Generator.SHA1,
   methods: ["GET"],
   status_codes: [:ok, 200, :not_modified]
+
+config :pleroma, :auth, oauth_consumer_strategies: oauth_consumer_strategies
+
+config :pleroma, Pleroma.Mailer, adapter: Swoosh.Adapters.Sendmail
+
+config :prometheus, Pleroma.Web.Endpoint.MetricsExporter, path: "/api/pleroma/app_metrics"
+
+config :pleroma, Pleroma.ScheduledActivity,
+  daily_user_limit: 25,
+  total_user_limit: 300,
+  enabled: true
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
