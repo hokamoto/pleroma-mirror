@@ -18,6 +18,13 @@ defmodule Pleroma.Formatter do
                       mention: true,
                       mention_handler: &Pleroma.Formatter.mention_handler/4
 
+  def escape_mention_handler("@" <> nickname = mention, buffer, _, acc) do
+    case User.get_cached_by_nickname(nickname) do
+      %User{} -> {String.replace(mention, @markdown_characters_regex, "\\\\\\1"), acc}
+      _ -> {buffer, acc}
+    end
+  end
+
   def mention_handler("@" <> nickname, buffer, opts, acc) do
     case User.get_cached_by_nickname(nickname) do
       %User{id: id} = user ->
@@ -67,6 +74,25 @@ defmodule Pleroma.Formatter do
       {text, %{mentions: mentions, tags: tags}} = AutoLinker.link_map(text, acc, options)
 
       {text, MapSet.to_list(mentions), MapSet.to_list(tags)}
+    end
+  end
+
+  def escape_mentions(text, options \\ []) do
+    options =
+      Keyword.merge(options,
+        mention: true,
+        url: false,
+        mention_handler: &Pleroma.Formatter.escape_mention_handler/4
+      )
+
+    if options[:safe_mention] && Regex.named_captures(@safe_mention_regex, text) do
+      %{"mentions" => mentions, "rest" => rest} = Regex.named_captures(@safe_mention_regex, text)
+      {text_mentions, _} = AutoLinker.link_map(mentions, %{}, options)
+      {text_rest, _} = AutoLinker.link_map(rest, %{}, options)
+      text_mentions <> text_rest
+    else
+      {text, _} = AutoLinker.link_map(text, %{}, options)
+      text
     end
   end
 
