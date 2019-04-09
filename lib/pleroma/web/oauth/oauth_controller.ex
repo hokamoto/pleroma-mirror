@@ -50,7 +50,14 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     available_scopes = (app && app.scopes) || []
     scopes = oauth_scopes(params, nil) || available_scopes
 
-    render(conn, Authenticator.auth_template(), %{
+    template =
+      if params["required_mfa"] do
+        "two_factor.html"
+      else
+        Authenticator.auth_template()
+      end
+
+    render(conn, template, %{
       response_type: params["response_type"],
       client_id: params["client_id"],
       available_scopes: available_scopes,
@@ -118,6 +125,18 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     |> authorize(auth_params)
   end
 
+  defp handle_create_authorization_error(conn, {:mfa_required, true}, auth_params) do
+    conn
+    |> authorize(Map.merge(auth_params, %{"required_mfa" => true}))
+  end
+
+  defp handle_create_authorization_error(conn, {:verify_mfa, {:error, _}}, auth_params) do
+    conn
+    |> put_status(400)
+    |> put_flash(:error, "Two-factor authentication failed.")
+    |> authorize(Map.merge(auth_params, %{"required_mfa" => true}))
+  end
+
   defp handle_create_authorization_error(conn, error, _auth_params) do
     Authenticator.handle_error(conn, error)
   end
@@ -157,9 +176,9 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   # Authenticate by username\login with otp token.
   # Second step multi factor authentication
   #
-  def token_exchange(conn, %{"grant_type" => "password", "otp_token" => _} = params) do
+  def token_exchange(conn, %{"grant_type" => "password", "otp_token" => otp_token} = params) do
     with {:ok, %User{} = user} <- Authenticator.get_user(conn, params),
-         {_, {:ok, _}} <- {:verify_mfa, TOTPAuthenticator.verify(conn, user)} do
+         {_, {:ok, _}} <- {:verify_mfa, TOTPAuthenticator.verify(otp_token, user)} do
       token_exchange(conn, user, params)
     else
       {:verify_mfa, _res} ->
@@ -393,16 +412,19 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     end
   end
 
+  defp do_create_authorization(_conn, _params, _user \\ nil)
+
   defp do_create_authorization(
          conn,
          %{
            "authorization" =>
              %{
                "client_id" => client_id,
-               "redirect_uri" => redirect_uri
+               "redirect_uri" => redirect_uri,
+               "otp_token" => otp_token
              } = auth_params
          } = params,
-         user \\ nil
+         user
        ) do
     with {_, {:ok, %User{} = user}} <-
            {:get_user, (user && {:ok, user}) || Authenticator.get_user(conn, params)},
@@ -412,7 +434,33 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          {:unsupported_scopes, []} <- {:unsupported_scopes, scopes -- app.scopes},
          # Note: `scope` param is intentionally not optional in this context
          {:missing_scopes, false} <- {:missing_scopes, scopes == []},
-         {:auth_active, true} <- {:auth_active, User.auth_active?(user)} do
+         {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
+         {_, {:ok, _}} <- {:verify_mfa, TOTPAuthenticator.verify(otp_token, user)} do
+      Authorization.create_authorization(app, user, scopes)
+    end
+  end
+
+  defp do_create_authorization(
+         conn,
+         %{
+           "authorization" =>
+             %{
+               "client_id" => client_id,
+               "redirect_uri" => redirect_uri
+             } = auth_params
+         } = params,
+         user
+       ) do
+    with {_, {:ok, %User{} = user}} <-
+           {:get_user, (user && {:ok, user}) || Authenticator.get_user(conn, params)},
+         %App{} = app <- Repo.get_by(App, client_id: client_id),
+         true <- redirect_uri in String.split(app.redirect_uris),
+         scopes <- oauth_scopes(auth_params, []),
+         {:unsupported_scopes, []} <- {:unsupported_scopes, scopes -- app.scopes},
+         # Note: `scope` param is intentionally not optional in this context
+         {:missing_scopes, false} <- {:missing_scopes, scopes == []},
+         {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
+         {_, false} <- {:mfa_required, User.mfa_required?(user)} do
       Authorization.create_authorization(app, user, scopes)
     end
   end

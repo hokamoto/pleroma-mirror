@@ -6,16 +6,12 @@ defmodule Pleroma.Web.Auth.TOTPAuthenticator do
   alias Comeonin.Pbkdf2
   alias Pleroma.User
   alias Pleroma.Web.Auth.TOTP
-  alias Plug.Conn
 
-  @doc "Verify code  or check backup code."
-  @spec verify(Conn.t(), User.t()) :: {:ok, :pass} | {:error, :invalid_token} | {:error, any()}
-  def verify(
-        %Conn{params: %{"otp_token" => otp_token} = _params} = _conn,
-        %User{otp_enabled: true, otp_secret: secret} = user
-      ) do
-    with {:error, _} <- TOTP.validate_token(secret, otp_token) do
-      check_backup_code(user, otp_token)
+  @doc "Verify code or check backup code."
+  @spec verify(String.t(), User.t()) :: {:ok, :pass} | {:error, :invalid_token} | {:error, any()}
+  def verify(token, %User{otp_enabled: true, otp_secret: secret} = user) do
+    with {:error, _} <- TOTP.validate_token(secret, token) do
+      check_backup_code(user, token)
     end
   end
 

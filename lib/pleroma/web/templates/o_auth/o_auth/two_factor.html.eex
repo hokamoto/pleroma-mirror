@@ -1,0 +1,30 @@
+<%= if get_flash(@conn, :info) do %>
+<p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
+<% end %>
+<%= if get_flash(@conn, :error) do %>
+<p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
+<% end %>
+
+<h2>Two-factor authentication</h2>
+
+<%= form_for @conn, o_auth_path(@conn, :authorize), [as: "authorization"], fn f -> %>
+
+<div class="input">
+  <%= label f, :otp_token, "Authentication code" %>
+  <%= text_input f, :otp_token %>
+</div>
+
+<%= hidden_input f, :client_id, value: @client_id %>
+<%= hidden_input f, :response_type, value: @response_type %>
+<%= hidden_input f, :redirect_uri, value: @redirect_uri %>
+<%= hidden_input f, :state, value: @state %>
+<%= hidden_input f, :name, value: @params["name"] %>
+<%= hidden_input f, :password, value: @params["password"] %>
+
+
+<%= for scope <- @scopes do %>
+  <input name="authorization[scope][]" type="hidden" value="<%= scope %>">
+<% end %>
+
+<%= submit "Verify" %>
+<% end %>

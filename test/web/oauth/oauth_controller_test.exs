@@ -391,6 +391,92 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
     end
   end
 
+  describe "POST /oauth/authorize with enabled 2fa" do
+    setup do
+      password = "testpassword"
+      otp_secret = Pleroma.Web.Auth.TOTP.generate_secret()
+      otp_token = TOTP.generate_token(otp_secret)
+
+      user =
+        insert(:user,
+          otp_enabled: true,
+          otp_secret: otp_secret,
+          password_hash: Comeonin.Pbkdf2.hashpwsalt(password)
+        )
+
+      app = insert(:oauth_app, scopes: ["read", "write", "follow"])
+      [app: app, user: user, otp_secret: otp_secret, otp_token: otp_token]
+    end
+
+    test "display 2fa step page", %{app: app, user: user} do
+      conn =
+        build_conn()
+        |> post("/oauth/authorize", %{
+          "authorization" => %{
+            "name" => user.nickname,
+            "password" => "testpassword",
+            "client_id" => app.client_id,
+            "redirect_uri" => app.redirect_uris,
+            "scope" => "read write",
+            "state" => "statepassed"
+          }
+        })
+
+      assert response = html_response(conn, 200)
+      assert response =~ ~r/Authentication code/
+      assert response =~ ~r/Two-factor authentication/
+    end
+
+    test "returns 400 for invalid otp token", %{app: app, user: user} do
+      conn =
+        build_conn()
+        |> post("/oauth/authorize", %{
+          "authorization" => %{
+            "name" => user.nickname,
+            "password" => "testpassword",
+            "client_id" => app.client_id,
+            "redirect_uri" => app.redirect_uris,
+            "scope" => "read write",
+            "state" => "statepassed",
+            "otp_token" => 'xxx'
+          }
+        })
+
+      assert response = html_response(conn, 400)
+      assert response =~ ~r/Two-factor authentication failed/
+    end
+
+    test "returns 200 and redirects for valid otp token", %{
+      app: app,
+      user: user,
+      otp_token: otp_token
+    } do
+      conn =
+        build_conn()
+        |> post("/oauth/authorize", %{
+          "authorization" => %{
+            "name" => user.nickname,
+            "password" => "testpassword",
+            "client_id" => app.client_id,
+            "redirect_uri" => app.redirect_uris,
+            "scope" => "read write",
+            "state" => "statepassed",
+            "otp_token" => otp_token
+          }
+        })
+
+      target = redirected_to(conn)
+      assert target =~ app.redirect_uris
+
+      query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
+
+      assert %{"state" => "statepassed", "code" => code} = query
+      auth = Repo.get_by(Authorization, token: code)
+      assert auth
+      assert auth.scopes == ["read", "write"]
+    end
+  end
+
   describe "POST /oauth/authorize" do
     test "redirects with oauth authorization" do
       user = insert(:user)
