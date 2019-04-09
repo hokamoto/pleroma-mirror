@@ -75,7 +75,7 @@ defmodule Pleroma.Web.Auth.TOTP do
   {:error, :invalid_token} if it is not.
   """
   @spec validate_token(String.t(), String.t()) ::
-          {:ok, :pass} | {:error, :invalid_token} | {:error, :invalid_secret_and_token}
+          {:ok, :pass} | {:error, :invalid_token | :invalid_secret_and_token}
   def validate_token(secret, token)
       when is_binary(secret) and is_binary(token) do
     opts = [
@@ -90,7 +90,7 @@ defmodule Pleroma.Web.Auth.TOTP do
 
   @doc "See `validate_token/2`"
   @spec validate_token(String.t(), String.t(), Keyword.t()) ::
-          {:ok, :pass} | {:error, :invalid_token} | {:error, :invalid_secret_and_token}
+          {:ok, :pass} | {:error, :invalid_token | :invalid_secret_and_token}
   def validate_token(secret, token, options)
       when is_binary(secret) and is_binary(token) do
     case :pot.valid_totp(token, secret, options) do

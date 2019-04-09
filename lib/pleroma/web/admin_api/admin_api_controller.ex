@@ -262,10 +262,14 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
   @doc "Disable 2fa for user's account."
   def disable_2fa(conn, %{"nickname" => nickname}) do
-    with user = %User{} <- User.get_by_nickname(nickname),
-         do: User.disable_2fa(user)
+    case User.get_by_nickname(nickname) do
+      %User{} = user ->
+        User.disable_2fa(user)
+        json(conn, nickname)
 
-    json(conn, nickname)
+      _ ->
+        {:error, :not_found}
+    end
   end
 
   def errors(conn, {:error, :not_found}) do

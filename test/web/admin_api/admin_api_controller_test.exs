@@ -641,16 +641,31 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
              }
   end
 
-  test "PUT /api/pleroma/admin/user/disable_2fa" do
-    admin = insert(:user, info: %{is_admin: true})
-    user = insert(:user, otp_enabled: true, otp_secret: "xxx")
+  describe "PUT disable_2fa" do
+    setup do
+      admin = insert(:user, info: %{is_admin: true})
+      [conn: assign(build_conn(), :user, admin)]
+    end
 
-    conn =
-      build_conn()
-      |> assign(:user, admin)
-      |> put("/api/pleroma/admin/user/disable_2fa", %{nickname: user.nickname})
+    test "returns 200 and disable 2fa", %{conn: conn} do
+      user = insert(:user, otp_enabled: true, otp_secret: "xxx")
 
-    assert json_response(conn, 200) == user.nickname
-    refute refresh_record(user).otp_enabled
+      response =
+        conn
+        |> put("/api/pleroma/admin/user/disable_2fa", %{nickname: user.nickname})
+        |> json_response(200)
+
+      assert response == user.nickname
+      refute refresh_record(user).otp_enabled
+    end
+
+    test "returns 404 if user not found", %{conn: conn} do
+      response =
+        conn
+        |> put("/api/pleroma/admin/user/disable_2fa", %{nickname: "nickname"})
+        |> json_response(404)
+
+      assert response == "Not found"
+    end
   end
 end

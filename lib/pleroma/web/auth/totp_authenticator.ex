@@ -8,8 +8,10 @@ defmodule Pleroma.Web.Auth.TOTPAuthenticator do
   alias Pleroma.Web.Auth.TOTP
 
   @doc "Verify code or check backup code."
-  @spec verify(String.t(), User.t()) :: {:ok, :pass} | {:error, :invalid_token} | {:error, any()}
-  def verify(token, %User{otp_enabled: true, otp_secret: secret} = user) do
+  @spec verify(String.t(), User.t()) ::
+          {:ok, :pass} | {:error, :invalid_token | :invalid_secret_and_token}
+  def verify(token, %User{otp_enabled: true, otp_secret: secret} = user)
+      when is_binary(token) and byte_size(token) > 0 do
     with {:error, _} <- TOTP.validate_token(secret, token) do
       check_backup_code(user, token)
     end
@@ -17,8 +19,10 @@ defmodule Pleroma.Web.Auth.TOTPAuthenticator do
 
   def verify(_, _), do: {:error, :invalid_token}
 
+  @spec check_backup_code(User.t(), String.t()) ::
+          {:ok, :pass} | {:error, :invalid_token}
   defp check_backup_code(%User{otp_backup_codes: codes} = user, code)
-       when is_list(codes) do
+       when is_list(codes) and is_binary(code) do
     hash_code = Enum.find(codes, fn hash -> Pbkdf2.checkpw(code, hash) end)
 
     if hash_code do
