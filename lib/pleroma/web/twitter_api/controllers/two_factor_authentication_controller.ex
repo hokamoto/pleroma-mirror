@@ -19,15 +19,15 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
 
   ## Response
   ### Success
-  `{status: 'success', provisioning_uri: [uri] }`
+  `{status: 'success', provisioning_uri: [uri], key: otp_secret_key }`
 
   ### Error
   `{error: [error_message]}`
   """
   def provisioning_uri(%{assigns: %{user: user}} = conn, _params) do
     with {:ok, %User{otp_secret: secret} = _} <- User.set_2fa_secret(user) do
-      provisioning_uri = TOTP.provisioning_uri(secret, "#{user.email}")
-      json(conn, %{status: "success", provisioning_uri: provisioning_uri})
+      uri = TOTP.provisioning_uri(secret, "#{user.email}")
+      json(conn, %{status: "success", provisioning_uri: uri, key: secret})
     else
       {:error, msg} ->
         json(conn, %{error: msg})

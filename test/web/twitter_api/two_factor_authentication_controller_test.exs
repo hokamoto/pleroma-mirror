@@ -18,6 +18,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
 
       assert response == %{
                "status" => "success",
+               "key" => user.otp_secret,
                "provisioning_uri" =>
                  "otpauth://totp/#{user.email}?digits=6&issuer=Pleroma&period=30&secret=#{
                    user.otp_secret
