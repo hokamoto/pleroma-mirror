@@ -182,7 +182,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
       token_exchange(conn, user, params)
     else
       {:verify_mfa, _res} ->
-        {:error, :verify_2fa_failded}
+        {:error, :verify_2fa_failed}
 
       _error ->
         {:error, :invalid_credentails}
