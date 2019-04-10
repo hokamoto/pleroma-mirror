@@ -81,7 +81,10 @@ defmodule Pleroma.Formatter do
     end
   end
 
-  def escape_mentions(text, options \\ []) do
+  @doc """
+  Escapes a special characters in mention names.
+  """
+  def mentions_escape(text, options \\ []) do
     options =
       Keyword.merge(options,
         mention: true,
