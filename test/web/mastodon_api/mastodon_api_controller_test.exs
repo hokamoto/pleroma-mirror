@@ -2693,8 +2693,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
     [reblogged_activity] = json_response(conn3, 200)
 
-    # In reblog activity we get nil for in_reply_to_id and in_reply_to_account_id
     assert reblogged_activity["reblog"]["in_reply_to_id"] == replied_to.id
-    assert reblogged_activity["reblog"]["in_reply_to_account_id"]
+
+    replied_to_user = User.get_by_ap_id(replied_to.data["actor"])
+    assert reblogged_activity["reblog"]["in_reply_to_account_id"] == replied_to_user.id
   end
 end
