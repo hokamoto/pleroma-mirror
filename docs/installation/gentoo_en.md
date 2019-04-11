@@ -31,7 +31,7 @@ Gentoo quite pointedly does not come with a cron daemon installed, and as such i
 
 Note that `dev-db/unixODBC` will be installed as a dependency as long as you have the odbc global USE flag or set as a package USE flag for `dev-lang/elixir`.
 
-#### Optional packages used in this guide
+#### Optional ebuilds used in this guide
 
 * `www-servers/nginx` (preferred, example configs for other reverse proxies can be found in the repo)
 * `app-crypt/certbot` (or any other ACME client for Let’s Encrypt certificates)
@@ -53,9 +53,11 @@ Note that `dev-db/unixODBC` will be installed as a dependency as long as you hav
 
 If you would not like to install the optional packages, remove them from this line. 
 
+If you're running this from a low-powered virtual machine, it should work though it will take some time. There were no issues on a VPS with a single core and 1GB of RAM; if you are using an even more limited device and run into issues, you can try creating a swapfile or use a more powerful machine running Gentoo to [cross build](https://wiki.gentoo.org/wiki/Cross_build_environment). If you have a wait ahead of you, now would be a good time to take a break, strech a bit, refresh your beverage of choice and/or get a snack, and reply to Arch users' posts with "I use Gentoo btw" as we do.
+
 ### Install PostgreSQL
 
-[Gentoo  Wiki article](https://wiki.gentoo.org/wiki/PostgreSQL) as well as [PostgreSQL QuickStart](https://wiki.gentoo.org/wiki/PostgreSQL/QuickStart)
+[Gentoo  Wiki article](https://wiki.gentoo.org/wiki/PostgreSQL) as well as [PostgreSQL QuickStart](https://wiki.gentoo.org/wiki/PostgreSQL/QuickStart) might be worth a quick glance, as the way Gentoo handles postgres is slightly unusual, with built in capability to have two different databases running for testing and live or whatever other purpouse. While it is still straightforward to install, it does mean that the version numbers used in this guide might change for future updates, so keep an eye out for the output you get from `emerge` to ensure you are using the correct ones.
 
 * Install postgresql if you have not done so already:
 
@@ -75,15 +77,8 @@ The output from emerging postgresql should give you a command for initializing t
 
 * Start postgres and enable the system service
  
-Start postgres
-
 ```shell
  # /etc/init.d/postgresql-11 start
-```
-
-Add postgres to the default runlevel
-
-```shell
  # rc-update add postgresql-11 default
  ```
  
@@ -103,7 +98,7 @@ Remove `,wheel` if you do not want this user to be able to use `sudo`, however n
  # useradd -m -G users,wheel -s /bin/bash pleroma
 ```
 
-Optional: if you would like to be able to use `sudo` as the `pleroma` user without setting a password, edit `/etc/sudoers` and uncomment the line near the bottom so it says `%wheel ALL=(ALL) NOPASSWD: ALL` without the preceeding `#`. If you would prefer a different setup, refer to instructions in `/etc/suoders` or check [the Gentoo sudo guide](https://wiki.gentoo.org/wiki/Sudo).
+Optional: if you would like to be able to use `sudo` as the `pleroma` user without setting a password, edit `/etc/sudoers` and uncomment the line near the bottom so it says `%wheel ALL=(ALL) NOPASSWD: ALL` without the preceeding `#`. If you would prefer a different setup, refer to instructions in `/etc/suoders` or check [the Gentoo sudo guide](https://wiki.gentoo.org/wiki/Sudo). To avoid some types of privilege escalation exploits it might be best to turn this off after you are done installing, and there will be a reminder at the end of this guide to do so.
 
 **Note**: To execute a single command as the Pleroma system user, use `sudo -Hu pleroma command`. You can also switch to a shell by using `sudo -Hu pleroma $SHELL`. If you don't have or want `sudo` or would like to use the system as the `pleroma` user for instance maintenance tasks, you can simply use `su - pleroma` to switch to the `pleroma` user.
 
@@ -273,6 +268,10 @@ If your instance is up and running, you can create your first user with administ
 ```shell
 pleroma$ MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
 ```
+
+#### Privilege cleanup
+
+If you opted to allow sudo without a password at the beginning of this guide, now might be a good time to edit `/etc/sudoers` to comment out the ability. Be sure to restart the pleroma service afterwards to ensure it picks up on the sudoers changes.
 
 #### Further reading
 
