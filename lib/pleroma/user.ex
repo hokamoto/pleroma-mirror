@@ -935,6 +935,38 @@ defmodule Pleroma.User do
     update_and_set_cache(cng)
   end
 
+  def subscribe(subscriber, %{ap_id: ap_id}) do
+    deny_follow_blocked = Pleroma.Config.get([:user, :deny_follow_blocked])
+
+    with %User{} = subscribed <- get_cached_by_ap_id(ap_id) do
+      blocked = blocks?(subscribed, subscriber) and deny_follow_blocked
+
+      if blocked do
+        {:error, "Could not subscribe: #{subscribed.nickname} is blocking you"}
+      else
+        info_cng =
+          subscribed.info
+          |> User.Info.add_to_subscribers(subscriber.ap_id)
+
+        change(subscribed)
+        |> put_embed(:info, info_cng)
+        |> update_and_set_cache()
+      end
+    end
+  end
+
+  def unsubscribe(unsubscriber, %{ap_id: ap_id}) do
+    with %User{} = user <- get_cached_by_ap_id(ap_id) do
+      info_cng =
+        user.info
+        |> User.Info.remove_from_subscribers(unsubscriber.ap_id)
+
+      change(user)
+      |> put_embed(:info, info_cng)
+      |> update_and_set_cache()
+    end
+  end
+
   def block(blocker, %User{ap_id: ap_id} = blocked) do
     # sever any follow relationships to prevent leaks per activitypub (Pleroma issue #213)
     blocker =
@@ -945,9 +977,19 @@ defmodule Pleroma.User do
         blocker
       end
 
+    blocker =
+      if subscribed_to?(blocked, blocker) do
+        {:ok, blocker} = unsubscribe(blocked, blocker)
+        blocker
+      else
+        blocker
+      end
+
     if following?(blocked, blocker) do
       unfollow(blocked, blocker)
     end
+
+    {:ok, blocker} = update_follower_count(blocker)
 
     info_cng =
       blocker.info
@@ -991,11 +1033,20 @@ defmodule Pleroma.User do
       end)
   end
 
+  def subscribed_to?(user, %{ap_id: ap_id}) do
+    with %User{} = target <- User.get_by_ap_id(ap_id) do
+      Enum.member?(target.info.subscribers, user.ap_id)
+    end
+  end
+
   def muted_users(user),
     do: Repo.all(from(u in User, where: u.ap_id in ^user.info.mutes))
 
   def blocked_users(user),
     do: Repo.all(from(u in User, where: u.ap_id in ^user.info.blocks))
+
+  def subscribers(user),
+    do: Repo.all(from(u in User, where: u.ap_id in ^user.info.subscribers))
 
   def block_domain(user, domain) do
     info_cng =
@@ -1092,6 +1143,14 @@ defmodule Pleroma.User do
       |> put_embed(:info, info_cng)
 
     update_and_set_cache(cng)
+  end
+
+  def update_notification_settings(%User{} = user, settings \\ %{}) do
+    info_changeset = User.Info.update_notification_settings(user.info, settings)
+
+    change(user)
+    |> put_embed(:info, info_changeset)
+    |> update_and_set_cache()
   end
 
   def delete(%User{} = user) do
