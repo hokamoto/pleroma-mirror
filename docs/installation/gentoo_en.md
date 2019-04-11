@@ -19,6 +19,10 @@ Be sure that your CFLAGS and MAKEOPTS make sense for the platform you are using.
 
 If you would rather `odbc` was only attached to the required packages, add the line `dev-lang/elixir odbc` to a file in `/etc/portage/package.use/`. `uuid` is a required extension for PostgreSQL, and as such can be added to `package.use` with the line `dev-db/postgresql uuid`.
 
+### Installing a cron daemon
+
+Gentoo quite pointedly does not come with a cron daemon installed, and as such it is recommended you install one to automate certbot renewals and to allow other system administration tasks to be run automatically. Gentoo has [a whole wide world of cron options](https://wiki.gentoo.org/wiki/Cron) but if you just want A Cron That Works, `emerge --ask virtual/cron` will install the default cron implementation (probably cronie) which will work just fine. For the purpouses of this guide, we will be doing just that.
+
 ### Required ebuilds
 
 * `dev-db/postgresql`
@@ -31,6 +35,7 @@ Note that `dev-db/unixODBC` will be installed as a dependency as long as you hav
 
 * `www-servers/nginx` (preferred, example configs for other reverse proxies can be found in the repo)
 * `app-crypt/certbot` (or any other ACME client for Let’s Encrypt certificates)
+* `app-crypt/certbot-nginx` (nginx certbot plugin that allows use of the all-powerful `--nginx` flag on certbot)
 
 ### Prepare the system
 
@@ -43,7 +48,7 @@ Note that `dev-db/unixODBC` will be installed as a dependency as long as you hav
 * Emerge all required the required and suggested software in one go:
 
 ```shell
- # emerge --ask dev-db/postgresql dev-lang/elixir dev-vcs/git www-servers/nginx app-crypt/certbot
+ # emerge --ask dev-db/postgresql dev-lang/elixir dev-vcs/git www-servers/nginx app-crypt/certbot app-crypt/certbot-nginx
 ```
 
 If you would not like to install the optional packages, remove them from this line. 
@@ -120,13 +125,13 @@ pleroma$ cd ~/pleroma
 * Install the dependencies for Pleroma and answer with `yes` if it asks you to install `Hex`:
 
 ```shell
-pleroma$ sudo -Hu pleroma mix deps.get
+pleroma$ mix deps.get
 ```
 
 * Generate the configuration:
 
 ```shell
-pleroma$ sudo -Hu pleroma mix pleroma.instance gen
+pleroma$ mix pleroma.instance gen
 ```
 
   * Answer with `yes` if it asks you to install `rebar3`.
@@ -135,13 +140,13 @@ pleroma$ sudo -Hu pleroma mix pleroma.instance gen
 
   * After that it will ask you a few questions about your instance and generates a configuration file in `config/generated_config.exs`.
 
-  * Spend some time with `generated_config.exs` to ensure that everything is in order. If you plan on using an S3-compatible service to store your local images, that can be done here. (`prod.secret.exs` for productive instance, `dev.secret.exs` for development instances):
+  * Spend some time with `generated_config.exs` to ensure that everything is in order. If you plan on using an S3-compatible service to store your local media, that can be done here. You will likely mostly be using `prod.secret.exs` for a production instance, however if you would like to set up a development environment, make a copy to `dev.secret.exs` and adjust settings as needed as well.
 
 ```shell
 pleroma$ mv config/generated_config.exs config/prod.secret.exs
 ```
 
-* The previous command creates also the file `config/setup_db.psql`, with which you can create the database:
+* The previous command creates also the file `config/setup_db.psql`, with which you can create the database. Ensure that it is using the correct database name on the `CREATE DATABASE` and the `\c` lines, then run the postgres script:
 
 ```shell
 pleroma$ sudo -Hu postgres psql -f config/setup_db.psql
@@ -150,31 +155,33 @@ pleroma$ sudo -Hu postgres psql -f config/setup_db.psql
 * Now run the database migration:
 
 ```shell
-sudo -Hu pleroma MIX_ENV=prod mix ecto.migrate
+pleroma$ MIX_ENV=prod mix ecto.migrate
 ```
 
 * Now you can start Pleroma already
 
 ```shell
-sudo -Hu pleroma MIX_ENV=prod mix phx.server
+pleroma$ MIX_ENV=prod mix phx.server
 ```
+
+It probably won't work over the public internet quite yet, however, as we still need to set up a web servere to proxy to the pleroma application, as well as configure SSL.
 
 ### Finalize installation
 
-If you want to open your newly installed instance to the world, you should run nginx or some other webserver/proxy in front of Pleroma and you should consider to create a systemd service file for Pleroma.
+Assuming you want to open your newly installed federated social network to, well, the federation, you should run nginx or some other webserver/proxy in front of Pleroma. It is also a good idea to set up Pleroma to run as a system service.
 
 #### Nginx
 
 * Install nginx, if not already done:
 
 ```shell
-sudo pacman -S nginx
+ # emerge --ask www-servers/nginx
 ```
 
 * Create directories for available and enabled sites:
 
 ```shell
-sudo mkdir -p /etc/nginx/sites-{available,enabled}
+ # mkdir -p /etc/nginx/sites-{available,enabled}
 ```
 
 * Append the following line at the end of the `http` block in `/etc/nginx/nginx.conf`:
@@ -183,60 +190,80 @@ sudo mkdir -p /etc/nginx/sites-{available,enabled}
 include sites-enabled/*;
 ```
 
-* Setup your SSL cert, using your method of choice or certbot. If using certbot, first install it:
+* Setup your SSL cert, using your method of choice or certbot. If using certbot, install it if you haven't already:
 
 ```shell
-sudo pacman -S certbot certbot-nginx
+ # emerge --ask app-crypt/certbot app-crypt/certbot-nginx
 ```
 
 and then set it up:
 
 ```shell
-sudo mkdir -p /var/lib/letsencrypt/
-sudo certbot certonly --email <your@emailaddress> -d <yourdomain> --standalone
+ # mkdir -p /var/lib/letsencrypt/
+ # certbot certonly --email <your@emailaddress> -d <yourdomain> --standalone
 ```
 
-If that doesn’t work, make sure, that nginx is not already running. If it still doesn’t work, try setting up nginx first (change ssl “on” to “off” and try again).
+If that doesn't work the first time, add `--dry-run` to further attempts to avoid being ratelimited as you identify the issue, and do not remove it until the dry run succeeds. If that doesn’t work, make sure, that nginx is not already running. If it still doesn’t work, try setting up nginx first (change ssl “on” to “off” and try again). Often the answer to issues with certbot is to use the `--nginx` flag once you have nginx up and running.
+
+If you are using any additional subdomains, such as for a media proxy, you can re-run the same command with the subdomain in question. When it comes time to renew later, you will not need to run multiple times for each domain, one renew will handle it.
 
 ---
 
 * Copy the example nginx configuration and activate it:
 
 ```shell
-sudo cp /opt/pleroma/installation/pleroma.nginx /etc/nginx/sites-available/pleroma.nginx
-sudo ln -s /etc/nginx/sites-available/pleroma.nginx /etc/nginx/sites-enabled/pleroma.nginx
+ # cp /home/pleroma/pleroma/installation/pleroma.nginx /etc/nginx/sites-available/
+ # ln -s /etc/nginx/sites-available/pleroma.nginx /etc/nginx/sites-enabled/pleroma.nginx
 ```
 
-* Before starting nginx edit the configuration and change it to your needs (e.g. change servername, change cert paths)
+* Take some time to ensure that your nginx config is correct
+
+Replace all instances of `example.tld` with your instance's public URL. If for whatever reason you made changes to the port that your pleroma app runs on, be sure that is reflected in your configuration.
+
 * Enable and start nginx:
 
 ```shell
-sudo systemctl enable --now nginx.service
+ # rc-update add nginx default
+ # /etc/init.d/nginx start
 ```
 
-If you need to renew the certificate in the future, uncomment the relevant location block in the nginx config and run:
+If you are using certbot, it is HIGHLY recommend you set up a cron job that renews your certificate, and that you install the suggested `certbot-nginx` plugin. If you don't do these things, you only have yourself to blame when your instance breaks suddenly because you forgot about it.
+
+First, ensure that the command you will be installing into your crontab works.
 
 ```shell
-sudo certbot certonly --email <your@emailaddress> -d <yourdomain> --webroot -w /var/lib/letsencrypt/
+ # /usr/bin/certbot renew --nginx
 ```
+
+Assuming not much time has passed since you got certbot working a few steps ago, you should get a message for all domains you installed certificates for saying `Cert not yet due for renewal`. 
+
+Now, run crontab as a superuser with `crontab -e` or `sudo crontab -e` as appropriate, and add the following line to your cron:
+
+```cron
+0 0 1 * * /usr/bin/certbot renew --nginx
+```
+
+This will run certbot on the first of the month at midnight. If you'd rather run more frequently, it's not a bad idea, feel free to go for it.
 
 #### Other webserver/proxies
 
-You can find example configurations for them in `/opt/pleroma/installation/`.
+If you would like to use other webservers or proxies, there are example configurations for some popular alternatives in `/opt/pleroma/installation/`. You can, of course, check out [the Gentoo wiki](https://wiki.gentoo.org) for more information on installing and configuring said alternatives.
 
-#### Systemd service
+#### init.d service
 
 * Copy example service file
 
 ```shell
-sudo cp /opt/pleroma/installation/pleroma.service /etc/systemd/system/pleroma.service
+ # cp /home/pleroma/pleroma/installation/init.d/pleroma /etc/init.d/
 ```
 
-* Edit the service file and make sure that all paths fit your installation
-* Enable and start `pleroma.service`:
+* Be sure to take a look at this service file and make sure that all paths fit your installation
+
+* Enable and start `pleroma`:
 
 ```shell
-sudo systemctl enable --now pleroma.service
+ # rc-update add pleroma default
+ # /etc/init.d/pleroma start
 ```
 
 #### Create your first user
@@ -244,7 +271,7 @@ sudo systemctl enable --now pleroma.service
 If your instance is up and running, you can create your first user with administrative rights with the following task:
 
 ```shell
-sudo -Hu pleroma MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
+pleroma$ MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
 ```
 
 #### Further reading
