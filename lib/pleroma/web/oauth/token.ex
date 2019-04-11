@@ -13,6 +13,8 @@ defmodule Pleroma.Web.OAuth.Token do
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.Token
 
+  @type t :: %__MODULE__{}
+
   schema "oauth_tokens" do
     field(:token, :string)
     field(:refresh_token, :string)
@@ -22,6 +24,36 @@ defmodule Pleroma.Web.OAuth.Token do
     belongs_to(:app, App)
 
     timestamps()
+  end
+
+  @doc "Gets token for app by opts"
+  @spec get_for(App.t(), map()) :: {:ok, __MODULE__.t()} | {:error, :not_found}
+  def get_for(%App{id: app_id} = _app, %{"token" => token} = _opts) do
+    from(
+      t in __MODULE__,
+      where: t.app_id == ^app_id and t.token == ^token
+    )
+    |> get_for
+  end
+
+  def get_for(%App{id: app_id} = _app, %{"refresh_token" => token} = _opts) do
+    from(
+      t in __MODULE__,
+      where: t.app_id == ^app_id and t.refresh_token == ^token,
+      preload: [:user]
+    )
+    |> get_for
+  end
+
+  def get_for(_, _), do: {:error, :not_found}
+
+  @doc "gets token by query"
+  @spec get_for(Ecto.Query.t()) :: {:ok, __MODULE__.t()} | {:error, :not_found}
+  def get_for(%Ecto.Query{} = query) do
+    case Repo.one(query) do
+      %__MODULE__{} = token -> {:ok, token}
+      _ -> {:error, :not_found}
+    end
   end
 
   def exchange_token(app, auth) do

@@ -5,6 +5,8 @@
 defmodule Pleroma.Web.OAuth.OAuthController do
   use Pleroma.Web, :controller
 
+  @expires_in 60 * 10
+
   alias Pleroma.Registration
   alias Pleroma.Repo
   alias Pleroma.User
@@ -13,6 +15,8 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   alias Pleroma.Web.OAuth.App
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.Token
+  alias Pleroma.Web.OAuth.Token.Strategy.RefreshToken
+  alias Pleroma.Web.OAuth.Token.Strategy.Revoke, as: RevokeToken
 
   import Pleroma.Web.ControllerHelper, only: [oauth_scopes: 2]
 
@@ -121,6 +125,21 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     Authenticator.handle_error(conn, error)
   end
 
+  @doc "Renew access_token with refresh_token"
+  def token_exchange(conn, %{"grant_type" => "refresh_token"} = params) do
+    with %App{} = app <- get_app_from_request(conn, params),
+         {:ok, %{user: user} = token} <- Token.get_for(app, params),
+         {:ok, token} <- RefreshToken.grant(token, params) do
+      response_attrs = %{created_at: created_at_token(token)}
+
+      json(conn, response_token(user, token, response_attrs))
+    else
+      _error ->
+        put_status(conn, 400)
+        |> json(%{error: "Invalid credentials"})
+    end
+  end
+
   def token_exchange(conn, %{"grant_type" => "authorization_code"} = params) do
     with %App{} = app <- get_app_from_request(conn, params),
          fixed_token = fix_padding(params["code"]),
@@ -129,17 +148,11 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          %User{} = user <- User.get_by_id(auth.user_id),
          {:ok, token} <- Token.exchange_token(app, auth),
          {:ok, inserted_at} <- DateTime.from_naive(token.inserted_at, "Etc/UTC") do
-      response = %{
-        token_type: "Bearer",
-        access_token: token.token,
-        refresh_token: token.refresh_token,
-        created_at: DateTime.to_unix(inserted_at),
-        expires_in: 60 * 10,
-        scope: Enum.join(token.scopes, " "),
-        me: user.ap_id
+      response_attrs = %{
+        created_at: DateTime.to_unix(inserted_at)
       }
 
-      json(conn, response)
+      json(conn, response_token(user, token, response_attrs))
     else
       _error ->
         put_status(conn, 400)
@@ -160,16 +173,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          true <- Enum.any?(scopes),
          {:ok, auth} <- Authorization.create_authorization(app, user, scopes),
          {:ok, token} <- Token.exchange_token(app, auth) do
-      response = %{
-        token_type: "Bearer",
-        access_token: token.token,
-        refresh_token: token.refresh_token,
-        expires_in: 60 * 10,
-        scope: Enum.join(token.scopes, " "),
-        me: user.ap_id
-      }
-
-      json(conn, response)
+      json(conn, response_token(user, token))
     else
       {:auth_active, false} ->
         # Per https://github.com/tootsuite/mastodon/blob/
@@ -201,10 +205,9 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     token_exchange(conn, params)
   end
 
-  def token_revoke(conn, %{"token" => token} = params) do
+  def token_revoke(conn, %{"token" => _token} = params) do
     with %App{} = app <- get_app_from_request(conn, params),
-         %Token{} = token <- Repo.get_by(Token, token: token, app_id: app.id),
-         {:ok, %Token{}} <- Repo.delete(token) do
+         {:ok, _token} <- RevokeToken.revoke(app, params) do
       json(conn, %{})
     else
       _error ->
@@ -401,26 +404,29 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   end
 
   defp get_app_from_request(conn, params) do
-    # Per RFC 6749, HTTP Basic is preferred to body params
-    {client_id, client_secret} =
-      with ["Basic " <> encoded] <- get_req_header(conn, "authorization"),
-           {:ok, decoded} <- Base.decode64(encoded),
-           [id, secret] <-
-             String.split(decoded, ":")
-             |> Enum.map(fn s -> URI.decode_www_form(s) end) do
-        {id, secret}
-      else
-        _ -> {params["client_id"], params["client_secret"]}
-      end
+    conn
+    |> fetch_client_credintails(params)
+    |> fetch_client
+  end
 
-    if client_id && client_secret do
-      Repo.get_by(
-        App,
-        client_id: client_id,
-        client_secret: client_secret
-      )
+  defp fetch_client({id, secret}) when is_binary(id) and is_binary(secret) do
+    Repo.get_by(App, client_id: id, client_secret: secret)
+  end
+
+  defp fetch_client({_id, _secret}), do: nil
+
+  defp fetch_client_credintails(conn, params) do
+    # Per RFC 6749, HTTP Basic is preferred to body params
+    with ["Basic " <> encoded] <- get_req_header(conn, "authorization"),
+         {:ok, decoded} <- Base.decode64(encoded),
+         [id, secret] <-
+           Enum.map(
+             String.split(decoded, ":"),
+             fn s -> URI.decode_www_form(s) end
+           ) do
+      {id, secret}
     else
-      nil
+      _ -> {params["client_id"], params["client_secret"]}
     end
   end
 
@@ -433,4 +439,22 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
   defp put_session_registration_id(conn, registration_id),
     do: put_session(conn, :registration_id, registration_id)
+
+  defp created_at_token(%{inserted_at: inserted_at} = _token) do
+    inserted_at
+    |> DateTime.from_naive!("Etc/UTC")
+    |> DateTime.to_unix()
+  end
+
+  defp response_token(%User{} = user, token, opts \\ %{}) do
+    %{
+      token_type: "Bearer",
+      access_token: token.token,
+      refresh_token: token.refresh_token,
+      expires_in: @expires_in,
+      scope: Enum.join(token.scopes, " "),
+      me: user.ap_id
+    }
+    |> Map.merge(opts)
+  end
 end
