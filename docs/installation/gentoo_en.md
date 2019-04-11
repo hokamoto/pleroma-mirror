@@ -1,7 +1,7 @@
 # Installing on Gentoo GNU/Linux
 ## Installation
 
-This guide will assume that you have administrative rights, either as root or a user with [sudo permissions](https://wiki.gentoo.org/wiki/Sudo). If you want to run this guide with root, ignore the `sudo` at the beginning of the lines, unless it calls a user like `sudo -Hu pleroma`; in this case, use `su <username> -s $SHELL -c 'command'` instead.
+This guide will assume that you have administrative rights, either as root or a user with [sudo permissions](https://wiki.gentoo.org/wiki/Sudo). Lines that begin with `#` indicate that they should be run as the superuser. Lines using `$` should be run as the indicated user, e.g. `pleroma$` should be run as the `pleroma` user.
 
 ### Configuring your hostname (optional)
 
@@ -9,15 +9,15 @@ If you would like your prompt to permanently include your host/domain, change `/
 
 ### Your make.conf and USE flags
 
-Edit `/etc/portage/make.conf` and add `odbc` to your USE flags. If this is a new installation and there are not yet USE flags, add
+Edit `/etc/portage/make.conf` and add `odbc` and `uuid` to your USE flags. If this is a new installation and there are not yet USE flags, add
 
-`USE="odbc"`
+`USE="odbc uuid"`
 
 to the end of your `make.conf`. If you require any special compilation flags or would like to set up remote builds, now is the time to do so.
 
 Be sure that your CFLAGS and MAKEOPTS make sense for the platform you are using. It is not recommended to use above `-O2` or risky optimization flags for a production server.
 
-If you would rather `odbc` was only attached to the required packages, add the line `dev-lang/elixir odbc` to a file in `/etc/portage/package.use/`.
+If you would rather `odbc` was only attached to the required packages, add the line `dev-lang/elixir odbc` to a file in `/etc/portage/package.use/`. `uuid` is a required extension for PostgreSQL, and as such can be added to `package.use` with the line `dev-db/postgresql uuid`.
 
 ### Required ebuilds
 
@@ -68,57 +68,83 @@ The output from emerging postgresql should give you a command for initializing t
  # emerge --config =dev-db/postgresql-11.2
 ```
 
-* Start and enable the `postgresql.service`
+* Start postgres and enable the system service
+ 
+Start postgres
 
 ```shell
-sudo systemctl enable --now postgresql.service
+ # /etc/init.d/postgresql-11 start
 ```
+
+Add postgres to the default runlevel
+
+```shell
+ # rc-update add postgresql-11 default
+ ```
+ 
+### A note on licenses, the AGPL, and deployment procedures
+
+If you do not plan to make any modifications to your Pleroma instance, cloning directly from the main repo will get you what you need. However, if you plan on doing any contributions to upstream development, making changes or modifications to your instance, making custom themes, or want to play around--and let's be honest here, if you're using Gentoo that is most likely you--you will save yourself a lot of headache later if you take the time right now to fork the Pleroma repo and use that in the following section.
+
+Not only does this make it much easier to deploy changes you make, as you can commit and pull from upstream and all that good stuff from the comfort of your local machine then simply `git pull` on your instance server when you're ready to deploy, it also ensures you are compliant with the Affero General Public Licence that Pleroma is licenced under, which stipulates that all network services provided with modified AGPL code must publish their changes on a publicly available internet service and for free. It also makes it much easier to ask for help from and provide help to your fellow Pleroma admins if your public repo always reflects what you are running because it is part of your deployment procedure.
 
 ### Install PleromaBE
 
-* Add a new system user for the Pleroma service:
+* Add a new system user for the Pleroma service and set up default directories:
+
+Remove `,wheel` if you do not want this user to be able to use `sudo`, however note that being able to `sudo` as the `pleroma` user will make finishing the insallation and common maintenence tasks somewhat easier:
 
 ```shell
-sudo useradd -r -s /bin/false -m -d /var/lib/pleroma -U pleroma
+ # useradd -m -G users,wheel -s /bin/bash pleroma
 ```
 
-**Note**: To execute a single command as the Pleroma system user, use `sudo -Hu pleroma command`. You can also switch to a shell by using `sudo -Hu pleroma $SHELL`. If you don’t have and want `sudo` on your system, you can use `su` as root user (UID 0) for a single command by using `su -l pleroma -s $SHELL -c 'command'` and `su -l pleroma -s $SHELL` for starting a shell.
+Optional: if you would like to be able to use `sudo` as the `pleroma` user without setting a password, edit `/etc/sudoers` and uncomment the line near the bottom so it says `%wheel ALL=(ALL) NOPASSWD: ALL` without the preceeding `#`. If you would prefer a different setup, refer to instructions in `/etc/suoders` or check [the Gentoo sudo guide](https://wiki.gentoo.org/wiki/Sudo).
+
+**Note**: To execute a single command as the Pleroma system user, use `sudo -Hu pleroma command`. You can also switch to a shell by using `sudo -Hu pleroma $SHELL`. If you don't have or want `sudo` or would like to use the system as the `pleroma` user for instance maintenance tasks, you can simply use `su - pleroma` to switch to the `pleroma` user.
 
 * Git clone the PleromaBE repository and make the Pleroma user the owner of the directory:
 
+It is highly recommended you use your own fork for the `https://path/to/repo` part below, however if you foolishly decide to forego using your own fork, the primaray repo `https://git.pleroma.social/pleroma/pleroma` will work here.
+
 ```shell
-sudo mkdir -p /opt/pleroma
-sudo chown -R pleroma:pleroma /opt/pleroma
-sudo -Hu pleroma git clone https://git.pleroma.social/pleroma/pleroma /opt/pleroma
+ pleroma$ cd ~
+ pleroma$ git clone https://path/to/repo
 ```
 
 * Change to the new directory:
 
 ```shell
-cd /opt/pleroma
+pleroma$ cd ~/pleroma
 ```
 
 * Install the dependencies for Pleroma and answer with `yes` if it asks you to install `Hex`:
 
 ```shell
-sudo -Hu pleroma mix deps.get
+pleroma$ sudo -Hu pleroma mix deps.get
 ```
 
-* Generate the configuration: `sudo -Hu pleroma mix pleroma.instance gen`
-  * Answer with `yes` if it asks you to install `rebar3`.
-  * This may take some time, because parts of pleroma get compiled first.
-  * After that it will ask you a few questions about your instance and generates a configuration file in `config/generated_config.exs`.
-
-* Check the configuration and if all looks right, rename it, so Pleroma will load it (`prod.secret.exs` for productive instance, `dev.secret.exs` for development instances):
+* Generate the configuration:
 
 ```shell
-mv config/{generated_config.exs,prod.secret.exs}
+pleroma$ sudo -Hu pleroma mix pleroma.instance gen
+```
+
+  * Answer with `yes` if it asks you to install `rebar3`.
+
+  * This part precompiles some parts of Pleroma, so it might take a few moments
+
+  * After that it will ask you a few questions about your instance and generates a configuration file in `config/generated_config.exs`.
+
+  * Spend some time with `generated_config.exs` to ensure that everything is in order. If you plan on using an S3-compatible service to store your local images, that can be done here. (`prod.secret.exs` for productive instance, `dev.secret.exs` for development instances):
+
+```shell
+pleroma$ mv config/generated_config.exs config/prod.secret.exs
 ```
 
 * The previous command creates also the file `config/setup_db.psql`, with which you can create the database:
 
 ```shell
-sudo -Hu postgres psql -f config/setup_db.psql
+pleroma$ sudo -Hu postgres psql -f config/setup_db.psql
 ```
 
 * Now run the database migration:
