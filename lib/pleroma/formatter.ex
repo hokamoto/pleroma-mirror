@@ -20,7 +20,8 @@ defmodule Pleroma.Formatter do
   def escape_mention_handler("@" <> nickname = mention, buffer, _, _) do
     case User.get_cached_by_nickname(nickname) do
       %User{} ->
-        # escape markdown characters with `\\` (we don't want something like @user__name to be parsed by markdown)
+        # escape markdown characters with `\\`
+        # (we don't want something like @user__name to be parsed by markdown)
         String.replace(mention, @markdown_characters_regex, "\\\\\\1")
 
       _ ->
