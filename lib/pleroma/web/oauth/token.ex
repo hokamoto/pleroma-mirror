@@ -105,4 +105,10 @@ defmodule Pleroma.Web.OAuth.Token do
     |> Repo.all()
     |> Repo.preload(:app)
   end
+
+  def is_expired?(%__MODULE__{valid_until: valid_until}) do
+    NaiveDateTime.diff(NaiveDateTime.utc_now(), valid_until) > 0
+  end
+
+  def is_expired?(_), do: false
 end

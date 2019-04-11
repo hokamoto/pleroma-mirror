@@ -733,5 +733,33 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       assert %{"error" => "Invalid credentials"} == response
     end
+
+    test "returns 400 if token expired" do
+      user = insert(:user)
+      app = insert(:oauth_app, scopes: ["read", "write"])
+
+      {:ok, auth} = Authorization.create_authorization(app, user, ["write"])
+      {:ok, token} = Token.exchange_token(app, auth)
+
+      change =
+        Ecto.Changeset.change(
+          token,
+          %{valid_until: NaiveDateTime.add(NaiveDateTime.utc_now(), -86_400 * 30)}
+        )
+
+      {:ok, access_token} = Repo.update(change)
+
+      response =
+        build_conn()
+        |> post("/oauth/token", %{
+          "grant_type" => "refresh_token",
+          "refresh_token" => access_token.refresh_token,
+          "client_id" => app.client_id,
+          "client_secret" => app.client_secret
+        })
+        |> json_response(400)
+
+      assert %{"error" => "Invalid credentials"} == response
+    end
   end
 end
