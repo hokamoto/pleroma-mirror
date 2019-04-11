@@ -10,21 +10,17 @@ defmodule Pleroma.Formatter do
 
   @safe_mention_regex ~r/^(\s*(?<mentions>@.+?\s+)+)(?<rest>.*)/
   @link_regex ~r"((?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~%:/?#[\]@!\$&'\(\)\*\+,;=.]+)|[0-9a-z+\-\.]+:[0-9a-z$-_.+!*'(),]+"ui
-
+  @markdown_characters_regex ~r/(`|\*|_|{|}|[|]|\(|\)|#|\+|-|\.|!)/
+ 
   @auto_linker_config hashtag: true,
                       hashtag_handler: &Pleroma.Formatter.hashtag_handler/4,
                       mention: true,
                       mention_handler: &Pleroma.Formatter.mention_handler/4
 
-  def escape_mention_handler("@" <> nickname = mention, buffer, _, _) do
+  def escape_mention_handler("@" <> nickname = mention, buffer, _, acc) do
     case User.get_cached_by_nickname(nickname) do
-      %User{} ->
-        mention
-        |> String.replace("_", "\\_")
-        |> String.replace("-", "\\-")
-
-      _ ->
-        buffer
+      %User{} -> {String.replace(mention, @markdown_characters_regex, "\\\\\\1"), acc}
+      _ -> {buffer, acc}
     end
   end
 
