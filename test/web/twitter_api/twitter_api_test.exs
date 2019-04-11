@@ -384,7 +384,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPITest do
 
       {:ok, user} = TwitterAPI.register_user(data)
 
-      fetched_user = User.get_by_nickname("vinny")
+      fetched_user = User.get_cached_by_nickname("vinny")
       invite = Repo.get_by(UserInviteToken, token: invite.token)
 
       assert invite.used == true
@@ -407,7 +407,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPITest do
       {:error, msg} = TwitterAPI.register_user(data)
 
       assert msg == "Invalid token"
-      refute User.get_by_nickname("GrimReaper")
+      refute User.get_cached_by_nickname("GrimReaper")
     end
 
     test "returns error on expired token" do
@@ -427,7 +427,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPITest do
       {:error, msg} = TwitterAPI.register_user(data)
 
       assert msg == "Expired token"
-      refute User.get_by_nickname("GrimReaper")
+      refute User.get_cached_by_nickname("GrimReaper")
     end
   end
 
@@ -452,7 +452,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPITest do
       check_fn = fn invite ->
         data = Map.put(data, "token", invite.token)
         {:ok, user} = TwitterAPI.register_user(data)
-        fetched_user = User.get_by_nickname("vinny")
+        fetched_user = User.get_cached_by_nickname("vinny")
 
         assert UserView.render("show.json", %{user: user}) ==
                  UserView.render("show.json", %{user: fetched_user})
@@ -489,7 +489,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPITest do
       {:error, msg} = TwitterAPI.register_user(data)
 
       assert msg == "Expired token"
-      refute User.get_by_nickname("vinny")
+      refute User.get_cached_by_nickname("vinny")
       invite = Repo.get_by(UserInviteToken, token: invite.token)
 
       refute invite.used
@@ -524,7 +524,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPITest do
       }
 
       {:ok, user} = TwitterAPI.register_user(data)
-      fetched_user = User.get_by_nickname("vinny")
+      fetched_user = User.get_cached_by_nickname("vinny")
       invite = Repo.get_by(UserInviteToken, token: invite.token)
 
       assert invite.used == true
@@ -545,7 +545,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPITest do
       {:error, msg} = TwitterAPI.register_user(data)
 
       assert msg == "Expired token"
-      refute User.get_by_nickname("GrimReaper")
+      refute User.get_cached_by_nickname("GrimReaper")
     end
   end
 
@@ -575,7 +575,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPITest do
       }
 
       {:ok, user} = TwitterAPI.register_user(data)
-      fetched_user = User.get_by_nickname("vinny")
+      fetched_user = User.get_cached_by_nickname("vinny")
       invite = Repo.get_by(UserInviteToken, token: invite.token)
 
       refute invite.used
@@ -600,7 +600,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPITest do
       }
 
       {:ok, user} = TwitterAPI.register_user(data)
-      fetched_user = User.get_by_nickname("vinny")
+      fetched_user = User.get_cached_by_nickname("vinny")
       invite = Repo.get_by(UserInviteToken, token: invite.token)
       assert invite.used == true
 
@@ -620,14 +620,50 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPITest do
       {:error, msg} = TwitterAPI.register_user(data)
 
       assert msg == "Expired token"
-      refute User.get_by_nickname("GrimReaper")
+      refute User.get_cached_by_nickname("GrimReaper")
     end
 
     test "returns error on overdue date" do
       {:ok, invite} =
         UserInviteToken.create_invite(%{expires_at: Date.add(Date.utc_today(), -1), max_use: 100})
 
+      data = %{
+        "nickname" => "GrimReaper",
+        "email" => "death@reapers.afterlife",
+        "fullname" => "Reaper Grim",
+        "bio" => "Your time has come",
+        "password" => "scythe",
+        "confirm" => "scythe",
+        "token" => invite.token
+      }
 
+      {:error, msg} = TwitterAPI.register_user(data)
+
+      assert msg == "Expired token"
+      refute User.get_cached_by_nickname("GrimReaper")
+    end
+
+    test "returns error on with overdue date and after max" do
+      {:ok, invite} =
+        UserInviteToken.create_invite(%{expires_at: Date.add(Date.utc_today(), -1), max_use: 100})
+
+      UserInviteToken.update_invite!(invite, uses: 100)
+
+      data = %{
+        "nickname" => "GrimReaper",
+        "email" => "death@reapers.afterlife",
+        "fullname" => "Reaper Grim",
+        "bio" => "Your time has come",
+        "password" => "scythe",
+        "confirm" => "scythe",
+        "token" => invite.token
+      }
+
+      {:error, msg} = TwitterAPI.register_user(data)
+
+      assert msg == "Expired token"
+      refute User.get_cached_by_nickname("GrimReaper")
+    end
   end
 
   test "it returns the error on registration problems" do

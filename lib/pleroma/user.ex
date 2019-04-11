@@ -269,6 +269,7 @@ defmodule Pleroma.User do
   def register(%Ecto.Changeset{} = changeset) do
     with {:ok, user} <- Repo.insert(changeset),
          {:ok, user} <- autofollow_users(user),
+         {:ok, user} <- set_cache(user),
          {:ok, _} <- Pleroma.User.WelcomeMessage.post_welcome_message_to_user(user),
          {:ok, _} <- try_send_confirmation_email(user) do
       {:ok, user}
@@ -1034,7 +1035,7 @@ defmodule Pleroma.User do
   end
 
   def subscribed_to?(user, %{ap_id: ap_id}) do
-    with %User{} = target <- User.get_by_ap_id(ap_id) do
+    with %User{} = target <- get_cached_by_ap_id(ap_id) do
       Enum.member?(target.info.subscribers, user.ap_id)
     end
   end
