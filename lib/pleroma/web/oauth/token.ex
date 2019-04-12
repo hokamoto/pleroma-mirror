@@ -66,8 +66,8 @@ defmodule Pleroma.Web.OAuth.Token do
 
   def create_token(%App{} = app, %User{} = user, scopes \\ nil) do
     scopes = scopes || app.scopes
-    token = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
-    refresh_token = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
+    token = Token.Utils.generate_token()
+    refresh_token = Token.Utils.generate_token()
 
     token = %Token{
       token: token,

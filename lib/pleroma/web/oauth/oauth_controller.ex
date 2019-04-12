@@ -130,7 +130,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     with %App{} = app <- get_app_from_request(conn, params),
          {:ok, %{user: user} = token} <- Token.get_for(app, params),
          {:ok, token} <- RefreshToken.grant(token) do
-      response_attrs = %{created_at: created_at_token(token)}
+      response_attrs = %{created_at: Token.Utils.format_created_at(token)}
 
       json(conn, response_token(user, token, response_attrs))
     else
@@ -147,7 +147,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
            Repo.get_by(Authorization, token: fixed_token, app_id: app.id),
          %User{} = user <- User.get_by_id(auth.user_id),
          {:ok, token} <- Token.exchange_token(app, auth) do
-      response_attrs = %{created_at: created_at_token(token)}
+      response_attrs = %{created_at: Token.Utils.format_created_at(token)}
 
       json(conn, response_token(user, token, response_attrs))
     else
@@ -446,12 +446,6 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
   defp put_session_registration_id(conn, registration_id),
     do: put_session(conn, :registration_id, registration_id)
-
-  defp created_at_token(%{inserted_at: inserted_at} = _token) do
-    inserted_at
-    |> DateTime.from_naive!("Etc/UTC")
-    |> DateTime.to_unix()
-  end
 
   defp response_token(%User{} = user, token, opts \\ %{}) do
     %{
