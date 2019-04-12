@@ -19,4 +19,15 @@ defmodule Pleroma.Repo do
   def init(_, opts) do
     {:ok, Keyword.put(opts, :url, System.get_env("DATABASE_URL"))}
   end
+
+  @doc """
+  Gets association from cache or loads if need
+  """
+  @spec get_assoc(struct(), atom()) :: {:ok, struct()} | {:error, :not_found}
+  def get_assoc(model, association) do
+    case __MODULE__.one(Ecto.assoc(model, association)) do
+      nil -> {:error, :not_found}
+      association -> {:ok, association}
+    end
+  end
 end

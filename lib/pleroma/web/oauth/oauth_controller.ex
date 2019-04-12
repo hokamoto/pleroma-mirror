@@ -5,8 +5,6 @@
 defmodule Pleroma.Web.OAuth.OAuthController do
   use Pleroma.Web, :controller
 
-  @expires_in 60 * 10
-
   alias Pleroma.Registration
   alias Pleroma.Repo
   alias Pleroma.User
@@ -21,6 +19,8 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   import Pleroma.Web.ControllerHelper, only: [oauth_scopes: 2]
 
   if Pleroma.Config.oauth_consumer_enabled?(), do: plug(Ueberauth)
+
+  @expires_in Pleroma.Config.get([:oauth2, :token_expires_in], 600)
 
   plug(:fetch_session)
   plug(:fetch_flash)
@@ -146,11 +146,8 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          %Authorization{} = auth <-
            Repo.get_by(Authorization, token: fixed_token, app_id: app.id),
          %User{} = user <- User.get_by_id(auth.user_id),
-         {:ok, token} <- Token.exchange_token(app, auth),
-         {:ok, inserted_at} <- DateTime.from_naive(token.inserted_at, "Etc/UTC") do
-      response_attrs = %{
-        created_at: DateTime.to_unix(inserted_at)
-      }
+         {:ok, token} <- Token.exchange_token(app, auth) do
+      response_attrs = %{created_at: created_at_token(token)}
 
       json(conn, response_token(user, token, response_attrs))
     else
@@ -264,25 +261,23 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     params = callback_params(params)
 
     with {:ok, registration} <- Authenticator.get_registration(conn, params) do
-      user = Repo.preload(registration, :user).user
       auth_params = Map.take(params, ~w(client_id redirect_uri scope scopes state))
 
-      if user do
-        create_authorization(
-          conn,
-          %{"authorization" => auth_params},
-          user: user
-        )
-      else
-        registration_params =
-          Map.merge(auth_params, %{
-            "nickname" => Registration.nickname(registration),
-            "email" => Registration.email(registration)
-          })
+      case Repo.get_assoc(registration, :user) do
+        {:ok, user} ->
+          conn
+          |> create_authorization(%{"authorization" => auth_params}, user: user)
 
-        conn
-        |> put_session(:registration_id, registration.id)
-        |> registration_details(registration_params)
+        _ ->
+          registration_params =
+            Map.merge(auth_params, %{
+              "nickname" => Registration.nickname(registration),
+              "email" => Registration.email(registration)
+            })
+
+          conn
+          |> put_session(:registration_id, registration.id)
+          |> registration_details(registration_params)
       end
     else
       _ ->

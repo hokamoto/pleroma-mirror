@@ -13,6 +13,7 @@ defmodule Pleroma.Web.OAuth.Token do
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.Token
 
+  @expires_in Pleroma.Config.get([:oauth2, :token_expires_in], 600)
   @type t :: %__MODULE__{}
 
   schema "oauth_tokens" do
@@ -74,7 +75,7 @@ defmodule Pleroma.Web.OAuth.Token do
       scopes: scopes,
       user_id: user.id,
       app_id: app.id,
-      valid_until: NaiveDateTime.add(NaiveDateTime.utc_now(), 60 * 10)
+      valid_until: NaiveDateTime.add(NaiveDateTime.utc_now(), @expires_in)
     }
 
     Repo.insert(token)
