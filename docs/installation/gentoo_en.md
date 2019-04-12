@@ -7,17 +7,18 @@ This guide will assume that you have administrative rights, either as root or a 
 
 If you would like your prompt to permanently include your host/domain, change `/etc/conf.d/hostname` to your hostname. You can reboot or use the `hostname` command to make immediate changes.
 
-### Your make.conf and USE flags
+### Your make.conf, package.use, and USE flags
 
-Edit `/etc/portage/make.conf` and add `odbc` and `uuid` to your USE flags. If this is a new installation and there are not yet USE flags, add
+You will need two flags set for required packages, `odbc` and `uuid` for `dev-lang/erlang` and `dev-db/postgresql` respectively. Add the following lines to any new file in `/etc/portage/package.use`, best practice is each line in a file named after its package, or in one file named "pleroma" or something to that effect. 
 
-`USE="odbc uuid"`
+```text
+dev-lang/erlang odbc
+dev-db/postgresql uuid
+```
 
-to the end of your `make.conf`. If you require any special compilation flags or would like to set up remote builds, now is the time to do so.
+You could opt to add `USE="odbc uuid"` to `/etc/portage/make.conf` if you'd rather set them as global USE flags, but both of these flags do unrelated things in other packages, so keep that in mind if you elect to do so.
 
-Be sure that your CFLAGS and MAKEOPTS make sense for the platform you are using. It is not recommended to use above `-O2` or risky optimization flags for a production server.
-
-If you would rather `odbc` was only attached to the required packages, add the line `dev-lang/elixir odbc` to a file in `/etc/portage/package.use/`. `uuid` is a required extension for PostgreSQL, and as such can be added to `package.use` with the line `dev-db/postgresql uuid`.
+Double check your compiler flags in `/etc/portage/make.conf`. If you require any special compilation flags or would like to set up remote builds, now is the time to do so. Be sure that your CFLAGS and MAKEOPTS make sense for the platform you are using. It is not recommended to use above `-O2` or risky optimization flags for a production server.
 
 ### Installing a cron daemon
 
@@ -42,7 +43,7 @@ Note that `dev-db/unixODBC` will be installed as a dependency as long as you hav
 * First ensure that you have the latest copy of the portage ebuilds if you have not synced them yet:
 
 ```shell
- # emerge --sync
+ # emaint sync -a
 ```
 
 * Emerge all required the required and suggested software in one go:
@@ -98,7 +99,7 @@ Remove `,wheel` if you do not want this user to be able to use `sudo`, however n
  # useradd -m -G users,wheel -s /bin/bash pleroma
 ```
 
-Optional: if you would like to be able to use `sudo` as the `pleroma` user without setting a password, edit `/etc/sudoers` and uncomment the line near the bottom so it says `%wheel ALL=(ALL) NOPASSWD: ALL` without the preceeding `#`. If you would prefer a different setup, refer to instructions in `/etc/suoders` or check [the Gentoo sudo guide](https://wiki.gentoo.org/wiki/Sudo). To avoid some types of privilege escalation exploits it might be best to turn this off after you are done installing, and there will be a reminder at the end of this guide to do so.
+Optional: If you are using sudo, review your sudo setup to ensure it works for you. The `/etc/sudoers` file has a lot of options and examples to help you, and [the Gentoo sudo guide](https://wiki.gentoo.org/wiki/Sudo) has more information. Finishing this installation will be somewhat easier if you have a way to sudo from the `pleroma` user, but it might be best to not allow that user to sudo during normal operation, and as such there will be a reminder at the end of this guide to double check if you would like to lock down the `pleroma` user after initial setup.
 
 **Note**: To execute a single command as the Pleroma system user, use `sudo -Hu pleroma command`. You can also switch to a shell by using `sudo -Hu pleroma $SHELL`. If you don't have or want `sudo` or would like to use the system as the `pleroma` user for instance maintenance tasks, you can simply use `su - pleroma` to switch to the `pleroma` user.
 
