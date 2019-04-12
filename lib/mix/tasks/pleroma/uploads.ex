@@ -21,7 +21,13 @@ defmodule Mix.Tasks.Pleroma.Uploads do
    - `--delete` - delete local uploads after migrating them to the target uploader
 
    A list of available uploaders can be seen in config.exs
+
+   ## Clean unused uploads
+      mix pleroma.uploads clean_unused
+  Options:
+  - `--dry` - use dry to see which uploads are going to be removed.
   """
+
   def run(["migrate_local", target_uploader | args]) do
     delete? = Enum.member?(args, "--delete")
     Common.start_pleroma()
@@ -104,5 +110,60 @@ defmodule Mix.Tasks.Pleroma.Uploads do
     end)
 
     Mix.shell().info("Done!")
+  end
+
+  import Ecto.Query
+
+  alias Pleroma.Object
+  alias Pleroma.RepoStreamer
+
+  def run(["clean_unused" | rest]) do
+    {options, [], []} =
+      OptionParser.parse(
+        rest,
+        strict: [
+          assume_yes: :boolean,
+          dry: :boolean
+        ],
+        aliases: [
+          y: :assume_yes
+        ]
+      )
+
+    Mix.shell().info("""
+    Unused attachments are about to be removed. This might take a while.
+    """)
+
+    dry? = Keyword.get(options, :dry, false)
+    assume_yes? = Keyword.get(options, :assume_yes, false)
+    proceed? = assume_yes? or Mix.shell().yes?("Continue?")
+
+    if proceed? do
+      Common.start_pleroma()
+
+      Object
+      |> where([o], fragment("?->>'type' = 'Document'", o.data))
+      |> RepoStreamer.chunk_stream(1)
+      |> Stream.each(fn
+        [%{data: %{"url" => [url]}} = object] ->
+          if unused?(object) do
+            if dry? do
+              Mix.shell().info("""
+              #{url["href"]}
+              """)
+            else
+              # TODO
+            end
+          end
+
+        _ ->
+          :noop
+      end)
+      |> Stream.run()
+    end
+  end
+
+  def unused?(_object) do
+    true
   end
 end
