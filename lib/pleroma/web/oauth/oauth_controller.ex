@@ -215,6 +215,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
         json(conn, %{})
     end
   end
+
   def token_revoke(conn, params), do: bad_request(conn, params)
 
   # Response for bad request

@@ -767,10 +767,10 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
     test "returns 500" do
       response =
         build_conn()
-        |> post("/oauth/token", %{ })
+        |> post("/oauth/token", %{})
         |> json_response(500)
 
-        assert %{"error" => "Bad request"} == response
+      assert %{"error" => "Bad request"} == response
     end
   end
 
@@ -778,7 +778,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
     test "returns 500" do
       response =
         build_conn()
-        |> post("/oauth/revoke", %{ })
+        |> post("/oauth/revoke", %{})
         |> json_response(500)
 
       assert %{"error" => "Bad request"} == response
