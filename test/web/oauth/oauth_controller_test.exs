@@ -762,4 +762,26 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert %{"error" => "Invalid credentials"} == response
     end
   end
+
+  describe "POST /oauth/token - bad request" do
+    test "returns 500" do
+      response =
+        build_conn()
+        |> post("/oauth/token", %{ })
+        |> json_response(500)
+
+        assert %{"error" => "Bad request"} == response
+    end
+  end
+
+  describe "POST /oauth/revoke - bad request" do
+    test "returns 500" do
+      response =
+        build_conn()
+        |> post("/oauth/revoke", %{ })
+        |> json_response(500)
+
+      assert %{"error" => "Bad request"} == response
+    end
+  end
 end

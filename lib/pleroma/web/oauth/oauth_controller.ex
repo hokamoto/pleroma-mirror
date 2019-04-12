@@ -202,6 +202,9 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     token_exchange(conn, params)
   end
 
+  # Bad request
+  def token_exchange(conn, params), do: bad_request(conn, params)
+
   def token_revoke(conn, %{"token" => _token} = params) do
     with %App{} = app <- get_app_from_request(conn, params),
          {:ok, _token} <- RevokeToken.revoke(app, params) do
@@ -211,6 +214,14 @@ defmodule Pleroma.Web.OAuth.OAuthController do
         # RFC 7009: invalid tokens [in the request] do not cause an error response
         json(conn, %{})
     end
+  end
+  def token_revoke(conn, params), do: bad_request(conn, params)
+
+  # Response for bad request
+  defp bad_request(conn, _) do
+    conn
+    |> put_status(500)
+    |> json(%{error: "Bad request"})
   end
 
   @doc "Prepares OAuth request to provider for Ueberauth"
