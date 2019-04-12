@@ -274,7 +274,7 @@ pleroma$ MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admi
 
 #### Privilege cleanup
 
-If you opted to allow sudo without a password at the beginning of this guide, now might be a good time to edit `/etc/sudoers` to comment out the ability. Be sure to restart the pleroma service afterwards to ensure it picks up on the sudoers changes.
+If you opted to allow sudo for the `pleroma` user but would like to remove the ability for greater security, now might be a good time to edit `/etc/sudoers` and/or change the groups the `pleroma` user belongs to. Be sure to restart the pleroma service afterwards to ensure it picks up on the changes.
 
 #### Further reading
 
