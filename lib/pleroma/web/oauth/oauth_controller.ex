@@ -400,7 +400,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
   defp get_app_from_request(conn, params) do
     conn
-    |> fetch_client_credintails(params)
+    |> fetch_client_credentials(params)
     |> fetch_client
   end
 
@@ -410,7 +410,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
   defp fetch_client({_id, _secret}), do: nil
 
-  defp fetch_client_credintails(conn, params) do
+  defp fetch_client_credentials(conn, params) do
     # Per RFC 6749, HTTP Basic is preferred to body params
     with ["Basic " <> encoded] <- get_req_header(conn, "authorization"),
          {:ok, decoded} <- Base.decode64(encoded),
