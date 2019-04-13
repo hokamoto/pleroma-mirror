@@ -9,14 +9,13 @@ If you would like your prompt to permanently include your host/domain, change `/
 
 ### Your make.conf, package.use, and USE flags
 
-You will need two flags set for required packages, `odbc` and `uuid` for `dev-lang/erlang` and `dev-db/postgresql` respectively. Add the following lines to any new file in `/etc/portage/package.use`, best practice is each line in a file named after its package, or in one file named "pleroma" or something to that effect. 
+The only specific USE flag you should need is the `uuid` flag for `dev-db/postgresql`. Add the following line to any new file in `/etc/portage/package.use`. If you would like a suggested name for the file, either `postgresql` or `pleroma` would do fine, depending on how you like to arrange your package.use flags.
 
 ```text
-dev-lang/erlang odbc
 dev-db/postgresql uuid
 ```
 
-You could opt to add `USE="odbc uuid"` to `/etc/portage/make.conf` if you'd rather set them as global USE flags, but both of these flags do unrelated things in other packages, so keep that in mind if you elect to do so.
+You could opt to add `USE="uuid"` to `/etc/portage/make.conf` if you'd rather set this as a global USE flags, but this flags does unrelated things in other packages, so keep that in mind if you elect to do so.
 
 Double check your compiler flags in `/etc/portage/make.conf`. If you require any special compilation flags or would like to set up remote builds, now is the time to do so. Be sure that your CFLAGS and MAKEOPTS make sense for the platform you are using. It is not recommended to use above `-O2` or risky optimization flags for a production server.
 
@@ -29,8 +28,6 @@ Gentoo quite pointedly does not come with a cron daemon installed, and as such i
 * `dev-db/postgresql`
 * `dev-lang/elixir`
 * `dev-vcs/git`
-
-Note that `dev-db/unixODBC` will be installed as a dependency as long as you have the odbc global USE flag or set as a package USE flag for `dev-lang/elixir`.
 
 #### Optional ebuilds used in this guide
 
