@@ -173,6 +173,8 @@ defmodule Pleroma.Web.Router do
     delete("/relay", AdminAPIController, :relay_unfollow)
 
     get("/invite_token", AdminAPIController, :get_invite_token)
+    get("/invites", AdminAPIController, :invites)
+    post("/revoke_invite", AdminAPIController, :revoke_invite)
     post("/email_invite", AdminAPIController, :email_invite)
 
     get("/password_reset", AdminAPIController, :get_password_reset)
@@ -198,6 +200,7 @@ defmodule Pleroma.Web.Router do
 
       post("/change_password", UtilController, :change_password)
       post("/delete_account", UtilController, :delete_account)
+      put("/notification_settings", UtilController, :update_notificaton_settings)
     end
 
     scope [] do
@@ -263,6 +266,7 @@ defmodule Pleroma.Web.Router do
       post("/notifications/dismiss", MastodonAPIController, :dismiss_notification)
       get("/notifications", MastodonAPIController, :notifications)
       get("/notifications/:id", MastodonAPIController, :get_notification)
+      delete("/notifications/destroy_multiple", MastodonAPIController, :destroy_multiple)
 
       get("/scheduled_statuses", MastodonAPIController, :scheduled_statuses)
       get("/scheduled_statuses/:id", MastodonAPIController, :show_scheduled_status)
@@ -341,6 +345,9 @@ defmodule Pleroma.Web.Router do
 
       post("/domain_blocks", MastodonAPIController, :block_domain)
       delete("/domain_blocks", MastodonAPIController, :unblock_domain)
+
+      post("/pleroma/accounts/:id/subscribe", MastodonAPIController, :subscribe)
+      post("/pleroma/accounts/:id/unsubscribe", MastodonAPIController, :unsubscribe)
     end
 
     scope [] do

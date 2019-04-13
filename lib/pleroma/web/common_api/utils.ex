@@ -12,6 +12,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.Utils
+  alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.Endpoint
   alias Pleroma.Web.MediaProxy
 
@@ -194,11 +195,10 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   Formatting text to markdown.
   """
   def format_input(text, "text/markdown", options) do
-    options = Keyword.put(options, :mentions_escape, true)
-
     text
+    |> Formatter.mentions_escape(options)
+    |> Earmark.as_html!()
     |> Formatter.linkify(options)
-    |> (fn {text, mentions, tags} -> {Earmark.as_html!(text), mentions, tags} end).()
     |> Formatter.html_escape("text/html")
   end
 
@@ -334,6 +334,24 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   end
 
   def maybe_notify_mentioned_recipients(recipients, _), do: recipients
+
+  def maybe_notify_subscribers(
+        recipients,
+        %Activity{data: %{"actor" => actor, "type" => type}} = activity
+      )
+      when type == "Create" do
+    with %User{} = user <- User.get_cached_by_ap_id(actor) do
+      subscriber_ids =
+        user
+        |> User.subscribers()
+        |> Enum.filter(&Visibility.visible_for_user?(activity, &1))
+        |> Enum.map(& &1.ap_id)
+
+      recipients ++ subscriber_ids
+    end
+  end
+
+  def maybe_notify_subscribers(recipients, _), do: recipients
 
   def maybe_extract_mentions(%{"tag" => tag}) do
     tag
