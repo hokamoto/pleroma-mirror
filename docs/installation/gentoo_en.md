@@ -245,7 +245,15 @@ This will run certbot on the first of the month at midnight. If you'd rather run
 
 #### Other webserver/proxies
 
-If you would like to use other webservers or proxies, there are example configurations for some popular alternatives in `/opt/pleroma/installation/`. You can, of course, check out [the Gentoo wiki](https://wiki.gentoo.org) for more information on installing and configuring said alternatives.
+If you would like to use other webservers or proxies, there are example configurations for some popular alternatives in `/home/pleroma/pleroma/installation/`. You can, of course, check out [the Gentoo wiki](https://wiki.gentoo.org) for more information on installing and configuring said alternatives.
+
+#### Create the uploads folder
+
+Even if you are using S3, Pleroma needs someplace to store media posted on your instance. If you are using the `/home/pleroma/pleroma` root folder suggested by this guide, simply:
+
+```shell
+ pleroma$ mkdir -p ~/pleroma/uploads
+ ```
 
 #### init.d service
 
