@@ -63,13 +63,14 @@ If you're running this from a low-powered virtual machine, it should work though
  # emerge --ask dev-db/postgresql
 ```
 
-Ensure that `/etc/conf.d/postgresql-11` has the encoding you want (it defaults to UTF8 which is probably what you want) and make any adjustments to the data directory if you find it necessary.
+Ensure that `/etc/conf.d/postgresql-11` has the encoding you want (it defaults to UTF8 which is probably what you want) and make any adjustments to the data directory if you find it necessary. Be sure to adjust the number at the end depending on what version of postgres you actually installed.
 
 * Initialize the database cluster
 
 The output from emerging postgresql should give you a command for initializing the postgres database. Run that.
 
 ```shell
+### NOTE THAT THIS COMMAND COMES FROM THE OUTPUT OF THE POSTGRESQL EMERGE, USE THAT EXACT COMMAND AND NOT NECESSARILY THE ONE HERE
  # emerge --config =dev-db/postgresql-11.2
 ```
 
