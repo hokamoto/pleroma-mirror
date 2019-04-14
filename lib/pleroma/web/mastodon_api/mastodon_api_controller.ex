@@ -1087,6 +1087,29 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     |> render("index.json", %{activities: activities, for: user, as: :activity})
   end
 
+  def user_favourites(%{assigns: %{user: for_user}} = conn, %{"id" => id} = params) do
+    with %User{} = user <- User.get_by_id(id) do
+      params =
+        params
+        |> Map.put("type", "Create")
+        |> Map.put("favorited_by", user.ap_id)
+        |> Map.put("blocking_user", for_user)
+
+      activities =
+        []
+        |> ActivityPub.fetch_activities(params)
+        |> Enum.reverse()
+
+      conn
+      |> add_link_headers(:favourites, activities)
+      |> put_view(StatusView)
+      |> render("index.json", %{activities: activities, for: for_user, as: :activity})
+    else
+      _ ->
+        {:error, :not_found}
+    end
+  end
+
   def bookmarks(%{assigns: %{user: user}} = conn, _) do
     user = User.get_cached_by_id(user.id)
 

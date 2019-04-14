@@ -1988,6 +1988,116 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     assert [] = json_response(third_conn, 200)
   end
 
+  describe "getting favorites timeline of specified user" do
+    setup do
+      [current_user, user] = insert_pair(:user)
+      [current_user: current_user, user: user]
+    end
+
+    test "returns list of statuses favorited by specified user", %{
+      conn: conn,
+      current_user: current_user,
+      user: user
+    } do
+      [activity | _] = insert_pair(:note_activity)
+      CommonAPI.favorite(activity.id, user)
+
+      response =
+        conn
+        |> assign(:user, current_user)
+        |> get("/api/v1/pleroma/accounts/#{user.id}/favourites")
+        |> json_response(:ok)
+
+      [like] = response
+
+      assert length(response) == 1
+      assert like["id"] == activity.id
+    end
+
+    test "returns favorites for specified user_id when user is not logged in", %{
+      conn: conn,
+      user: user
+    } do
+      activity = insert(:note_activity)
+      CommonAPI.favorite(activity.id, user)
+
+      response =
+        conn
+        |> get("/api/v1/pleroma/accounts/#{user.id}/favourites")
+        |> json_response(:ok)
+
+      assert length(response) == 1
+    end
+
+    test "paginates favorites using since_id and max_id", %{
+      conn: conn,
+      current_user: current_user,
+      user: user
+    } do
+      activities = insert_list(10, :note_activity)
+
+      Enum.each(activities, fn activity ->
+        CommonAPI.favorite(activity.id, user)
+      end)
+
+      third_activity = Enum.at(activities, 2)
+      seventh_activity = Enum.at(activities, 6)
+
+      response =
+        conn
+        |> assign(:user, current_user)
+        |> get("/api/v1/pleroma/accounts/#{user.id}/favourites", %{
+          since_id: third_activity.id,
+          max_id: seventh_activity.id
+        })
+        |> json_response(:ok)
+
+      assert length(response) == 3
+      refute third_activity in response
+      refute seventh_activity in response
+    end
+
+    test "limits favorites using limit parameter", %{
+      conn: conn,
+      current_user: current_user,
+      user: user
+    } do
+      7
+      |> insert_list(:note_activity)
+      |> Enum.each(fn activity ->
+        CommonAPI.favorite(activity.id, user)
+      end)
+
+      response =
+        conn
+        |> assign(:user, current_user)
+        |> get("/api/v1/pleroma/accounts/#{user.id}/favourites", %{limit: "3"})
+        |> json_response(:ok)
+
+      assert length(response) == 3
+    end
+
+    test "returns empty response when user does not have any favorited statuses", %{
+      conn: conn,
+      current_user: current_user,
+      user: user
+    } do
+      response =
+        conn
+        |> assign(:user, current_user)
+        |> get("/api/v1/pleroma/accounts/#{user.id}/favourites")
+        |> json_response(:ok)
+
+      assert Enum.empty?(response)
+    end
+
+    test "returns 404 error when specified user is not exist", %{conn: conn} do
+      conn = get(conn, "/api/v1/pleroma/accounts/test/favourites")
+
+      assert json_response(conn, 404) == %{"error" => "Record not found"}
+    end
+  end
+
   describe "updating credentials" do
     test "updates the user's bio", %{conn: conn} do
       user = insert(:user)
