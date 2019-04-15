@@ -343,6 +343,7 @@ This config contains two queues: `federator_incoming` and `federator_outgoing`. 
 * `providers`: a list of metadata providers to enable. Providers availible:
   * Pleroma.Web.Metadata.Providers.OpenGraph
   * Pleroma.Web.Metadata.Providers.TwitterCard
+  * Pleroma.Web.Metadata.Providers.RelMe
 * `unfurl_nsfw`: If set to `true` nsfw attachments will be shown in previews
 
 ## :rich_media
@@ -427,7 +428,7 @@ Pleroma account will be created with the same name as the LDAP user name.
 
 Authentication / authorization settings.
 
-* `auth_template`: authentication form template. By default it's `show.html` which corresponds to `lib/pleroma/web/templates/o_auth/o_auth/show.html.eex`. 
+* `auth_template`: authentication form template. By default it's `show.html` which corresponds to `lib/pleroma/web/templates/o_auth/o_auth/show.html.eex`.
 * `oauth_consumer_template`: OAuth consumer mode authentication form template. By default it's `consumer.html` which corresponds to `lib/pleroma/web/templates/o_auth/o_auth/consumer.html.eex`.
 * `oauth_consumer_strategies`: the list of enabled OAuth consumer strategies; by default it's set by OAUTH_CONSUMER_STRATEGIES environment variable.
 
@@ -440,7 +441,7 @@ Note: each strategy is shipped as a separate dependency; in order to get the str
 e.g. `OAUTH_CONSUMER_STRATEGIES="twitter facebook google microsoft" mix deps.get`.
 The server should also be started with `OAUTH_CONSUMER_STRATEGIES="..." mix phx.server` in case you enable any strategies.
 
-Note: each strategy requires separate setup (on external provider side and Pleroma side). Below are the guidelines on setting up most popular strategies.  
+Note: each strategy requires separate setup (on external provider side and Pleroma side). Below are the guidelines on setting up most popular strategies.
 
 * For Twitter, [register an app](https://developer.twitter.com/en/apps), configure callback URL to https://<your_host>/oauth/twitter/callback
 
@@ -475,7 +476,7 @@ config :ueberauth, Ueberauth.Strategy.Google.OAuth,
 config :ueberauth, Ueberauth.Strategy.Microsoft.OAuth,
   client_id: System.get_env("MICROSOFT_CLIENT_ID"),
   client_secret: System.get_env("MICROSOFT_CLIENT_SECRET")
-  
+
 config :ueberauth, Ueberauth,
   providers: [
     microsoft: {Ueberauth.Strategy.Microsoft, [callback_params: []]}
