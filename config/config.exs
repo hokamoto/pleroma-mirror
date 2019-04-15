@@ -422,7 +422,9 @@ config :pleroma, Pleroma.ScheduledActivity,
   total_user_limit: 300,
   enabled: true
 
-config :pleroma, :oauth2, token_expires_in: 600
+config :pleroma, :oauth2,
+  token_expires_in: 600,
+  issue_new_refresh_token: false
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

@@ -3,6 +3,7 @@ defmodule Pleroma.Web.OAuth.Token.Strategy.RefreshToken do
   Functions for dealing with refresh token strategy.
   """
 
+  alias Pleroma.Config
   alias Pleroma.Repo
   alias Pleroma.Web.OAuth.Token
   alias Pleroma.Web.OAuth.Token.Strategy.Revoke
@@ -23,7 +24,6 @@ defmodule Pleroma.Web.OAuth.Token.Strategy.RefreshToken do
         }
 
         access_token
-        |> validate_access_token
         |> revoke_access_token()
         |> create_access_token(token_params)
       end)
@@ -35,22 +35,20 @@ defmodule Pleroma.Web.OAuth.Token.Strategy.RefreshToken do
     end
   end
 
-  defp validate_access_token(token) do
-    case Token.is_expired?(token) do
-      true -> {:error, "token is expired"}
-      false -> {:ok, token}
-    end
-  end
-
-  defp revoke_access_token({:error, error}), do: {:error, error}
-
-  defp revoke_access_token({:ok, token}) do
+  defp revoke_access_token(token) do
     Revoke.revoke(token)
   end
 
   defp create_access_token({:error, error}, _), do: {:error, error}
 
-  defp create_access_token({:ok, _}, %{app: app, user: user} = token_params) do
-    Token.create_token(app, user, token_params[:scopes])
+  defp create_access_token({:ok, token}, %{app: app, user: user} = token_params) do
+    Token.create_token(app, user, add_refresh_token(token_params, token.refresh_token))
+  end
+
+  defp add_refresh_token(params, token) do
+    case Config.get([:oauth2, :issue_new_refresh_token], false) do
+      true -> Map.put(params, :refresh_token, token)
+      false -> params
+    end
   end
 end

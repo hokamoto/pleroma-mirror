@@ -679,7 +679,9 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
   end
 
   describe "POST /oauth/token - refresh token" do
-    test "issues a new token" do
+    test "issues a new access token with keep fresh token" do
+      config_path = [:oauth2, :issue_new_refresh_token]
+      Pleroma.Config.put(config_path, true)
       user = insert(:user)
       app = insert(:oauth_app, scopes: ["read", "write"])
 
@@ -711,11 +713,52 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
              )
 
       refute Repo.get_by(Token, token: token.token)
-      token = Repo.get_by(Token, token: response["access_token"])
-      assert token
-      assert token.scopes == auth.scopes
-      assert token.user_id == user.id
-      assert token.app_id == app.id
+      new_token = Repo.get_by(Token, token: response["access_token"])
+      assert new_token.refresh_token == token.refresh_token
+      assert new_token.scopes == auth.scopes
+      assert new_token.user_id == user.id
+      assert new_token.app_id == app.id
+
+      Pleroma.Config.put(config_path, false)
+    end
+
+    test "issues a new access token with new fresh token" do
+      user = insert(:user)
+      app = insert(:oauth_app, scopes: ["read", "write"])
+
+      {:ok, auth} = Authorization.create_authorization(app, user, ["write"])
+      {:ok, token} = Token.exchange_token(app, auth)
+
+      response =
+        build_conn()
+        |> post("/oauth/token", %{
+          "grant_type" => "refresh_token",
+          "refresh_token" => token.refresh_token,
+          "client_id" => app.client_id,
+          "client_secret" => app.client_secret
+        })
+        |> json_response(200)
+
+      ap_id = user.ap_id
+
+      assert match?(
+               %{
+                 "scope" => "write",
+                 "token_type" => "Bearer",
+                 "expires_in" => 600,
+                 "access_token" => _,
+                 "refresh_token" => _,
+                 "me" => ^ap_id
+               },
+               response
+             )
+
+      refute Repo.get_by(Token, token: token.token)
+      new_token = Repo.get_by(Token, token: response["access_token"])
+      refute new_token.refresh_token == token.refresh_token
+      assert new_token.scopes == auth.scopes
+      assert new_token.user_id == user.id
+      assert new_token.app_id == app.id
     end
 
     test "returns 400 if refresh_token invalid" do
@@ -734,7 +777,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert %{"error" => "Invalid credentials"} == response
     end
 
-    test "returns 400 if token expired" do
+    test "issues a new token if token expired" do
       user = insert(:user)
       app = insert(:oauth_app, scopes: ["read", "write"])
 
@@ -757,9 +800,30 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
           "client_id" => app.client_id,
           "client_secret" => app.client_secret
         })
-        |> json_response(400)
+        |> json_response(200)
 
-      assert %{"error" => "Invalid credentials"} == response
+      ap_id = user.ap_id
+
+      assert match?(
+               %{
+                 "scope" => "write",
+                 "token_type" => "Bearer",
+                 "expires_in" => 600,
+                 "access_token" => _,
+                 "refresh_token" => _,
+                 "me" => ^ap_id
+               },
+               response
+             )
+
+      refute Repo.get_by(Token, token: token.token)
+      token = Repo.get_by(Token, token: response["access_token"])
+      assert token
+      assert token.scopes == auth.scopes
+      assert token.user_id == user.id
+      assert token.app_id == app.id
+
+      # assert %{"error" => "Invalid credentials"} == response
     end
   end
 
