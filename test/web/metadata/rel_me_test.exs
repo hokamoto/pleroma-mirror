@@ -1,0 +1,20 @@
+defmodule Pleroma.Web.Metadata.Providers.RelMeTest do
+  use Pleroma.DataCase
+  import Pleroma.Factory
+  alias Pleroma.Web.Metadata.Providers.RelMe
+
+  test "it renders all links with rel='me' from user bio" do
+    user = insert(:user)
+
+    bio =
+      ~s(<a href="https://some-link.com">https://some-link.com</a> <a rel="me" href="https://another-link.com">https://another-link.com</a>
+    <link href="http://some.com"> <link rel="me" href="http://some3.com>")
+
+    user = Ecto.Changeset.change(user, %{bio: bio}) |> Repo.update!()
+
+    assert RelMe.build_tags(%{user: user}) == [
+             {:link, [rel: "me", href: "http://some3.com>"], []},
+             {:link, [rel: "me", href: "https://another-link.com"], []}
+           ]
+  end
+end
