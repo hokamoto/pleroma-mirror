@@ -342,7 +342,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     activity = Activity.get_by_id(id)
 
     assert activity.data["context"] == replied_to.data["context"]
-    assert activity.data["object"]["inReplyToStatusId"] == replied_to.id
+    assert Activity.get_in_reply_to_activity(activity).id == replied_to.id
   end
 
   test "posting a status with an invalid in_reply_to_id", %{conn: conn} do
@@ -1008,8 +1008,41 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
         |> assign(:user, user)
         |> post("/api/v1/statuses/#{activity.id}/reblog")
 
-      assert %{"reblog" => %{"id" => id, "reblogged" => true, "reblogs_count" => 1}} =
-               json_response(conn, 200)
+      assert %{
+               "reblog" => %{"id" => id, "reblogged" => true, "reblogs_count" => 1},
+               "reblogged" => true
+             } = json_response(conn, 200)
+
+      assert to_string(activity.id) == id
+    end
+
+    test "reblogged status for another user", %{conn: conn} do
+      activity = insert(:note_activity)
+      user1 = insert(:user)
+      user2 = insert(:user)
+      user3 = insert(:user)
+      {:ok, reblog_activity1, _object} = CommonAPI.repeat(activity.id, user1)
+      {:ok, _, _object} = CommonAPI.repeat(activity.id, user2)
+
+      conn_res =
+        conn
+        |> assign(:user, user3)
+        |> get("/api/v1/statuses/#{reblog_activity1.id}")
+
+      assert %{
+               "reblog" => %{"id" => id, "reblogged" => false, "reblogs_count" => 2},
+               "reblogged" => false
+             } = json_response(conn_res, 200)
+
+      conn_res =
+        conn
+        |> assign(:user, user2)
+        |> get("/api/v1/statuses/#{reblog_activity1.id}")
+
+      assert %{
+               "reblog" => %{"id" => id, "reblogged" => true, "reblogs_count" => 2},
+               "reblogged" => true
+             } = json_response(conn_res, 200)
 
       assert to_string(activity.id) == id
     end
@@ -1473,7 +1506,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     assert id2 == follower2.id
 
     assert [link_header] = get_resp_header(res_conn, "link")
-    assert link_header =~ ~r/since_id=#{follower2.id}/
+    assert link_header =~ ~r/min_id=#{follower2.id}/
     assert link_header =~ ~r/max_id=#{follower2.id}/
   end
 
@@ -1552,7 +1585,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     assert id2 == following2.id
 
     assert [link_header] = get_resp_header(res_conn, "link")
-    assert link_header =~ ~r/since_id=#{following2.id}/
+    assert link_header =~ ~r/min_id=#{following2.id}/
     assert link_header =~ ~r/max_id=#{following2.id}/
   end
 
@@ -1585,6 +1618,40 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
     assert %{"id" => id} = json_response(conn, 200)
     assert id == to_string(other_user.id)
+  end
+
+  test "following / unfollowing errors" do
+    user = insert(:user)
+
+    conn =
+      build_conn()
+      |> assign(:user, user)
+
+    # self follow
+    conn_res = post(conn, "/api/v1/accounts/#{user.id}/follow")
+    assert %{"error" => "Record not found"} = json_response(conn_res, 404)
+
+    # self unfollow
+    user = User.get_cached_by_id(user.id)
+    conn_res = post(conn, "/api/v1/accounts/#{user.id}/unfollow")
+    assert %{"error" => "Record not found"} = json_response(conn_res, 404)
+
+    # self follow via uri
+    user = User.get_cached_by_id(user.id)
+    conn_res = post(conn, "/api/v1/follows", %{"uri" => user.nickname})
+    assert %{"error" => "Record not found"} = json_response(conn_res, 404)
+
+    # follow non existing user
+    conn_res = post(conn, "/api/v1/accounts/doesntexist/follow")
+    assert %{"error" => "Record not found"} = json_response(conn_res, 404)
+
+    # follow non existing user via uri
+    conn_res = post(conn, "/api/v1/follows", %{"uri" => "doesntexist"})
+    assert %{"error" => "Record not found"} = json_response(conn_res, 404)
+
+    # unfollow non existing user
+    conn_res = post(conn, "/api/v1/accounts/doesntexist/unfollow")
+    assert %{"error" => "Record not found"} = json_response(conn_res, 404)
   end
 
   test "muting / unmuting a user", %{conn: conn} do
@@ -2382,7 +2449,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
       assert [link_header] = get_resp_header(conn, "link")
       assert link_header =~ ~r/media_only=true/
-      assert link_header =~ ~r/since_id=#{notification2.id}/
+      assert link_header =~ ~r/min_id=#{notification2.id}/
       assert link_header =~ ~r/max_id=#{notification1.id}/
     end
   end
@@ -2724,7 +2791,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     activity = Activity.get_by_id(id)
 
     assert activity.data["object"]["inReplyTo"] == replied_to.data["object"]["id"]
-    assert activity.data["object"]["inReplyToStatusId"] == replied_to.id
+    assert Activity.get_in_reply_to_activity(activity).id == replied_to.id
 
     # Reblog from the third user
     conn2 =
