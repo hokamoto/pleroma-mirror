@@ -67,11 +67,10 @@ Ensure that `/etc/conf.d/postgresql-11` has the encoding you want (it defaults t
 
 * Initialize the database cluster
 
-The output from emerging postgresql should give you a command for initializing the postgres database. Run that.
+The output from emerging postgresql should give you a command for initializing the postgres database. The default slot should be indicated in this command, ensure that it matches the command below.
 
 ```shell
-### NOTE THAT THIS COMMAND COMES FROM THE OUTPUT OF THE POSTGRESQL EMERGE, USE THAT EXACT COMMAND AND NOT NECESSARILY THE ONE HERE
- # emerge --config =dev-db/postgresql-11.2
+ # emerge --config dev-db/postgresql:11
 ```
 
 * Start postgres and enable the system service
