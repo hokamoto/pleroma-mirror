@@ -29,7 +29,7 @@ defmodule Pleroma.Web.OAuth.Token do
   end
 
   @doc "Gets token for app by opts"
-  @spec get_for(App.t(), map()) :: {:ok, __MODULE__.t()} | {:error, :not_found}
+  @spec get_for(App.t(), map()) :: {:ok, t()} | {:error, :not_found}
   def get_for(%App{id: app_id} = _app, %{"token" => token} = _opts) do
     from(
       t in __MODULE__,

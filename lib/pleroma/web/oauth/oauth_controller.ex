@@ -142,9 +142,8 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
   def token_exchange(conn, %{"grant_type" => "authorization_code"} = params) do
     with %App{} = app <- get_app_from_request(conn, params),
-         fixed_token = fix_padding(params["code"]),
-         %Authorization{} = auth <-
-           Repo.get_by(Authorization, token: fixed_token, app_id: app.id),
+         fixed_token = Token.Utils.fix_padding(params["code"]),
+         {:ok, auth} <- Authorization.get_for(app, %{token: fixed_token}),
          %User{} = user <- User.get_by_id(auth.user_id),
          {:ok, token} <- Token.exchange_token(app, auth) do
       response_attrs = %{created_at: Token.Utils.format_created_at(token)}
@@ -399,15 +398,6 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          {:auth_active, true} <- {:auth_active, User.auth_active?(user)} do
       Authorization.create_authorization(app, user, scopes)
     end
-  end
-
-  # XXX - for whatever reason our token arrives urlencoded, but Plug.Conn should be
-  # decoding it.  Investigate sometime.
-  defp fix_padding(token) do
-    token
-    |> URI.decode()
-    |> Base.url_decode64!(padding: false)
-    |> Base.url_encode64(padding: false)
   end
 
   defp get_app_from_request(conn, params) do

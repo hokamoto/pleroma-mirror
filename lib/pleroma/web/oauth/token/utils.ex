@@ -18,4 +18,13 @@ defmodule Pleroma.Web.OAuth.Token.Utils do
     |> :crypto.strong_rand_bytes()
     |> Base.url_encode64(padding: false)
   end
+
+  # XXX - for whatever reason our token arrives urlencoded, but Plug.Conn should be
+  # decoding it.  Investigate sometime.
+  def fix_padding(token) do
+    token
+    |> URI.decode()
+    |> Base.url_decode64!(padding: false)
+    |> Base.url_encode64(padding: false)
+  end
 end
