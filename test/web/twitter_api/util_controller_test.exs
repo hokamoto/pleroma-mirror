@@ -33,7 +33,9 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
       response =
         conn
         |> assign(:user, user1)
-        |> post("/api/pleroma/follow_import", %{"list" => "Account address,Show boosts\n#{user2.ap_id},true"})
+        |> post("/api/pleroma/follow_import", %{
+          "list" => "Account address,Show boosts\n#{user2.ap_id},true"
+        })
         |> json_response(:ok)
 
       assert response == "job started"
