@@ -822,8 +822,6 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert token.scopes == auth.scopes
       assert token.user_id == user.id
       assert token.app_id == app.id
-
-      # assert %{"error" => "Invalid credentials"} == response
     end
   end
 
