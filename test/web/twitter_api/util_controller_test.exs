@@ -26,7 +26,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
       assert response == "job started"
     end
 
-    test "it imports new-styple mastodn follow lists", %{conn: conn} do
+    test "it imports new-style mastodon follow lists", %{conn: conn} do
       user1 = insert(:user)
       user2 = insert(:user)
 
