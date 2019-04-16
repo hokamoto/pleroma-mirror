@@ -307,8 +307,9 @@ defmodule Pleroma.Web.TwitterAPI.UtilController do
     with lines <- String.split(list, "\n"),
          followed_identifiers <-
            Enum.map(lines, fn line ->
-             String.split(line, ",") |> List.delete("Account address")
-           end),
+             String.split(line, ",") |> List.first()
+           end)
+           |> List.delete("Account address"),
          {:ok, _} = Task.start(fn -> User.follow_import(follower, followed_identifiers) end) do
       json(conn, "job started")
     end
