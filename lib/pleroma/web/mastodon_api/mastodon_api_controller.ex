@@ -11,6 +11,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   alias Pleroma.Filter
   alias Pleroma.Notification
   alias Pleroma.Object
+  alias Pleroma.Pagination
   alias Pleroma.Repo
   alias Pleroma.ScheduledActivity
   alias Pleroma.Stats
@@ -202,15 +203,29 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   defp add_link_headers(conn, method, activities, param \\ nil, params \\ %{}) do
     params =
       conn.params
-      |> Map.drop(["since_id", "max_id"])
+      |> Map.drop(["since_id", "max_id", "min_id"])
       |> Map.merge(params)
 
     last = List.last(activities)
-    first = List.first(activities)
 
     if last do
-      min = last.id
-      max = first.id
+      max_id = last.id
+
+      limit =
+        params
+        |> Map.get("limit", "20")
+        |> String.to_integer()
+
+      min_id =
+        if length(activities) <= limit do
+          activities
+          |> List.first()
+          |> Map.get(:id)
+        else
+          activities
+          |> Enum.at(limit * -1)
+          |> Map.get(:id)
+        end
 
       {next_url, prev_url} =
         if param do
@@ -219,13 +234,13 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
               Pleroma.Web.Endpoint,
               method,
               param,
-              Map.merge(params, %{max_id: min})
+              Map.merge(params, %{max_id: max_id})
             ),
             mastodon_api_url(
               Pleroma.Web.Endpoint,
               method,
               param,
-              Map.merge(params, %{since_id: max})
+              Map.merge(params, %{min_id: min_id})
             )
           }
         else
@@ -233,12 +248,12 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
             mastodon_api_url(
               Pleroma.Web.Endpoint,
               method,
-              Map.merge(params, %{max_id: min})
+              Map.merge(params, %{max_id: max_id})
             ),
             mastodon_api_url(
               Pleroma.Web.Endpoint,
               method,
-              Map.merge(params, %{since_id: max})
+              Map.merge(params, %{min_id: min_id})
             )
           }
         end
@@ -314,7 +329,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     activities =
       [user.ap_id]
       |> ActivityPub.fetch_activities_query(params)
-      |> Repo.all()
+      |> Pagination.fetch_paginated(params)
 
     conn
     |> add_link_headers(:dm_timeline, activities)
@@ -612,6 +627,11 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     end
   end
 
+  def destroy_multiple(%{assigns: %{user: user}} = conn, %{"ids" => ids} = _params) do
+    Notification.destroy_multiple(user, ids)
+    json(conn, %{})
+  end
+
   def relationships(%{assigns: %{user: user}} = conn, %{"id" => id}) do
     id = List.wrap(id)
     q = from(u in User, where: u.id in ^id)
@@ -795,13 +815,17 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def follow(%{assigns: %{user: follower}} = conn, %{"id" => id}) do
-    with %User{} = followed <- User.get_by_id(id),
+    with {_, %User{} = followed} <- {:followed, User.get_cached_by_id(id)},
+         {_, true} <- {:followed, follower.id != followed.id},
          false <- User.following?(follower, followed),
          {:ok, follower, followed, _} <- CommonAPI.follow(follower, followed) do
       conn
       |> put_view(AccountView)
       |> render("relationship.json", %{user: follower, target: followed})
     else
+      {:followed, _} ->
+        {:error, :not_found}
+
       true ->
         followed = User.get_cached_by_id(id)
 
@@ -823,12 +847,16 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def follow(%{assigns: %{user: follower}} = conn, %{"uri" => uri}) do
-    with %User{} = followed <- User.get_by_nickname(uri),
+    with {_, %User{} = followed} <- {:followed, User.get_cached_by_nickname(uri)},
+         {_, true} <- {:followed, follower.id != followed.id},
          {:ok, follower, followed, _} <- CommonAPI.follow(follower, followed) do
       conn
       |> put_view(AccountView)
       |> render("account.json", %{user: followed, for: follower})
     else
+      {:followed, _} ->
+        {:error, :not_found}
+
       {:error, message} ->
         conn
         |> put_resp_content_type("application/json")
@@ -837,11 +865,18 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def unfollow(%{assigns: %{user: follower}} = conn, %{"id" => id}) do
-    with %User{} = followed <- User.get_by_id(id),
+    with {_, %User{} = followed} <- {:followed, User.get_cached_by_id(id)},
+         {_, true} <- {:followed, follower.id != followed.id},
          {:ok, follower} <- CommonAPI.unfollow(follower, followed) do
       conn
       |> put_view(AccountView)
       |> render("relationship.json", %{user: follower, target: followed})
+    else
+      {:followed, _} ->
+        {:error, :not_found}
+
+      error ->
+        error
     end
   end
 
