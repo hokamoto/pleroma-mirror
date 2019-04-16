@@ -1095,8 +1095,16 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
         |> Map.put("favorited_by", user.ap_id)
         |> Map.put("blocking_user", for_user)
 
+      recipients =
+        if for_user do
+          ["https://www.w3.org/ns/activitystreams#Public"] ++
+            [for_user.ap_id | for_user.following]
+        else
+          ["https://www.w3.org/ns/activitystreams#Public"]
+        end
+
       activities =
-        []
+        recipients
         |> ActivityPub.fetch_activities(params)
         |> Enum.reverse()
 

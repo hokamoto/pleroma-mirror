@@ -2029,6 +2029,59 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       assert length(response) == 1
     end
 
+    test "returns favorited DM only when user is logged in and he is one of recipients", %{
+      conn: conn,
+      current_user: current_user,
+      user: user
+    } do
+      {:ok, direct} =
+        CommonAPI.post(current_user, %{
+          "status" => "Hi @#{user.nickname}!",
+          "visibility" => "direct"
+        })
+
+      CommonAPI.favorite(direct.id, user)
+
+      response =
+        conn
+        |> assign(:user, current_user)
+        |> get("/api/v1/pleroma/accounts/#{user.id}/favourites")
+        |> json_response(:ok)
+
+      assert length(response) == 1
+
+      anonymous_response =
+        conn
+        |> get("/api/v1/pleroma/accounts/#{user.id}/favourites")
+        |> json_response(:ok)
+
+      assert length(anonymous_response) == 0
+    end
+
+    test "does not return others' favorited DM when user is not one of recipients", %{
+      conn: conn,
+      current_user: current_user,
+      user: user
+    } do
+      user_two = insert(:user)
+
+      {:ok, direct} =
+        CommonAPI.post(user_two, %{
+          "status" => "Hi @#{user.nickname}!",
+          "visibility" => "direct"
+        })
+
+      CommonAPI.favorite(direct.id, user)
+
+      response =
+        conn
+        |> assign(:user, current_user)
+        |> get("/api/v1/pleroma/accounts/#{user.id}/favourites")
+        |> json_response(:ok)
+
+      assert length(response) == 0
+    end
+
     test "paginates favorites using since_id and max_id", %{
       conn: conn,
       current_user: current_user,
