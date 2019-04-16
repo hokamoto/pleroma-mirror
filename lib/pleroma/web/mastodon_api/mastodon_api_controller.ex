@@ -1088,7 +1088,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def user_favourites(%{assigns: %{user: for_user}} = conn, %{"id" => id} = params) do
-    with %User{} = user <- User.get_by_id(id) do
+    with %User{} = user <- User.get_by_id(id),
+         false <- user.info.hide_favorites do
       params =
         params
         |> Map.put("type", "Create")
@@ -1113,8 +1114,13 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       |> put_view(StatusView)
       |> render("index.json", %{activities: activities, for: for_user, as: :activity})
     else
-      _ ->
+      nil ->
         {:error, :not_found}
+
+      true ->
+        conn
+        |> put_status(403)
+        |> json(%{error: "Can't get favorites"})
     end
   end
 

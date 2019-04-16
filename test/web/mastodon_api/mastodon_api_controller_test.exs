@@ -1990,7 +1990,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
   describe "getting favorites timeline of specified user" do
     setup do
-      [current_user, user] = insert_pair(:user)
+      [current_user, user] = insert_pair(:user, %{info: %{hide_favorites: false}})
       [current_user: current_user, user: user]
     end
 
@@ -2148,6 +2148,22 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       conn = get(conn, "/api/v1/pleroma/accounts/test/favourites")
 
       assert json_response(conn, 404) == %{"error" => "Record not found"}
+    end
+
+    test "returns 403 error when user has hidden own favorites", %{
+      conn: conn,
+      current_user: current_user
+    } do
+      user = insert(:user, %{info: %{hide_favorites: true}})
+      activity = insert(:note_activity)
+      CommonAPI.favorite(activity.id, user)
+
+      conn =
+        conn
+        |> assign(:user, current_user)
+        |> get("/api/v1/pleroma/accounts/#{user.id}/favourites")
+
+      assert json_response(conn, 403) == %{"error" => "Can't get favorites"}
     end
   end
 
