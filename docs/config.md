@@ -63,6 +63,7 @@ config :pleroma, Pleroma.Emails.Mailer,
 ## :instance
 * `name`: The instance’s name
 * `email`: Email used to reach an Administrator/Moderator of the instance
+* `notify_email`: Email used for notifications.
 * `description`: The instance’s description, can be seen in nodeinfo and ``/api/v1/instance``
 * `limit`: Posts character limit (CW/Subject included in the counter)
 * `remote_limit`: Hard character limit beyond which remote posts will be dropped.
@@ -221,6 +222,8 @@ This section is used to configure Pleroma-FE, unless ``:managed_config`` in ``:i
   - `scheme` - e.g `http`, `https`
   - `port`
   - `path`
+* `extra_cookie_attrs` - a list of `Key=Value` strings to be added as non-standard cookie attributes. Defaults to `["SameSite=Lax"]`. See the [SameSite article](https://www.owasp.org/index.php/SameSite) on OWASP for more info.
+
 
 
 **Important note**: if you modify anything inside these lists, default `config.exs` values will be overwritten, which may result in breakage, to make sure this does not happen please copy the default value for the list from `config.exs` and modify/add only what you need
@@ -442,6 +445,8 @@ e.g. `OAUTH_CONSUMER_STRATEGIES="twitter facebook google microsoft" mix deps.get
 The server should also be started with `OAUTH_CONSUMER_STRATEGIES="..." mix phx.server` in case you enable any strategies.
 
 Note: each strategy requires separate setup (on external provider side and Pleroma side). Below are the guidelines on setting up most popular strategies.
+
+Note: make sure that `"SameSite=Lax"` is set in `extra_cookie_attrs` when you have this feature enabled. OAuth consumer mode will not work with `"SameSite=Strict"`
 
 * For Twitter, [register an app](https://developer.twitter.com/en/apps), configure callback URL to https://<your_host>/oauth/twitter/callback
 
