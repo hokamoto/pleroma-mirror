@@ -102,7 +102,7 @@ Optional: If you are using sudo, review your sudo setup to ensure it works for y
 
 * Git clone the PleromaBE repository and make the Pleroma user the owner of the directory:
 
-It is highly recommended you use your own fork for the `https://path/to/repo` part below, however if you foolishly decide to forego using your own fork, the primaray repo `https://git.pleroma.social/pleroma/pleroma` will work here.
+It is highly recommended you use your own fork for the `https://path/to/repo` part below, however if you foolishly decide to forego using your own fork, the primary repo `https://git.pleroma.social/pleroma/pleroma` will work here.
 
 ```shell
  pleroma$ cd ~
