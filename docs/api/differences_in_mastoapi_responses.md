@@ -1,6 +1,6 @@
 # Differences in Mastodon API responses from vanilla Mastodon
 
-A Pleroma instance can be identified by "<Mastodon version> (compatible; Pleroma <version>)" present in `version` field in response from `/api/v1/instance` 
+A Pleroma instance can be identified by "<Mastodon version> (compatible; Pleroma <version>)" present in `version` field in response from `/api/v1/instance`
 
 ## Flake IDs
 
@@ -19,7 +19,7 @@ Adding the parameter `with_muted=true` to the timeline queries will also return 
 Has these additional fields under the `pleroma` object:
 
 - `local`: true if the post was made on the local instance.
-- `conversation_id`: the ID of the conversation the status is associated with (if any)
+- `conversation_id`: the ID of the conversation the status conis associated with (if any)
 - `content`: a map consisting of alternate representations of the `content` property with the key being it's mimetype. Currently the only alternate representation supported is `text/plain`
 - `spoiler_text`: a map consisting of alternate representations of the `spoiler_text` property with the key being it's mimetype. Currently the only alternate representation supported is `text/plain`
 
@@ -52,3 +52,10 @@ Has these additional fields under the `pleroma` object:
 Additional parameters can be added to the JSON body/Form data:
 
 - `preview`: boolean, if set to `true` the post won't be actually posted, but the status entitiy would still be rendered back. This could be useful for previewing rich text/custom emoji, for example.
+
+## Authentication
+
+Pleroma has support refresh token.
+
+`POST /oauth/token`
+Post here request with grant_type=refresh_token to obtain new access token. Returns an access token.
