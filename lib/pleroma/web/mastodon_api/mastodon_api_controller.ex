@@ -4,13 +4,13 @@
 
 defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   use Pleroma.Web, :controller
-
   alias Ecto.Changeset
   alias Pleroma.Activity
   alias Pleroma.Config
   alias Pleroma.Filter
   alias Pleroma.Notification
   alias Pleroma.Object
+  alias Pleroma.Object.Fetcher
   alias Pleroma.Pagination
   alias Pleroma.Repo
   alias Pleroma.ScheduledActivity
@@ -338,7 +338,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def get_status(%{assigns: %{user: user}} = conn, %{"id" => id}) do
-    with %Activity{} = activity <- Activity.get_by_id(id),
+    with %Activity{} = activity <- Activity.get_by_id_with_object(id),
          true <- Visibility.visible_for_user?(activity, user) do
       conn
       |> put_view(StatusView)
@@ -487,7 +487,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def reblog_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
-    with {:ok, announce, _activity} <- CommonAPI.repeat(ap_id_or_id, user) do
+    with {:ok, announce, _activity} <- CommonAPI.repeat(ap_id_or_id, user),
+         %Activity{} = announce <- Activity.normalize(announce.data) do
       conn
       |> put_view(StatusView)
       |> try_render("status.json", %{activity: announce, for: user, as: :activity})
@@ -496,7 +497,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def unreblog_status(%{assigns: %{user: user}} = conn, %{"id" => ap_id_or_id}) do
     with {:ok, _unannounce, %{data: %{"id" => id}}} <- CommonAPI.unrepeat(ap_id_or_id, user),
-         %Activity{} = activity <- Activity.get_create_by_object_ap_id(id) do
+         %Activity{} = activity <- Activity.get_create_by_object_ap_id_with_object(id) do
       conn
       |> put_view(StatusView)
       |> try_render("status.json", %{activity: activity, for: user, as: :activity})
@@ -543,10 +544,11 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def bookmark_status(%{assigns: %{user: user}} = conn, %{"id" => id}) do
-    with %Activity{} = activity <- Activity.get_by_id(id),
+    with %Activity{} = activity <- Activity.get_by_id_with_object(id),
+         %Object{} = object <- Object.normalize(activity),
          %User{} = user <- User.get_by_nickname(user.nickname),
          true <- Visibility.visible_for_user?(activity, user),
-         {:ok, user} <- User.bookmark(user, activity.data["object"]["id"]) do
+         {:ok, user} <- User.bookmark(user, object.data["id"]) do
       conn
       |> put_view(StatusView)
       |> try_render("status.json", %{activity: activity, for: user, as: :activity})
@@ -554,10 +556,11 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def unbookmark_status(%{assigns: %{user: user}} = conn, %{"id" => id}) do
-    with %Activity{} = activity <- Activity.get_by_id(id),
+    with %Activity{} = activity <- Activity.get_by_id_with_object(id),
+         %Object{} = object <- Object.normalize(activity),
          %User{} = user <- User.get_by_nickname(user.nickname),
          true <- Visibility.visible_for_user?(activity, user),
-         {:ok, user} <- User.unbookmark(user, activity.data["object"]["id"]) do
+         {:ok, user} <- User.unbookmark(user, object.data["id"]) do
       conn
       |> put_view(StatusView)
       |> try_render("status.json", %{activity: activity, for: user, as: :activity})
@@ -681,7 +684,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def favourited_by(conn, %{"id" => id}) do
-    with %Activity{data: %{"object" => %{"likes" => likes}}} <- Activity.get_by_id(id) do
+    with %Activity{data: %{"object" => object}} <- Repo.get(Activity, id),
+         %Object{data: %{"likes" => likes}} <- Object.normalize(object) do
       q = from(u in User, where: u.ap_id in ^likes)
       users = Repo.all(q)
 
@@ -694,7 +698,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def reblogged_by(conn, %{"id" => id}) do
-    with %Activity{data: %{"object" => %{"announcements" => announces}}} <- Activity.get_by_id(id) do
+    with %Activity{data: %{"object" => object}} <- Repo.get(Activity, id),
+         %Object{data: %{"announcements" => announces}} <- Object.normalize(object) do
       q = from(u in User, where: u.ap_id in ^announces)
       users = Repo.all(q)
 
@@ -817,27 +822,13 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   def follow(%{assigns: %{user: follower}} = conn, %{"id" => id}) do
     with {_, %User{} = followed} <- {:followed, User.get_cached_by_id(id)},
          {_, true} <- {:followed, follower.id != followed.id},
-         false <- User.following?(follower, followed),
-         {:ok, follower, followed, _} <- CommonAPI.follow(follower, followed) do
+         {:ok, follower} <- MastodonAPI.follow(follower, followed, conn.params) do
       conn
       |> put_view(AccountView)
       |> render("relationship.json", %{user: follower, target: followed})
     else
       {:followed, _} ->
         {:error, :not_found}
-
-      true ->
-        followed = User.get_cached_by_id(id)
-
-        {:ok, follower} =
-          case conn.params["reblogs"] do
-            true -> CommonAPI.show_reblogs(follower, followed)
-            false -> CommonAPI.hide_reblogs(follower, followed)
-          end
-
-        conn
-        |> put_view(AccountView)
-        |> render("relationship.json", %{user: follower, target: followed})
 
       {:error, message} ->
         conn
@@ -997,7 +988,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   def status_search(user, query) do
     fetched =
       if Regex.match?(~r/https?:/, query) do
-        with {:ok, object} <- ActivityPub.fetch_object_from_id(query),
+        with {:ok, object} <- Fetcher.fetch_object_from_id(query),
              %Activity{} = activity <- Activity.get_create_by_object_ap_id(object.data["id"]),
              true <- Visibility.visible_for_user?(activity, user) do
           [activity]
@@ -1008,13 +999,13 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
     q =
       from(
-        a in Activity,
+        [a, o] in Activity.with_preloaded_object(Activity),
         where: fragment("?->>'type' = 'Create'", a.data),
         where: "https://www.w3.org/ns/activitystreams#Public" in a.recipients,
         where:
           fragment(
-            "to_tsvector('english', ?->'object'->>'content') @@ plainto_tsquery('english', ?)",
-            a.data,
+            "to_tsvector('english', ?->>'content') @@ plainto_tsquery('english', ?)",
+            o.data,
             ^query
           ),
         limit: 20,

@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - A [job queue](https://git.pleroma.social/pleroma/pleroma_job_queue) for federation, emails, web push, etc.
 - [Prometheus](https://prometheus.io/) metrics
 - Support for Mastodon's remote interaction
+- Mix Tasks: `mix pleroma.database remove_embedded_objects`
 - Federation: Support for reports
 - Configuration: `safe_dm_mentions` option
 - Configuration: `link_name` option
@@ -67,10 +68,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - MediaProxy: Parse name from content disposition headers even for non-whitelisted types
 - MediaProxy: S3 link encoding
 - Rich Media: Reject any data which cannot be explicitly encoded into JSON
+- Pleroma API: Importing follows from Mastodon 2.8+
 - Mastodon API: `/api/v1/favourites` serving only public activities
 - Mastodon API: Reblogs having `in_reply_to_id` - `null` even when they are replies
 - Mastodon API: Streaming API broadcasting wrong activity id
 - Mastodon API: 500 errors when requesting a card for a private conversation
+- Mastodon API: Handling of `reblogs` in `/api/v1/accounts/:id/follow`
+- Mastodon API: Correct `reblogged`, `favourited`, and `bookmarked` values in the reblog status JSON
 
 ## [0.9.9999] - 2019-04-05
 ### Security
