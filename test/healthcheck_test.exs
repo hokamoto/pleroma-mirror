@@ -3,12 +3,9 @@ defmodule Pleroma.HealthcheckTest do
   alias Pleroma.Healthcheck
 
   test "system_info/0" do
-    db_info = %Healthcheck{active: 1, idle: 0, pool_size: 1, healthy: false}
+    result = Healthcheck.system_info() |> Map.from_struct()
 
-    result = Healthcheck.system_info()
-
-    refute result.healthy
-    assert Map.delete(db_info, :memory_used) == Map.delete(result, :memory_used)
+    assert Map.keys(result) == [:active, :healthy, :idle, :memory_used, :pool_size]
   end
 
   describe "check_health/1" do
