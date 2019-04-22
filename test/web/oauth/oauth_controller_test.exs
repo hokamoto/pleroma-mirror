@@ -719,6 +719,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
   describe "POST /oauth/token - refresh token" do
     setup do
       oauth_token_config = Pleroma.Config.get(@oauth_config_path)
+
       on_exit(fn ->
         Pleroma.Config.get(@oauth_config_path, oauth_token_config)
       end)
