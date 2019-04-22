@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - ActivityPub C2S: OAuth endpoints
 - Metadata RelMe provider
 - OAuth 2.0: added support a refresh token
+- Emoji packs and emoji pack manager
 
 ### Changed
 - **Breaking:** Configuration: move from Pleroma.Mailer to Pleroma.Emails.Mailer
@@ -51,6 +52,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Mastodon API: Remove attachment limit in the Status entity
 - Deps: Updated Cowboy to 2.6
 - Deps: Updated Ecto to 3.0.7
+- Don't ship finmoji by default, they can be installed as an emoji pack
 
 ### Fixed
 - Followers counter not being updated when a follower is blocked
