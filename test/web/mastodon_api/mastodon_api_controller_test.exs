@@ -2165,6 +2165,20 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
       assert json_response(conn, 403) == %{"error" => "Can't get favorites"}
     end
+
+    test "hides favorites for new users by default", %{conn: conn, current_user: current_user} do
+      user = insert(:user)
+      activity = insert(:note_activity)
+      CommonAPI.favorite(activity.id, user)
+
+      conn =
+        conn
+        |> assign(:user, current_user)
+        |> get("/api/v1/pleroma/accounts/#{user.id}/favourites")
+
+      assert user.info.hide_favorites
+      assert json_response(conn, 403) == %{"error" => "Can't get favorites"}
+    end
   end
 
   describe "updating credentials" do
