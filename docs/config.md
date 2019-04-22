@@ -87,7 +87,6 @@ config :pleroma, Pleroma.Emails.Mailer,
 * `quarantined_instances`: List of ActivityPub instances where private(DMs, followers-only) activities will not be send.
 * `managed_config`: Whenether the config for pleroma-fe is configured in this config or in ``static/config.json``
 * `allowed_post_formats`: MIME-type list of formats allowed to be posted (transformed into HTML)
-* `finmoji_enabled`: Whenether to enable the finmojis in the custom emojis.
 * `mrf_transparency`: Make the content of your Message Rewrite Facility settings public (via nodeinfo).
 * `scope_copy`: Copy the scope (private/unlisted/public) in replies to posts by default.
 * `subject_line_behavior`: Allows changing the default behaviour of subject lines in replies. Valid values:
@@ -343,9 +342,10 @@ This config contains two queues: `federator_incoming` and `federator_outgoing`. 
 * `max_retries`: The maximum number of times a federation job is retried
 
 ## Pleroma.Web.Metadata
-* `providers`: a list of metadata providers to enable. Providers availible:
+* `providers`: a list of metadata providers to enable. Providers available:
   * Pleroma.Web.Metadata.Providers.OpenGraph
   * Pleroma.Web.Metadata.Providers.TwitterCard
+  * Pleroma.Web.Metadata.Providers.RelMe - add links from user bio with rel=me into the `<header>` as `<link rel=me>`
 * `unfurl_nsfw`: If set to `true` nsfw attachments will be shown in previews
 
 ## :rich_media
