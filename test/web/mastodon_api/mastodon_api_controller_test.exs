@@ -1021,6 +1021,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       user1 = insert(:user)
       user2 = insert(:user)
       user3 = insert(:user)
+      CommonAPI.favorite(activity.id, user2)
+      {:ok, user2} = User.bookmark(user2, activity.data["object"]["id"])
       {:ok, reblog_activity1, _object} = CommonAPI.repeat(activity.id, user1)
       {:ok, _, _object} = CommonAPI.repeat(activity.id, user2)
 
@@ -1031,7 +1033,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
       assert %{
                "reblog" => %{"id" => id, "reblogged" => false, "reblogs_count" => 2},
-               "reblogged" => false
+               "reblogged" => false,
+               "favourited" => false,
+               "bookmarked" => false
              } = json_response(conn_res, 200)
 
       conn_res =
@@ -1041,7 +1045,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
       assert %{
                "reblog" => %{"id" => id, "reblogged" => true, "reblogs_count" => 2},
-               "reblogged" => true
+               "reblogged" => true,
+               "favourited" => true,
+               "bookmarked" => true
              } = json_response(conn_res, 200)
 
       assert to_string(activity.id) == id
@@ -1618,6 +1624,44 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
     assert %{"id" => id} = json_response(conn, 200)
     assert id == to_string(other_user.id)
+  end
+
+  test "following without reblogs" do
+    follower = insert(:user)
+    followed = insert(:user)
+    other_user = insert(:user)
+
+    conn =
+      build_conn()
+      |> assign(:user, follower)
+      |> post("/api/v1/accounts/#{followed.id}/follow?reblogs=false")
+
+    assert %{"showing_reblogs" => false} = json_response(conn, 200)
+
+    {:ok, activity} = CommonAPI.post(other_user, %{"status" => "hey"})
+    {:ok, reblog, _} = CommonAPI.repeat(activity.id, followed)
+
+    conn =
+      build_conn()
+      |> assign(:user, User.get_cached_by_id(follower.id))
+      |> get("/api/v1/timelines/home")
+
+    assert [] == json_response(conn, 200)
+
+    conn =
+      build_conn()
+      |> assign(:user, follower)
+      |> post("/api/v1/accounts/#{followed.id}/follow?reblogs=true")
+
+    assert %{"showing_reblogs" => true} = json_response(conn, 200)
+
+    conn =
+      build_conn()
+      |> assign(:user, User.get_cached_by_id(follower.id))
+      |> get("/api/v1/timelines/home")
+
+    expected_activity_id = reblog.id
+    assert [%{"id" => ^expected_activity_id}] = json_response(conn, 200)
   end
 
   test "following / unfollowing errors" do
