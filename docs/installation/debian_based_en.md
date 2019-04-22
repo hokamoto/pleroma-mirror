@@ -189,14 +189,14 @@ sudo -Hu pleroma MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress
 
 #### Further reading
 
-* [Admin tasks](Admin tasks)
-* [Backup your instance](Backup-your-instance)
-* [Configuration tips](General tips for customizing pleroma fe)
-* [Hardening your instance](Hardening-your-instance)
-* [How to activate mediaproxy](How-to-activate-mediaproxy)
-* [Small Pleroma-FE customizations](Small customizations)
-* [Updating your instance](Updating-your-instance)
+* _Admin tasks_
+* [Backup your instance](https://docs-develop.pleroma.social/backup.html)
+* [Configuration tips](https://docs-develop.pleroma.social/general-tips-for-customizing-pleroma-fe.html)
+* _Hardening your instance_
+* [How to activate mediaproxy](https://docs-develop.pleroma.social/howto_mediaproxy.html)
+* [Small Pleroma-FE customizations](https://docs-develop.pleroma.social/small_customizations.html)
+* [Updating your instance](https://docs-develop.pleroma.social/updating.html)
 
 ## Questions
 
-Questions about the installation or didn’t it work as it should be, ask in [#pleroma:matrix.org](https://matrix.heldscal.la/#/room/#freenode_#pleroma:matrix.org) or IRC Channel **#pleroma** on **Freenode**.
+Questions about the installation or didn’t it work as it should be, ask in [#pleroma:matrix.org](https://matrix.heldscal.la/#/room/#freenode_#pleroma:matrix.org) or IRC Channel **#pleroma** on **[Freenode](https://freenode.net/)**.
