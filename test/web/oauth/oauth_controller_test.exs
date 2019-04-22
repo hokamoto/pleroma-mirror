@@ -805,6 +805,26 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert new_token.app_id == app.id
     end
 
+    test "returns 400 if we try use access token" do
+      user = insert(:user)
+      app = insert(:oauth_app, scopes: ["read", "write"])
+
+      {:ok, auth} = Authorization.create_authorization(app, user, ["write"])
+      {:ok, token} = Token.exchange_token(app, auth)
+
+      response =
+        build_conn()
+        |> post("/oauth/token", %{
+          "grant_type" => "refresh_token",
+          "refresh_token" => token.token,
+          "client_id" => app.client_id,
+          "client_secret" => app.client_secret
+        })
+        |> json_response(400)
+
+      assert %{"error" => "Invalid credentials"} == response
+    end
+
     test "returns 400 if refresh_token invalid" do
       app = insert(:oauth_app, scopes: ["read", "write"])
 
