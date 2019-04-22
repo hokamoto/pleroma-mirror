@@ -1,7 +1,7 @@
 # Pleromaの入れ方
 ## 日本語訳について
 
-この記事は [Installing on Debian based distributions](Installing on Debian based distributions) の日本語訳です。何かがおかしいと思ったら、原文を見てください。
+この記事は [Installing on Debian based distributions](https://docs-develop.pleroma.social/debian_based_en.html) の日本語訳です。何かがおかしいと思ったら、原文を見てください。
 
 ## インストール
 
@@ -9,18 +9,21 @@
 
 ### 必要なソフトウェア
 
-- PostgreSQL 9.6+ (postgresql-contrib-9.6 または他のバージョンの PSQL をインストールしてください)
-- Elixir 1.5 以上 ([Debianのリポジトリからインストールしないこと！！！ ここからインストールすること！](https://elixir-lang.org/install.html#unix-and-unix-like))。または [asdf](https://github.com/asdf-vm/asdf) を pleroma ユーザーでインストール。
-- erlang-dev
-- erlang-tools
-- erlang-parsetools
-- erlang-xmerl (Jessieではバックポートからインストールすること！)
-- git
-- build-essential
-- openssh
-- openssl
-- nginx prefered (Apacheも動くかもしれませんが、誰もテストしていません！)
-- certbot (または何らかのACME Let's encryptクライアント)
+* `postgresql` (9.6以上。Ubuntu 16.04のPostgreSQLは9.5なので、[新しいバージョンを取得する](https://www.postgresql.org/download/linux/ubuntu/)必要がある。)
+* `postgresql-contrib` (9.6以上。同上。)
+* `elixir` (1.5以上。[DebianとUbuntuのパッケージは古いので、ここからインストールすること](https://elixir-lang.org/install.html#unix-and-unix-like)。または、[asdf](https://github.com/asdf-vm/asdf)をpleromaユーザーで使うこと。)
+* `erlang-dev`
+* `erlang-tools`
+* `erlang-parsetools`
+* `erlang-eldap`
+* `erlang-xmerl`
+* `git`
+* `build-essential`
+
+#### オプションのパッケージ
+
+* `nginx` (推奨。他のリバースプロクシの設定の雛形も用意されている。)
+* `certbot` (または他のACMEクライアント。)
 
 ### システムを準備する
 
@@ -173,19 +176,19 @@ mix set_moderator username [true|false]
 
 モデレーターはすべてのポストを消すことができます。将来的には他のことも可能になるかもしれません。
 
-#### メディアプロクシを有効にする
+#### 他の文書
 
-`generate_config` でメディアプロクシを有効にしているなら、すでにメディアプロクシが動作しています。あとから設定を変更したいなら、[How to activate mediaproxy](How-to-activate-mediaproxy) を見てください。
-
-#### コンフィギュレーションとカスタマイズ
-
-* [Configuration tips](General tips for customizing pleroma fe)
-* [Small Pleroma-FE customizations](Small customizations)
-* [Admin tasks](Admin tasks)
+* _Admin tasks_
+* [Backup your instance](https://docs-develop.pleroma.social/backup.html)
+* [Configuration tips](https://docs-develop.pleroma.social/general-tips-for-customizing-pleroma-fe.html)
+* _Hardening your instance_
+* [How to activate mediaproxy](https://docs-develop.pleroma.social/howto_mediaproxy.html)
+* [Small Pleroma-FE customizations](https://docs-develop.pleroma.social/small_customizations.html)
+* [Updating your instance](https://docs-develop.pleroma.social/updating.html)
 
 ## 質問ある？
 
 インストールについて質問がある、もしくは、うまくいかないときは、以下のところで質問できます。
 
 * [#pleroma:matrix.org](https://matrix.heldscal.la/#/room/#freenode_#pleroma:matrix.org)
-* **Freenode** の **#pleroma** IRCチャンネル
+* **[Freenode](https://freenode.net/)** の **#pleroma** IRCチャンネル
