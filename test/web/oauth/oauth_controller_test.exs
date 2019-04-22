@@ -12,6 +12,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.Token
 
+  @oauth_config_path [:oauth2, :issue_new_refresh_token]
   @session_opts [
     store: :cookie,
     key: "_test",
@@ -716,9 +717,15 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
   end
 
   describe "POST /oauth/token - refresh token" do
+    setup do
+      oauth_token_config = Pleroma.Config.get(@oauth_config_path)
+      on_exit(fn ->
+        Pleroma.Config.get(@oauth_config_path, oauth_token_config)
+      end)
+    end
+
     test "issues a new access token with keep fresh token" do
-      config_path = [:oauth2, :issue_new_refresh_token]
-      Pleroma.Config.put(config_path, true)
+      Pleroma.Config.put(@oauth_config_path, true)
       user = insert(:user)
       app = insert(:oauth_app, scopes: ["read", "write"])
 
@@ -755,11 +762,10 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert new_token.scopes == auth.scopes
       assert new_token.user_id == user.id
       assert new_token.app_id == app.id
-
-      Pleroma.Config.put(config_path, false)
     end
 
     test "issues a new access token with new fresh token" do
+      Pleroma.Config.put(@oauth_config_path, false)
       user = insert(:user)
       app = insert(:oauth_app, scopes: ["read", "write"])
 

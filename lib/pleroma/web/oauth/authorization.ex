@@ -69,7 +69,7 @@ defmodule Pleroma.Web.OAuth.Authorization do
   @spec get_for(App.t(), map()) :: {:ok, t()} | {:error, :not_found}
   def get_for(%App{id: app_id} = _app, %{token: token}) do
     from(t in __MODULE__, where: t.app_id == ^app_id and t.token == ^token)
-    |> get_for
+    |> get_for()
   end
 
   def get_for(_, _), do: {:error, :not_found}
