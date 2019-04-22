@@ -25,6 +25,14 @@ defmodule Pleroma.Repo do
   """
   @spec get_assoc(struct(), atom()) :: {:ok, struct()} | {:error, :not_found}
   def get_assoc(model, association) do
+    case Map.get(model, association) do
+      %Ecto.Association.NotLoaded{} -> load_assoc(model, association)
+      nil -> {:error, :not_found}
+      assoc -> {:ok, assoc}
+    end
+  end
+
+  defp load_assoc(model, association) do
     case __MODULE__.one(Ecto.assoc(model, association)) do
       nil -> {:error, :not_found}
       association -> {:ok, association}
