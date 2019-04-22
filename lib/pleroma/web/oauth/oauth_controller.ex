@@ -161,7 +161,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     with %App{} = app <- get_app_from_request(conn, params),
          fixed_token = Token.Utils.fix_padding(params["code"]),
          {:ok, auth} <- Authorization.get_for(app, %{token: fixed_token}),
-         %User{} = user <- User.get_by_id(auth.user_id),
+         %User{} = user <- User.get_cached_by_id(auth.user_id),
          {:ok, token} <- Token.exchange_token(app, auth) do
       response_attrs = %{created_at: Token.Utils.format_created_at(token)}
 

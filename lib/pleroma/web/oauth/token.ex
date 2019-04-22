@@ -61,7 +61,11 @@ defmodule Pleroma.Web.OAuth.Token do
   def exchange_token(app, auth) do
     with {:ok, auth} <- Authorization.use_token(auth),
          true <- auth.app_id == app.id do
-      create_token(app, User.get_by_id(auth.user_id), %{scopes: auth.scopes})
+      create_token(
+        app,
+        User.get_cached_by_id(auth.user_id),
+        %{scopes: auth.scopes}
+      )
     end
   end
 
