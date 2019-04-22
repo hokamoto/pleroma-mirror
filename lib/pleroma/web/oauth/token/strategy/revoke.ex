@@ -9,8 +9,8 @@ defmodule Pleroma.Web.OAuth.Token.Strategy.Revoke do
 
   @doc "Finds and revokes access token for app and by token"
   @spec revoke(App.t(), map()) :: {:ok, Token.t()} | {:error, :not_found | Ecto.Changeset.t()}
-  def revoke(%App{} = app, %{"token" => _token} = attrs) do
-    with {:ok, token} <- Token.get_for(app, attrs),
+  def revoke(%App{} = app, %{"token" => token} = _attrs) do
+    with {:ok, token} <- Token.get_by_token(app, token),
          do: revoke(token)
   end
 

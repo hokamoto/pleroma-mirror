@@ -28,26 +28,22 @@ defmodule Pleroma.Web.OAuth.Token do
     timestamps()
   end
 
-  @doc "Gets token for app by opts"
-  @spec get_for(App.t(), map()) :: {:ok, t()} | {:error, :not_found}
-  def get_for(%App{id: app_id} = _app, %{"token" => token} = _opts) do
-    from(
-      t in __MODULE__,
-      where: t.app_id == ^app_id and t.token == ^token
-    )
-    |> get_for
+  @doc "Gets token for app by access token"
+  @spec get_by_token(App.t(), String.t()) :: {:ok, t()} | {:error, :not_found}
+  def get_by_token(%App{id: app_id} = _app, token) do
+    from(t in __MODULE__, where: t.app_id == ^app_id and t.token == ^token)
+    |> get_for()
   end
 
-  def get_for(%App{id: app_id} = _app, %{"refresh_token" => token} = _opts) do
-    from(
-      t in __MODULE__,
+  @doc "Gets token for app by refresh token"
+  @spec get_by_refresh_token(App.t(), String.t()) :: {:ok, t()} | {:error, :not_found}
+  def get_by_refresh_token(%App{id: app_id} = _app, token) do
+    from(t in __MODULE__,
       where: t.app_id == ^app_id and t.refresh_token == ^token,
       preload: [:user]
     )
-    |> get_for
+    |> get_for()
   end
-
-  def get_for(_, _), do: {:error, :not_found}
 
   @doc "gets token by query"
   @spec get_for(Ecto.Query.t()) :: {:ok, __MODULE__.t()} | {:error, :not_found}

@@ -143,9 +143,12 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   end
 
   @doc "Renew access_token with refresh_token"
-  def token_exchange(conn, %{"grant_type" => "refresh_token"} = params) do
+  def token_exchange(
+        conn,
+        %{"grant_type" => "refresh_token", "refresh_token" => token} = params
+      ) do
     with %App{} = app <- get_app_from_request(conn, params),
-         {:ok, %{user: user} = token} <- Token.get_for(app, params),
+         {:ok, %{user: user} = token} <- Token.get_by_refresh_token(app, token),
          {:ok, token} <- RefreshToken.grant(token) do
       response_attrs = %{created_at: Token.Utils.format_created_at(token)}
 
