@@ -27,8 +27,8 @@ defmodule Pleroma.Repo do
   def get_assoc(model, association) do
     case Map.get(model, association) do
       %Ecto.Association.NotLoaded{} -> load_assoc(model, association)
-      nil -> {:error, :not_found}
-      assoc -> {:ok, assoc}
+      %{__struct__: _} = assoc -> {:ok, assoc}
+      _ -> {:error, :not_found}
     end
   end
 
