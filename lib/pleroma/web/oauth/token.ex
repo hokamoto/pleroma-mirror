@@ -32,7 +32,7 @@ defmodule Pleroma.Web.OAuth.Token do
   @spec get_by_token(App.t(), String.t()) :: {:ok, t()} | {:error, :not_found}
   def get_by_token(%App{id: app_id} = _app, token) do
     from(t in __MODULE__, where: t.app_id == ^app_id and t.token == ^token)
-    |> get_for()
+    |> Repo.find_resource()
   end
 
   @doc "Gets token for app by refresh token"
@@ -42,16 +42,7 @@ defmodule Pleroma.Web.OAuth.Token do
       where: t.app_id == ^app_id and t.refresh_token == ^token,
       preload: [:user]
     )
-    |> get_for()
-  end
-
-  @doc "gets token by query"
-  @spec get_for(Ecto.Query.t()) :: {:ok, __MODULE__.t()} | {:error, :not_found}
-  def get_for(%Ecto.Query{} = query) do
-    case Repo.one(query) do
-      %__MODULE__{} = token -> {:ok, token}
-      _ -> {:error, :not_found}
-    end
+    |> Repo.find_resource()
   end
 
   def exchange_token(app, auth) do
