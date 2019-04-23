@@ -50,6 +50,8 @@ defmodule Pleroma.Activity do
     # typical case.
     has_one(:object, Object, on_delete: :nothing, foreign_key: :id)
 
+    belongs_to(:conversation, Pleroma.Conversation)
+
     timestamps()
   end
 
@@ -290,5 +292,12 @@ defmodule Pleroma.Activity do
       {1, [activity]} -> activity
       _ -> {:error, "Not found"}
     end
+  end
+
+  @spec set_conversation_id!(t(), integer()) :: t() | no_return()
+  def set_conversation_id!(activity, conversation_id) do
+    activity
+    |> Ecto.Changeset.change(conversation_id: conversation_id)
+    |> Repo.update!()
   end
 end

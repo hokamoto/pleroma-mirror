@@ -14,6 +14,7 @@ defmodule Pleroma.Conversation do
     field(:ap_id, :string)
     has_many(:participations, Participation)
     has_many(:users, through: [:participations, :user])
+    has_many(:activities, Pleroma.Activity)
 
     timestamps()
   end

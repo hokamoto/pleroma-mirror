@@ -229,6 +229,42 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       assert is_binary(activity.data["object"]["id"])
       assert %Object{} = Object.get_by_ap_id(activity.data["object"]["id"])
     end
+
+    test "Adds conversation_id when type of activity is Note" do
+      user = insert(:user)
+
+      data = %{
+        "actor" => user.ap_id,
+        "to" => [],
+        "type" => "Create",
+        "object" => %{
+          "actor" => user.ap_id,
+          "to" => [],
+          "type" => "Note",
+          "content" => "hey"
+        }
+      }
+
+      {:ok, %Activity{} = activity} = ActivityPub.insert(data)
+      assert activity.conversation_id
+      assert Pleroma.Conversation.get_for_ap_id(activity.data["context"])
+    end
+
+    test "Doesn't add conversation_id when type of activity is not Note" do
+      user1 = insert(:user)
+      user2 = insert(:user)
+
+      data = %{
+        "actor" => user1.ap_id,
+        "object" => user2.ap_id,
+        "to" => [user2.ap_id],
+        "type" => "Follow"
+      }
+
+      {:ok, %Activity{} = activity} = ActivityPub.insert(data)
+      refute activity.conversation_id
+      refute Pleroma.Conversation.get_for_ap_id(activity.data["context"])
+    end
   end
 
   describe "create activities" do

@@ -131,6 +131,15 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
           recipients: recipients
         })
 
+      activity =
+        case Conversation.create_or_bump_for(activity) do
+          %Conversation{id: conversation_id} ->
+            Activity.set_conversation_id!(activity, conversation_id)
+
+          _ ->
+            activity
+        end
+
       # Splice in the child object if we have one.
       activity =
         if !is_nil(object) do
@@ -144,7 +153,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       end)
 
       Notification.create_notifications(activity)
-      Conversation.create_or_bump_for(activity)
+
       stream_out(activity)
       {:ok, activity}
     else
