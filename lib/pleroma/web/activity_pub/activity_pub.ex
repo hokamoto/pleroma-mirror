@@ -7,6 +7,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   alias Pleroma.Instances
   alias Pleroma.Notification
   alias Pleroma.Object
+  alias Pleroma.Object.Fetcher
   alias Pleroma.Pagination
   alias Pleroma.Question
   alias Pleroma.Repo
@@ -15,7 +16,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   alias Pleroma.Web.ActivityPub.MRF
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.Federator
-  alias Pleroma.Web.OStatus
   alias Pleroma.Web.WebFinger
 
   import Ecto.Query
@@ -96,7 +96,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         "type" => "Create"
       }) do
     if is_public?(object) do
-      Activity.increase_replies_count(reply_ap_id)
       Object.increase_replies_count(reply_ap_id)
     end
   end
@@ -107,7 +106,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         data: %{"inReplyTo" => reply_ap_id} = object
       }) do
     if is_public?(object) do
-      Activity.decrease_replies_count(reply_ap_id)
       Object.decrease_replies_count(reply_ap_id)
     end
   end
@@ -122,7 +120,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
          {:ok, map} <- MRF.filter(map),
          {recipients, _, _} = get_recipients(map),
          {:fake, false, map, recipients} <- {:fake, fake, map, recipients},
-         {:ok, object} <- insert_full_object(map) do
+         {:ok, map, object} <- insert_full_object(map) do
       {:ok, activity} =
         Repo.insert(%Activity{
           data: map,
@@ -167,10 +165,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     end
   end
 
-  def maybe_stream_out(%{data: %{"type" => type}})
-      when type not in ["Announce", "Delete", "Create"],
-      do: :noop
-
   def maybe_stream_out(%{data: %{"type" => type}} = activity)
       when type in ["Announce", "Delete", "Create"] do
     stream_out(activity)
@@ -180,6 +174,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp stream_out(activity) do
     public = "https://www.w3.org/ns/activitystreams#Public"
+    object = Object.normalize(activity)
 
     Pleroma.Web.Streamer.stream("user", activity)
     Pleroma.Web.Streamer.stream("list", activity)
@@ -192,12 +187,12 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       end
 
       if activity.data["type"] in ["Create"] do
-        activity.data["object"]
+        object.data
         |> Map.get("tag", [])
         |> Enum.filter(fn tag -> is_bitstring(tag) end)
         |> Enum.each(fn tag -> Pleroma.Web.Streamer.stream("hashtag:" <> tag, activity) end)
 
-        if activity.data["object"]["attachment"] != [] do
+        if object.data["attachment"] != [] do
           Pleroma.Web.Streamer.stream("public:media", activity)
 
           if activity.local do
@@ -238,7 +233,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   end
 
   defp is_answer_activity(params) do
-    Activity.get_by_ap_id(get_in(params, [:object, "inReplyTo"]))
+    Object.get_by_id(get_in(params, [:object, "inReplyTo"]))
     |> Question.is_question()
   end
 
@@ -274,11 +269,28 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   defp create_answer(
          %{
            object: %{"inReplyTo" => in_reply_to, "options" => choices},
-           actor: %{ap_id: ap_id}
-         },
-         _fake
+           actor: %{ap_id: actor}
+         } = params,
+         fake
        ) do
-    with {:ok, activity} <- Question.add_reply_by_ap_id(in_reply_to, choices, ap_id) do
+    question = Object.get_by_id(in_reply_to)
+    additional = params[:additional] || %{}
+    local = !(params[:local] == false)
+
+    with answer_data <-
+           make_answer_data(
+             %{
+               to: params[:to],
+               actor: params[:actor],
+               context: params[:context],
+               question: question,
+               in_reply_to: in_reply_to,
+               choices: choices
+             },
+             additional
+           ),
+         {:ok, _object} <- Question.add_reply_by_id(in_reply_to, choices, actor),
+         {:ok, activity} <- insert(answer_data, local, fake) do
       {:ok, activity}
     end
   end
@@ -661,37 +673,49 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp restrict_since(query, _), do: query
 
+  defp restrict_tag_reject(_query, %{"tag_reject" => _tag_reject, "skip_preload" => true}) do
+    raise "Can't use the child object without preloading!"
+  end
+
   defp restrict_tag_reject(query, %{"tag_reject" => tag_reject})
        when is_list(tag_reject) and tag_reject != [] do
     from(
-      activity in query,
-      where: fragment(~s(\(not \(? #> '{"object","tag"}'\) \\?| ?\)), activity.data, ^tag_reject)
+      [_activity, object] in query,
+      where: fragment("not (?)->'tag' \\?| (?)", object.data, ^tag_reject)
     )
   end
 
   defp restrict_tag_reject(query, _), do: query
 
+  defp restrict_tag_all(_query, %{"tag_all" => _tag_all, "skip_preload" => true}) do
+    raise "Can't use the child object without preloading!"
+  end
+
   defp restrict_tag_all(query, %{"tag_all" => tag_all})
        when is_list(tag_all) and tag_all != [] do
     from(
-      activity in query,
-      where: fragment(~s(\(? #> '{"object","tag"}'\) \\?& ?), activity.data, ^tag_all)
+      [_activity, object] in query,
+      where: fragment("(?)->'tag' \\?& (?)", object.data, ^tag_all)
     )
   end
 
   defp restrict_tag_all(query, _), do: query
 
+  defp restrict_tag(_query, %{"tag" => _tag, "skip_preload" => true}) do
+    raise "Can't use the child object without preloading!"
+  end
+
   defp restrict_tag(query, %{"tag" => tag}) when is_list(tag) do
     from(
-      activity in query,
-      where: fragment(~s(\(? #> '{"object","tag"}'\) \\?| ?), activity.data, ^tag)
+      [_activity, object] in query,
+      where: fragment("(?)->'tag' \\?| (?)", object.data, ^tag)
     )
   end
 
   defp restrict_tag(query, %{"tag" => tag}) when is_binary(tag) do
     from(
-      activity in query,
-      where: fragment(~s(? <@ (? #> '{"object","tag"}'\)), ^tag, activity.data)
+      [_activity, object] in query,
+      where: fragment("(?)->'tag' \\? (?)", object.data, ^tag)
     )
   end
 
@@ -756,10 +780,14 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp restrict_favorited_by(query, _), do: query
 
+  defp restrict_media(_query, %{"only_media" => _val, "skip_preload" => true}) do
+    raise "Can't use the child object without preloading!"
+  end
+
   defp restrict_media(query, %{"only_media" => val}) when val == "true" or val == "1" do
     from(
-      activity in query,
-      where: fragment(~s(not (? #> '{"object","attachment"}' = ?\)), activity.data, ^[])
+      [_activity, object] in query,
+      where: fragment("not (?)->'attachment' = (?)", object.data, ^[])
     )
   end
 
@@ -955,7 +983,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   end
 
   def fetch_and_prepare_user_from_ap_id(ap_id) do
-    with {:ok, data} <- fetch_and_contain_remote_object_from_id(ap_id) do
+    with {:ok, data} <- Fetcher.fetch_and_contain_remote_object_from_id(ap_id) do
       user_data_from_user_object(data)
     else
       e -> Logger.error("Could not decode user at fetch #{ap_id}, #{inspect(e)}")
@@ -1062,60 +1090,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       {_post_result, response} ->
         unless params[:unreachable_since], do: Instances.set_unreachable(inbox)
         {:error, response}
-    end
-  end
-
-  # TODO:
-  # This will create a Create activity, which we need internally at the moment.
-  def fetch_object_from_id(id) do
-    if object = Object.get_cached_by_ap_id(id) do
-      {:ok, object}
-    else
-      with {:ok, data} <- fetch_and_contain_remote_object_from_id(id),
-           nil <- Object.normalize(data),
-           params <- %{
-             "type" => "Create",
-             "to" => data["to"],
-             "cc" => data["cc"],
-             "actor" => data["actor"] || data["attributedTo"],
-             "object" => data
-           },
-           :ok <- Transmogrifier.contain_origin(id, params),
-           {:ok, activity} <- Transmogrifier.handle_incoming(params) do
-        {:ok, Object.normalize(activity)}
-      else
-        {:error, {:reject, nil}} ->
-          {:reject, nil}
-
-        object = %Object{} ->
-          {:ok, object}
-
-        _e ->
-          Logger.info("Couldn't get object via AP, trying out OStatus fetching...")
-
-          case OStatus.fetch_activity_from_url(id) do
-            {:ok, [activity | _]} -> {:ok, Object.normalize(activity)}
-            e -> e
-          end
-      end
-    end
-  end
-
-  def fetch_and_contain_remote_object_from_id(id) do
-    Logger.info("Fetching object #{id} via AP")
-
-    with true <- String.starts_with?(id, "http"),
-         {:ok, %{body: body, status: code}} when code in 200..299 <-
-           @httpoison.get(
-             id,
-             [{:Accept, "application/activity+json"}]
-           ),
-         {:ok, data} <- Jason.decode(body),
-         :ok <- Transmogrifier.contain_origin_from_id(id, data) do
-      {:ok, data}
-    else
-      e ->
-        {:error, e}
     end
   end
 

@@ -226,8 +226,10 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     }
 
     if in_reply_to do
+      in_reply_to_object = Object.normalize(in_reply_to.data["object"])
+
       object
-      |> Map.put("inReplyTo", in_reply_to.data["object"]["id"])
+      |> Map.put("inReplyTo", in_reply_to_object.data["id"])
     else
       object
     end
@@ -239,7 +241,8 @@ defmodule Pleroma.Web.CommonAPI.Utils do
       }) do
     %{
       object: %{"inReplyTo" => question_id, "options" => choices},
-      actor: %{ap_id: user.ap_id}
+      actor: %{ap_id: user.ap_id},
+      to: ["https://www.w3.org/ns/activitystreams#Public"]
     }
   end
 

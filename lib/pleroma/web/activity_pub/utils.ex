@@ -8,6 +8,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   alias Pleroma.Activity
   alias Pleroma.Notification
   alias Pleroma.Object
+  alias Pleroma.Question
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web
@@ -19,7 +20,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
 
   require Logger
 
-  @supported_object_types ["Article", "Note", "Video", "Page", "Question"]
+  @supported_object_types ["Article", "Note", "Video", "Page", "Question", "Collection"]
 
   # Some implementations send the actor URI as the actor field, others send the entire actor object,
   # so figure out what the actor's URI is based on what we have.
@@ -238,14 +239,18 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   @doc """
   Inserts a full object if it is contained in an activity.
   """
-  def insert_full_object(%{"object" => %{"type" => type} = object_data})
+  def insert_full_object(%{"object" => %{"type" => type} = object_data} = map)
       when is_map(object_data) and type in @supported_object_types do
     with {:ok, object} <- Object.create(object_data) do
-      {:ok, object}
+      map =
+        map
+        |> Map.put("object", object.data["id"])
+
+      {:ok, map, object}
     end
   end
 
-  def insert_full_object(_), do: {:ok, nil}
+  def insert_full_object(map), do: {:ok, map, nil}
 
   def update_object_in_activities(%{data: %{"id" => id}} = object) do
     # TODO
@@ -654,11 +659,26 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   end
 
   def make_answer_data(params, additional) do
+    choices =
+      params.choices
+      |> Enum.map(fn choice ->
+        %{
+          "type" => "Note",
+          "attributedTo" => params.actor.ap_id,
+          "inReplyTo" => params.in_reply_to,
+          "name" => Question.choice_name_by_index(params.question, choice)
+        }
+      end)
+
     %{
       "type" => "Create",
       "to" => params.to |> Enum.uniq(),
       "actor" => params.actor.ap_id,
-      "context" => params.context
+      "context" => params.context,
+      "object" => %{
+        "type" => "Collection",
+        "items" => choices
+      }
     }
     |> Map.merge(additional)
   end

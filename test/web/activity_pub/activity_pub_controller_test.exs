@@ -501,28 +501,39 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
     end
 
     test "it creates answer activity" do
-      question_activity = insert(:question_activity)
       user = insert(:user)
 
-      data = %{
+      question_data =
+        File.read!("test/fixtures/activitypub-client-question-activity.json") |> Poison.decode!()
+
+      conn =
+        build_conn()
+        |> assign(:user, user)
+        |> put_req_header("content-type", "application/activity+json")
+        |> post("/users/#{user.nickname}/outbox", question_data)
+
+      result = json_response(conn, 201)
+      question_activity = Activity.get_by_ap_id_with_object(result["id"])
+
+      answer_data = %{
         "type" => "Create",
         "to" => [question_activity.actor],
         "object" => %{
           "options" => ["1"],
-          "inReplyTo" => question_activity.data[:id]
+          "inReplyTo" => question_activity.object.id
         }
       }
 
       build_conn()
       |> assign(:user, user)
       |> put_req_header("content-type", "application/activity+json")
-      |> post("/users/#{user.nickname}/outbox", data)
+      |> post("/users/#{user.nickname}/outbox", answer_data)
 
-      question = Activity.get_by_ap_id(question_activity.data[:id])
-      reply = hd(question.data["object"]["replies"]["items"])
+      question_object = Pleroma.Object.get_by_id(question_activity.object.id)
+      reply = hd(question_object.data["replies"]["items"])
 
-      assert question.data["object"]["replies"]["totalItems"] == 1
-      assert reply["name"] == "Nay"
+      assert question_object.data["replies"]["totalItems"] == 1
+      assert reply["name"] == "Not much"
       assert reply["attributedTo"] == user.ap_id
     end
   end

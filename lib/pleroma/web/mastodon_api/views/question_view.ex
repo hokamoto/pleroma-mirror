@@ -8,23 +8,21 @@ defmodule Pleroma.Web.MastodonAPI.QuestionView do
   alias Pleroma.Question
   alias Pleroma.User
 
-  def render("show.json", %{activity: nil}), do: %{}
+  def render("show.json", %{object: nil}), do: %{}
 
   def render(
         "show.json",
         %{
-          activity: %{
+          object: %Pleroma.Object{
             id: id,
-            data: %{
-              "object" =>
-                %{
-                  "replies" => %{
-                    "items" => replies,
-                    "totalItems" => total_votes
-                  },
-                  "endTime" => expires_in
-                } = object
-            }
+            data:
+              %{
+                "replies" => %{
+                  "items" => replies,
+                  "totalItems" => total_votes
+                },
+                "endTime" => expires_in
+              } = data
           },
           user: %User{} = user
         }
@@ -32,20 +30,16 @@ defmodule Pleroma.Web.MastodonAPI.QuestionView do
     do_render("show.json", %{
       id: id,
       expires_in: expires_in,
-      multiple: Map.has_key?(object, "anyOf"),
-      poll_options: Question.options_to_array(object["anyOf"] || object["oneOf"]),
+      multiple: Map.has_key?(data, "anyOf"),
+      poll_options: Question.options_to_array(data["anyOf"] || data["oneOf"]),
       replies: replies,
       total_votes: total_votes,
       user_id: user.ap_id,
-      published: object["published"]
+      published: data["published"]
     })
   end
 
   def render("show.json", _), do: %{}
-
-  # defp do_render("show.json", %{expires_in: expires_in} = opts) when is_binary(expires_in) do
-  #   do_render("show.json", %{opts | expires_in: String.to_integer(expires_in)})
-  # end
 
   defp do_render("show.json", opts) do
     %{

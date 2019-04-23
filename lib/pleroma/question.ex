@@ -7,14 +7,15 @@ defmodule Pleroma.Question do
 
   alias Pleroma.Activity
   alias Pleroma.Config
+  alias Pleroma.Object
   alias Pleroma.Repo
 
   import Ecto.Query
 
-  def add_reply_by_ap_id(ap_id, choices, actor) do
-    with {:ok, _activity} <- add_reply(ap_id, choices, actor),
-         {:ok, activity} <- increment_total(ap_id, choices) do
-      {:ok, activity}
+  def add_reply_by_id(id, choices, actor) do
+    with {:ok, _object} <- add_reply(id, choices, actor),
+         {:ok, object} <- increment_total(id, choices) do
+      {:ok, object}
     end
   end
 
@@ -49,15 +50,15 @@ defmodule Pleroma.Question do
     options |> Enum.map(& &1["name"])
   end
 
-  defp add_reply(ap_id, choices, actor) when is_binary(ap_id) do
-    with question <- Activity.get_by_ap_id(ap_id),
+  defp add_reply(id, choices, actor) when is_binary(id) or is_integer(id) do
+    with question <- Object.get_by_id(id),
          true <- maybe_ensure_multipe(question, choices),
          true <- valid_choice_indices(question, choices),
          false <- actor_already_voted(question, actor) do
       add_reply(question, choices, actor)
     else
       _ ->
-        {:noop, ap_id}
+        {:noop, id}
     end
   end
 
@@ -71,18 +72,15 @@ defmodule Pleroma.Question do
     {:ok, question}
   end
 
-  defp add_reply(question, name, actor) when is_binary(name) do
-    from(
-      a in Activity,
-      where: fragment("(?)->>'id' = ?", a.data, ^to_string(question.data["id"]))
-    )
-    |> update([a],
+  defp add_reply(%{id: id}, name, actor) when is_binary(name) do
+    from(o in Object, where: o.id == ^to_string(id))
+    |> update([o],
       set: [
         data:
           fragment(
-            "jsonb_set(?, '{object,replies,items}', (?->'object'->'replies'->'items') || ?, true)",
-            a.data,
-            a.data,
+            "jsonb_set(?, '{replies,items}', (?->'replies'->'items') || ?, true)",
+            o.data,
+            o.data,
             ^%{"type" => "Note", "name" => name, "attributedTo" => actor}
           )
       ]
@@ -90,33 +88,64 @@ defmodule Pleroma.Question do
     |> select([u], u)
     |> Repo.update_all([])
     |> case do
-      {1, [activity]} -> {:ok, activity}
+      {1, [object]} -> {:ok, object}
       _ -> :error
     end
   end
 
+  defp increment_total(id, choices) do
+    count = length(choices)
+
+    from(o in Object, where: o.id == ^to_string(id))
+    |> update([o],
+      set: [
+        data:
+          fragment(
+            "jsonb_set(?, '{replies,totalItems}', ((?->'replies'->>'totalItems')::int + ?)::varchar::jsonb, true)",
+            o.data,
+            o.data,
+            ^count
+          )
+      ]
+    )
+    |> select([u], u)
+    |> Repo.update_all([])
+    |> case do
+      {1, [object]} -> {:ok, object}
+      _ -> :error
+    end
+  end
+
+  def choice_name_by_index(question, index) when is_binary(index) do
+    choice_name_by_index(question, String.to_integer(index))
+  end
+
   def choice_name_by_index(question, index) do
-    (question.data["object"]["anyOf"] || question.data["object"]["oneOf"])
+    (question.data["anyOf"] || question.data["oneOf"])
     |> options_to_array()
     |> Enum.at(index)
   end
 
-  defp maybe_ensure_multipe(_question, choices) when length(choices) == 1, do: true
-  defp maybe_ensure_multipe(%{data: %{"object" => %{"oneOf" => _one_of}}}, _choices), do: false
-  defp maybe_ensure_multipe(%{data: %{"object" => %{"anyOf" => _any_of}}}, _choices), do: true
+  def get_id_by_activity(%Activity{} = activity) do
+    hd(activity.object.data["items"])["inReplyTo"]
+  end
 
-  defp actor_already_voted(%{data: %{"object" => %{"replies" => %{"items" => []}}}}, _actor),
+  defp maybe_ensure_multipe(_question, choices) when length(choices) == 1, do: true
+  defp maybe_ensure_multipe(%{data: %{"oneOf" => _one_of}}, _choices), do: false
+  defp maybe_ensure_multipe(%{data: %{"anyOf" => _any_of}}, _choices), do: true
+
+  defp actor_already_voted(%{data: %{"replies" => %{"items" => []}}}, _actor),
     do: false
 
-  defp actor_already_voted(%{data: %{"object" => %{"replies" => %{"items" => replies}}}}, actor) do
+  defp actor_already_voted(%{data: %{"replies" => %{"items" => replies}}}, actor) do
     Enum.any?(replies, &(&1["attributedTo"] == actor))
   end
 
-  defp valid_choice_indices(%{data: %{"object" => %{"anyOf" => options}}}, choices) do
+  defp valid_choice_indices(%{data: %{"anyOf" => options}}, choices) do
     valid_choice_indices(options, choices)
   end
 
-  defp valid_choice_indices(%{data: %{"object" => %{"oneOf" => options}}}, choices) do
+  defp valid_choice_indices(%{data: %{"oneOf" => options}}, choices) do
     valid_choice_indices(options, choices)
   end
 
@@ -126,31 +155,6 @@ defmodule Pleroma.Question do
     |> Enum.all?(&(length(options) > &1))
   end
 
-  defp increment_total(ap_id, choices) do
-    count = length(choices)
-
-    from(a in Activity,
-      where: fragment("(?)->>'id' = ?", a.data, ^to_string(ap_id))
-    )
-    |> update([a],
-      set: [
-        data:
-          fragment(
-            "jsonb_set(?, '{object,replies,totalItems}', ((?->'object'->'replies'->>'totalItems')::int + ?)::varchar::jsonb, true)",
-            a.data,
-            a.data,
-            ^count
-          )
-      ]
-    )
-    |> select([u], u)
-    |> Repo.update_all([])
-    |> case do
-      {1, [activity]} -> {:ok, activity}
-      _ -> :error
-    end
-  end
-
-  def is_question(activity) when is_nil(activity), do: false
-  def is_question(%{data: %{"object" => %{"type" => type}}}), do: type == "Question"
+  def is_question(object) when is_nil(object), do: false
+  def is_question(%{data: %{"type" => type}}), do: type == "Question"
 end

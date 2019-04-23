@@ -321,7 +321,7 @@ defmodule Pleroma.Web.Router do
 
       post("/reports", MastodonAPIController, :reports)
 
-      get("/polls/:id", MastodonAPIController, :get_vote)
+      get("/polls/:id", MastodonAPIController, :get_poll)
       post("/polls/:id/votes", MastodonAPIController, :vote)
     end
 
