@@ -237,7 +237,7 @@ config :pleroma, :instance,
     min_expiration: 0,
     # 30 days
     max_expiration: 86_400 * 30
-  }
+  },
   healthcheck: false
 
 config :pleroma, :markup,
