@@ -199,8 +199,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
             Pleroma.Web.Streamer.stream("public:local:media", activity)
           end
         end
-<<<<<<< HEAD
-=======
       else
         if !Enum.member?(activity.data["cc"] || [], public) &&
              !Enum.member?(
@@ -208,7 +206,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
                User.get_cached_by_ap_id(activity.data["actor"]).follower_address
              ),
            do: Pleroma.Web.Streamer.stream("direct", activity)
->>>>>>> develop
       end
     else
       if !Enum.member?(activity.data["cc"] || [], public) &&
