@@ -44,9 +44,9 @@ defmodule Pleroma.Repo do
   end
 
   defp load_assoc(model, association) do
-    case __MODULE__.one(Ecto.assoc(model, association)) do
-      nil -> {:error, :not_found}
-      association -> {:ok, association}
+    case __MODULE__.preload(model, association) do
+      %{^association => assoc} when not is_nil(assoc) -> {:ok, assoc}
+      _ -> {:error, :not_found}
     end
   end
 end
