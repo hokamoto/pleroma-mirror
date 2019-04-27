@@ -33,18 +33,16 @@ defmodule Pleroma.Repo do
 
   @doc """
   Gets association from cache or loads if need
+
+  ## Examples
+
+    iex> Repo.get_assoc(token, :user)
+    %User{}
+
   """
   @spec get_assoc(struct(), atom()) :: {:ok, struct()} | {:error, :not_found}
-  def get_assoc(model, association) do
-    case Map.get(model, association) do
-      %Ecto.Association.NotLoaded{} -> load_assoc(model, association)
-      %{__struct__: _} = assoc -> {:ok, assoc}
-      _ -> {:error, :not_found}
-    end
-  end
-
-  defp load_assoc(model, association) do
-    case __MODULE__.preload(model, association) do
+  def get_assoc(resource, association) do
+    case __MODULE__.preload(resource, association) do
       %{^association => assoc} when not is_nil(assoc) -> {:ok, assoc}
       _ -> {:error, :not_found}
     end
