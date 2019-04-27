@@ -491,7 +491,7 @@ config :ueberauth, Ueberauth,
 
 ## OAuth 2.0 provider - :oauth2
 
-Configuration OAuth 2.0 provider capabilities:
+Configure OAuth 2 provider capabilities:
 
 * `token_expires_in` - The lifetime in seconds of the access token.
 * `issue_new_refresh_token` - Keeps old refresh token or generate new refresh token when to obtain an access token.
