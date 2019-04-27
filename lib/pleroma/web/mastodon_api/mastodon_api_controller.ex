@@ -12,7 +12,6 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   alias Pleroma.Object
   alias Pleroma.Object.Fetcher
   alias Pleroma.Pagination
-  alias Pleroma.Question
   alias Pleroma.Repo
   alias Pleroma.ScheduledActivity
   alias Pleroma.Stats
@@ -1431,11 +1430,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   def vote(%{assigns: %{user: user}} = conn, params) do
     case CommonAPI.vote(user, %{params | "id" => params["id"]}) do
       {:ok, activity} ->
-        object = Object.get_by_id(Question.get_id_by_activity(activity))
-
         conn
         |> put_status(200)
-        |> json(QuestionView.render("show.json", %{object: object, user: user}))
+        |> json(QuestionView.render("show.json", %{object: activity.object, user: user}))
 
       _ ->
         conn

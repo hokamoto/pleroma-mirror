@@ -5,7 +5,6 @@
 defmodule Pleroma.Question do
   use Ecto.Schema
 
-  alias Pleroma.Activity
   alias Pleroma.Config
   alias Pleroma.Object
   alias Pleroma.Repo
@@ -124,10 +123,6 @@ defmodule Pleroma.Question do
     (question.data["anyOf"] || question.data["oneOf"])
     |> options_to_array()
     |> Enum.at(index)
-  end
-
-  def get_id_by_activity(%Activity{} = activity) do
-    hd(activity.object.data["items"])["inReplyTo"]
   end
 
   defp maybe_ensure_multipe(_question, choices) when length(choices) == 1, do: true

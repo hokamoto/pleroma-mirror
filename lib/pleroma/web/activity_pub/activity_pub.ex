@@ -277,27 +277,11 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
          %{
            object: %{"inReplyTo" => in_reply_to, "options" => choices},
            actor: %{ap_id: actor}
-         } = params,
-         fake
+         },
+         _fake
        ) do
-    question = Object.get_by_id(in_reply_to)
-    additional = params[:additional] || %{}
-    local = !(params[:local] == false)
-
-    with answer_data <-
-           make_answer_data(
-             %{
-               to: params[:to],
-               actor: params[:actor],
-               context: params[:context],
-               question: question,
-               in_reply_to: in_reply_to,
-               choices: choices
-             },
-             additional
-           ),
-         {:ok, _object} <- Question.add_reply_by_id(in_reply_to, choices, actor),
-         {:ok, activity} <- insert(answer_data, local, fake) do
+    with {:ok, object} <- Question.add_reply_by_id(in_reply_to, choices, actor),
+         activity <- Activity.get_create_by_object_ap_id_with_object(object.data["id"]) do
       {:ok, activity}
     end
   end
