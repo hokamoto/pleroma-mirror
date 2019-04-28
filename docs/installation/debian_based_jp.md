@@ -5,7 +5,7 @@
 
 ## インストール
 
-このガイドはDebian Stretchを仮定しています。Ubuntu 16.04でも可能です。
+このガイドはDebian Stretchを仮定しています。Ubuntu 16.04でも可能です。また、あなたが管理者権限を持っていることが必要です。すなわち、rootになるか、または[sudoパーミッション](https://www.digitalocean.com/community/tutorials/how-to-add-delete-and-grant-sudo-privileges-to-users-on-a-debian-vps)が必要です。もし、この文書の手順をrootとして実行したいならば、行の先頭にある `sudo` を無視してください。ただし、`sudo -Hu pleroma` のような、別のユーザーになるためのsudoは、省略できません。この場合には、かわりに、`su <username> -s $SHELL -c 'command'` のような形式のコマンドが必要です。
 
 ### 必要なソフトウェア
 
@@ -65,7 +65,6 @@ sudo useradd -r -s /bin/false -m -d /var/lib/pleroma -U pleroma
 ```
 
 **注意**: 単独のコマンドをPleromaシステムユーザーとして実行するには `sudo -Hu pleroma command` を使ってください。または、`sudo -Hu pleroma $SHELL`　で、別のユーザーのシェルに切り替えることができます。もし `sudo` コマンドがない状況で同じことがしたいなら、rootユーザーになったうえで、`su -l pleroma -s $SHELL -c 'command'` または `su -l pleroma -s $SHELL` を使ってください。
-```
 
 *  PleromaBEのGitリポジトリをクローンします。また、そのディレクトリのオーナーをPleromaユーザーにします。
 
@@ -179,7 +178,6 @@ sudo cp /opt/pleroma/installation/pleroma.service /etc/systemd/system/pleroma.se
 ```
 
 * サービスファイルを変更します。すべてのパスが正しいことを確認してください。
-
 * `pleroma.service` をイネーブルおよび起動します。
 
 ```shell
