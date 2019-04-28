@@ -129,6 +129,14 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
           recipients: recipients
         })
 
+      # Splice in the child object if we have one.
+      activity =
+        if !is_nil(object) do
+          Map.put(activity, :object, object)
+        else
+          activity
+        end
+
       activity =
         case Conversation.create_or_bump_for(activity) do
           %Conversation{id: conversation_id} ->
@@ -136,14 +144,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
           _ ->
             activity
-        end
-
-      # Splice in the child object if we have one.
-      activity =
-        if !is_nil(object) do
-          Map.put(activity, :object, object)
-        else
-          activity
         end
 
       Task.start(fn ->
