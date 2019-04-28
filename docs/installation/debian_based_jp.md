@@ -28,90 +28,92 @@
 ### システムを準備する
 
 * まずシステムをアップデートしてください。
-```
-apt update && apt dist-upgrade
+
+```shell
+sudo apt update
+sudo apt full-upgrade
 ```
 
-* 複数のツールとpostgresqlをインストールします。あとで必要になるので。
+* 必要なソフトウェアの一部をインストールします。
+
+```shell
+sudo apt install git build-essential postgresql postgresql-contrib
 ```
-apt install git build-essential openssl ssh sudo postgresql-9.6 postgresql-contrib-9.6
-```
-(postgresqlのバージョンは、あなたのディストロにあわせて変えてください。または、バージョン番号がいらないかもしれません。)
 
 ### ElixirとErlangをインストールします
 
-* Erlangのリポジトリをダウンロードおよびインストールします。
-```
-wget -P /tmp/ https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb && sudo dpkg -i /tmp/erlang-solutions_1.0_all.deb
+* Erlangのリポジトリをダウンロードおよび追加します。
+
+```shell
+wget -P /tmp/ https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb
+sudo dpkg -i /tmp/erlang-solutions_1.0_all.deb
 ```
 
-* ElixirとErlangをインストールします、
-```
-apt update && apt install elixir erlang-dev erlang-parsetools erlang-xmerl erlang-tools
+* ElixirとErlangをインストールします。
+
+```shell
+sudo apt update
+sudo apt install elixir erlang-dev erlang-parsetools erlang-xmerl erlang-tools
 ```
 
 ### Pleroma BE (バックエンド) をインストールします
 
-*  新しいユーザーを作ります。
-```
-adduser pleroma
-``` 
-(Give it any password you want, make it STRONG)
+* Pleromaサービスのための新しいシステムユーザーを作ります。
 
-*  新しいユーザーをsudoグループに入れます。
-```
-usermod -aG sudo pleroma
+```shell
+sudo useradd -r -s /bin/false -m -d /var/lib/pleroma -U pleroma
 ```
 
-*  新しいユーザーに変身し、ホームディレクトリに移動します。
-```
-su pleroma
-cd ~
+**注意**: 単独のコマンドをPleromaシステムユーザーとして実行するには `sudo -Hu pleroma command` を使ってください。または、`sudo -Hu pleroma $SHELL`　で、別のユーザーのシェルに切り替えることができます。もし `sudo` コマンドがない状況で同じことがしたいなら、rootユーザーになったうえで、`su -l pleroma -s $SHELL -c 'command'` または `su -l pleroma -s $SHELL` を使ってください。
 ```
 
-*  Gitリポジトリをクローンします。
-```
-git clone https://git.pleroma.social/pleroma/pleroma
+*  PleromaBEのGitリポジトリをクローンします。また、そのディレクトリのオーナーをPleromaユーザーにします。
+
+```shell
+sudo mkdir -p /opt/pleroma
+sudo chown -R pleroma:pleroma /opt/pleroma
+sudo -Hu pleroma git clone https://git.pleroma.social/pleroma/pleroma /opt/pleroma
 ```
 
 *  新しいディレクトリに移動します。
-```
-cd pleroma/
+
+```shell
+cd /opt/pleroma
 ```
 
-* Pleromaが依存するパッケージをインストールします。Hexをインストールしてもよいか聞かれたら、yesを入力してください。
-```
-mix deps.get
+* Pleromaが依存するパッケージをインストールします。`Hex` をインストールしてもよいか聞かれたら、`yes` を入力してください。
+
+```shell
+sudo -Hu pleroma mix deps.get
 ```
 
-* コンフィギュレーションを生成します。
-```
-mix pleroma.instance gen
-```
-    * rebar3をインストールしてもよいか聞かれたら、yesを入力してください。
-    * この処理には時間がかかります。私もよく分かりませんが、何らかのコンパイルが行われているようです。
-    * あなたのインスタンスについて、いくつかの質問があります。その回答は `config/generated_config.exs` というコンフィギュレーションファイルに保存されます。
+* コンフィギュレーションを生成します: `sudo -Hu pleroma mix pleroma.instance gen`
+  * `rebar3` をインストールしてもよいか聞かれたら、`yes` を入力してください。
+  * この処理には時間がかかります。まずPleromaがコンパイルされるためです。
+  * あなたのインスタンスについて、いくつかの質問があります。その回答は `config/generated_config.exs` というコンフィギュレーションファイルに保存されます。
 
-**注意**: メディアプロクシを有効にすると回答して、なおかつ、キャッシュのURLは空欄のままにしている場合は、`generated_config.exs` を編集して、`base_url` で始まる行をコメントアウトまたは削除してください。そして、上にある行の `true` の後にあるコンマを消してください。
+* コンフィギュレーションを確認して、もし問題なければ、ファイル名を変更してください。Pleromaはそのファイルをロードします。本番用インスタンスでは `prod.secret.exs`、開発用インスタンスでは `dev.secret.exs` が使われます。
 
-* コンフィギュレーションを確認して、もし問題なければ、ファイル名を変更してください。
-```
+```shell
 mv config/{generated_config.exs,prod.secret.exs}
 ```
 
 * これまでのコマンドで、すでに `config/setup_db.psql` というファイルが作られています。このファイルをもとに、データベースを作成します。
-```
-sudo su postgres -c 'psql -f config/setup_db.psql'
+
+```shell
+sudo -Hu postgres psql -f config/setup_db.psql
 ```
 
 * そして、データベースのミグレーションを実行します。
-```
-MIX_ENV=prod mix ecto.migrate
+
+```shell
+sudo -Hu pleroma MIX_ENV=prod mix ecto.migrate
 ```
 
 * Pleromaを起動できるようになりました。
-```
-MIX_ENV=prod mix phx.server
+
+```shell
+sudo -Hu pleroma MIX_ENV=prod mix phx.server
 ```
 
 ### インストールを終わらせる
@@ -121,60 +123,78 @@ MIX_ENV=prod mix phx.server
 #### Nginx
 
 * まだインストールしていないなら、nginxをインストールします。
-```
-apt install nginx
+
+```shell
+sudo apt install nginx
 ```
 
-* SSLをセットアップします。他の方法でもよいですが、ここではcertbotを説明します。
-certbotを使うならば、まずそれをインストールします。
+* SSLをセットアップします。他の方法でもよいですが、ここではcertbotを説明します。certbotを使うならば、まずそれをインストールします。
+
+```shell
+sudo apt install certbot
 ```
-apt install certbot
-```
+
 そしてセットアップします。
+
+```shell
+sudo mkdir -p /var/lib/letsencrypt/
+sudo certbot certonly --email <your@emailaddress> -d <yourdomain> --standalone
 ```
-mkdir -p /var/lib/letsencrypt/.well-known
-% certbot certonly --email your@emailaddress --webroot -w /var/lib/letsencrypt/ -d yourdomain
-```
-もしうまくいかないときは、先にnginxを設定してください。ssl "on" を "off" に変えてから再試行してください。
+
+もしうまくいかないならば、nginxが動作していないことを確認してください。それでもうまくいかないならば、先にnginxを設定 (ssl "on" を "off" に変える) してから再試行してください。
 
 ---
 
-* nginxコンフィギュレーションの例をnginxフォルダーにコピーします。
-```
-cp /home/pleroma/pleroma/installation/pleroma.nginx /etc/nginx/sites-enabled/pleroma.nginx
+* nginxコンフィギュレーションの例をコピーおよびアクティベートします。
+
+```shell
+sudo cp /opt/pleroma/installation/pleroma.nginx /etc/nginx/sites-available/pleroma.nginx
+sudo ln -s /etc/nginx/sites-available/pleroma.nginx /etc/nginx/sites-enabled/pleroma.nginx
 ```
 
 * nginxを起動する前に、コンフィギュレーションを編集してください。例えば、サーバー名、証明書のパスなどを変更する必要があります。
-* nginxを再起動します。
+
+* nginxをイネーブルおよび起動します。
+
+```shell
+sudo systemctl enable --now nginx.service
 ```
-systemctl reload nginx.service
+
+もし未来に証明書を延長する必要があるならば、nginxのコンフィグのリリバント・ロケーション・ブロックをアンコメントして、以下を実行してください。
+
+```shell
+sudo certbot certonly --email <your@emailaddress> -d <yourdomain> --webroot -w /var/lib/letsencrypt/
 ```
+
+#### 他のウェブサーバー／プロクシ
+
+他のコンフィグレーションの例は `/opt/pleroma/installation/` にあります。
 
 #### Systemd サービス
 
 * サービスファイルの例をコピーします。
-```
-cp /home/pleroma/pleroma/installation/pleroma.service /usr/lib/systemd/system/pleroma.service
+
+```shell
+sudo cp /opt/pleroma/installation/pleroma.service /etc/systemd/system/pleroma.service
 ```
 
-* サービスファイルを変更します。すべてのパスが正しいことを確認してください。また、`[Service]` セクションに以下の行があることを確認してください。
-```
-Environment="MIX_ENV=prod"
+* サービスファイルを変更します。すべてのパスが正しいことを確認してください。
+
+* `pleroma.service` をイネーブルおよび起動します。
+
+```shell
+sudo systemctl enable --now pleroma.service
 ```
 
-* `pleroma.service` を enable および start してください。
-```
-systemctl enable --now pleroma.service
-```
+#### 最初のユーザーを作る
 
-#### モデレーターを作る
+あなたのインスタンスが動作しているならば、管理権限を持つ最初のユーザーを作ることができます。
 
 新たにユーザーを作ったら、モデレーター権限を与えたいかもしれません。以下のタスクで可能です。
-```
-mix set_moderator username [true|false]
-```
 
-モデレーターはすべてのポストを消すことができます。将来的には他のことも可能になるかもしれません。
+```shell
+sudo -Hu pleroma MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
+```
 
 #### 他の文書
 
