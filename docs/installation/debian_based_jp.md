@@ -190,8 +190,6 @@ sudo systemctl enable --now pleroma.service
 
 あなたのインスタンスが動作しているならば、管理権限を持つ最初のユーザーを作ることができます。
 
-新たにユーザーを作ったら、モデレーター権限を与えたいかもしれません。以下のタスクで可能です。
-
 ```shell
 sudo -Hu pleroma MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
 ```
