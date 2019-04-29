@@ -1173,18 +1173,23 @@ defmodule Pleroma.User do
   end
 
   def delete_user_activities(%User{ap_id: ap_id} = user) do
-    Activity
-    |> where(actor: ^ap_id)
-    |> Activity.with_preloaded_object()
-    |> Repo.all()
-    |> Enum.each(fn
-      %{data: %{"type" => "Create"}} = activity ->
-        activity |> Object.normalize() |> ActivityPub.delete()
+    query = from(a in Activity, where: a.actor == ^ap_id) |> Activity.with_preloaded_object()
 
-      # TODO: Do something with likes, follows, repeats.
-      _ ->
-        "Doing nothing"
-    end)
+    stream = Repo.stream(query)
+
+    Repo.transaction(
+      fn ->
+        Enum.each(stream, fn
+          %{data: %{"type" => "Create"}} = activity ->
+            activity |> Object.normalize() |> ActivityPub.delete()
+
+          # TODO: Do something with likes, follows, repeats.
+          _ ->
+            "Doing nothing"
+        end)
+      end,
+      timeout: :infinity
+    )
 
     {:ok, user}
   end

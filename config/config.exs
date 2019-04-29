@@ -416,7 +416,8 @@ config :pleroma_job_queue, :queues,
   web_push: 50,
   mailer: 10,
   transmogrifier: 20,
-  scheduled_activities: 10
+  scheduled_activities: 10,
+  background: 5
 
 config :pleroma, :fetch_initial_posts,
   enabled: false,
