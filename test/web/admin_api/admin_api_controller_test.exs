@@ -7,6 +7,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   alias Pleroma.User
   alias Pleroma.UserInviteToken
+  alias Pleroma.Web.CommonAPI
   import Pleroma.Factory
 
   describe "/api/pleroma/admin/users" do
@@ -947,6 +948,67 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                "used" => true,
                "uses" => 0
              }
+    end
+  end
+
+  describe "GET /api/pleroma/admin/reports" do
+    setup %{conn: conn} do
+      admin = insert(:user, info: %{is_admin: true})
+
+      conn =
+        conn
+        |> assign(:user, admin)
+
+      %{conn: conn}
+    end
+
+    test "returns empty response when no reports created", %{conn: conn} do
+      response =
+        conn
+        |> get("/api/pleroma/admin/reports")
+        |> json_response(:ok)
+
+      assert Enum.empty?(response["reports"])
+    end
+
+    test "returns reports", %{conn: conn} do
+      [reporter, target_user] = insert_pair(:user)
+      activity = insert(:note_activity, user: target_user)
+
+      CommonAPI.report(reporter, %{
+        "account_id" => target_user.id,
+        "comment" => "I feel offended",
+        "status_ids" => [activity.id]
+      })
+
+      response =
+        conn
+        |> get("/api/pleroma/admin/reports")
+        |> json_response(:ok)
+
+      [report] = response["reports"]
+
+      assert length(response["reports"]) == 1
+      assert report["content"] == "I feel offended"
+    end
+
+    test "returns 403 when requested by a non-admin" do
+      user = insert(:user)
+
+      conn =
+        build_conn()
+        |> assign(:user, user)
+        |> get("/api/pleroma/admin/reports")
+
+      assert json_response(conn, :forbidden) == %{"error" => "User is not admin."}
+    end
+
+    test "returns 403 when requested by anonymous" do
+      conn =
+        build_conn()
+        |> get("/api/pleroma/admin/reports")
+
+      assert json_response(conn, :forbidden) == %{"error" => "Invalid credentials."}
     end
   end
 end

@@ -6,8 +6,10 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   use Pleroma.Web, :controller
   alias Pleroma.User
   alias Pleroma.UserInviteToken
+  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Relay
   alias Pleroma.Web.AdminAPI.AccountView
+  alias Pleroma.Web.AdminAPI.ReportView
   alias Pleroma.Web.AdminAPI.Search
 
   import Pleroma.Web.ControllerHelper, only: [json_response: 3]
@@ -285,6 +287,22 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
     conn
     |> json(token.token)
+  end
+
+  def list_reports(conn, params) do
+    params =
+      params
+      |> Map.put("type", "Flag")
+      |> Map.put("skip_preload", true)
+
+    reports =
+      []
+      |> ActivityPub.fetch_activities(params)
+      |> Enum.reverse()
+
+    conn
+    |> put_view(ReportView)
+    |> render("index.json", %{reports: reports})
   end
 
   def errors(conn, {:error, :not_found}) do
