@@ -951,15 +951,44 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
   end
 
+  describe "GET /api/pleroma/admin/reports/:id" do
+    setup %{conn: conn} do
+      admin = insert(:user, info: %{is_admin: true})
+
+      %{conn: assign(conn, :user, admin)}
+    end
+
+    test "returns report by its id", %{conn: conn} do
+      [reporter, target_user] = insert_pair(:user)
+      activity = insert(:note_activity, user: target_user)
+
+      {:ok, %{id: report_id}} =
+        CommonAPI.report(reporter, %{
+          "account_id" => target_user.id,
+          "comment" => "I feel offended",
+          "status_ids" => [activity.id]
+        })
+
+      response =
+        conn
+        |> get("/api/pleroma/admin/reports/#{report_id}")
+        |> json_response(:ok)
+
+      assert response["id"] == report_id
+    end
+
+    test "returns 404 when report id is invalid", %{conn: conn} do
+      conn = get(conn, "/api/pleroma/admin/reports/test")
+
+      assert json_response(conn, :not_found) == "Not found"
+    end
+  end
+
   describe "GET /api/pleroma/admin/reports" do
     setup %{conn: conn} do
       admin = insert(:user, info: %{is_admin: true})
 
-      conn =
-        conn
-        |> assign(:user, admin)
-
-      %{conn: conn}
+      %{conn: assign(conn, :user, admin)}
     end
 
     test "returns empty response when no reports created", %{conn: conn} do
@@ -975,11 +1004,12 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       [reporter, target_user] = insert_pair(:user)
       activity = insert(:note_activity, user: target_user)
 
-      CommonAPI.report(reporter, %{
-        "account_id" => target_user.id,
-        "comment" => "I feel offended",
-        "status_ids" => [activity.id]
-      })
+      {:ok, %{id: report_id}} =
+        CommonAPI.report(reporter, %{
+          "account_id" => target_user.id,
+          "comment" => "I feel offended",
+          "status_ids" => [activity.id]
+        })
 
       response =
         conn
@@ -989,7 +1019,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       [report] = response["reports"]
 
       assert length(response["reports"]) == 1
-      assert report["content"] == "I feel offended"
+      assert report["id"] == report_id
     end
 
     test "returns 403 when requested by a non-admin" do

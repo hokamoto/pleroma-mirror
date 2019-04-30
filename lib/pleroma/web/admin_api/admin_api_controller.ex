@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   use Pleroma.Web, :controller
+  alias Pleroma.Activity
   alias Pleroma.User
   alias Pleroma.UserInviteToken
   alias Pleroma.Web.ActivityPub.ActivityPub
@@ -287,6 +288,16 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
     conn
     |> json(token.token)
+  end
+
+  def report_show(conn, %{"id" => id}) do
+    with %Activity{} = report <- Activity.get_by_id(id) do
+      conn
+      |> put_view(ReportView)
+      |> render("show.json", %{report: report})
+    else
+      _ -> {:error, :not_found}
+    end
   end
 
   def list_reports(conn, params) do

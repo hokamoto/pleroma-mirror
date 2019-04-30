@@ -194,6 +194,7 @@ defmodule Pleroma.Web.Router do
     get("/users/:nickname", AdminAPIController, :user_show)
 
     get("/reports", AdminAPIController, :list_reports)
+    get("/reports/:id", AdminAPIController, :report_show)
   end
 
   scope "/", Pleroma.Web.TwitterAPI do
