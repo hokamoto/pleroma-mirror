@@ -13,10 +13,12 @@ defmodule Pleroma.Web.Auth.AuthenticatorTest do
       user = insert(:user)
       assert Authenticator.fetch_user(user.nickname) == user
     end
+
     test "returns user by email" do
       user = insert(:user)
       assert Authenticator.fetch_user(user.email) == user
     end
+
     test "returns nil" do
       assert Authenticator.fetch_user("email") == nil
     end
