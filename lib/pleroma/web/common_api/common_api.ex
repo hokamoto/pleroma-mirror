@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Web.CommonAPI do
   alias Pleroma.Activity
+  alias Pleroma.Bookmark
   alias Pleroma.Formatter
   alias Pleroma.Object
   alias Pleroma.ThreadMute
@@ -281,6 +282,15 @@ defmodule Pleroma.Web.CommonAPI do
       false
     else
       _ -> true
+    end
+  end
+
+  def bookmarked?(user, activity) do
+    with %Bookmark{} <- Bookmark.get(user.id, activity.id) do
+      true
+    else
+      _ ->
+        false
     end
   end
 
