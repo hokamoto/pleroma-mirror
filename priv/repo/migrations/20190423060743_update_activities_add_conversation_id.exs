@@ -3,7 +3,7 @@ defmodule Pleroma.Repo.Migrations.UpdateActivitiesAddConversationId do
 
   def change do
     alter table(:activities) do
-      add(:conversation_id, references(:conversations, on_delete: :delete_all),
+      add(:conversation_id, references(:conversations, on_delete: :nothing),
         default: nil,
         null: true
       )
