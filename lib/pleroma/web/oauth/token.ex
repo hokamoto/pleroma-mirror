@@ -69,6 +69,7 @@ defmodule Pleroma.Web.OAuth.Token do
     changeset
     |> change(%{refresh_token: refresh_token})
     |> validate_required([:refresh_token])
+    |> unique_constraint(:refresh_token)
   end
 
   defp put_valid_until(changeset, attrs) do
