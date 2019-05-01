@@ -29,6 +29,17 @@ defmodule Pleroma.Web.Endpoint do
     # credo:disable-for-previous-line Credo.Check.Readability.MaxLineLength
   )
 
+  plug(Plug.Static.IndexHtml, at: "/pleroma/admin/")
+
+  plug(Plug.Static,
+    at: "/pleroma/admin/",
+    from: {:pleroma, "priv/static/adminfe/"},
+    headers: %{
+      "content-security-policy" =>
+        "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; img-src 'self' data: https:; media-src 'self' https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; manifest-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; upgrade-insecure-requests;"
+    }
+  )
+
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
   if code_reloading? do
