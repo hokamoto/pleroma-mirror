@@ -14,6 +14,8 @@ defmodule Pleroma.Activity do
   import Ecto.Query
 
   @type t :: %__MODULE__{}
+  @type actor :: String.t()
+
   @primary_key {:id, Pleroma.FlakeId, autogenerate: true}
 
   # https://github.com/tootsuite/mastodon/blob/master/app/models/notification.rb#L19
@@ -259,5 +261,24 @@ defmodule Pleroma.Activity do
     |> where([s], s.id in ^status_ids)
     |> where([s], s.actor == ^actor)
     |> Repo.all()
+  end
+
+  @spec query_by_actor_with_limit(actor(), pos_integer(), Pleroma.FlakeId.t() | nil) :: Ecto.Query
+  def query_by_actor_with_limit(actor, limit, nil) do
+    from(a in Activity, where: a.actor == ^actor, limit: ^limit, order_by: [asc: a.id])
+  end
+
+  def query_by_actor_with_limit(actor, limit, max_id) do
+    from(a in Activity,
+      where: a.actor == ^actor,
+      where: a.id > ^max_id,
+      limit: ^limit,
+      order_by: [asc: a.id]
+    )
+  end
+
+  @spec load_query_with_preloaded_object(Ecto.Query) :: [Activity.t()]
+  def load_query_with_preloaded_object(query) do
+    query |> Activity.with_preloaded_object() |> Repo.all()
   end
 end

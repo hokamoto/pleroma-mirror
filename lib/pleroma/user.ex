@@ -1173,25 +1173,34 @@ defmodule Pleroma.User do
   end
 
   def delete_user_activities(%User{ap_id: ap_id} = user) do
-    query = from(a in Activity, where: a.actor == ^ap_id) |> Activity.with_preloaded_object()
-
-    stream = Repo.stream(query)
-
-    Repo.transaction(
-      fn ->
-        Enum.each(stream, fn
-          %{data: %{"type" => "Create"}} = activity ->
-            activity |> Object.normalize() |> ActivityPub.delete()
-
-          # TODO: Do something with likes, follows, repeats.
-          _ ->
-            "Doing nothing"
-        end)
-      end,
-      timeout: :infinity
-    )
+    do_delete_user_activities(ap_id)
 
     {:ok, user}
+  end
+
+  defp do_delete_user_activities(ap_id, max_id \\ nil) do
+    batch_size = Pleroma.Config.get([:pleroma, :instance])[:repo_batch_size]
+
+    activities =
+      Activity.query_by_actor_with_limit(ap_id, batch_size, max_id)
+      |> Activity.load_query_with_preloaded_object()
+
+    if length(activities) > 0 do
+      delete_activities(activities)
+      last = List.last(activities)
+      do_delete_user_activities(ap_id, last.id)
+    end
+  end
+
+  defp delete_activities(activities) do
+    Enum.each(activities, fn
+      %{data: %{"type" => "Create"}} = activity ->
+        Object.normalize(activity) |> ActivityPub.delete()
+
+      # TODO: Do something with likes, follows, repeats.
+      _ ->
+        "Doing nothing"
+    end)
   end
 
   def html_filter_policy(%User{info: %{no_rich_text: true}}) do
