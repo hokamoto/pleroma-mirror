@@ -263,23 +263,8 @@ defmodule Pleroma.Activity do
     |> Repo.all()
   end
 
-  @spec query_by_actor_with_limit(actor(), pos_integer(), Pleroma.FlakeId.t() | nil) ::
-          Ecto.Query.t()
-  def query_by_actor_with_limit(actor, limit, nil) do
-    from(a in Activity, where: a.actor == ^actor, limit: ^limit, order_by: [asc: a.id])
-  end
-
-  def query_by_actor_with_limit(actor, limit, max_id) do
-    from(a in Activity,
-      where: a.actor == ^actor,
-      where: a.id > ^max_id,
-      limit: ^limit,
-      order_by: [asc: a.id]
-    )
-  end
-
-  @spec load_query_with_preloaded_object(Ecto.Query.t()) :: [Activity.t()]
-  def load_query_with_preloaded_object(query) do
-    query |> Activity.with_preloaded_object() |> Repo.all()
+  @spec query_by_actor(actor()) :: Ecto.Query.t()
+  def query_by_actor(actor) do
+    from(a in Activity, where: a.actor == ^actor)
   end
 end

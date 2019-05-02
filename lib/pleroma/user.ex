@@ -1178,23 +1178,15 @@ defmodule Pleroma.User do
   end
 
   def delete_user_activities(%User{ap_id: ap_id} = user) do
-    do_delete_user_activities(ap_id)
+    stream =
+      ap_id
+      |> Activity.query_by_actor()
+      |> Activity.with_preloaded_object()
+      |> Repo.stream()
+
+    Repo.transaction(fn -> delete_activities(stream) end, timeout: :infinity)
 
     {:ok, user}
-  end
-
-  defp do_delete_user_activities(ap_id, max_id \\ nil) do
-    batch_size = Pleroma.Config.get([:instance, :repo_batch_size])
-
-    activities =
-      Activity.query_by_actor_with_limit(ap_id, batch_size, max_id)
-      |> Activity.load_query_with_preloaded_object()
-
-    if length(activities) > 0 do
-      delete_activities(activities)
-      last = List.last(activities)
-      do_delete_user_activities(ap_id, last.id)
-    end
   end
 
   defp delete_activities(activities) do
