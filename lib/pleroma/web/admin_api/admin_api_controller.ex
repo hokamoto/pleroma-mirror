@@ -21,16 +21,15 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   action_fallback(:errors)
 
   def user_delete(conn, %{"nickname" => nickname}) do
-    nickname
-    |> User.get_by_nickname()
+    User.get_cached_by_nickname(nickname)
     |> User.delete()
 
     json(conn, nickname)
   end
 
   def user_follow(conn, %{"follower" => follower_nick, "followed" => followed_nick}) do
-    with %User{} = follower <- User.get_by_nickname(follower_nick),
-         %User{} = followed <- User.get_by_nickname(followed_nick) do
+    with %User{} = follower <- User.get_cached_by_nickname(follower_nick),
+         %User{} = followed <- User.get_cached_by_nickname(followed_nick) do
       User.follow(follower, followed)
     end
 
@@ -39,8 +38,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   end
 
   def user_unfollow(conn, %{"follower" => follower_nick, "followed" => followed_nick}) do
-    with %User{} = follower <- User.get_by_nickname(follower_nick),
-         %User{} = followed <- User.get_by_nickname(followed_nick) do
+    with %User{} = follower <- User.get_cached_by_nickname(follower_nick),
+         %User{} = followed <- User.get_cached_by_nickname(followed_nick) do
       User.unfollow(follower, followed)
     end
 
@@ -68,7 +67,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   end
 
   def user_show(conn, %{"nickname" => nickname}) do
-    with %User{} = user <- User.get_by_nickname(nickname) do
+    with %User{} = user <- User.get_cached_by_nickname(nickname) do
       conn
       |> json(AccountView.render("show.json", %{user: user}))
     else
@@ -77,7 +76,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   end
 
   def user_toggle_activation(conn, %{"nickname" => nickname}) do
-    user = User.get_by_nickname(nickname)
+    user = User.get_cached_by_nickname(nickname)
 
     {:ok, updated_user} = User.deactivate(user, !user.info.deactivated)
 
@@ -132,7 +131,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
   def right_add(conn, %{"permission_group" => permission_group, "nickname" => nickname})
       when permission_group in ["moderator", "admin"] do
-    user = User.get_by_nickname(nickname)
+    user = User.get_cached_by_nickname(nickname)
 
     info =
       %{}
@@ -157,7 +156,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   end
 
   def right_get(conn, %{"nickname" => nickname}) do
-    user = User.get_by_nickname(nickname)
+    user = User.get_cached_by_nickname(nickname)
 
     conn
     |> json(%{
@@ -179,7 +178,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
       |> put_status(403)
       |> json(%{error: "You can't revoke your own admin status."})
     else
-      user = User.get_by_nickname(nickname)
+      user = User.get_cached_by_nickname(nickname)
 
       info =
         %{}
@@ -206,7 +205,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
   def set_activation_status(conn, %{"nickname" => nickname, "status" => status}) do
     with {:ok, status} <- Ecto.Type.cast(:boolean, status),
-         %User{} = user <- User.get_by_nickname(nickname),
+         %User{} = user <- User.get_cached_by_nickname(nickname),
          {:ok, _} <- User.deactivate(user, !status),
          do: json_response(conn, :no_content, "")
   end
@@ -279,7 +278,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
   @doc "Get a password reset token (base64 string) for given nickname"
   def get_password_reset(conn, %{"nickname" => nickname}) do
-    (%User{local: true} = user) = User.get_by_nickname(nickname)
+    (%User{local: true} = user) = User.get_cached_by_nickname(nickname)
     {:ok, token} = Pleroma.PasswordResetToken.create_token(user)
 
     json(conn, token.token)

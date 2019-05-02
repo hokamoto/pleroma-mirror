@@ -8,45 +8,36 @@ defmodule Pleroma.Web.Auth.PleromaAuthenticatorTest do
   alias Pleroma.Web.Auth.PleromaAuthenticator
   import Pleroma.Factory
 
-  setup_all do
-    :ok
-  end
-
-  test "get_user/authorization" do
+  setup do
     password = "testpassword"
     name = "AgentSmith"
     user = insert(:user, nickname: name, password_hash: Comeonin.Pbkdf2.hashpwsalt(password))
+    {:ok, [user: user, name: name, password: password]}
+  end
+
+  test "get_user/authorization", %{user: user, name: name, password: password} do
     params = %{"authorization" => %{"name" => name, "password" => password}}
-    res = PleromaAuthenticator.get_user(%Plug.Conn{params: params}, params)
+    res = PleromaAuthenticator.get_user(%Plug.Conn{params: params})
 
     assert {:ok, user} == res
   end
 
-  test "get_user/authorization with invalid password" do
-    password = "testpassword"
-    name = "AgentSmith"
-    user = insert(:user, nickname: name, password_hash: Comeonin.Pbkdf2.hashpwsalt(password))
+  test "get_user/authorization with invalid password", %{name: name} do
     params = %{"authorization" => %{"name" => name, "password" => "password"}}
-    res = PleromaAuthenticator.get_user(%Plug.Conn{params: params}, params)
+    res = PleromaAuthenticator.get_user(%Plug.Conn{params: params})
 
-    assert {:error, user} == res
+    assert {:error, {:checkpw, false}} == res
   end
 
-  test "get_user/grant_type_password" do
-    password = "testpassword"
-    name = "AgentSmith"
-    user = insert(:user, nickname: name, password_hash: Comeonin.Pbkdf2.hashpwsalt(password))
+  test "get_user/grant_type_password", %{user: user, name: name, password: password} do
     params = %{"grant_type" => "password", "username" => name, "password" => password}
-    res = PleromaAuthenticator.get_user(%Plug.Conn{params: params}, params)
+    res = PleromaAuthenticator.get_user(%Plug.Conn{params: params})
 
     assert {:ok, user} == res
   end
 
   test "error credintails" do
-    password = "testpassword"
-    name = "AgentSmith"
-    _user = insert(:user, nickname: name, password_hash: Comeonin.Pbkdf2.hashpwsalt(password))
-    res = PleromaAuthenticator.get_user(%Plug.Conn{params: %{}}, %{})
+    res = PleromaAuthenticator.get_user(%Plug.Conn{params: %{}})
     assert {:error, :invalid_credentials} == res
   end
 end

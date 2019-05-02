@@ -100,9 +100,9 @@ config :pleroma, :emoji,
   shortcode_globs: ["/emoji/custom/**/*.png"],
   groups: [
     # Put groups that have higher priority than defaults here. Example in `docs/config/custom_emoji.md`
-    Finmoji: "/finmoji/128px/*-128.png",
-    Custom: ["/emoji/*.png", "/emoji/custom/*.png"]
-  ]
+    Custom: ["/emoji/*.png", "/emoji/**/*.png"]
+  ],
+  default_manifest: "https://git.pleroma.social/pleroma/emoji-index/raw/master/index.json"
 
 config :pleroma, :uri_schemes,
   valid_schemes: [
@@ -221,9 +221,9 @@ config :pleroma, :instance,
   allowed_post_formats: [
     "text/plain",
     "text/html",
-    "text/markdown"
+    "text/markdown",
+    "text/bbcode"
   ],
-  finmoji_enabled: true,
   mrf_transparency: true,
   autofollowed_nicknames: [],
   max_pinned_statuses: 1,
@@ -232,6 +232,7 @@ config :pleroma, :instance,
   welcome_message: nil,
   max_report_comment_size: 1000,
   safe_dm_mentions: false,
+  healthcheck: false,
   two_factor_authentication: [
     # digits 6 or 8
     digits: 6,
@@ -335,7 +336,8 @@ config :pleroma, :media_proxy,
       follow_redirect: true,
       pool: :media
     ]
-  ]
+  ],
+  whitelist: []
 
 config :pleroma, :chat, enabled: true
 
@@ -346,7 +348,9 @@ config :pleroma, :gopher,
   ip: {0, 0, 0, 0},
   port: 9999
 
-config :pleroma, Pleroma.Web.Metadata, providers: [], unfurl_nsfw: false
+config :pleroma, Pleroma.Web.Metadata,
+  providers: [Pleroma.Web.Metadata.Providers.RelMe],
+  unfurl_nsfw: false
 
 config :pleroma, :suggestions,
   enabled: false,

@@ -13,10 +13,10 @@ defmodule Pleroma.Web.Auth.PleromaAuthenticator do
 
   @behaviour Pleroma.Web.Auth.Authenticator
 
-  def get_user(%Plug.Conn{} = _conn, params) do
-    with {:ok, {name, password}} <- fetch_credentials(params),
+  def get_user(%Plug.Conn{} = conn) do
+    with {:ok, {name, password}} <- fetch_credentials(conn),
          {_, %User{} = user} <- {:user, fetch_user(name)},
-         {:ok, _user} <- {authenticate(user, password), user} do
+         {_, true} <- {:checkpw, Pbkdf2.checkpw(password, user.password_hash)} do
       {:ok, user}
     else
       {:error, reason} -> {:error, reason}
@@ -24,10 +24,9 @@ defmodule Pleroma.Web.Auth.PleromaAuthenticator do
     end
   end
 
-  def get_registration(
-        %Plug.Conn{assigns: %{ueberauth_auth: %{provider: provider, uid: uid} = auth}},
-        _params
-      ) do
+  def get_registration(%Plug.Conn{
+        assigns: %{ueberauth_auth: %{provider: provider, uid: uid} = auth}
+      }) do
     registration = Registration.get_by_provider_uid(provider, uid)
 
     if registration do
@@ -35,7 +34,8 @@ defmodule Pleroma.Web.Auth.PleromaAuthenticator do
     else
       info = auth.info
 
-      Registration.changeset(%Registration{}, %{
+      %Registration{}
+      |> Registration.changeset(%{
         provider: to_string(provider),
         uid: to_string(uid),
         info: %{
@@ -49,13 +49,16 @@ defmodule Pleroma.Web.Auth.PleromaAuthenticator do
     end
   end
 
-  def get_registration(%Plug.Conn{} = _conn, _params), do: {:error, :missing_credentials}
+  def get_registration(%Plug.Conn{} = _conn), do: {:error, :missing_credentials}
 
-  def create_from_registration(_conn, params, registration) do
-    nickname = value([params["nickname"], Registration.nickname(registration)])
-    email = value([params["email"], Registration.email(registration)])
-    name = value([params["name"], Registration.name(registration)]) || nickname
-    bio = value([params["bio"], Registration.description(registration)])
+  def create_from_registration(
+        %Plug.Conn{params: %{"authorization" => registration_attrs}},
+        registration
+      ) do
+    nickname = value([registration_attrs["nickname"], Registration.nickname(registration)])
+    email = value([registration_attrs["email"], Registration.email(registration)])
+    name = value([registration_attrs["name"], Registration.name(registration)]) || nickname
+    bio = value([registration_attrs["bio"], Registration.description(registration)])
 
     random_password = :crypto.strong_rand_bytes(64) |> Base.encode64()
 

@@ -9,7 +9,6 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
   alias Pleroma.Registration
   alias Pleroma.Repo
-  alias Pleroma.Web.Auth.TOTP
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.Token
 
@@ -69,10 +68,12 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
           "/oauth/prepare_request",
           %{
             "provider" => "twitter",
-            "scope" => "read follow",
-            "client_id" => app.client_id,
-            "redirect_uri" => app.redirect_uris,
-            "state" => "a_state"
+            "authorization" => %{
+              "scope" => "read follow",
+              "client_id" => app.client_id,
+              "redirect_uri" => app.redirect_uris,
+              "state" => "a_state"
+            }
           }
         )
 
@@ -105,7 +106,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       }
 
       with_mock Pleroma.Web.Auth.Authenticator,
-        get_registration: fn _, _ -> {:ok, registration} end do
+        get_registration: fn _ -> {:ok, registration} end do
         conn =
           get(
             conn,
@@ -135,7 +136,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       }
 
       with_mock Pleroma.Web.Auth.Authenticator,
-        get_registration: fn _, _ -> {:ok, registration} end do
+        get_registration: fn _ -> {:ok, registration} end do
         conn =
           get(
             conn,
@@ -194,12 +195,14 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
           conn,
           "/oauth/registration_details",
           %{
-            "scopes" => app.scopes,
-            "client_id" => app.client_id,
-            "redirect_uri" => app.redirect_uris,
-            "state" => "a_state",
-            "nickname" => nil,
-            "email" => "john@doe.com"
+            "authorization" => %{
+              "scopes" => app.scopes,
+              "client_id" => app.client_id,
+              "redirect_uri" => app.redirect_uris,
+              "state" => "a_state",
+              "nickname" => nil,
+              "email" => "john@doe.com"
+            }
           }
         )
 
@@ -222,12 +225,14 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
           "/oauth/register",
           %{
             "op" => "register",
-            "scopes" => app.scopes,
-            "client_id" => app.client_id,
-            "redirect_uri" => app.redirect_uris,
-            "state" => "a_state",
-            "nickname" => "availablenick",
-            "email" => "available@email.com"
+            "authorization" => %{
+              "scopes" => app.scopes,
+              "client_id" => app.client_id,
+              "redirect_uri" => app.redirect_uris,
+              "state" => "a_state",
+              "nickname" => "availablenick",
+              "email" => "available@email.com"
+            }
           }
         )
 
@@ -245,17 +250,23 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       params = %{
         "op" => "register",
-        "scopes" => app.scopes,
-        "client_id" => app.client_id,
-        "redirect_uri" => app.redirect_uris,
-        "state" => "a_state",
-        "nickname" => "availablenickname",
-        "email" => "available@email.com"
+        "authorization" => %{
+          "scopes" => app.scopes,
+          "client_id" => app.client_id,
+          "redirect_uri" => app.redirect_uris,
+          "state" => "a_state",
+          "nickname" => "availablenickname",
+          "email" => "available@email.com"
+        }
       }
 
       for {bad_param, bad_param_value} <-
             [{"nickname", another_user.nickname}, {"email", another_user.email}] do
-        bad_params = Map.put(params, bad_param, bad_param_value)
+        bad_registration_attrs = %{
+          "authorization" => Map.put(params["authorization"], bad_param, bad_param_value)
+        }
+
+        bad_params = Map.merge(params, bad_registration_attrs)
 
         conn =
           conn
@@ -282,12 +293,14 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
           "/oauth/register",
           %{
             "op" => "connect",
-            "scopes" => app.scopes,
-            "client_id" => app.client_id,
-            "redirect_uri" => app.redirect_uris,
-            "state" => "a_state",
-            "auth_name" => user.nickname,
-            "password" => "testpassword"
+            "authorization" => %{
+              "scopes" => app.scopes,
+              "client_id" => app.client_id,
+              "redirect_uri" => app.redirect_uris,
+              "state" => "a_state",
+              "name" => user.nickname,
+              "password" => "testpassword"
+            }
           }
         )
 
@@ -305,12 +318,14 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       params = %{
         "op" => "connect",
-        "scopes" => app.scopes,
-        "client_id" => app.client_id,
-        "redirect_uri" => app.redirect_uris,
-        "state" => "a_state",
-        "auth_name" => user.nickname,
-        "password" => "wrong password"
+        "authorization" => %{
+          "scopes" => app.scopes,
+          "client_id" => app.client_id,
+          "redirect_uri" => app.redirect_uris,
+          "state" => "a_state",
+          "name" => user.nickname,
+          "password" => "wrong password"
+        }
       }
 
       conn =
@@ -344,6 +359,27 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
             "client_id" => app.client_id,
             "redirect_uri" => app.redirect_uris,
             "scope" => "read"
+          }
+        )
+
+      assert html_response(conn, 200) =~ ~s(type="submit")
+    end
+
+    test "properly handles internal calls with `authorization`-wrapped params", %{
+      app: app,
+      conn: conn
+    } do
+      conn =
+        get(
+          conn,
+          "/oauth/authorize",
+          %{
+            "authorization" => %{
+              "response_type" => "code",
+              "client_id" => app.client_id,
+              "redirect_uri" => app.redirect_uris,
+              "scope" => "read"
+            }
           }
         )
 
@@ -388,92 +424,6 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
         )
 
       assert redirected_to(conn) == "https://redirect.url"
-    end
-  end
-
-  describe "POST /oauth/authorize with enabled 2fa" do
-    setup do
-      password = "testpassword"
-      otp_secret = Pleroma.Web.Auth.TOTP.generate_secret()
-      otp_token = TOTP.generate_token(otp_secret)
-
-      user =
-        insert(:user,
-          otp_enabled: true,
-          otp_secret: otp_secret,
-          password_hash: Comeonin.Pbkdf2.hashpwsalt(password)
-        )
-
-      app = insert(:oauth_app, scopes: ["read", "write", "follow"])
-      [app: app, user: user, otp_secret: otp_secret, otp_token: otp_token]
-    end
-
-    test "display 2fa step page", %{app: app, user: user} do
-      conn =
-        build_conn()
-        |> post("/oauth/authorize", %{
-          "authorization" => %{
-            "name" => user.nickname,
-            "password" => "testpassword",
-            "client_id" => app.client_id,
-            "redirect_uri" => app.redirect_uris,
-            "scope" => "read write",
-            "state" => "statepassed"
-          }
-        })
-
-      assert response = html_response(conn, 200)
-      assert response =~ ~r/Authentication code/
-      assert response =~ ~r/Two-factor authentication/
-    end
-
-    test "returns 400 for invalid otp token", %{app: app, user: user} do
-      conn =
-        build_conn()
-        |> post("/oauth/authorize", %{
-          "authorization" => %{
-            "name" => user.nickname,
-            "password" => "testpassword",
-            "client_id" => app.client_id,
-            "redirect_uri" => app.redirect_uris,
-            "scope" => "read write",
-            "state" => "statepassed",
-            "otp_token" => 'xxx'
-          }
-        })
-
-      assert response = html_response(conn, 400)
-      assert response =~ ~r/Two-factor authentication failed/
-    end
-
-    test "returns 200 and redirects for valid otp token", %{
-      app: app,
-      user: user,
-      otp_token: otp_token
-    } do
-      conn =
-        build_conn()
-        |> post("/oauth/authorize", %{
-          "authorization" => %{
-            "name" => user.nickname,
-            "password" => "testpassword",
-            "client_id" => app.client_id,
-            "redirect_uri" => app.redirect_uris,
-            "scope" => "read write",
-            "state" => "statepassed",
-            "otp_token" => otp_token
-          }
-        })
-
-      target = redirected_to(conn)
-      assert target =~ app.redirect_uris
-
-      query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
-
-      assert %{"state" => "statepassed", "code" => code} = query
-      auth = Repo.get_by(Authorization, token: code)
-      assert auth
-      assert auth.scopes == ["read", "write"]
     end
   end
 
@@ -762,76 +712,6 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert resp = json_response(conn, 400)
       assert %{"error" => _} = json_response(conn, 400)
       refute Map.has_key?(resp, "access_token")
-    end
-  end
-
-  describe "2fa" do
-    test "issues a token for `password` grant_type with valid credentials and backup code" do
-      password = "testpassword"
-      otp_secret = Pleroma.Web.Auth.TOTP.generate_secret()
-
-      user =
-        insert(:user,
-          otp_enabled: true,
-          otp_secret: otp_secret,
-          password_hash: Comeonin.Pbkdf2.hashpwsalt(password)
-        )
-
-      [code | _] = backup_codes = Pleroma.Web.Auth.TOTP.generate_backup_codes()
-
-      [_ | unused_codes] =
-        hashed_codes =
-        backup_codes
-        |> Enum.map(&Comeonin.Pbkdf2.hashpwsalt(&1))
-
-      Pleroma.User.update_2fa_backup_codes(user, hashed_codes)
-
-      app = insert(:oauth_app)
-
-      conn =
-        build_conn()
-        |> post("/oauth/token", %{
-          "grant_type" => "password",
-          "username" => user.nickname,
-          "password" => password,
-          "client_id" => app.client_id,
-          "client_secret" => app.client_secret,
-          "otp_token" => code
-        })
-
-      assert %{"access_token" => token} = json_response(conn, 200)
-      assert Repo.get_by(Token, token: token)
-      user = refresh_record(user)
-      assert user.otp_backup_codes == unused_codes
-    end
-
-    test "issues a token for `password` grant_type with valid credentials" do
-      password = "testpassword"
-      otp_secret = TOTP.generate_secret()
-
-      user =
-        insert(:user,
-          otp_enabled: true,
-          otp_secret: otp_secret,
-          password_hash: Comeonin.Pbkdf2.hashpwsalt(password)
-        )
-
-      app = insert(:oauth_app)
-      otp_token = TOTP.generate_token(otp_secret)
-
-      conn =
-        build_conn()
-        |> post("/oauth/token", %{
-          "grant_type" => "password",
-          "username" => user.nickname,
-          "password" => password,
-          "client_id" => app.client_id,
-          "client_secret" => app.client_secret,
-          "otp_token" => otp_token
-        })
-
-      assert %{"access_token" => token} = json_response(conn, 200)
-      assert Repo.get_by(Token, token: token)
     end
   end
 end
