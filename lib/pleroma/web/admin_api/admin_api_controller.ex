@@ -101,7 +101,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     search_params = %{
       query: params["query"],
       page: page,
-      page_size: page_size
+      page_size: page_size,
+      tags: params["tags"]
     }
 
     with {:ok, users, count} <- Search.user(Map.merge(search_params, filters)),
@@ -116,7 +117,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
            )
   end
 
-  @filters ~w(local external active deactivated)
+  @filters ~w(local external active deactivated is_admin is_moderator)
 
   defp maybe_parse_filters(filters) when is_nil(filters) or filters == "", do: %{}
 

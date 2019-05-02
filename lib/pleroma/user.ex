@@ -1132,6 +1132,47 @@ defmodule Pleroma.User do
     )
   end
 
+  @spec maybe_is_admin_user_query(Ecto.Query.t(), boolean()) :: Ecto.Query.t()
+  def maybe_is_admin_user_query(query, is_admin) do
+    if is_admin, do: is_admin_user_query(query), else: query
+  end
+
+  @spec is_admin_user_query(Ecto.Query.t() | User) :: Ecto.Query.t()
+  def is_admin_user_query(query \\ User) do
+    from(u in query, where: fragment("(?->'is_admin' @> 'true')", u.info))
+  end
+
+  @spec maybe_is_moderator_user_query(Ecto.Query.t(), boolean()) :: Ecto.Query.t()
+  def maybe_is_moderator_user_query(query, is_moderator) do
+    if is_moderator, do: moderator_user_query(query), else: query
+  end
+
+  @spec maybe_search_by_tags(Ecto.Query.t(), [String.t()]) :: Ecto.Query.t()
+  def maybe_search_by_tags(query, tags) when is_list(tags) and length(tags) > 0,
+    do: prepare_tags_conditions(query, tags)
+
+  def maybe_search_by_tags(query, _), do: query
+
+  @spec prepare_tags_conditions(Ecto.Query.t(), [String.t()]) :: Ecto.Query.t()
+  def prepare_tags_conditions(query, []), do: query
+
+  def prepare_tags_conditions(query, [tag | others]) do
+    from(u in query, or_where: fragment("? = any(?)", ^tag, u.tags))
+    |> prepare_tags_conditions(others)
+  end
+
+  @spec maybe_nickname_query(Ecto.Query.t(), String.t()) :: Ecto.Query.t()
+  def maybe_nickname_query(query, nickname) when is_binary(nickname) and nickname != "" do
+    nickname_query(query, nickname)
+  end
+
+  def maybe_nickname_query(query, _), do: query
+
+  @spec nickname_query(Ecto.Query.t() | User, String.t()) :: Ecto.Query.t()
+  def nickname_query(query \\ User, nickname) do
+    from(u in query, where: ilike(u.nickname, ^"%#{nickname}%"))
+  end
+
   def active_local_user_query do
     from(
       u in local_user_query(),
@@ -1139,10 +1180,9 @@ defmodule Pleroma.User do
     )
   end
 
-  def moderator_user_query do
+  def moderator_user_query(query \\ User) do
     from(
-      u in User,
-      where: u.local == true,
+      u in query,
       where: fragment("?->'is_moderator' @> 'true'", u.info)
     )
   end

@@ -84,5 +84,39 @@ defmodule Pleroma.Web.AdminAPI.SearchTest do
       assert total_count == 3
       assert count == 1
     end
+
+    test "it returns admin user" do
+      admin = insert(:user, info: %{is_admin: true})
+      insert(:user)
+      insert(:user)
+
+      {:ok, [received_admin], total_count} = Search.user(%{is_admin: true})
+
+      assert total_count == 1
+      assert received_admin == admin
+    end
+
+    test "it returns moderator user" do
+      moderator = insert(:user, info: %{is_moderator: true})
+      insert(:user)
+      insert(:user)
+
+      {:ok, [received_moderator], total_count} = Search.user(%{is_moderator: true})
+
+      assert total_count == 1
+      assert received_moderator == moderator
+    end
+
+    test "it returns users with tags" do
+      user1 = insert(:user, tags: ["first"])
+      user2 = insert(:user, tags: ["second"])
+      insert(:user)
+      insert(:user)
+
+      {:ok, results, total_count} = Search.user(%{tags: ["first", "second"]})
+
+      assert total_count == 2
+      assert results == [user1, user2]
+    end
   end
 end

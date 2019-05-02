@@ -10,7 +10,7 @@ defmodule Pleroma.Web.AdminAPI.Search do
 
   @page_size 50
 
-  def user(%{query: term} = params) when is_nil(term) or term == "" do
+  def user(params) do
     query = maybe_filtered_query(params)
 
     paginated_query =
@@ -24,25 +24,16 @@ defmodule Pleroma.Web.AdminAPI.Search do
     {:ok, results, count}
   end
 
-  def user(%{query: term} = params) when is_binary(term) do
-    search_query = from(u in maybe_filtered_query(params), where: ilike(u.nickname, ^"%#{term}%"))
-
-    count = search_query |> Repo.aggregate(:count, :id)
-
-    results =
-      search_query
-      |> paginate(params[:page] || 1, params[:page_size] || @page_size)
-      |> Repo.all()
-
-    {:ok, results, count}
-  end
-
   defp maybe_filtered_query(params) do
     from(u in User, order_by: u.nickname)
     |> User.maybe_local_user_query(params[:local])
     |> User.maybe_external_user_query(params[:external])
     |> User.maybe_active_user_query(params[:active])
     |> User.maybe_deactivated_user_query(params[:deactivated])
+    |> User.maybe_is_admin_user_query(params[:is_admin])
+    |> User.maybe_is_moderator_user_query(params[:is_moderator])
+    |> User.maybe_search_by_tags(params[:tags])
+    |> User.maybe_nickname_query(params[:query])
   end
 
   defp paginate(query, page, page_size) do
