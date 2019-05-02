@@ -1157,7 +1157,12 @@ defmodule Pleroma.User do
     |> update_and_set_cache()
   end
 
-  def delete(%User{} = user) do
+  @spec delete(User.t()) :: :ok
+  def delete(%User{} = user),
+    do: PleromaJobQueue.enqueue(:background, __MODULE__, [:delete, user])
+
+  @spec perform(atom(), User.t()) :: {:ok, User.t()}
+  def perform(:delete, %User{} = user) do
     {:ok, user} = User.deactivate(user)
 
     # Remove all relationships
@@ -1179,7 +1184,7 @@ defmodule Pleroma.User do
   end
 
   defp do_delete_user_activities(ap_id, max_id \\ nil) do
-    batch_size = Pleroma.Config.get([:pleroma, :instance])[:repo_batch_size]
+    batch_size = Pleroma.Config.get([:instance, :repo_batch_size])
 
     activities =
       Activity.query_by_actor_with_limit(ap_id, batch_size, max_id)

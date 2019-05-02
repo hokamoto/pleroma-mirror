@@ -19,8 +19,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   action_fallback(:errors)
 
   def user_delete(conn, %{"nickname" => nickname}) do
-    user = User.get_cached_by_nickname(nickname)
-    PleromaJobQueue.enqueue(:background, Pleroma.BackgroundJob, [:delete_user, user])
+    User.get_cached_by_nickname(nickname)
+    |> User.delete()
 
     conn
     |> json(nickname)
