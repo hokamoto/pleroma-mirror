@@ -127,6 +127,9 @@ defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
         end,
         if Keyword.get(instance, :safe_dm_mentions) do
           "safe_dm_mentions"
+        end,
+        if Keyword.get(instance, :poll_limits) do
+          "polls"
         end
       ]
       |> Enum.filter(& &1)
@@ -169,6 +172,7 @@ defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
           banner: Keyword.get(instance, :banner_upload_limit),
           background: Keyword.get(instance, :background_upload_limit)
         },
+        pollLimits: Keyword.get(instance, :poll_limits),
         accountActivationRequired: Keyword.get(instance, :account_activation_required, false),
         invitesEnabled: Keyword.get(instance, :invites_enabled, false),
         features: features,
