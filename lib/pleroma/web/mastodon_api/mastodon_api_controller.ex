@@ -9,6 +9,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   alias Pleroma.Bookmark
   alias Pleroma.Config
   alias Pleroma.Filter
+  alias Pleroma.Formatter
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Object.Fetcher
@@ -87,7 +88,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     user_params =
       %{}
       |> add_if_present(params, "display_name", :name)
-      |> add_if_present(params, "note", :bio, fn value -> {:ok, User.parse_bio(value)} end)
+      |> add_if_present(params, "note", :bio, fn value -> {:ok, User.parse_bio(value, user)} end)
       |> add_if_present(params, "avatar", :avatar, fn value ->
         with %Plug.Upload{} <- value,
              {:ok, object} <- ActivityPub.upload(value, type: :avatar) do
@@ -96,6 +97,12 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
           _ -> :error
         end
       end)
+
+    emojis_text = (user_params["display_name"] || "") <> (user_params["note"] || "")
+
+    user_info_emojis =
+      ((user.info.emoji || []) ++ Formatter.get_emoji_map(emojis_text))
+      |> Enum.dedup()
 
     info_params =
       [:no_rich_text, :locked, :hide_followers, :hide_follows, :hide_favorites, :show_role]
@@ -113,6 +120,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
           _ -> :error
         end
       end)
+      |> Map.put(:emoji, user_info_emojis)
 
     info_cng = User.Info.profile_update(user.info, info_params)
 
@@ -1313,8 +1321,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       initial_state =
         %{
           meta: %{
-            streaming_api_base_url:
-              String.replace(Pleroma.Web.Endpoint.static_url(), "http", "ws"),
+            streaming_api_base_url: Pleroma.Web.Endpoint.websocket_url(),
             access_token: token,
             locale: "en",
             domain: Pleroma.Web.Endpoint.host(),
@@ -1694,7 +1701,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
               x,
               "id",
               case User.get_or_fetch(x["acct"]) do
-                %{id: id} -> id
+                {:ok, %User{id: id}} -> id
                 _ -> 0
               end
             )
