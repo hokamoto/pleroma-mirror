@@ -1084,109 +1084,6 @@ defmodule Pleroma.User do
     update_and_set_cache(cng)
   end
 
-  def maybe_local_user_query(query, local) do
-    if local, do: local_user_query(query), else: query
-  end
-
-  def local_user_query(query \\ User) do
-    from(
-      u in query,
-      where: u.local == true,
-      where: not is_nil(u.nickname)
-    )
-  end
-
-  def maybe_external_user_query(query, external) do
-    if external, do: external_user_query(query), else: query
-  end
-
-  def external_user_query(query \\ User) do
-    from(
-      u in query,
-      where: u.local == false,
-      where: not is_nil(u.nickname)
-    )
-  end
-
-  def maybe_active_user_query(query, active) do
-    if active, do: active_user_query(query), else: query
-  end
-
-  def active_user_query(query \\ User) do
-    from(
-      u in query,
-      where: fragment("not (?->'deactivated' @> 'true')", u.info),
-      where: not is_nil(u.nickname)
-    )
-  end
-
-  def maybe_deactivated_user_query(query, deactivated) do
-    if deactivated, do: deactivated_user_query(query), else: query
-  end
-
-  def deactivated_user_query(query \\ User) do
-    from(
-      u in query,
-      where: fragment("(?->'deactivated' @> 'true')", u.info),
-      where: not is_nil(u.nickname)
-    )
-  end
-
-  @spec maybe_is_admin_user_query(Ecto.Query.t(), boolean()) :: Ecto.Query.t()
-  def maybe_is_admin_user_query(query, is_admin) do
-    if is_admin, do: is_admin_user_query(query), else: query
-  end
-
-  @spec is_admin_user_query(Ecto.Query.t() | User) :: Ecto.Query.t()
-  def is_admin_user_query(query \\ User) do
-    from(u in query, where: fragment("(?->'is_admin' @> 'true')", u.info))
-  end
-
-  @spec maybe_is_moderator_user_query(Ecto.Query.t(), boolean()) :: Ecto.Query.t()
-  def maybe_is_moderator_user_query(query, is_moderator) do
-    if is_moderator, do: moderator_user_query(query), else: query
-  end
-
-  @spec maybe_search_by_tags(Ecto.Query.t(), [String.t()]) :: Ecto.Query.t()
-  def maybe_search_by_tags(query, tags) when is_list(tags) and length(tags) > 0,
-    do: prepare_tags_conditions(query, tags)
-
-  def maybe_search_by_tags(query, _), do: query
-
-  @spec prepare_tags_conditions(Ecto.Query.t(), [String.t()]) :: Ecto.Query.t()
-  def prepare_tags_conditions(query, []), do: query
-
-  def prepare_tags_conditions(query, [tag | others]) do
-    from(u in query, or_where: fragment("? = any(?)", ^tag, u.tags))
-    |> prepare_tags_conditions(others)
-  end
-
-  @spec maybe_nickname_query(Ecto.Query.t(), String.t()) :: Ecto.Query.t()
-  def maybe_nickname_query(query, nickname) when is_binary(nickname) and nickname != "" do
-    nickname_query(query, nickname)
-  end
-
-  def maybe_nickname_query(query, _), do: query
-
-  @spec nickname_query(Ecto.Query.t() | User, String.t()) :: Ecto.Query.t()
-  def nickname_query(query \\ User, nickname) do
-    from(u in query, where: ilike(u.nickname, ^"%#{nickname}%"))
-  end
-
-  def active_local_user_query do
-    from(
-      u in local_user_query(),
-      where: fragment("not (?->'deactivated' @> 'true')", u.info)
-    )
-  end
-
-  def moderator_user_query(query \\ User) do
-    from(
-      u in query,
-      where: fragment("?->'is_moderator' @> 'true'", u.info)
-    )
-  end
-
   def deactivate(%User{} = user, status \\ true) do
     info_cng = User.Info.set_activation_status(user.info, status)
 
@@ -1343,7 +1240,7 @@ defmodule Pleroma.User do
   def ap_enabled?(_), do: false
 
   @doc "Gets or fetch a user by uri or nickname."
-  @spec get_or_fetch(String.t()) :: User.t()
+  @spec get_or_fetch(String.t()) :: {:ok, User.t()} | {:error, String.t()}
   def get_or_fetch("http" <> _host = uri), do: get_or_fetch_by_ap_id(uri)
   def get_or_fetch(nickname), do: get_or_fetch_by_nickname(nickname)
 

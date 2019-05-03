@@ -7,33 +7,27 @@ defmodule Pleroma.Web.AdminAPI.Search do
 
   alias Pleroma.Repo
   alias Pleroma.User
+  alias Pleroma.User.Query, as: UsersQuery
 
   @page_size 50
 
-  def user(params) do
-    query = maybe_filtered_query(params)
+  defmacro not_empty_string(string) do
+    quote do
+      is_binary(unquote(string)) and unquote(string) != ""
+    end
+  end
 
-    paginated_query =
-      maybe_filtered_query(params)
-      |> paginate(params[:page] || 1, params[:page_size] || @page_size)
+  @spec user(User.criteria()) :: {:ok, [User.t()], pos_integer()}
+  def user(params \\ %{}) do
+    query = UsersQuery.build(params) |> order_by([u], u.nickname)
 
-    count = query |> Repo.aggregate(:count, :id)
+    paginated_query = paginate(query, params[:page] || 1, params[:page_size] || @page_size)
+
+    count = Repo.aggregate(query, :count, :id)
 
     results = Repo.all(paginated_query)
 
     {:ok, results, count}
-  end
-
-  defp maybe_filtered_query(params) do
-    from(u in User, order_by: u.nickname)
-    |> User.maybe_local_user_query(params[:local])
-    |> User.maybe_external_user_query(params[:external])
-    |> User.maybe_active_user_query(params[:active])
-    |> User.maybe_deactivated_user_query(params[:deactivated])
-    |> User.maybe_is_admin_user_query(params[:is_admin])
-    |> User.maybe_is_moderator_user_query(params[:is_moderator])
-    |> User.maybe_search_by_tags(params[:tags])
-    |> User.maybe_nickname_query(params[:query])
   end
 
   defp paginate(query, page, page_size) do

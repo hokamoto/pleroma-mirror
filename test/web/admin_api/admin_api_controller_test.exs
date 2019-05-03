@@ -490,6 +490,94 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
              }
     end
 
+    test "search by domain", %{conn: conn} do
+      user = insert(:user, nickname: "nickname@domain.com")
+      insert(:user)
+
+      conn = get(conn, "/api/pleroma/admin/users?query=domain.com")
+
+      assert json_response(conn, 200) == %{
+               "count" => 1,
+               "page_size" => 50,
+               "users" => [
+                 %{
+                   "deactivated" => user.info.deactivated,
+                   "id" => user.id,
+                   "nickname" => user.nickname,
+                   "roles" => %{"admin" => false, "moderator" => false},
+                   "local" => true,
+                   "tags" => []
+                 }
+               ]
+             }
+    end
+
+    test "search by full nickname", %{conn: conn} do
+      user = insert(:user, nickname: "nickname@domain.com")
+      insert(:user)
+
+      conn = get(conn, "/api/pleroma/admin/users?query=nickname@domain.com")
+
+      assert json_response(conn, 200) == %{
+               "count" => 1,
+               "page_size" => 50,
+               "users" => [
+                 %{
+                   "deactivated" => user.info.deactivated,
+                   "id" => user.id,
+                   "nickname" => user.nickname,
+                   "roles" => %{"admin" => false, "moderator" => false},
+                   "local" => true,
+                   "tags" => []
+                 }
+               ]
+             }
+    end
+
+    test "search by display name", %{conn: conn} do
+      user = insert(:user, name: "Display name")
+      insert(:user)
+
+      conn = get(conn, "/api/pleroma/admin/users?name=display")
+
+      assert json_response(conn, 200) == %{
+               "count" => 1,
+               "page_size" => 50,
+               "users" => [
+                 %{
+                   "deactivated" => user.info.deactivated,
+                   "id" => user.id,
+                   "nickname" => user.nickname,
+                   "roles" => %{"admin" => false, "moderator" => false},
+                   "local" => true,
+                   "tags" => []
+                 }
+               ]
+             }
+    end
+
+    test "search by email", %{conn: conn} do
+      user = insert(:user, email: "email@example.com")
+      insert(:user)
+
+      conn = get(conn, "/api/pleroma/admin/users?email=email@example.com")
+
+      assert json_response(conn, 200) == %{
+               "count" => 1,
+               "page_size" => 50,
+               "users" => [
+                 %{
+                   "deactivated" => user.info.deactivated,
+                   "id" => user.id,
+                   "nickname" => user.nickname,
+                   "roles" => %{"admin" => false, "moderator" => false},
+                   "local" => true,
+                   "tags" => []
+                 }
+               ]
+             }
+    end
+
     test "regular search with page size", %{conn: conn} do
       user = insert(:user, nickname: "aalice")
       user2 = insert(:user, nickname: "alice")

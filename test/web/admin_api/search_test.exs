@@ -70,11 +70,11 @@ defmodule Pleroma.Web.AdminAPI.SearchTest do
     test "it returns specific user" do
       insert(:user)
       insert(:user)
-      insert(:user, nickname: "bob", local: true, info: %{deactivated: false})
+      user = insert(:user, nickname: "bob", local: true, info: %{deactivated: false})
 
       {:ok, _results, total_count} = Search.user(%{query: ""})
 
-      {:ok, _results, count} =
+      {:ok, [^user], count} =
         Search.user(%{
           query: "Bo",
           active: true,
@@ -85,15 +85,37 @@ defmodule Pleroma.Web.AdminAPI.SearchTest do
       assert count == 1
     end
 
+    test "it returns user by domain" do
+      insert(:user)
+      insert(:user)
+      user = insert(:user, nickname: "some@domain.com")
+
+      {:ok, _results, total} = Search.user()
+      {:ok, [^user], count} = Search.user(%{query: "domain.com"})
+      assert total == 3
+      assert count == 1
+    end
+
+    test "it return user by full nickname" do
+      insert(:user)
+      insert(:user)
+      user = insert(:user, nickname: "some@domain.com")
+
+      {:ok, _results, total} = Search.user()
+      {:ok, [^user], count} = Search.user(%{query: "some@domain.com"})
+      assert total == 3
+      assert count == 1
+    end
+
     test "it returns admin user" do
       admin = insert(:user, info: %{is_admin: true})
       insert(:user)
       insert(:user)
 
-      {:ok, [received_admin], total_count} = Search.user(%{is_admin: true})
-
-      assert total_count == 1
-      assert received_admin == admin
+      {:ok, _results, total} = Search.user()
+      {:ok, [^admin], count} = Search.user(%{is_admin: true})
+      assert total == 3
+      assert count == 1
     end
 
     test "it returns moderator user" do
@@ -101,10 +123,10 @@ defmodule Pleroma.Web.AdminAPI.SearchTest do
       insert(:user)
       insert(:user)
 
-      {:ok, [received_moderator], total_count} = Search.user(%{is_moderator: true})
-
-      assert total_count == 1
-      assert received_moderator == moderator
+      {:ok, _results, total} = Search.user()
+      {:ok, [^moderator], count} = Search.user(%{is_moderator: true})
+      assert total == 3
+      assert count == 1
     end
 
     test "it returns users with tags" do
@@ -113,10 +135,36 @@ defmodule Pleroma.Web.AdminAPI.SearchTest do
       insert(:user)
       insert(:user)
 
-      {:ok, results, total_count} = Search.user(%{tags: ["first", "second"]})
+      {:ok, _results, total} = Search.user()
+      {:ok, users, count} = Search.user(%{tags: ["first", "second"]})
+      assert total == 4
+      assert count == 2
+      assert user1 in users
+      assert user2 in users
+    end
 
-      assert total_count == 2
-      assert results == [user1, user2]
+    test "it returns user by display name" do
+      user = insert(:user, name: "Display name")
+      insert(:user)
+      insert(:user)
+
+      {:ok, _results, total} = Search.user()
+      {:ok, [^user], count} = Search.user(%{name: "display"})
+
+      assert total == 3
+      assert count == 1
+    end
+
+    test "it returns user by email" do
+      user = insert(:user, email: "some@example.com")
+      insert(:user)
+      insert(:user)
+
+      {:ok, _results, total} = Search.user()
+      {:ok, [^user], count} = Search.user(%{email: "some@example.com"})
+
+      assert total == 3
+      assert count == 1
     end
   end
 end
