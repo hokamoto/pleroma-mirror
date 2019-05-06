@@ -16,11 +16,10 @@ defmodule Pleroma.Mixfile do
 
       # Docs
       name: "Pleroma",
-      source_url: "https://git.pleroma.social/pleroma/pleroma",
-      source_url_pattern:
-        "https://git.pleroma.social/pleroma/pleroma/blob/develop/%{path}#L%{line}",
       homepage_url: "https://pleroma.social/",
       docs: [
+        source_url: "https://git.pleroma.social/pleroma/pleroma",
+        source_url_pattern: "https://git.pleroma.social/pleroma/pleroma/blob/develop/%{path}#L%{line}",
         logo: "priv/static/static/logo.png",
         extras: ["README.md", "CHANGELOG.md"] ++ Path.wildcard("docs/**/*.md"),
         groups_for_extras: [
