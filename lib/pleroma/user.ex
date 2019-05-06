@@ -1184,21 +1184,16 @@ defmodule Pleroma.User do
       |> Activity.with_preloaded_object()
       |> Repo.stream()
 
-    Repo.transaction(fn -> delete_activities(stream) end, timeout: :infinity)
+    Repo.transaction(fn -> Enum.each(stream, &delete_activity(&1)) end, timeout: :infinity)
 
     {:ok, user}
   end
 
-  defp delete_activities(activities) do
-    Enum.each(activities, fn
-      %{data: %{"type" => "Create"}} = activity ->
-        Object.normalize(activity) |> ActivityPub.delete()
-
-      # TODO: Do something with likes, follows, repeats.
-      _ ->
-        "Doing nothing"
-    end)
+  defp delete_activity(%{data: %{"type" => "Create"}} = activity) do
+    Object.normalize(activity) |> ActivityPub.delete()
   end
+
+  defp delete_activity(_activity), do: "Doing nothing"
 
   def html_filter_policy(%User{info: %{no_rich_text: true}}) do
     Pleroma.HTML.Scrubber.TwitterText
