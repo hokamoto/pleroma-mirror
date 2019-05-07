@@ -5,14 +5,10 @@
 defmodule Pleroma.Web.Auth.TOTPAuthenticatorTest do
   use Pleroma.Web.ConnCase
 
+  alias Pleroma.MultiFactorAuthentications, as: MFA
   alias Pleroma.Web.Auth.TOTP
   alias Pleroma.Web.Auth.TOTPAuthenticator
   import Pleroma.Factory
-
-  # setup_all do
-  #   insert(:user)
-  #   :ok
-  # end
 
   test "verify token" do
     otp_secret = TOTP.generate_secret()
@@ -20,8 +16,10 @@ defmodule Pleroma.Web.Auth.TOTPAuthenticatorTest do
 
     user =
       insert(:user,
-        otp_enabled: true,
-        otp_secret: otp_secret
+        multi_factor_authentication_settings: %MFA.Settings{
+          enabled: true,
+          totp: %MFA.Settings.TOTP{secret: otp_secret, confirmed: true}
+        }
       )
 
     assert TOTPAuthenticator.verify(otp_token, user) == {:ok, :pass}
@@ -38,9 +36,11 @@ defmodule Pleroma.Web.Auth.TOTPAuthenticatorTest do
 
     user =
       insert(:user,
-        otp_enabled: true,
-        otp_secret: "otp_secret",
-        otp_backup_codes: hashed_codes
+        multi_factor_authentication_settings: %MFA.Settings{
+          enabled: true,
+          backup_codes: hashed_codes,
+          totp: %MFA.Settings.TOTP{secret: "otp_secret", confirmed: true}
+        }
       )
 
     assert TOTPAuthenticator.verify(code, user) == {:ok, :pass}

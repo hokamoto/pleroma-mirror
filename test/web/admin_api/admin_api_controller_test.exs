@@ -7,6 +7,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   alias Pleroma.User
   alias Pleroma.UserInviteToken
+  alias Pleroma.MultiFactorAuthentications, as: MFA
   import Pleroma.Factory
 
   describe "/api/pleroma/admin/user" do
@@ -650,28 +651,36 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
              }
   end
 
-  describe "PUT disable_2fa" do
+  describe "PUT disable_mfa" do
     setup do
       admin = insert(:user, info: %{is_admin: true})
       [conn: assign(build_conn(), :user, admin)]
     end
 
     test "returns 200 and disable 2fa", %{conn: conn} do
-      user = insert(:user, otp_enabled: true, otp_secret: "xxx")
+      user = insert(:user,
+        multi_factor_authentication_settings: %MFA.Settings{
+          enabled: true,
+          totp: %MFA.Settings.TOTP{secret: "otp_secret", confirmed: true}
+        }
+      )
 
       response =
         conn
-        |> put("/api/pleroma/admin/user/disable_2fa", %{nickname: user.nickname})
+        |> put("/api/pleroma/admin/user/disable_mfa", %{nickname: user.nickname})
         |> json_response(200)
 
       assert response == user.nickname
-      refute refresh_record(user).otp_enabled
+      mfa_settings = refresh_record(user).multi_factor_authentication_settings
+
+      refute mfa_settings.enabled
+      refute mfa_settings.totp.confirmed
     end
 
     test "returns 404 if user not found", %{conn: conn} do
       response =
         conn
-        |> put("/api/pleroma/admin/user/disable_2fa", %{nickname: "nickname"})
+        |> put("/api/pleroma/admin/user/disable_mfa", %{nickname: "nickname"})
         |> json_response(404)
 
       assert response == "Not found"

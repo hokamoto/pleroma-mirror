@@ -1,0 +1,2 @@
+defmodule Pleroma.MultiFactorAuthenticationsTest do
+end

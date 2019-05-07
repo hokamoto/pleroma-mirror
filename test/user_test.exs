@@ -1007,9 +1007,8 @@ defmodule Pleroma.UserTest do
     test "works with URIs" do
       results = User.search("http://mastodon.example.org/users/admin", resolve: true)
       result = results |> List.first()
-
+      Cachex.clear(:user_cache)
       user = User.get_cached_by_ap_id("http://mastodon.example.org/users/admin")
-
       assert length(results) == 1
       assert user == result |> Map.put(:search_rank, nil) |> Map.put(:search_type, nil)
     end
@@ -1142,38 +1141,4 @@ defmodule Pleroma.UserTest do
     assert Map.get(user_show, "followers_count") == 2
   end
 
-  describe "2fa" do
-    test "enable_2fa" do
-      user = insert(:user, otp_enabled: false)
-      User.enable_2fa(user)
-      assert refresh_record(user).otp_enabled
-    end
-
-    test "disable_2fa" do
-      user = insert(:user, otp_enabled: true)
-      User.disable_2fa(user)
-      refute refresh_record(user).otp_enabled
-    end
-
-    test "set_2fa_secret" do
-      user = insert(:user)
-      refute refresh_record(user).otp_secret
-      User.set_2fa_secret(user)
-      assert refresh_record(user).otp_secret
-    end
-
-    test "update_2fa_backup_codes" do
-      user = insert(:user)
-      assert refresh_record(user).otp_backup_codes == []
-      User.update_2fa_backup_codes(user, ["1", "3"])
-      assert refresh_record(user).otp_backup_codes == ["1", "3"]
-    end
-
-    test "invalidate_2fa_backup_code" do
-      user = insert(:user, otp_backup_codes: ["1", "3", "4"])
-      assert refresh_record(user).otp_backup_codes == ["1", "3", "4"]
-      User.invalidate_2fa_backup_code(user, "3")
-      assert refresh_record(user).otp_backup_codes == ["1", "4"]
-    end
-  end
 end

@@ -6,56 +6,44 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
   @moduledoc "The module represents actions to manage 2FA/TOTP"
   use Pleroma.Web, :controller
 
-  alias Comeonin.Pbkdf2
-  alias Pleroma.User
   alias Pleroma.Web.Auth.TOTP
-  alias Pleroma.Web.CommonAPI.Utils
+  alias Pleroma.MultiFactorAuthentications, as: MFA
 
   @doc """
-  Generates secret key for 2FA and returns provisioning_uri to generate qr code.
-
+  Gets user multi factor authentication settings
   ## Endpoint
-  GET /api/pleroma/2fa/provisioning_uri
+  GET /api/pleroma/profile/mfa
 
-  ## Response
-  ### Success
-  `{status: 'success', provisioning_uri: [uri], key: otp_secret_key }`
-
-  ### Error
-  `{error: [error_message]}`
   """
-  def provisioning_uri(%{assigns: %{user: user}} = conn, _params) do
-    with {:ok, %User{otp_secret: secret} = _} <- User.set_2fa_secret(user) do
-      uri = TOTP.provisioning_uri(secret, "#{user.email}")
-      json(conn, %{status: "success", provisioning_uri: uri, key: secret})
+  def settings(%{assigns: %{user: user}} = conn, _params) do
+    json(conn, %{settings: MFA.mfa_settings(user)})
+  end
+
+  @doc """
+  Prepare setup mfa method
+  """
+  def setup(%{assigns: %{user: user}} = conn, %{"method" => "totp"} = _params) do
+    with {:ok, user} <- MFA.setup_totp(user),
+         %{secret: secret} = _ <- user.multi_factor_authentication_settings.totp do
+      provisioning_uri = TOTP.provisioning_uri(secret, "#{user.email}")
+
+      json(
+        conn,
+        %{status: "success", provisioning_uri: provisioning_uri, key: secret}
+      )
     else
       {:error, msg} ->
         json(conn, %{error: msg})
     end
   end
 
+  def setup(conn, _params), do: json(conn, %{error: "undefined mfa method"})
+
   @doc """
-  Enables 2FA support for user account.
-
-  ## Endpoint
-  POST /api/pleroma/2fa/enable
-
-  ## Required params
-  `password` - current password of user
-  `otp_token` - token from Google Auth. app
-
-  ## Response
-  ### Success
-  `{status: 'success'}`
-
-  ### Error
-  `{error: [error_message]}`
-
+  Confirm setup and enable mfa method
   """
-  def enable(%{assigns: %{user: user}} = conn, params) do
-    with {:ok, user} <- Utils.confirm_current_password(user, params["password"]),
-         {:ok, :pass} <- TOTP.validate_token(user.otp_secret, params["otp_token"]) do
-      Pleroma.Async.start(fn -> User.enable_2fa(user) end)
+  def confirm(%{assigns: %{user: user}} = conn, %{"method" => "totp"} = params) do
+    with {:ok, _user} <- MFA.confirm_totp(user, params) do
       json(conn, %{status: "success"})
     else
       {:error, msg} ->
@@ -63,26 +51,13 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
     end
   end
 
+  def confirm(conn, _params), do: json(conn, %{error: "undefined mfa method"})
+
   @doc """
-  Disables 2FA for user account.
-
-  ## Endpoint
-  POST /api/pleroma/2fa/disable
-
-  ## Required params
-  `password` - current password of user
-
-  ## Response
-  ### Success
-  `{status: 'success'}`
-
-  ### Error
-  `{error: [error_message]}`
-
+  Disable mfa method and disable mfa if need.
   """
-  def disable(%{assigns: %{user: user}} = conn, params) do
-    with {:ok, user} <- Utils.confirm_current_password(user, params["password"]) do
-      Pleroma.Async.start(fn -> User.disable_2fa(user) end)
+  def disable(%{assigns: %{user: user}} = conn, %{"method" => "totp"} = params) do
+    with {:ok, _user} <- MFA.disable_totp(user, params) do
       json(conn, %{status: "success"})
     else
       {:error, msg} ->
@@ -90,11 +65,13 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
     end
   end
 
+  def disable(conn, _params), do: json(conn, %{error: "undefined mfa method"})
+
   @doc """
-  Generates backup codes for 2fa
+  Generates backup codes.
 
   ## Endpoint
-  GET /api/pleroma/2fa/backup_codes
+  GET /api/pleroma/mfa/backup_codes
 
   ## Response
   ### Success
@@ -105,9 +82,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
 
   """
   def backup_codes(%{assigns: %{user: user}} = conn, _params) do
-    with codes <- TOTP.generate_backup_codes(),
-         hashed_codes <- Enum.map(codes, fn code -> Pbkdf2.hashpwsalt(code) end),
-         {:ok, _user} <- User.update_2fa_backup_codes(user, hashed_codes) do
+    with {:ok, codes} <- MFA.generate_backup_codes(user) do
       json(conn, %{status: "success", codes: codes})
     else
       {:error, msg} ->

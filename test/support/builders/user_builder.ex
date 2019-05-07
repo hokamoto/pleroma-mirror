@@ -9,7 +9,8 @@ defmodule Pleroma.Builders.UserBuilder do
       nickname: "testname",
       password_hash: Comeonin.Pbkdf2.hashpwsalt("test"),
       bio: "A tester.",
-      ap_id: "some id"
+      ap_id: "some id",
+      multi_factor_authentication_settings: %Pleroma.MultiFactorAuthentications.Settings{}
     }
 
     Map.merge(user, data)

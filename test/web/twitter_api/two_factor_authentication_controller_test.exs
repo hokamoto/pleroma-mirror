@@ -2,121 +2,204 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
   use Pleroma.Web.ConnCase
 
   import Pleroma.Factory
+  alias Pleroma.MultiFactorAuthentications.Settings
   alias Pleroma.Web.Auth.TOTP
 
-  describe "GET /api/pleroma/2fa/provisioning_uri" do
-    test "returns provisioning_uri for qr code", %{conn: conn} do
+  describe "GET /api/pleroma/profile/mfa/settings" do
+    test "returns user mfa settings for new user", %{conn: conn} do
       user = insert(:user)
 
       response =
         conn
         |> assign(:user, user)
-        |> get("/api/pleroma/2fa/provisioning_uri")
+        |> get("/api/pleroma/profile/mfa")
         |> json_response(:ok)
-
-      user = refresh_record(user)
 
       assert response == %{
-               "status" => "success",
-               "key" => user.otp_secret,
-               "provisioning_uri" =>
-                 "otpauth://totp/#{user.email}?digits=6&issuer=Pleroma&period=30&secret=#{
-                   user.otp_secret
-                 }"
+               "settings" => %{"enabled" => false, "totp" => false, "u2f" => false}
              }
+    end
 
-      refute user.otp_enabled
-      assert user.otp_secret
+    test "returns user mfa settings with enabled totp", %{conn: conn} do
+      user =
+        insert(:user,
+          multi_factor_authentication_settings: %Settings{
+            enabled: true,
+            totp: %Settings.TOTP{secret: "XXX", delivery_type: "app", confirmed: true}
+          }
+        )
+
+      response =
+        conn
+        |> assign(:user, user)
+        |> get("/api/pleroma/profile/mfa")
+        |> json_response(:ok)
+
+      assert response == %{
+               "settings" => %{"enabled" => true, "totp" => true, "u2f" => false}
+             }
     end
   end
 
-  describe "POST /api/pleroma/2fa/enable" do
-    test "returns success with correct data", %{conn: conn} do
-      user = insert(:user, otp_secret: TOTP.generate_secret())
-      otp_token = TOTP.generate_token(user.otp_secret)
-
-      response =
-        conn
-        |> assign(:user, user)
-        |> post("/api/pleroma/2fa/enable", %{password: "test", otp_token: otp_token})
-        |> json_response(:ok)
-
-      assert response == %{"status" => "success"}
-      user = refresh_record(user)
-      assert user.otp_enabled
-    end
-
-    test "returns error if current password is incorrect", %{conn: conn} do
-      user = insert(:user)
-
-      response =
-        conn
-        |> assign(:user, user)
-        |> post("/api/pleroma/2fa/enable", %{password: "42"})
-        |> json_response(:ok)
-
-      assert response == %{"error" => "Invalid password.", "status" => "error"}
-      refute refresh_record(user).otp_enabled
-    end
-
-    test "returns error if otp_token is incorrect", %{conn: conn} do
-      user = insert(:user, otp_secret: TOTP.generate_secret())
-
-      response =
-        conn
-        |> assign(:user, user)
-        |> post("/api/pleroma/2fa/enable", %{password: "test", otp_token: "incorrect"})
-        |> json_response(:ok)
-
-      assert response == %{"error" => "invalid_token", "status" => "error"}
-    end
-  end
-
-  describe "POST /api/pleroma/2fa/disable" do
-    test "returns success if current password is correct", %{conn: conn} do
-      user = insert(:user, otp_enabled: true)
-
-      response =
-        conn
-        |> assign(:user, user)
-        |> post("/api/pleroma/2fa/disable", %{password: "test"})
-        |> json_response(:ok)
-
-      assert response == %{"status" => "success"}
-      refute refresh_record(user).otp_enabled
-    end
-
-    test "returns error if current password is incorrect", %{conn: conn} do
-      user = insert(:user)
-
-      response =
-        conn
-        |> assign(:user, user)
-        |> post("/api/pleroma/2fa/disable", %{password: "42"})
-        |> json_response(:ok)
-
-      assert response == %{"error" => "Invalid password."}
-    end
-  end
-
-  describe "GET /api/pleroma/2fa/backup_codes" do
+  describe "GET /api/pleroma/profile/mfa/backup_codes" do
     test "returns backup codes", %{conn: conn} do
-      user = insert(:user, otp_backup_codes: [])
+      user =
+        insert(:user,
+          multi_factor_authentication_settings: %Settings{backup_codes: ["1", "2", "3"]}
+        )
 
       response =
         conn
         |> assign(:user, user)
-        |> get("/api/pleroma/2fa/backup_codes")
+        |> get("/api/pleroma/profile/mfa/backup_codes")
         |> json_response(:ok)
 
       assert response["status"] == "success"
       assert [<<_::bytes-size(6)>>, <<_::bytes-size(6)>>] = response["codes"]
-      hashed_codes = refresh_record(user).otp_backup_codes
+      user = refresh_record(user)
+      mfa_settings = user.multi_factor_authentication_settings
+      refute mfa_settings.backup_codes == ["1", "2", "3"]
+      refute mfa_settings.backup_codes == []
+    end
+  end
 
-      assert Enum.zip(response["codes"], hashed_codes)
-             |> Enum.all?(fn {code, hash} ->
-               Comeonin.Pbkdf2.checkpw(code, hash)
-             end)
+  describe "GET /api/pleroma/profile/mfa/setup/totp" do
+    test "return errors when method is invalid", %{conn: conn} do
+      user = insert(:user)
+
+      response =
+        conn
+        |> assign(:user, user)
+        |> get("/api/pleroma/profile/mfa/setup/torf")
+        |> json_response(:ok)
+
+      assert response == %{"error" => "undefined mfa method"}
+    end
+
+    test "returns key and provisioning_uri", %{conn: conn} do
+      user =
+        insert(:user,
+          multi_factor_authentication_settings: %Settings{backup_codes: ["1", "2", "3"]}
+        )
+
+      response =
+        conn
+        |> assign(:user, user)
+        |> get("/api/pleroma/profile/mfa/setup/totp")
+        |> json_response(:ok)
+
+      user = refresh_record(user)
+      mfa_settings = user.multi_factor_authentication_settings
+      secret = mfa_settings.totp.secret
+      refute mfa_settings.enabled
+      assert mfa_settings.backup_codes == ["1", "2", "3"]
+
+      assert response == %{
+               "key" => secret,
+               "provisioning_uri" => TOTP.provisioning_uri(secret, "#{user.email}"),
+               "status" => "success"
+             }
+    end
+  end
+
+  describe "GET /api/pleroma/profile/mfa/confirm/totp" do
+    test "returns success result", %{conn: conn} do
+      secret = TOTP.generate_secret()
+      code = TOTP.generate_token(secret)
+
+      user =
+        insert(:user,
+          multi_factor_authentication_settings: %Settings{
+            backup_codes: ["1", "2", "3"],
+            totp: %Settings.TOTP{secret: secret}
+          }
+        )
+
+      response =
+        conn
+        |> assign(:user, user)
+        |> post("/api/pleroma/profile/mfa/confirm/totp", %{password: "test", code: code})
+        |> json_response(:ok)
+
+      settings = refresh_record(user).multi_factor_authentication_settings
+      assert settings.enabled
+      assert settings.totp.secret == secret
+      assert settings.totp.confirmed
+      assert settings.backup_codes == ["1", "2", "3"]
+      assert response == %{"status" => "success"}
+    end
+
+    test "returns error if password incorrect", %{conn: conn} do
+      secret = TOTP.generate_secret()
+      code = TOTP.generate_token(secret)
+
+      user =
+        insert(:user,
+          multi_factor_authentication_settings: %Settings{
+            backup_codes: ["1", "2", "3"],
+            totp: %Settings.TOTP{secret: secret}
+          }
+        )
+
+      response =
+        conn
+        |> assign(:user, user)
+        |> post("/api/pleroma/profile/mfa/confirm/totp", %{password: "xxx", code: code})
+        |> json_response(:ok)
+
+      settings = refresh_record(user).multi_factor_authentication_settings
+      refute settings.enabled
+      refute settings.totp.confirmed
+      assert settings.backup_codes == ["1", "2", "3"]
+      assert response == %{"status" => "error", "error" => "Invalid password."}
+    end
+
+    test "returns error if code incorrect", %{conn: conn} do
+      secret = TOTP.generate_secret()
+
+      user =
+        insert(:user,
+          multi_factor_authentication_settings: %Settings{
+            backup_codes: ["1", "2", "3"],
+            totp: %Settings.TOTP{secret: secret}
+          }
+        )
+
+      response =
+        conn
+        |> assign(:user, user)
+        |> post("/api/pleroma/profile/mfa/confirm/totp", %{password: "test", code: "code"})
+        |> json_response(:ok)
+
+      settings = refresh_record(user).multi_factor_authentication_settings
+      refute settings.enabled
+      refute settings.totp.confirmed
+      assert settings.backup_codes == ["1", "2", "3"]
+      assert response == %{"status" => "error", "error" => "invalid_token"}
+    end
+  end
+
+  describe "DELETE /api/pleroma/profile/mfa/totp" do
+    test "returns success result", %{conn: conn} do
+      user =
+        insert(:user,
+          multi_factor_authentication_settings: %Settings{
+            backup_codes: ["1", "2", "3"],
+            totp: %Settings.TOTP{secret: "secret"}
+          }
+        )
+
+      response =
+        conn
+        |> assign(:user, user)
+        |> delete("/api/pleroma/profile/mfa/totp", %{password: "test"})
+        |> json_response(:ok)
+
+      settings = refresh_record(user).multi_factor_authentication_settings
+      refute settings.enabled
+      assert settings.totp.secret == nil
+      refute settings.totp.confirmed
+      assert response == %{"status" => "success"}
     end
   end
 end

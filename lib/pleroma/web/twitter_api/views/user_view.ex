@@ -154,11 +154,10 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
 
   defp maybe_with_role(data, _, _), do: data
 
-  defp maybe_with_user_settings(data, %User{info: info, id: id} = user, %User{id: id}) do
+  defp maybe_with_user_settings(data, %User{info: info, id: id} = _user, %User{id: id}) do
     data
     |> Kernel.put_in(["default_scope"], info.default_scope)
     |> Kernel.put_in(["no_rich_text"], info.no_rich_text)
-    |> Kernel.put_in(["otp_enabled"], user.otp_enabled)
   end
 
   defp maybe_with_user_settings(data, _, _), do: data

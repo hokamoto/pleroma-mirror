@@ -5,12 +5,18 @@
 defmodule Pleroma.Web.Auth.TOTPAuthenticator do
   alias Comeonin.Pbkdf2
   alias Pleroma.User
+  alias Pleroma.MultiFactorAuthentications, as: MFA
   alias Pleroma.Web.Auth.TOTP
 
   @doc "Verify code or check backup code."
   @spec verify(String.t(), User.t()) ::
           {:ok, :pass} | {:error, :invalid_token | :invalid_secret_and_token}
-  def verify(token, %User{otp_enabled: true, otp_secret: secret} = user)
+  def verify(
+        token,
+        %User{
+          multi_factor_authentication_settings: %{totp: %{secret: secret, confirmed: true}} = _
+        } = user
+      )
       when is_binary(token) and byte_size(token) > 0 do
     with {:error, _} <- TOTP.validate_token(secret, token) do
       check_backup_code(user, token)
@@ -21,12 +27,15 @@ defmodule Pleroma.Web.Auth.TOTPAuthenticator do
 
   @spec check_backup_code(User.t(), String.t()) ::
           {:ok, :pass} | {:error, :invalid_token}
-  defp check_backup_code(%User{otp_backup_codes: codes} = user, code)
+  defp check_backup_code(
+         %User{multi_factor_authentication_settings: %{backup_codes: codes}} = user,
+         code
+       )
        when is_list(codes) and is_binary(code) do
     hash_code = Enum.find(codes, fn hash -> Pbkdf2.checkpw(code, hash) end)
 
     if hash_code do
-      User.invalidate_2fa_backup_code(user, hash_code)
+      MFA.invalidate_backup_code(user, hash_code)
       {:ok, :pass}
     else
       {:error, :invalid_token}
