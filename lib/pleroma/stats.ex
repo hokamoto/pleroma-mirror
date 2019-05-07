@@ -5,7 +5,7 @@
 defmodule Pleroma.Stats do
   import Ecto.Query
   alias Pleroma.Repo
-  alias Pleroma.User.Query, as: UsersQuery
+  alias Pleroma.User
 
   def start_link do
     agent = Agent.start_link(fn -> {[], %{}} end, name: __MODULE__)
@@ -34,7 +34,7 @@ defmodule Pleroma.Stats do
   def update_stats do
     peers =
       from(
-        u in Pleroma.User,
+        u in User,
         select: fragment("distinct split_part(?, '@', 2)", u.nickname),
         where: u.local != ^true
       )
@@ -44,12 +44,13 @@ defmodule Pleroma.Stats do
     domain_count = Enum.count(peers)
 
     status_query =
-      from(u in UsersQuery.build(%{local: true}),
+      from(u in User.Query.build(%{local: true}),
         select: fragment("sum((?->>'note_count')::int)", u.info)
       )
 
     status_count = Repo.one(status_query)
-    user_count = Repo.aggregate(UsersQuery.build(%{local: true, active: true}), :count, :id)
+
+    user_count = Repo.aggregate(User.Query.build(%{local: true, active: true}), :count, :id)
 
     Agent.update(__MODULE__, fn _ ->
       {peers, %{domain_count: domain_count, status_count: status_count, user_count: user_count}}

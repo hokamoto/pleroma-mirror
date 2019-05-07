@@ -7,7 +7,6 @@ defmodule Pleroma.Web.AdminAPI.Search do
 
   alias Pleroma.Repo
   alias Pleroma.User
-  alias Pleroma.User.Query, as: UsersQuery
 
   @page_size 50
 
@@ -19,7 +18,7 @@ defmodule Pleroma.Web.AdminAPI.Search do
 
   @spec user(User.criteria()) :: {:ok, [User.t()], pos_integer()}
   def user(params \\ %{}) do
-    query = UsersQuery.build(params) |> order_by([u], u.nickname)
+    query = User.Query.build(params) |> order_by([u], u.nickname)
 
     paginated_query = paginate(query, params[:page] || 1, params[:page_size] || @page_size)
 
