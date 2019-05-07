@@ -169,13 +169,13 @@ config :pleroma, :frontend_configurations,
 
 These settings **need to be complete**, they will override the defaults.
 
-NOTE: for versions < 1.0, you need to set [`:fe`](#fe) to false, as shown a few lines below. 
+NOTE: for versions < 1.0, you need to set [`:fe`](#fe) to false, as shown a few lines below.
 
 ## :fe
 __THIS IS DEPRECATED__
 
 If you are using this method, please change it to the [`frontend_configurations`](#frontend_configurations) method.
-Please **set this option to false** in your config like this: 
+Please **set this option to false** in your config like this:
 
 ```elixir
 config :pleroma, :fe, false
@@ -444,7 +444,28 @@ Pleroma account will be created with the same name as the LDAP user name.
 * `base`: LDAP base, e.g. "dc=example,dc=com"
 * `uid`: LDAP attribute name to authenticate the user, e.g. when "cn", the filter will be "cn=username,base"
 
+## BBS / SSH access
+
+To enable simple command line interface accessible over ssh, add a setting like this to your configuration file:
+
+```exs
+app_dir = File.cwd!
+priv_dir = Path.join([app_dir, "priv/ssh_keys"])
+
+config :esshd,
+  enabled: true,
+  priv_dir: priv_dir,
+  handler: "Pleroma.BBS.Handler",
+  port: 10_022,
+  password_authenticator: "Pleroma.BBS.Authenticator"
+```
+
+Feel free to adjust the priv_dir and port number. Then you will have to create the key for the keys (in the example `priv/ssh_keys`) and create the host keys with `ssh-keygen -N "" -b 2048 -t rsa -f ssh_host_rsa_key`. After restarting, you should be able to connect to your Pleroma instance with `ssh username@server -p $PORT`
+
 ## :auth
+
+* `Pleroma.Web.Auth.PleromaAuthenticator`: default database authenticator
+* `Pleroma.Web.Auth.LDAPAuthenticator`: LDAP authentication
 
 Authentication / authorization settings.
 
@@ -452,7 +473,7 @@ Authentication / authorization settings.
 * `oauth_consumer_template`: OAuth consumer mode authentication form template. By default it's `consumer.html` which corresponds to `lib/pleroma/web/templates/o_auth/o_auth/consumer.html.eex`.
 * `oauth_consumer_strategies`: the list of enabled OAuth consumer strategies; by default it's set by OAUTH_CONSUMER_STRATEGIES environment variable.
 
-# OAuth consumer mode
+## OAuth consumer mode
 
 OAuth consumer mode allows sign in / sign up via external OAuth providers (e.g. Twitter, Facebook, Google, Microsoft, etc.).
 Implementation is based on Ueberauth; see the list of [available strategies](https://github.com/ueberauth/ueberauth/wiki/List-of-Strategies).
@@ -504,6 +525,13 @@ config :ueberauth, Ueberauth,
     microsoft: {Ueberauth.Strategy.Microsoft, [callback_params: []]}
   ]
 ```
+
+## OAuth 2.0 provider - :oauth2
+
+Configure OAuth 2 provider capabilities:
+
+* `token_expires_in` - The lifetime in seconds of the access token.
+* `issue_new_refresh_token` - Keeps old refresh token or generate new refresh token when to obtain an access token.
 
 ## :emoji
 * `shortcode_globs`: Location of custom emoji files. `*` can be used as a wildcard. Example `["/emoji/custom/**/*.png"]`

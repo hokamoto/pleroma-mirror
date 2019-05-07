@@ -11,7 +11,6 @@ defmodule Pleroma.User do
   alias Comeonin.Pbkdf2
   alias Pleroma.Activity
   alias Pleroma.Bookmark
-  alias Pleroma.Formatter
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Registration
@@ -1165,7 +1164,12 @@ defmodule Pleroma.User do
     |> update_and_set_cache()
   end
 
-  def delete(%User{} = user) do
+  @spec delete(User.t()) :: :ok
+  def delete(%User{} = user),
+    do: PleromaJobQueue.enqueue(:background, __MODULE__, [:delete, user])
+
+  @spec perform(atom(), User.t()) :: {:ok, User.t()}
+  def perform(:delete, %User{} = user) do
     {:ok, user} = User.deactivate(user)
 
     # Remove all relationships
@@ -1181,21 +1185,22 @@ defmodule Pleroma.User do
   end
 
   def delete_user_activities(%User{ap_id: ap_id} = user) do
-    Activity
-    |> where(actor: ^ap_id)
-    |> Activity.with_preloaded_object()
-    |> Repo.all()
-    |> Enum.each(fn
-      %{data: %{"type" => "Create"}} = activity ->
-        activity |> Object.normalize() |> ActivityPub.delete()
+    stream =
+      ap_id
+      |> Activity.query_by_actor()
+      |> Activity.with_preloaded_object()
+      |> Repo.stream()
 
-      # TODO: Do something with likes, follows, repeats.
-      _ ->
-        "Doing nothing"
-    end)
+    Repo.transaction(fn -> Enum.each(stream, &delete_activity(&1)) end, timeout: :infinity)
 
     {:ok, user}
   end
+
+  defp delete_activity(%{data: %{"type" => "Create"}} = activity) do
+    Object.normalize(activity) |> ActivityPub.delete()
+  end
+
+  defp delete_activity(_activity), do: "Doing nothing"
 
   def html_filter_policy(%User{info: %{no_rich_text: true}}) do
     Pleroma.HTML.Scrubber.TwitterText
@@ -1331,18 +1336,15 @@ defmodule Pleroma.User do
     end
   end
 
-  def parse_bio(bio, user \\ %User{info: %{source_data: %{}}})
-  def parse_bio(nil, _user), do: ""
-  def parse_bio(bio, _user) when bio == "", do: bio
+  def parse_bio(bio) when is_binary(bio) and bio != "" do
+    bio
+    |> CommonUtils.format_input("text/plain", mentions_format: :full)
+    |> elem(0)
+  end
 
-  def parse_bio(bio, user) do
-    emoji =
-      (user.info.source_data["tag"] || [])
-      |> Enum.filter(fn %{"type" => t} -> t == "Emoji" end)
-      |> Enum.map(fn %{"icon" => %{"url" => url}, "name" => name} ->
-        {String.trim(name, ":"), url}
-      end)
+  def parse_bio(_), do: ""
 
+  def parse_bio(bio, user) when is_binary(bio) and bio != "" do
     # TODO: get profile URLs other than user.ap_id
     profile_urls = [user.ap_id]
 
@@ -1352,8 +1354,9 @@ defmodule Pleroma.User do
       rel: &RelMe.maybe_put_rel_me(&1, profile_urls)
     )
     |> elem(0)
-    |> Formatter.emojify(emoji)
   end
+
+  def parse_bio(_, _), do: ""
 
   def tag(user_identifiers, tags) when is_list(user_identifiers) do
     Repo.transaction(fn ->
