@@ -91,16 +91,16 @@ defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
   test "a create activity with a summary containing emoji" do
     {:ok, activity} =
       CommonAPI.post(insert(:user), %{
-        "spoiler_text" => ":woollysocks: meow",
+        "spoiler_text" => ":firefox: meow",
         "status" => "."
       })
 
     result = ActivityView.render("activity.json", activity: activity)
 
-    expected = ":woollysocks: meow"
+    expected = ":firefox: meow"
 
     expected_html =
-      "<img height=\"32px\" width=\"32px\" alt=\"woollysocks\" title=\"woollysocks\" src=\"http://localhost:4001/finmoji/128px/woollysocks-128.png\" /> meow"
+      "<img class=\"emoji\" alt=\"firefox\" title=\"firefox\" src=\"http://localhost:4001/emoji/Firefox.gif\" /> meow"
 
     assert result["summary"] == expected
     assert result["summary_html"] == expected_html
@@ -370,5 +370,15 @@ defmodule Pleroma.Web.TwitterAPI.ActivityViewTest do
 
     assert length(result["attachments"]) == 1
     assert result["summary"] == "Friday Night"
+  end
+
+  test "special characters are not escaped in text field for status created" do
+    text = "<3 is on the way"
+
+    {:ok, activity} = CommonAPI.post(insert(:user), %{"status" => text})
+
+    result = ActivityView.render("activity.json", activity: activity)
+
+    assert result["text"] == text
   end
 end

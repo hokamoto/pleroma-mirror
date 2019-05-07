@@ -31,7 +31,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     |> Activity.create_by_object_ap_id()
     |> Repo.all()
     |> Enum.reduce(%{}, fn activity, acc ->
-      object = Object.normalize(activity.data["object"])
+      object = Object.normalize(activity)
       Map.put(acc, object.data["id"], activity)
     end)
   end
@@ -75,13 +75,22 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
   def render(
         "status.json",
-        %{activity: %{data: %{"type" => "Announce", "object" => object}} = activity} = opts
+        %{activity: %{data: %{"type" => "Announce", "object" => _object}} = activity} = opts
       ) do
     user = get_user(activity.data["actor"])
     created_at = Utils.to_masto_date(activity.data["published"])
+    activity_object = Object.normalize(activity)
 
-    reblogged_activity = Activity.get_create_by_object_ap_id(object)
+    reblogged_activity =
+      Activity.create_by_object_ap_id(activity_object.data["id"])
+      |> Activity.with_preloaded_bookmark(opts[:for])
+      |> Repo.one()
+
     reblogged = render("status.json", Map.put(opts, :activity, reblogged_activity))
+
+    favorited = opts[:for] && opts[:for].ap_id in (activity_object.data["likes"] || [])
+
+    bookmarked = Activity.get_bookmark(reblogged_activity, opts[:for]) != nil
 
     mentions =
       activity.recipients
@@ -91,8 +100,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
     %{
       id: to_string(activity.id),
-      uri: object,
-      url: object,
+      uri: activity_object.data["id"],
+      url: activity_object.data["id"],
       account: AccountView.render("account.json", %{user: user}),
       in_reply_to_id: nil,
       in_reply_to_account_id: nil,
@@ -103,8 +112,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       replies_count: 0,
       favourites_count: 0,
       reblogged: reblogged?(reblogged_activity, opts[:for]),
-      favourited: false,
-      bookmarked: false,
+      favourited: present?(favorited),
+      bookmarked: present?(bookmarked),
       muted: false,
       pinned: pinned?(activity, user),
       sensitive: false,
@@ -144,7 +153,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
     favorited = opts[:for] && opts[:for].ap_id in (object.data["likes"] || [])
 
-    bookmarked = opts[:for] && object.data["id"] in opts[:for].bookmarks
+    bookmarked = Activity.get_bookmark(activity, opts[:for]) != nil
 
     attachment_data = object.data["attachment"] || []
     attachments = render_many(attachment_data, StatusView, "attachment.json", as: :attachment)
@@ -234,6 +243,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       pleroma: %{
         local: activity.local,
         conversation_id: get_context_id(activity),
+        in_reply_to_account_acct: reply_to_user && reply_to_user.nickname,
         content: %{"text/plain" => content_plaintext},
         spoiler_text: %{"text/plain" => summary_plaintext}
       }
@@ -312,7 +322,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   end
 
   def get_reply_to(activity, %{replied_to_activities: replied_to_activities}) do
-    object = Object.normalize(activity.data["object"])
+    object = Object.normalize(activity)
 
     with nil <- replied_to_activities[object.data["inReplyTo"]] do
       # If user didn't participate in the thread

@@ -100,9 +100,9 @@ config :pleroma, :emoji,
   shortcode_globs: ["/emoji/custom/**/*.png"],
   groups: [
     # Put groups that have higher priority than defaults here. Example in `docs/config/custom_emoji.md`
-    Finmoji: "/finmoji/128px/*-128.png",
-    Custom: ["/emoji/*.png", "/emoji/custom/*.png"]
-  ]
+    Custom: ["/emoji/*.png", "/emoji/**/*.png"]
+  ],
+  default_manifest: "https://git.pleroma.social/pleroma/emoji-index/raw/master/index.json"
 
 config :pleroma, :uri_schemes,
   valid_schemes: [
@@ -221,9 +221,9 @@ config :pleroma, :instance,
   allowed_post_formats: [
     "text/plain",
     "text/html",
-    "text/markdown"
+    "text/markdown",
+    "text/bbcode"
   ],
-  finmoji_enabled: true,
   mrf_transparency: true,
   autofollowed_nicknames: [],
   max_pinned_statuses: 1,
@@ -231,7 +231,8 @@ config :pleroma, :instance,
   welcome_user_nickname: nil,
   welcome_message: nil,
   max_report_comment_size: 1000,
-  safe_dm_mentions: false
+  safe_dm_mentions: false,
+  healthcheck: false
 
 config :pleroma, :markup,
   # XXX - unfortunately, inline images must be enabled by default right now, because
@@ -326,7 +327,8 @@ config :pleroma, :media_proxy,
       follow_redirect: true,
       pool: :media
     ]
-  ]
+  ],
+  whitelist: []
 
 config :pleroma, :chat, enabled: true
 
@@ -414,7 +416,8 @@ config :pleroma_job_queue, :queues,
   web_push: 50,
   mailer: 10,
   transmogrifier: 20,
-  scheduled_activities: 10
+  scheduled_activities: 10,
+  background: 5
 
 config :pleroma, :fetch_initial_posts,
   enabled: false,
@@ -440,6 +443,9 @@ config :pleroma, :ldap,
   tlsopts: [],
   base: System.get_env("LDAP_BASE") || "dc=example,dc=com",
   uid: System.get_env("LDAP_UID") || "cn"
+
+config :esshd,
+  enabled: false
 
 oauth_consumer_strategies = String.split(System.get_env("OAUTH_CONSUMER_STRATEGIES") || "")
 
@@ -470,6 +476,10 @@ config :pleroma, Pleroma.ScheduledActivity,
   daily_user_limit: 25,
   total_user_limit: 300,
   enabled: true
+
+config :pleroma, :oauth2,
+  token_expires_in: 600,
+  issue_new_refresh_token: true
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

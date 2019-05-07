@@ -6,6 +6,7 @@ defmodule Pleroma.Web.Streamer do
   use GenServer
   require Logger
   alias Pleroma.Activity
+  alias Pleroma.Conversation.Participation
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.User
@@ -71,6 +72,15 @@ defmodule Pleroma.Web.Streamer do
     {:noreply, topics}
   end
 
+  def handle_cast(%{action: :stream, topic: "participation", item: participation}, topics) do
+    user_topic = "direct:#{participation.user_id}"
+    Logger.debug("Trying to push a conversation participation to #{user_topic}\n\n")
+
+    push_to_socket(topics, user_topic, participation)
+
+    {:noreply, topics}
+  end
+
   def handle_cast(%{action: :stream, topic: "list", item: item}, topics) do
     # filter the recipient list if the activity is not public, see #270.
     recipient_lists =
@@ -81,7 +91,7 @@ defmodule Pleroma.Web.Streamer do
         _ ->
           Pleroma.List.get_lists_from_activity(item)
           |> Enum.filter(fn list ->
-            owner = User.get_by_id(list.user_id)
+            owner = User.get_cached_by_id(list.user_id)
 
             Visibility.visible_for_user?(item, owner)
           end)
@@ -192,6 +202,19 @@ defmodule Pleroma.Web.Streamer do
     |> Jason.encode!()
   end
 
+  def represent_conversation(%Participation{} = participation) do
+    %{
+      event: "conversation",
+      payload:
+        Pleroma.Web.MastodonAPI.ConversationView.render("participation.json", %{
+          participation: participation,
+          user: participation.user
+        })
+        |> Jason.encode!()
+    }
+    |> Jason.encode!()
+  end
+
   def push_to_socket(topics, topic, %Activity{data: %{"type" => "Announce"}} = item) do
     Enum.each(topics[topic] || [], fn socket ->
       # Get the current user so we have up-to-date blocks etc.
@@ -211,6 +234,12 @@ defmodule Pleroma.Web.Streamer do
       else
         send(socket.transport_pid, {:text, represent_update(item)})
       end
+    end)
+  end
+
+  def push_to_socket(topics, topic, %Participation{} = participation) do
+    Enum.each(topics[topic] || [], fn socket ->
+      send(socket.transport_pid, {:text, represent_conversation(participation)})
     end)
   end
 

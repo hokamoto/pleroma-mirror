@@ -9,6 +9,7 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
 
   alias Ecto.Changeset
   alias Pleroma.Activity
+  alias Pleroma.Formatter
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Repo
@@ -181,6 +182,7 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
       |> Map.put("blocking_user", user)
       |> Map.put("user", user)
       |> Map.put(:visibility, "direct")
+      |> Map.put(:order, :desc)
 
     activities =
       ActivityPub.fetch_activities_query([user.ap_id], params)
@@ -434,7 +436,7 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   end
 
   def confirm_email(conn, %{"user_id" => uid, "token" => token}) do
-    with %User{} = user <- User.get_by_id(uid),
+    with %User{} = user <- User.get_cached_by_id(uid),
          true <- user.local,
          true <- user.info.confirmation_pending,
          true <- user.info.confirmation_token == token,
@@ -587,7 +589,7 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
 
   def approve_friend_request(conn, %{"user_id" => uid} = _params) do
     with followed <- conn.assigns[:user],
-         %User{} = follower <- User.get_by_id(uid),
+         %User{} = follower <- User.get_cached_by_id(uid),
          {:ok, follower} <- CommonAPI.accept_follow_request(follower, followed) do
       conn
       |> put_view(UserView)
@@ -599,7 +601,7 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
 
   def deny_friend_request(conn, %{"user_id" => uid} = _params) do
     with followed <- conn.assigns[:user],
-         %User{} = follower <- User.get_by_id(uid),
+         %User{} = follower <- User.get_cached_by_id(uid),
          {:ok, follower} <- CommonAPI.reject_follow_request(follower, followed) do
       conn
       |> put_view(UserView)
@@ -632,7 +634,7 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
 
   defp build_info_cng(user, params) do
     info_params =
-      ["no_rich_text", "locked", "hide_followers", "hide_follows", "show_role"]
+      ["no_rich_text", "locked", "hide_followers", "hide_follows", "hide_favorites", "show_role"]
       |> Enum.reduce(%{}, fn key, res ->
         if value = params[key] do
           Map.put(res, key, value == "true")
@@ -653,7 +655,22 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
 
   defp parse_profile_bio(user, params) do
     if bio = params["description"] do
-      Map.put(params, "bio", User.parse_bio(bio, user))
+      emojis_text = (params["description"] || "") <> " " <> (params["name"] || "")
+
+      emojis =
+        ((user.info.emoji || []) ++ Formatter.get_emoji_map(emojis_text))
+        |> Enum.dedup()
+
+      user_info =
+        user.info
+        |> Map.put(
+          "emoji",
+          emojis
+        )
+
+      params
+      |> Map.put("bio", User.parse_bio(bio, user))
+      |> Map.put("info", user_info)
     else
       params
     end

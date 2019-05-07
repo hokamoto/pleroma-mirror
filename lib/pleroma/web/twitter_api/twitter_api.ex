@@ -240,7 +240,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
         end
 
       %{"screen_name" => nickname} ->
-        case User.get_by_nickname(nickname) do
+        case User.get_cached_by_nickname(nickname) do
           nil -> {:error, "No user with such screen_name"}
           target -> {:ok, target}
         end
@@ -293,7 +293,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
   end
 
   def get_external_profile(for_user, uri) do
-    with %User{} = user <- User.get_or_fetch(uri) do
+    with {:ok, %User{} = user} <- User.get_or_fetch(uri) do
       {:ok, UserView.render("show.json", %{user: user, for: for_user})}
     else
       _e ->

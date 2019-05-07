@@ -140,6 +140,7 @@ defmodule Pleroma.Web.Router do
     post("/password_reset", UtilController, :password_reset)
     get("/emoji", UtilController, :emoji)
     get("/captcha", UtilController, :captcha)
+    get("/healthcheck", UtilController, :healthcheck)
   end
 
   scope "/api/pleroma", Pleroma.Web do
@@ -280,6 +281,9 @@ defmodule Pleroma.Web.Router do
 
       get("/suggestions", MastodonAPIController, :suggestions)
 
+      get("/conversations", MastodonAPIController, :conversations)
+      post("/conversations/:id/read", MastodonAPIController, :conversation_read)
+
       get("/endorsements", MastodonAPIController, :empty_array)
 
       get("/pleroma/flavour", MastodonAPIController, :get_flavour)
@@ -399,6 +403,8 @@ defmodule Pleroma.Web.Router do
       get("/accounts/:id", MastodonAPIController, :user)
 
       get("/search", MastodonAPIController, :search)
+
+      get("/pleroma/accounts/:id/favourites", MastodonAPIController, :user_favourites)
     end
   end
 
