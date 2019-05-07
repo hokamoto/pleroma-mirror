@@ -16,11 +16,11 @@ defmodule Pleroma.Mixfile do
 
       # Docs
       name: "Pleroma",
-      source_url: "https://git.pleroma.social/pleroma/pleroma",
-      source_url_pattern:
-        "https://git.pleroma.social/pleroma/pleroma/blob/develop/%{path}#L%{line}",
       homepage_url: "https://pleroma.social/",
+      source_url: "https://git.pleroma.social/pleroma/pleroma",
       docs: [
+        source_url_pattern:
+          "https://git.pleroma.social/pleroma/pleroma/blob/develop/%{path}#L%{line}",
         logo: "priv/static/static/logo.png",
         extras: ["README.md", "CHANGELOG.md"] ++ Path.wildcard("docs/**/*.md"),
         groups_for_extras: [
@@ -41,7 +41,7 @@ defmodule Pleroma.Mixfile do
   def application do
     [
       mod: {Pleroma.Application, []},
-      extra_applications: [:logger, :runtime_tools, :comeonin, :quack],
+      extra_applications: [:logger, :runtime_tools, :comeonin, :esshd, :quack],
       included_applications: [:ex_syslogger]
     ]
   end
@@ -112,6 +112,8 @@ defmodule Pleroma.Mixfile do
       {:prometheus_process_collector, "~> 1.4"},
       {:recon, github: "ferd/recon", tag: "2.4.0"},
       {:quack, "~> 0.1.1"},
+      {:benchee, "~> 1.0"},
+      {:esshd, "~> 0.1.0"},
       {:pot, "~> 0.9.7"}
     ] ++ oauth_deps
   end

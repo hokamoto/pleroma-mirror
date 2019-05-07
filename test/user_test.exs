@@ -829,10 +829,12 @@ defmodule Pleroma.UserTest do
     user = insert(:user)
 
     {:ok, activity} = CommonAPI.post(user, %{"status" => "2hu"})
-    {:ok, _} = User.delete_user_activities(user)
 
-    # TODO: Remove favorites, repeats, delete activities.
-    refute Activity.get_by_id(activity.id)
+    Ecto.Adapters.SQL.Sandbox.unboxed_run(Repo, fn ->
+      {:ok, _} = User.delete_user_activities(user)
+      # TODO: Remove favorites, repeats, delete activities.
+      refute Activity.get_by_id(activity.id)
+    end)
   end
 
   test ".delete deactivates a user, all follow relationships and all create activities" do
@@ -1102,7 +1104,7 @@ defmodule Pleroma.UserTest do
       expected_text =
         "A.k.a. <span class='h-card'><a data-user='#{remote_user.id}' class='u-url mention' href='#{
           remote_user.ap_id
-        }'>" <> "@<span>nick@domain.com</span></a></span>"
+        }'>@<span>nick@domain.com</span></a></span>"
 
       assert expected_text == User.parse_bio(bio, user)
     end
