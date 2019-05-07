@@ -1142,5 +1142,4 @@ defmodule Pleroma.UserTest do
 
     assert Map.get(user_show, "followers_count") == 2
   end
-
 end

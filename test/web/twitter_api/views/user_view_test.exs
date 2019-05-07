@@ -314,5 +314,4 @@ defmodule Pleroma.Web.TwitterAPI.UserViewTest do
     userview = UserView.render("show.json", %{user: user})
     assert userview["fields"] == fields
   end
-
 end

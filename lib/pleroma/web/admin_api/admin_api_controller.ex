@@ -6,9 +6,9 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   use Pleroma.Web, :controller
 
   alias Ecto.Changeset
+  alias Pleroma.MultiFactorAuthentications
   alias Pleroma.User
   alias Pleroma.UserInviteToken
-  alias Pleroma.MultiFactorAuthentications
   alias Pleroma.Web.ActivityPub.Relay
   alias Pleroma.Web.AdminAPI.AccountView
   alias Pleroma.Web.AdminAPI.Search

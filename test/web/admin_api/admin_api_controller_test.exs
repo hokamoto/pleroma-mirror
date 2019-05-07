@@ -658,12 +658,13 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "returns 200 and disable 2fa", %{conn: conn} do
-      user = insert(:user,
-        multi_factor_authentication_settings: %MFA.Settings{
-          enabled: true,
-          totp: %MFA.Settings.TOTP{secret: "otp_secret", confirmed: true}
-        }
-      )
+      user =
+        insert(:user,
+          multi_factor_authentication_settings: %MFA.Settings{
+            enabled: true,
+            totp: %MFA.Settings.TOTP{secret: "otp_secret", confirmed: true}
+          }
+        )
 
       response =
         conn
