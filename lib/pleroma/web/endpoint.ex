@@ -33,10 +33,7 @@ defmodule Pleroma.Web.Endpoint do
 
   plug(Plug.Static,
     at: "/pleroma/admin/",
-    from: {:pleroma, "priv/static/adminfe/"},
-    headers: %{
-      "content-security-policy" =>
-        "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; img-src 'self' data: https:; media-src 'self' https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; manifest-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; upgrade-insecure-requests;"
+    from: {:pleroma, "priv/static/adminfe/"}
     }
   )
 
