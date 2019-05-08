@@ -260,4 +260,27 @@ defmodule Pleroma.Activity do
     |> where([s], s.actor == ^actor)
     |> Repo.all()
   end
+
+  def follow_requests_for_actor(%Pleroma.User{ap_id: ap_id}) do
+    from(
+      a in Activity,
+      where:
+        fragment(
+          "? ->> 'type' = 'Follow'",
+          a.data
+        ),
+      where:
+        fragment(
+          "? ->> 'state' = 'pending'",
+          a.data
+        ),
+      where:
+        fragment(
+          "coalesce((?)->'object'->>'id', (?)->>'object') = ?",
+          a.data,
+          a.data,
+          ^ap_id
+        )
+    )
+  end
 end

@@ -20,19 +20,13 @@ defmodule Pleroma.Web.AdminAPI.Search do
   def user(params \\ %{}) do
     query = User.Query.build(params) |> order_by([u], u.nickname)
 
-    paginated_query = paginate(query, params[:page] || 1, params[:page_size] || @page_size)
+    paginated_query =
+      User.Query.paginate(query, params[:page] || 1, params[:page_size] || @page_size)
 
     count = Repo.aggregate(query, :count, :id)
 
     results = Repo.all(paginated_query)
 
     {:ok, results, count}
-  end
-
-  defp paginate(query, page, page_size) do
-    from(u in query,
-      limit: ^page_size,
-      offset: ^((page - 1) * page_size)
-    )
   end
 end
