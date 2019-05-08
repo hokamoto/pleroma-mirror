@@ -179,7 +179,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
         conn,
         %{"grant_type" => "password"} = params
       ) do
-    with {_, {:ok, %User{} = user}} <- {:get_user, Authenticator.get_user(conn)},
+    with {:ok, %User{} = user} <- Authenticator.get_user(conn),
          %App{} = app <- get_app_from_request(conn, params),
          {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
          {:user_active, true} <- {:user_active, !user.info.deactivated},
