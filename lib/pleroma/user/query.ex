@@ -3,6 +3,29 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.User.Query do
+  @moduledoc """
+  User query builder module. Builds query from new query or another user query.
+
+    ## Example:
+        query = Pleroma.User.Query(%{nickname: "nickname"})
+        another_query = Pleroma.User.Query.build(query, %{email: "email@example.com"})
+        Pleroma.Repo.all(query)
+        Pleroma.Repo.all(another_query)
+
+  Adding new rules:
+    - *ilike criteria*
+      - add field to @ilike_criteria list
+      - pass non empty string
+      - e.g. Pleroma.User.Query.build(%{nickname: "nickname"})
+    - *equal criteria*
+      - add field to @equal_criteria list
+      - pass non empty string
+      - e.g. Pleroma.User.Query.build(%{email: "email@example.com"})
+    - *contains criteria*
+      - add field to @containns_criteria list
+      - pass values list
+      - e.g. Pleroma.User.Query.build(%{ap_id: ["http://ap_id1", "http://ap_id2"]})
+  """
   import Ecto.Query
   import Pleroma.Web.AdminAPI.Search, only: [not_empty_string: 1]
   alias Pleroma.User
@@ -10,8 +33,6 @@ defmodule Pleroma.User.Query do
   @type criteria ::
           %{
             query: String.t(),
-            page: pos_integer(),
-            page_size: pos_integer(),
             tags: [String.t()],
             name: String.t(),
             email: String.t(),
@@ -24,21 +45,20 @@ defmodule Pleroma.User.Query do
             super_users: boolean(),
             followers: User.t(),
             friends: User.t(),
-            from_set: [String.t()],
             recipients_from_activity: [String.t()],
-            muted: [String.t()],
-            blocked: [String.t()],
-            subscribers: [String.t()]
+            nickname: [String.t()],
+            ap_id: [String.t()]
           }
           | %{}
 
   @ilike_criteria [:nickname, :name, :query]
   @equal_criteria [:email]
   @role_criteria [:is_admin, :is_moderator]
+  @contains_criteria [:ap_id, :nickname]
 
   @spec build(criteria()) :: Query.t()
-  def build(criteria) do
-    prepare_query(base_query(), criteria)
+  def build(query \\ base_query(), criteria) do
+    prepare_query(query, criteria)
   end
 
   @spec paginate(Ecto.Query.t(), pos_integer(), pos_integer()) :: Ecto.Query.t()
@@ -69,12 +89,24 @@ defmodule Pleroma.User.Query do
     where(query, [u], ^[{key, value}])
   end
 
+  defp compose_query({key, values}, query) when key in @contains_criteria and is_list(values) do
+    where(query, [u], field(u, ^key) in ^values)
+  end
+
   defp compose_query({:tags, tags}, query) when is_list(tags) and length(tags) > 0 do
     Enum.reduce(tags, query, &prepare_tag_criteria/2)
   end
 
   defp compose_query({key, _}, query) when key in @role_criteria do
     where(query, [u], fragment("(?->? @> 'true')", u.info, ^to_string(key)))
+  end
+
+  defp compose_query({:super_users, _}, query) do
+    where(
+      query,
+      [u],
+      fragment("?->'is_admin' @> 'true' OR ?->'is_moderator' @> 'true'", u.info, u.info)
+    )
   end
 
   defp compose_query({:local, _}, query), do: location_query(query, true)
@@ -101,32 +133,8 @@ defmodule Pleroma.User.Query do
     |> where([u], u.id != ^id)
   end
 
-  defp compose_query({:from_set, ap_ids}, query) do
-    where(query, [u], u.ap_id in ^ap_ids)
-  end
-
   defp compose_query({:recipients_from_activity, to}, query) do
     where(query, [u], u.ap_id in ^to or fragment("? && ?", u.following, ^to))
-  end
-
-  defp compose_query({:muted, muted_list}, query) do
-    where(query, [u], u.ap_id in ^muted_list)
-  end
-
-  defp compose_query({:blocked, blocked_list}, query) do
-    where(query, [u], u.ap_id in ^blocked_list)
-  end
-
-  defp compose_query({:subscribers, subscribers_list}, query) do
-    where(query, [u], u.ap_id in ^subscribers_list)
-  end
-
-  defp compose_query({:super_users, _}, query) do
-    where(
-      query,
-      [u],
-      fragment("?->'is_admin' @> 'true' OR ?->'is_moderator' @> 'true'", u.info, u.info)
-    )
   end
 
   defp compose_query(_unsupported_param, query), do: query

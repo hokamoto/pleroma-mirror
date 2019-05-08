@@ -16,7 +16,7 @@ defmodule Pleroma.Web.AdminAPI.Search do
     end
   end
 
-  @spec user(User.criteria()) :: {:ok, [User.t()], pos_integer()}
+  @spec user(map()) :: {:ok, [User.t()], pos_integer()}
   def user(params \\ %{}) do
     query = User.Query.build(params) |> order_by([u], u.nickname)
 

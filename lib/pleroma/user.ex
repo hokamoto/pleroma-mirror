@@ -257,10 +257,7 @@ defmodule Pleroma.User do
     candidates = Pleroma.Config.get([:instance, :autofollowed_nicknames])
 
     autofollowed_users =
-      from(u in User,
-        where: u.local == true,
-        where: u.nickname in ^candidates
-      )
+      User.Query.build(%{nickname: candidates, local: true})
       |> Repo.all()
 
     follow_all(user, autofollowed_users)
@@ -705,10 +702,7 @@ defmodule Pleroma.User do
 
   def update_follower_count(%User{} = user) do
     follower_count_query =
-      User
-      |> where([u], ^user.follower_address in u.following)
-      |> where([u], u.id != ^user.id)
-      |> select([u], %{count: count(u.id)})
+      User.Query.build(%{followers: user}) |> select([u], %{count: count(u.id)})
 
     User
     |> where(id: ^user.id)
@@ -733,12 +727,10 @@ defmodule Pleroma.User do
 
   @spec get_users_from_set([String.t()], boolean()) :: [User.t()]
   def get_users_from_set(ap_ids, local_only \\ true) do
-    criteria = %{from_set: ap_ids}
+    criteria = %{ap_id: ap_ids}
     criteria = if local_only, do: Map.put(criteria, :local, true), else: criteria
 
     User.Query.build(criteria)
-
-    # get_users_from_set_query(ap_ids, local_only)
     |> Repo.all()
   end
 
@@ -1009,19 +1001,19 @@ defmodule Pleroma.User do
 
   @spec muted_users(User.t()) :: [User.t()]
   def muted_users(user) do
-    User.Query.build(%{muted: user.info.mutes})
+    User.Query.build(%{ap_id: user.info.mutes})
     |> Repo.all()
   end
 
   @spec blocked_users(User.t()) :: [User.t()]
   def blocked_users(user) do
-    User.Query.build(%{blocked: user.info.blocks})
+    User.Query.build(%{ap_id: user.info.blocks})
     |> Repo.all()
   end
 
   @spec subscribers(User.t()) :: [User.t()]
   def subscribers(user) do
-    User.Query.build(%{subscribers: user.info.subscribers})
+    User.Query.build(%{ap_id: user.info.subscribers})
     |> Repo.all()
   end
 
