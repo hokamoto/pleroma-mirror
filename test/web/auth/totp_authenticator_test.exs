@@ -43,7 +43,7 @@ defmodule Pleroma.Web.Auth.TOTPAuthenticatorTest do
         }
       )
 
-    assert TOTPAuthenticator.verify(code, user) == {:ok, :pass}
-    refute TOTPAuthenticator.verify(code, refresh_record(user)) == {:ok, :pass}
+    assert TOTPAuthenticator.verify_recovery_code(user, code) == {:ok, :pass}
+    refute TOTPAuthenticator.verify_recovery_code(code, refresh_record(user)) == {:ok, :pass}
   end
 end

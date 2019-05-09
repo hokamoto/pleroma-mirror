@@ -13,6 +13,23 @@ defmodule Pleroma.MultiFactorAuthentications do
   alias Pleroma.Repo
   alias Pleroma.Web.CommonAPI.Utils
 
+  def supported_challenge_types(user) do
+    settings = fetch_settings(user)
+
+    %{
+      totp: enable_totp?(settings),
+      u2f: enable_u2f?(settings)
+    }
+    |> Enum.reduce(
+      [],
+      fn
+        {k, true}, acc -> acc ++ [k]
+        _, acc -> acc
+      end
+    )
+    |> Enum.join(",")
+  end
+
   def require?(user) do
     fetch_settings(user).enabled
   end

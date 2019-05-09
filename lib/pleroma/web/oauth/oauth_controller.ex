@@ -147,7 +147,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
         conn,
         %{"grant_type" => "refresh_token", "refresh_token" => token} = _params
       ) do
-    with %App{} = app <- fetch_app(conn),
+    with {:ok, app} <- Token.Utils.fetch_app(conn),
          {:ok, %{user: user} = token} <- Token.get_by_refresh_token(app, token),
          {:ok, token} <- RefreshToken.grant(token) do
       response_attrs = %{created_at: Token.Utils.format_created_at(token)}
@@ -161,7 +161,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   end
 
   def token_exchange(conn, %{"grant_type" => "authorization_code"} = params) do
-    with %App{} = app <- fetch_app(conn),
+    with {:ok, app} <- Token.Utils.fetch_app(conn),
          fixed_token = Token.Utils.fix_padding(params["code"]),
          {:ok, auth} <- Authorization.get_by_token(app, fixed_token),
          %User{} = user <- User.get_cached_by_id(auth.user_id),
@@ -183,19 +183,17 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     with {:ok, %User{} = user} <- Authenticator.get_user(conn),
          {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
          {:user_active, true} <- {:user_active, !user.info.deactivated},
-         %App{} = app <- fetch_app(conn),
+         {:ok, app} <- Token.Utils.fetch_app(conn),
          {:ok, scopes} <- validate_scopes(app, params),
-         {:ok, auth} <- Authorization.create_authorization(app, user, scopes),
          {:mfa_required, _, _, false} <- {:mfa_required, user, scopes, MFA.require?(user)},
+         {:ok, auth} <- Authorization.create_authorization(app, user, scopes),
          {:ok, token} <- Token.exchange_token(app, auth) do
       json(conn, response_token(user, token))
     else
       {:mfa_required, user, scopes, _} ->
-        {:ok, %MFA.Token{token: mfa_token}} = MFA.Token.create_token(user, scopes)
-
         conn
         |> put_status(:forbidden)
-        |> json(%{error: "mfa_required", mfa_token: mfa_token})
+        |> json(build_and_response_mfa_token(user, scopes))
 
       {:auth_active, false} ->
         # Per https://github.com/tootsuite/mastodon/blob/
@@ -231,7 +229,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   def token_exchange(conn, params), do: bad_request(conn, params)
 
   def token_revoke(conn, %{"token" => _token} = params) do
-    with %App{} = app <- fetch_app(conn),
+    with {:ok, app} <- Token.Utils.fetch_app(conn),
          {:ok, _token} <- RevokeToken.revoke(app, params) do
       json(conn, %{})
     else
@@ -414,33 +412,6 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     end
   end
 
-  defp fetch_app(conn) do
-    conn
-    |> fetch_client_credentials()
-    |> fetch_client
-  end
-
-  defp fetch_client({id, secret}) when is_binary(id) and is_binary(secret) do
-    Repo.get_by(App, client_id: id, client_secret: secret)
-  end
-
-  defp fetch_client({_id, _secret}), do: nil
-
-  defp fetch_client_credentials(conn) do
-    # Per RFC 6749, HTTP Basic is preferred to body params
-    with ["Basic " <> encoded] <- get_req_header(conn, "authorization"),
-         {:ok, decoded} <- Base.decode64(encoded),
-         [id, secret] <-
-           Enum.map(
-             String.split(decoded, ":"),
-             fn s -> URI.decode_www_form(s) end
-           ) do
-      {id, secret}
-    else
-      _ -> {conn.params["client_id"], conn.params["client_secret"]}
-    end
-  end
-
   # Special case: Local MastodonFE
   defp redirect_uri(conn, "."), do: mastodon_api_url(conn, :login)
 
@@ -461,6 +432,16 @@ defmodule Pleroma.Web.OAuth.OAuthController do
       me: user.ap_id
     }
     |> Map.merge(opts)
+  end
+
+  defp build_and_response_mfa_token(user, scopes) do
+    {:ok, %MFA.Token{token: mfa_token}} = MFA.Token.create_token(user, scopes)
+
+    %{
+      error: "mfa_required",
+      mfa_token: mfa_token,
+      supported_challenge_types: MFA.supported_challenge_types(user)
+    }
   end
 
   @spec validate_scopes(App.t(), map()) ::
