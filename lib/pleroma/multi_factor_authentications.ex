@@ -13,6 +13,10 @@ defmodule Pleroma.MultiFactorAuthentications do
   alias Pleroma.Repo
   alias Pleroma.Web.CommonAPI.Utils
 
+  def require?(user) do
+    fetch_settings(user).enabled
+  end
+
   def mfa_settings(user) do
     settings = fetch_settings(user)
 
