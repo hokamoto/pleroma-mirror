@@ -16,7 +16,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
         |> json_response(:ok)
 
       assert response == %{
-               "settings" => %{"enabled" => false, "totp" => false, "u2f" => false}
+               "settings" => %{"enabled" => false, "totp" => false}
              }
     end
 
@@ -36,7 +36,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
         |> json_response(:ok)
 
       assert response == %{
-               "settings" => %{"enabled" => true, "totp" => true, "u2f" => false}
+               "settings" => %{"enabled" => true, "totp" => true}
              }
     end
   end

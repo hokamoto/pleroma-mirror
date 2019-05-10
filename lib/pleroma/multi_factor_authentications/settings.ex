@@ -3,6 +3,7 @@ defmodule Pleroma.MultiFactorAuthentications.Settings do
 
   @primary_key false
 
+  @mfa_methods [:totp]
   embedded_schema do
     field(:enabled, :boolean, default: false)
     field(:backup_codes, {:array, :string}, default: [])
@@ -14,10 +15,12 @@ defmodule Pleroma.MultiFactorAuthentications.Settings do
       field(:confirmed, :boolean, default: false)
     end
 
-    embeds_one :u2f, U2f, on_replace: :delete, primary_key: false do
-      field(:key_handle, :string)
-      field(:public_key, :string)
-      field(:confirmed, :boolean, default: false)
-    end
+    # embeds_one :u2f, U2f, on_replace: :delete, primary_key: false do
+    #   field(:key_handle, :string)
+    #   field(:public_key, :string)
+    #   field(:confirmed, :boolean, default: false)
+    # end
   end
+
+  def mfa_methods, do: @mfa_methods
 end

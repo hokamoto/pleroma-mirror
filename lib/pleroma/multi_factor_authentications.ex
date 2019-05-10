@@ -16,10 +16,9 @@ defmodule Pleroma.MultiFactorAuthentications do
   def supported_challenge_types(user) do
     settings = fetch_settings(user)
 
-    %{
-      totp: enable_totp?(settings),
-      u2f: enable_u2f?(settings)
-    }
+    Settings.mfa_methods()
+    |> Enum.map(fn m -> [m, enable_method?(m, settings)] end)
+    |> Enum.into(%{}, fn [m, v] -> {m, v} end)
     |> Enum.reduce(
       [],
       fn
@@ -37,11 +36,9 @@ defmodule Pleroma.MultiFactorAuthentications do
   def mfa_settings(user) do
     settings = fetch_settings(user)
 
-    %{
-      enabled: settings.enabled,
-      totp: enable_totp?(settings),
-      u2f: enable_u2f?(settings)
-    }
+    Settings.mfa_methods()
+    |> Enum.map(fn m -> [m, enable_method?(m, settings)] end)
+    |> Enum.into(%{enabled: settings.enabled}, fn [a, b] -> {a, b} end)
   end
 
   def fetch_settings(%User{} = user) do
@@ -102,12 +99,17 @@ defmodule Pleroma.MultiFactorAuthentications do
     |> Repo.update()
   end
 
-  def enable_totp?(%{totp: %{confirmed: true}} = _), do: true
-  def enable_totp?(_), do: false
-  def enable_u2f?(%{u2f: %{confirmed: true}} = _), do: true
-  def enable_u2f?(_), do: false
+  def enable_method?(method, settings) do
+    with {:ok, %{confirmed: true} = _} <- Map.fetch(settings, method) do
+      true
+    else
+      _ -> false
+    end
+  end
 
   def has_confirmed_method?(settings) do
-    enable_totp?(settings) || enable_u2f?(settings)
+    Settings.mfa_methods()
+    |> Enum.map(fn m -> enable_method?(m, settings) end)
+    |> Enum.any?()
   end
 end
