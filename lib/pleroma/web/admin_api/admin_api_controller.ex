@@ -12,6 +12,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   alias Pleroma.Web.AdminAPI.AccountView
   alias Pleroma.Web.AdminAPI.ReportView
   alias Pleroma.Web.AdminAPI.Search
+  alias Pleroma.Web.CommonAPI
+  alias Pleroma.Web.MastodonAPI.StatusView
 
   import Pleroma.Web.ControllerHelper, only: [json_response: 3]
 
@@ -314,6 +316,28 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     conn
     |> put_view(ReportView)
     |> render("index.json", %{reports: reports})
+  end
+
+  def report_respond(%{assigns: %{user: user}} = conn, %{"id" => id} = params) do
+    with false <- is_nil(params["status"]),
+         %Activity{} <- Activity.get_by_id(id) do
+      params =
+        params
+        |> Map.put("in_reply_to_status_id", id)
+        |> Map.put("visibility", "direct")
+
+      {:ok, activity} = CommonAPI.post(user, params)
+
+      conn
+      |> put_view(StatusView)
+      |> render("status.json", %{activity: activity, for: user})
+    else
+      true ->
+        {:param_cast, nil}
+
+      nil ->
+        {:error, :not_found}
+    end
   end
 
   def errors(conn, {:error, :not_found}) do

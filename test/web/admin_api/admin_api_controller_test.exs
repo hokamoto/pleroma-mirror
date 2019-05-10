@@ -1041,4 +1041,53 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       assert json_response(conn, :forbidden) == %{"error" => "Invalid credentials."}
     end
   end
+
+  describe "POST /api/pleroma/admin/reports/:id/respond " do
+    setup %{conn: conn} do
+      admin = insert(:user, info: %{is_admin: true})
+
+      %{conn: assign(conn, :user, admin)}
+    end
+
+    test "returns created dm", %{conn: conn} do
+      [reporter, target_user] = insert_pair(:user)
+      activity = insert(:note_activity, user: target_user)
+
+      {:ok, %{id: report_id}} =
+        CommonAPI.report(reporter, %{
+          "account_id" => target_user.id,
+          "comment" => "I feel offended",
+          "status_ids" => [activity.id]
+        })
+
+      response =
+        conn
+        |> post("/api/pleroma/admin/reports/#{report_id}/respond", %{
+          "status" => "I will check it out"
+        })
+        |> json_response(:ok)
+
+      recipients = Enum.map(response["mentions"], & &1["username"])
+
+      assert conn.assigns[:user].nickname in recipients
+      assert reporter.nickname in recipients
+      assert response["content"] == "I will check it out"
+      assert response["visibility"] == "direct"
+    end
+
+    test "returns 400 when status is missing", %{conn: conn} do
+      conn = post(conn, "/api/pleroma/admin/reports/test/respond")
+
+      assert json_response(conn, :bad_request) == "Invalid parameters"
+    end
+
+    test "returns 404 when report id is invalid", %{conn: conn} do
+      conn =
+        post(conn, "/api/pleroma/admin/reports/test/respond", %{
+          "status" => "foo"
+        })
+
+      assert json_response(conn, :not_found) == "Not found"
+    end
+  end
 end
