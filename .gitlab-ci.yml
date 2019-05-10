@@ -50,7 +50,7 @@ unit-testing:
   script:
     - mix deps.get
     - mix ecto.create
-    - mix ecto.migrate
+    - mix ecto.migrate --log-sql
     - mix test --trace --preload-modules
 
 lint:
