@@ -14,8 +14,6 @@ defmodule Pleroma.Web.OAuth.MFAController do
   The model represents api to use Multi Factor authentications.
   """
 
-  @expires_in Pleroma.Config.get([:oauth2, :token_expires_in], 600)
-
   @doc """
   client_id
   client_secret
@@ -30,16 +28,7 @@ defmodule Pleroma.Web.OAuth.MFAController do
          {:ok, _} <- validates_challenge(user, params),
          {:ok, auth} <- Authorization.create_authorization(app, user, scopes),
          {:ok, token} <- Token.exchange_token(app, auth) do
-      response = %{
-        token_type: "Bearer",
-        access_token: token.token,
-        refresh_token: token.refresh_token,
-        expires_in: @expires_in,
-        scope: Enum.join(token.scopes, " "),
-        me: user.ap_id
-      }
-
-      json(conn, response)
+      json(conn, Token.Response.build(user, token))
     end
   end
 

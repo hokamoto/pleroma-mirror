@@ -231,6 +231,8 @@ defmodule Pleroma.Web.Router do
     post("/revoke", OAuthController, :token_revoke)
     get("/registration_details", OAuthController, :registration_details)
 
+    post("/mfa/challenge", MFAController, :challenge)
+
     scope [] do
       pipe_through(:browser)
 

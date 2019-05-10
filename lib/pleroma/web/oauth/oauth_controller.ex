@@ -20,8 +20,6 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
   if Pleroma.Config.oauth_consumer_enabled?(), do: plug(Ueberauth)
 
-  @expires_in Pleroma.Config.get([:oauth2, :token_expires_in], 600)
-
   plug(:fetch_session)
   plug(:fetch_flash)
 
@@ -152,7 +150,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          {:ok, token} <- RefreshToken.grant(token) do
       response_attrs = %{created_at: Token.Utils.format_created_at(token)}
 
-      json(conn, response_token(user, token, response_attrs))
+      json(conn, Token.Response.build(user, token, response_attrs))
     else
       _error ->
         put_status(conn, 400)
@@ -168,7 +166,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          {:ok, token} <- Token.exchange_token(app, auth) do
       response_attrs = %{created_at: Token.Utils.format_created_at(token)}
 
-      json(conn, response_token(user, token, response_attrs))
+      json(conn, Token.Response.build(user, token, response_attrs))
     else
       _error ->
         put_status(conn, 400)
@@ -188,7 +186,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          {:mfa_required, _, _, false} <- {:mfa_required, user, scopes, MFA.require?(user)},
          {:ok, auth} <- Authorization.create_authorization(app, user, scopes),
          {:ok, token} <- Token.exchange_token(app, auth) do
-      json(conn, response_token(user, token))
+      json(conn, Token.Response.build(user, token))
     else
       {:mfa_required, user, scopes, _} ->
         conn
@@ -421,18 +419,6 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
   defp put_session_registration_id(conn, registration_id),
     do: put_session(conn, :registration_id, registration_id)
-
-  defp response_token(%User{} = user, token, opts \\ %{}) do
-    %{
-      token_type: "Bearer",
-      access_token: token.token,
-      refresh_token: token.refresh_token,
-      expires_in: @expires_in,
-      scope: Enum.join(token.scopes, " "),
-      me: user.ap_id
-    }
-    |> Map.merge(opts)
-  end
 
   defp build_and_response_mfa_token(user, scopes) do
     {:ok, %MFA.Token{token: mfa_token}} = MFA.Token.create_token(user, scopes)
