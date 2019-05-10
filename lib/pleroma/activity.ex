@@ -6,13 +6,18 @@ defmodule Pleroma.Activity do
   use Ecto.Schema
 
   alias Pleroma.Activity
+  alias Pleroma.Bookmark
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Repo
+  alias Pleroma.User
 
+  import Ecto.Changeset
   import Ecto.Query
 
   @type t :: %__MODULE__{}
+  @type actor :: String.t()
+
   @primary_key {:id, Pleroma.FlakeId, autogenerate: true}
 
   # https://github.com/tootsuite/mastodon/blob/master/app/models/notification.rb#L19
@@ -31,7 +36,9 @@ defmodule Pleroma.Activity do
     field(:data, :map)
     field(:local, :boolean, default: true)
     field(:actor, :string)
-    field(:recipients, {:array, :string})
+    field(:recipients, {:array, :string}, default: [])
+    # This is a fake relation, do not use outside of with_preloaded_bookmark/get_bookmark
+    has_one(:bookmark, Bookmark)
     has_many(:notifications, Notification, on_delete: :delete_all)
 
     # Attention: this is a fake relation, don't try to preload it blindly and expect it to work!
@@ -70,6 +77,16 @@ defmodule Pleroma.Activity do
     |> preload([activity, object], object: object)
   end
 
+  def with_preloaded_bookmark(query, %User{} = user) do
+    from([a] in query,
+      left_join: b in Bookmark,
+      on: b.user_id == ^user.id and b.activity_id == a.id,
+      preload: [bookmark: b]
+    )
+  end
+
+  def with_preloaded_bookmark(query, _), do: query
+
   def get_by_ap_id(ap_id) do
     Repo.one(
       from(
@@ -77,6 +94,23 @@ defmodule Pleroma.Activity do
         where: fragment("(?)->>'id' = ?", activity.data, ^to_string(ap_id))
       )
     )
+  end
+
+  def get_bookmark(%Activity{} = activity, %User{} = user) do
+    if Ecto.assoc_loaded?(activity.bookmark) do
+      activity.bookmark
+    else
+      Bookmark.get(user.id, activity.id)
+    end
+  end
+
+  def get_bookmark(_, _), do: nil
+
+  def change(struct, params \\ %{}) do
+    struct
+    |> cast(params, [:data])
+    |> validate_required([:data])
+    |> unique_constraint(:ap_id, name: :activities_unique_apid_index)
   end
 
   def get_by_ap_id_with_object(ap_id) do
@@ -196,21 +230,27 @@ defmodule Pleroma.Activity do
 
   def create_by_object_ap_id_with_object(_), do: nil
 
-  def get_create_by_object_ap_id_with_object(ap_id) do
+  def get_create_by_object_ap_id_with_object(ap_id) when is_binary(ap_id) do
     ap_id
     |> create_by_object_ap_id_with_object()
     |> Repo.one()
   end
 
+  def get_create_by_object_ap_id_with_object(_), do: nil
+
+  defp get_in_reply_to_activity_from_object(%Object{data: %{"inReplyTo" => ap_id}}) do
+    get_create_by_object_ap_id_with_object(ap_id)
+  end
+
+  defp get_in_reply_to_activity_from_object(_), do: nil
+
+  def get_in_reply_to_activity(%Activity{data: %{"object" => object}}) do
+    get_in_reply_to_activity_from_object(Object.normalize(object))
+  end
+
   def normalize(obj) when is_map(obj), do: get_by_ap_id_with_object(obj["id"])
   def normalize(ap_id) when is_binary(ap_id), do: get_by_ap_id_with_object(ap_id)
   def normalize(_), do: nil
-
-  def get_in_reply_to_activity(%Activity{data: %{"object" => %{"inReplyTo" => ap_id}}}) do
-    get_create_by_object_ap_id(ap_id)
-  end
-
-  def get_in_reply_to_activity(_), do: nil
 
   def delete_by_ap_id(id) when is_binary(id) do
     by_object_ap_id(id)
@@ -218,6 +258,7 @@ defmodule Pleroma.Activity do
     |> Repo.delete_all()
     |> elem(1)
     |> Enum.find(fn
+      %{data: %{"type" => "Create", "object" => ap_id}} when is_binary(ap_id) -> ap_id == id
       %{data: %{"type" => "Create", "object" => %{"id" => ap_id}}} -> ap_id == id
       _ -> nil
     end)
@@ -246,49 +287,31 @@ defmodule Pleroma.Activity do
     |> Repo.all()
   end
 
-  def increase_replies_count(id) do
-    Activity
-    |> where(id: ^id)
-    |> update([a],
-      set: [
-        data:
-          fragment(
-            """
-            jsonb_set(?, '{object, repliesCount}',
-              (coalesce((?->'object'->>'repliesCount')::int, 0) + 1)::varchar::jsonb, true)
-            """,
-            a.data,
-            a.data
-          )
-      ]
+  def follow_requests_for_actor(%Pleroma.User{ap_id: ap_id}) do
+    from(
+      a in Activity,
+      where:
+        fragment(
+          "? ->> 'type' = 'Follow'",
+          a.data
+        ),
+      where:
+        fragment(
+          "? ->> 'state' = 'pending'",
+          a.data
+        ),
+      where:
+        fragment(
+          "coalesce((?)->'object'->>'id', (?)->>'object') = ?",
+          a.data,
+          a.data,
+          ^ap_id
+        )
     )
-    |> Repo.update_all([])
-    |> case do
-      {1, [activity]} -> activity
-      _ -> {:error, "Not found"}
-    end
   end
 
-  def decrease_replies_count(id) do
-    Activity
-    |> where(id: ^id)
-    |> update([a],
-      set: [
-        data:
-          fragment(
-            """
-            jsonb_set(?, '{object, repliesCount}',
-              (greatest(0, (?->'object'->>'repliesCount')::int - 1))::varchar::jsonb, true)
-            """,
-            a.data,
-            a.data
-          )
-      ]
-    )
-    |> Repo.update_all([])
-    |> case do
-      {1, [activity]} -> activity
-      _ -> {:error, "Not found"}
-    end
+  @spec query_by_actor(actor()) :: Ecto.Query.t()
+  def query_by_actor(actor) do
+    from(a in Activity, where: a.actor == ^actor)
   end
 end

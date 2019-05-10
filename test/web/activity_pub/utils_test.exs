@@ -1,7 +1,6 @@
 defmodule Pleroma.Web.ActivityPub.UtilsTest do
   use Pleroma.DataCase
   alias Pleroma.Activity
-  alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Utils
@@ -12,8 +11,8 @@ defmodule Pleroma.Web.ActivityPub.UtilsTest do
   describe "fetch the latest Follow" do
     test "fetches the latest Follow activity" do
       %Activity{data: %{"type" => "Follow"}} = activity = insert(:follow_activity)
-      follower = Repo.get_by(User, ap_id: activity.data["actor"])
-      followed = Repo.get_by(User, ap_id: activity.data["object"])
+      follower = User.get_cached_by_ap_id(activity.data["actor"])
+      followed = User.get_cached_by_ap_id(activity.data["object"])
 
       assert activity == Utils.fetch_latest_follow(follower, followed)
     end
@@ -192,5 +191,17 @@ defmodule Pleroma.Web.ActivityPub.UtilsTest do
 
       assert Utils.fetch_ordered_collection("http://example.com/outbox", 5) == [0, 1]
     end
+  end
+
+  test "make_json_ld_header/0" do
+    assert Utils.make_json_ld_header() == %{
+             "@context" => [
+               "https://www.w3.org/ns/activitystreams",
+               "http://localhost:4001/schemas/litepub-0.1.jsonld",
+               %{
+                 "@language" => "und"
+               }
+             ]
+           }
   end
 end
