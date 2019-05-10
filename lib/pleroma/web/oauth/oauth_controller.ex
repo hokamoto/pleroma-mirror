@@ -198,8 +198,9 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
   def token_exchange(conn, %{"grant_type" => "client_credentials"} = params) do
     with %App{} = app <- get_app_from_request(conn, params),
-         {:ok, auth} <- Authorization.create_authorization(app, %User{}, scopes),
-         {:ok, token} <- Token.exchange_token(app, auth) do
+         {:ok, auth} <- Authorization.create_authorization(app, %User{}),
+         {:ok, token} <- Token.exchange_token(app, auth),
+         {:ok, inserted_at} <- DateTime.from_naive(token.inserted_at, "Etc/UTC") do
       response = %{
         token_type: "Bearer",
         access_token: token.token,

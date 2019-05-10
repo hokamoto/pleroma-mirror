@@ -270,6 +270,27 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert token.scopes == ["scope1", "scope2"]
     end
 
+    test "issue a token for client_credentials grant type" do
+      app = insert(:oauth_app, scopes: ["read", "write"])
+
+      conn =
+        build_conn()
+        |> post("/oauth/token", %{
+          "grant_type" => "client_credentials",
+          "client_id" => app.client_id,
+          "client_secret" => app.client_secret
+        })
+
+      assert %{"access_token" => token, "refresh_token" => refresh, "scope" => scope} =
+               json_response(conn, 200)
+
+      assert token
+      token_from_db = Repo.get_by(Token, token: token)
+      assert token_from_db
+      assert refresh
+      assert scope == []
+    end
+
     test "rejects token exchange with invalid client credentials" do
       user = insert(:user)
       app = insert(:oauth_app)
