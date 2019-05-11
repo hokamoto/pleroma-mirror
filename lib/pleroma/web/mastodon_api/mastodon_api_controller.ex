@@ -49,9 +49,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   plug(
     Pleroma.Plugs.RateLimitPlug,
     %{
-      max_requests: Pleroma.Config.get([:app_account_creation, :max_requests]),
-      interval: Pleroma.Config.get([:app_account_creation, :interval]),
-      enabled: Pleroma.Config.get([:app_account_creation, :enabled])
+      max_requests: Config.get([:app_account_creation, :max_requests]),
+      interval: Config.get([:app_account_creation, :interval]),
+      enabled: Config.get([:app_account_creation, :enabled])
     }
     when action in [:account_register]
   )

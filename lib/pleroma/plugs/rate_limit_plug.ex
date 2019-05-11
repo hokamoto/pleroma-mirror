@@ -8,14 +8,14 @@ defmodule Pleroma.Plugs.RateLimitPlug do
 
   def init(opts), do: opts
 
-  def call(conn, %{enabled: false}), do: conn
-
   def call(conn, %{enabled: true} = opts) do
     case check_rate(conn, opts) do
       {:ok, _count} -> conn
       {:error, _count} -> render_error(conn)
     end
   end
+
+  def call(conn, _), do: conn
 
   defp check_rate(conn, opts) do
     max_requests = opts[:max_requests]
