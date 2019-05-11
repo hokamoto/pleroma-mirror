@@ -1022,6 +1022,59 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       assert report["id"] == report_id
     end
 
+    test "returns reports with specified state", %{conn: conn} do
+      [reporter, target_user] = insert_pair(:user)
+      activity = insert(:note_activity, user: target_user)
+
+      {:ok, %{id: first_report_id}} =
+        CommonAPI.report(reporter, %{
+          "account_id" => target_user.id,
+          "comment" => "I feel offended",
+          "status_ids" => [activity.id]
+        })
+
+      {:ok, %{id: second_report_id}} =
+        CommonAPI.report(reporter, %{
+          "account_id" => target_user.id,
+          "comment" => "I don't like this user"
+        })
+
+      CommonAPI.update_report_state(second_report_id, "closed")
+
+      response =
+        conn
+        |> get("/api/pleroma/admin/reports", %{
+          "state" => "open"
+        })
+        |> json_response(:ok)
+
+      [open_report] = response["reports"]
+
+      assert length(response["reports"]) == 1
+      assert open_report["id"] == first_report_id
+
+      response =
+        conn
+        |> get("/api/pleroma/admin/reports", %{
+          "state" => "closed"
+        })
+        |> json_response(:ok)
+
+      [closed_report] = response["reports"]
+
+      assert length(response["reports"]) == 1
+      assert closed_report["id"] == second_report_id
+
+      response =
+        conn
+        |> get("/api/pleroma/admin/reports", %{
+          "state" => "resolved"
+        })
+        |> json_response(:ok)
+
+      assert Enum.empty?(response["reports"])
+    end
+
     test "returns 403 when requested by a non-admin" do
       user = insert(:user)
 

@@ -34,7 +34,8 @@ defmodule Pleroma.Web.AdminAPI.ReportView do
       actor: AccountView.render("account.json", %{user: user}),
       content: report.data["content"],
       created_at: created_at,
-      statuses: StatusView.render("index.json", %{activities: statuses, as: :activity})
+      statuses: StatusView.render("index.json", %{activities: statuses, as: :activity}),
+      state: report.data["state"]
     }
   end
 end
