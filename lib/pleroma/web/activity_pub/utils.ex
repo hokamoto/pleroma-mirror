@@ -20,6 +20,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   require Logger
 
   @supported_object_types ["Article", "Note", "Video", "Page"]
+  @supported_report_states ~w(open closed resolved)
 
   # Some implementations send the actor URI as the actor field, others send the entire actor object,
   # so figure out what the actor's URI is based on what we have.
@@ -670,7 +671,8 @@ defmodule Pleroma.Web.ActivityPub.Utils do
       "actor" => params.actor.ap_id,
       "content" => params.content,
       "object" => object,
-      "context" => params.context
+      "context" => params.context,
+      "state" => "open"
     }
     |> Map.merge(additional)
   end
@@ -713,4 +715,16 @@ defmodule Pleroma.Web.ActivityPub.Utils do
       end
     end
   end
+
+  #### Report-related helpers
+
+  def update_report_state(%Activity{} = activity, state) when state in @supported_report_states do
+    with new_data <- Map.put(activity.data, "state", state),
+         changeset <- Changeset.change(activity, data: new_data),
+         {:ok, activity} <- Repo.update(changeset) do
+      {:ok, activity}
+    end
+  end
+
+  def update_report_state(_, _), do: {:error, "Unsupported state"}
 end

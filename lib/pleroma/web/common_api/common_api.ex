@@ -311,6 +311,19 @@ defmodule Pleroma.Web.CommonAPI do
     end
   end
 
+  def update_report_state(activity_id, state) do
+    with %Activity{} = activity <- Activity.get_by_id(activity_id),
+         {:ok, activity} <- Utils.update_report_state(activity, state) do
+      {:ok, activity}
+    else
+      {:error, reason} ->
+        {:error, reason}
+
+      _ ->
+        {:error, "Could not update state"}
+    end
+  end
+
   def hide_reblogs(user, muted) do
     ap_id = muted.ap_id
 
