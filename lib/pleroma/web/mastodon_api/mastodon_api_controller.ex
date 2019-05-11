@@ -46,6 +46,16 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   require Logger
 
+  plug(
+    Pleroma.Plugs.RateLimitPlug,
+    %{
+      max_requests: Pleroma.Config.get([:app_account_creation, :max_requests]),
+      interval: Pleroma.Config.get([:app_account_creation, :interval]),
+      enabled: Pleroma.Config.get([:app_account_creation, :enabled])
+    }
+    when action in [:account_register]
+  )
+
   @httpoison Application.get_env(:pleroma, :httpoison)
   @local_mastodon_name "Mastodon-Local"
 
@@ -1695,7 +1705,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def account_register(
-        %{assign: %{app: app}} = conn,
+        %{assigns: %{app: app}} = conn,
         %{"username" => nickname, "email" => _, "password" => _, "agreement" => true} = params
       ) do
     params =
@@ -1709,15 +1719,20 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
         "password"
       ])
       |> Map.put("nickname", nickname)
-      |> Map.put("name", params["name"] || nickname)
+      |> Map.put("fullname", params["fullname"] || nickname)
       |> Map.put("bio", params["bio"] || "")
       |> Map.put("confirm", params["password"])
 
     # TODO: Move TwitterAPI.register_user to CommonAPI?
     # TODO: Fix applications to be able put only "read" scope instead for this token?
-    with {:ok, user} <- TwitterAPI.register_user(params),
-         token <- Token.create_token(app, user, app.scopes) do
-      token
+    with {:ok, user} <- TwitterAPI.register_user(params, need_confirmation: true),
+         {:ok, token} <- Token.create_token(app, user, %{scopes: app.scopes}) do
+      json(conn, %{
+        token_type: "Bearer",
+        access_token: token.token,
+        scope: app.scopes,
+        created_at: Token.Utils.format_created_at(token)
+      })
     else
       {:error, errors} ->
         conn
@@ -1726,7 +1741,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     end
   end
 
-  def account_register(%{assign: %{app: _app}} = conn, _) do
+  def account_register(%{assigns: %{app: _app}} = conn, _params) do
     conn
     |> put_status(400)
     |> json(%{error: "Missing parameters"})

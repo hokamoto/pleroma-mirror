@@ -632,7 +632,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       token_from_db = Repo.get_by(Token, token: token)
       assert token_from_db
       assert refresh
-      assert scope == []
+      assert scope == "read write"
     end
 
     test "rejects token exchange with invalid client credentials" do
@@ -665,7 +665,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       password = "testpassword"
       user = insert(:user, password_hash: Comeonin.Pbkdf2.hashpwsalt(password))
-      info_change = Pleroma.User.Info.confirmation_changeset(user.info, :unconfirmed)
+      info_change = Pleroma.User.Info.confirmation_changeset(user.info, need_confirmation: true)
 
       {:ok, user} =
         user
