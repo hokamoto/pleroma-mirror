@@ -10,7 +10,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
   alias Pleroma.MultiFactorAuthentications, as: MFA
   import Pleroma.Factory
 
-  describe "/api/pleroma/admin/user" do
+  describe "/api/pleroma/admin/users" do
     test "Delete" do
       admin = insert(:user, info: %{is_admin: true})
       user = insert(:user)
@@ -19,7 +19,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         build_conn()
         |> assign(:user, admin)
         |> put_req_header("accept", "application/json")
-        |> delete("/api/pleroma/admin/user?nickname=#{user.nickname}")
+        |> delete("/api/pleroma/admin/users?nickname=#{user.nickname}")
 
       assert json_response(conn, 200) == user.nickname
     end
@@ -31,7 +31,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         build_conn()
         |> assign(:user, admin)
         |> put_req_header("accept", "application/json")
-        |> post("/api/pleroma/admin/user", %{
+        |> post("/api/pleroma/admin/users", %{
           "nickname" => "lain",
           "email" => "lain@example.org",
           "password" => "test"
@@ -76,7 +76,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
   end
 
-  describe "/api/pleroma/admin/user/follow" do
+  describe "/api/pleroma/admin/users/follow" do
     test "allows to force-follow another user" do
       admin = insert(:user, info: %{is_admin: true})
       user = insert(:user)
@@ -85,7 +85,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       build_conn()
       |> assign(:user, admin)
       |> put_req_header("accept", "application/json")
-      |> post("/api/pleroma/admin/user/follow", %{
+      |> post("/api/pleroma/admin/users/follow", %{
         "follower" => follower.nickname,
         "followed" => user.nickname
       })
@@ -97,7 +97,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
   end
 
-  describe "/api/pleroma/admin/user/unfollow" do
+  describe "/api/pleroma/admin/users/unfollow" do
     test "allows to force-unfollow another user" do
       admin = insert(:user, info: %{is_admin: true})
       user = insert(:user)
@@ -108,7 +108,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       build_conn()
       |> assign(:user, admin)
       |> put_req_header("accept", "application/json")
-      |> post("/api/pleroma/admin/user/unfollow", %{
+      |> post("/api/pleroma/admin/users/unfollow", %{
         "follower" => follower.nickname,
         "followed" => user.nickname
       })
@@ -192,7 +192,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
   end
 
-  describe "/api/pleroma/admin/permission_group" do
+  describe "/api/pleroma/admin/users/:nickname/permission_group" do
     test "GET is giving user_info" do
       admin = insert(:user, info: %{is_admin: true})
 
@@ -200,7 +200,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         build_conn()
         |> assign(:user, admin)
         |> put_req_header("accept", "application/json")
-        |> get("/api/pleroma/admin/permission_group/#{admin.nickname}")
+        |> get("/api/pleroma/admin/users/#{admin.nickname}/permission_group/")
 
       assert json_response(conn, 200) == %{
                "is_admin" => true,
@@ -216,7 +216,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         build_conn()
         |> assign(:user, admin)
         |> put_req_header("accept", "application/json")
-        |> post("/api/pleroma/admin/permission_group/#{user.nickname}/admin")
+        |> post("/api/pleroma/admin/users/#{user.nickname}/permission_group/admin")
 
       assert json_response(conn, 200) == %{
                "is_admin" => true
@@ -231,7 +231,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         build_conn()
         |> assign(:user, admin)
         |> put_req_header("accept", "application/json")
-        |> delete("/api/pleroma/admin/permission_group/#{user.nickname}/admin")
+        |> delete("/api/pleroma/admin/users/#{user.nickname}/permission_group/admin")
 
       assert json_response(conn, 200) == %{
                "is_admin" => false
@@ -239,7 +239,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
   end
 
-  describe "PUT /api/pleroma/admin/activation_status" do
+  describe "PUT /api/pleroma/admin/users/:nickname/activation_status" do
     setup %{conn: conn} do
       admin = insert(:user, info: %{is_admin: true})
 
@@ -256,7 +256,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
       conn =
         conn
-        |> put("/api/pleroma/admin/activation_status/#{user.nickname}", %{status: false})
+        |> put("/api/pleroma/admin/users/#{user.nickname}/activation_status", %{status: false})
 
       user = User.get_cached_by_id(user.id)
       assert user.info.deactivated == true
@@ -268,7 +268,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
       conn =
         conn
-        |> put("/api/pleroma/admin/activation_status/#{user.nickname}", %{status: true})
+        |> put("/api/pleroma/admin/users/#{user.nickname}/activation_status", %{status: true})
 
       user = User.get_cached_by_id(user.id)
       assert user.info.deactivated == false
@@ -281,7 +281,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       conn =
         conn
         |> assign(:user, user)
-        |> put("/api/pleroma/admin/activation_status/#{user.nickname}", %{status: false})
+        |> put("/api/pleroma/admin/users/#{user.nickname}/activation_status", %{status: false})
 
       assert json_response(conn, :forbidden)
     end
@@ -310,7 +310,9 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       conn =
         conn
         |> assign(:user, user)
-        |> post("/api/pleroma/admin/email_invite?email=#{recipient_email}&name=#{recipient_name}")
+        |> post(
+          "/api/pleroma/admin/users/email_invite?email=#{recipient_email}&name=#{recipient_name}"
+        )
 
       assert json_response(conn, :no_content)
 
@@ -342,13 +344,13 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       conn =
         conn
         |> assign(:user, non_admin_user)
-        |> post("/api/pleroma/admin/email_invite?email=foo@bar.com&name=JD")
+        |> post("/api/pleroma/admin/users/email_invite?email=foo@bar.com&name=JD")
 
       assert json_response(conn, :forbidden)
     end
   end
 
-  describe "POST /api/pleroma/admin/email_invite, with invalid config" do
+  describe "POST /api/pleroma/admin/users/email_invite, with invalid config" do
     setup do
       [user: insert(:user, info: %{is_admin: true})]
     end
@@ -368,7 +370,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       conn =
         conn
         |> assign(:user, user)
-        |> post("/api/pleroma/admin/email_invite?email=foo@bar.com&name=JD")
+        |> post("/api/pleroma/admin/users/email_invite?email=foo@bar.com&name=JD")
 
       assert json_response(conn, :internal_server_error)
     end
@@ -388,7 +390,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       conn =
         conn
         |> assign(:user, user)
-        |> post("/api/pleroma/admin/email_invite?email=foo@bar.com&name=JD")
+        |> post("/api/pleroma/admin/users/email_invite?email=foo@bar.com&name=JD")
 
       assert json_response(conn, :internal_server_error)
     end
@@ -406,7 +408,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     assert conn.status == 200
   end
 
-  test "/api/pleroma/admin/password_reset" do
+  test "/api/pleroma/admin/users/:nickname/password_reset" do
     admin = insert(:user, info: %{is_admin: true})
     user = insert(:user)
 
@@ -414,7 +416,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       build_conn()
       |> assign(:user, admin)
       |> put_req_header("accept", "application/json")
-      |> get("/api/pleroma/admin/password_reset?nickname=#{user.nickname}")
+      |> get("/api/pleroma/admin/users/#{user.nickname}/password_reset")
 
     assert conn.status == 200
   end
@@ -860,7 +862,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
   end
 
-  describe "GET /api/pleroma/admin/invite_token" do
+  describe "GET /api/pleroma/admin/users/invite_token" do
     setup do
       admin = insert(:user, info: %{is_admin: true})
 
@@ -872,7 +874,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "without options", %{conn: conn} do
-      conn = get(conn, "/api/pleroma/admin/invite_token")
+      conn = get(conn, "/api/pleroma/admin/users/invite_token")
 
       token = json_response(conn, 200)
       invite = UserInviteToken.find_by_token!(token)
@@ -884,7 +886,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
     test "with expires_at", %{conn: conn} do
       conn =
-        get(conn, "/api/pleroma/admin/invite_token", %{
+        get(conn, "/api/pleroma/admin/users/invite_token", %{
           "invite" => %{"expires_at" => Date.to_string(Date.utc_today())}
         })
 
@@ -899,7 +901,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
     test "with max_use", %{conn: conn} do
       conn =
-        get(conn, "/api/pleroma/admin/invite_token", %{
+        get(conn, "/api/pleroma/admin/users/invite_token", %{
           "invite" => %{"max_use" => 150}
         })
 
@@ -913,7 +915,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
     test "with max use and expires_at", %{conn: conn} do
       conn =
-        get(conn, "/api/pleroma/admin/invite_token", %{
+        get(conn, "/api/pleroma/admin/users/invite_token", %{
           "invite" => %{"max_use" => 150, "expires_at" => Date.to_string(Date.utc_today())}
         })
 
@@ -926,7 +928,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
   end
 
-  describe "GET /api/pleroma/admin/invites" do
+  describe "GET /api/pleroma/admin/users/invites" do
     setup do
       admin = insert(:user, info: %{is_admin: true})
 
@@ -938,7 +940,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "no invites", %{conn: conn} do
-      conn = get(conn, "/api/pleroma/admin/invites")
+      conn = get(conn, "/api/pleroma/admin/users/invites")
 
       assert json_response(conn, 200) == %{"invites" => []}
     end
@@ -946,7 +948,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     test "with invite", %{conn: conn} do
       {:ok, invite} = UserInviteToken.create_invite()
 
-      conn = get(conn, "/api/pleroma/admin/invites")
+      conn = get(conn, "/api/pleroma/admin/users/invites")
 
       assert json_response(conn, 200) == %{
                "invites" => [
@@ -964,7 +966,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
   end
 
-  describe "POST /api/pleroma/admin/revoke_invite" do
+  describe "POST /api/pleroma/admin/users/revoke_invite" do
     test "with token" do
       admin = insert(:user, info: %{is_admin: true})
       {:ok, invite} = UserInviteToken.create_invite()
@@ -972,7 +974,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       conn =
         build_conn()
         |> assign(:user, admin)
-        |> post("/api/pleroma/admin/revoke_invite", %{"token" => invite.token})
+        |> post("/api/pleroma/admin/users/revoke_invite", %{"token" => invite.token})
 
       assert json_response(conn, 200) == %{
                "expires_at" => nil,
