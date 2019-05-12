@@ -292,16 +292,6 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     |> json(token.token)
   end
 
-  def report_show(conn, %{"id" => id}) do
-    with %Activity{} = report <- Activity.get_by_id(id) do
-      conn
-      |> put_view(ReportView)
-      |> render("show.json", %{report: report})
-    else
-      _ -> {:error, :not_found}
-    end
-  end
-
   def list_reports(conn, params) do
     params =
       params
@@ -316,6 +306,32 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     conn
     |> put_view(ReportView)
     |> render("index.json", %{reports: reports})
+  end
+
+  def report_show(conn, %{"id" => id}) do
+    with %Activity{} = report <- Activity.get_by_id(id) do
+      conn
+      |> put_view(ReportView)
+      |> render("show.json", %{report: report})
+    else
+      _ -> {:error, :not_found}
+    end
+  end
+
+  def report_update_state(conn, %{"id" => id, "state" => state}) do
+    with {:ok, report} <- CommonAPI.update_report_state(id, state) do
+      conn
+      |> put_view(ReportView)
+      |> render("show.json", %{report: report})
+    else
+      {:error, :not_found} ->
+        {:error, :not_found}
+
+      {:error, reason} ->
+        conn
+        |> put_status(400)
+        |> json(reason)
+    end
   end
 
   def report_respond(%{assigns: %{user: user}} = conn, %{"id" => id} = params) do

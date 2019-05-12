@@ -316,6 +316,9 @@ defmodule Pleroma.Web.CommonAPI do
          {:ok, activity} <- Utils.update_report_state(activity, state) do
       {:ok, activity}
     else
+      nil ->
+        {:error, :not_found}
+
       {:error, reason} ->
         {:error, reason}
 

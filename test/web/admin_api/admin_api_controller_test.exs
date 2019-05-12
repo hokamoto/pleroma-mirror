@@ -984,6 +984,57 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
   end
 
+  describe "PUT /api/pleroma/admin/reports/:id" do
+    setup %{conn: conn} do
+      admin = insert(:user, info: %{is_admin: true})
+      [reporter, target_user] = insert_pair(:user)
+      activity = insert(:note_activity, user: target_user)
+
+      {:ok, %{id: report_id}} =
+        CommonAPI.report(reporter, %{
+          "account_id" => target_user.id,
+          "comment" => "I feel offended",
+          "status_ids" => [activity.id]
+        })
+
+      %{conn: assign(conn, :user, admin), id: report_id}
+    end
+
+    test "mark report as resolved", %{conn: conn, id: id} do
+      response =
+        conn
+        |> put("/api/pleroma/admin/reports/#{id}", %{"state" => "resolved"})
+        |> json_response(:ok)
+
+      assert response["state"] == "resolved"
+    end
+
+    test "closes report", %{conn: conn, id: id} do
+      response =
+        conn
+        |> put("/api/pleroma/admin/reports/#{id}", %{"state" => "closed"})
+        |> json_response(:ok)
+
+      assert response["state"] == "closed"
+    end
+
+    test "returns 400 when state is unknown", %{conn: conn, id: id} do
+      conn =
+        conn
+        |> put("/api/pleroma/admin/reports/#{id}", %{"state" => "test"})
+
+      assert json_response(conn, :bad_request) == "Unsupported state"
+    end
+
+    test "returns 404 when report is not exist", %{conn: conn} do
+      conn =
+        conn
+        |> put("/api/pleroma/admin/reports/test", %{"state" => "closed"})
+
+      assert json_response(conn, :not_found) == "Not found"
+    end
+  end
+
   describe "GET /api/pleroma/admin/reports" do
     setup %{conn: conn} do
       admin = insert(:user, info: %{is_admin: true})

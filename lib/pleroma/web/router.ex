@@ -195,6 +195,7 @@ defmodule Pleroma.Web.Router do
 
     get("/reports", AdminAPIController, :list_reports)
     get("/reports/:id", AdminAPIController, :report_show)
+    put("/reports/:id", AdminAPIController, :report_update_state)
     post("/reports/:id/respond", AdminAPIController, :report_respond)
   end
 
