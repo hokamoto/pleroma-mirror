@@ -16,8 +16,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.MastodonAPI.FilterView
   alias Pleroma.Web.OAuth.App
-  alias Pleroma.Web.OStatus
   alias Pleroma.Web.OAuth.Token
+  alias Pleroma.Web.OStatus
   alias Pleroma.Web.Push
   alias Pleroma.Web.TwitterAPI.TwitterAPI
   import Pleroma.Factory
