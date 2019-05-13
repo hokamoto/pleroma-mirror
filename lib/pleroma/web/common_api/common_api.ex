@@ -327,6 +327,40 @@ defmodule Pleroma.Web.CommonAPI do
     end
   end
 
+  def update_activitiy_scope(activity_id, opts \\ %{}) do
+    with %Activity{} = activity <- Activity.get_by_id_with_object(activity_id),
+         {:ok, activity} <- toggle_sensitive(activity, opts),
+         {:ok, activity} <- set_visibility(activity, opts) do
+      {:ok, activity}
+    else
+      nil ->
+        {:error, :not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp toggle_sensitive(%Activity{object: object} = activity, %{"sensitive" => sensitive})
+       when is_boolean(sensitive) do
+    new_data = Map.put(object.data, "sensitive", sensitive)
+
+    {:ok, object} =
+      object
+      |> Object.change(%{data: new_data})
+      |> Object.update_and_set_cache()
+
+    {:ok, Map.put(activity, :object, object)}
+  end
+
+  defp toggle_sensitive(activity, _), do: {:ok, activity}
+
+  defp set_visibility(activity, %{"visibility" => visibility}) do
+    Utils.update_activity_visibility(activity, visibility)
+  end
+
+  defp set_visibility(activity, _), do: {:ok, activity}
+
   def hide_reblogs(user, muted) do
     ap_id = muted.ap_id
 

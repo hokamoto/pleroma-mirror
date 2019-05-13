@@ -197,6 +197,8 @@ defmodule Pleroma.Web.Router do
     get("/reports/:id", AdminAPIController, :report_show)
     put("/reports/:id", AdminAPIController, :report_update_state)
     post("/reports/:id/respond", AdminAPIController, :report_respond)
+
+    put("/statuses/:id", AdminAPIController, :status_update)
   end
 
   scope "/", Pleroma.Web.TwitterAPI do

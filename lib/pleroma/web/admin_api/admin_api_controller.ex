@@ -323,14 +323,6 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
       conn
       |> put_view(ReportView)
       |> render("show.json", %{report: report})
-    else
-      {:error, :not_found} ->
-        {:error, :not_found}
-
-      {:error, reason} ->
-        conn
-        |> put_status(400)
-        |> json(reason)
     end
   end
 
@@ -346,7 +338,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
       conn
       |> put_view(StatusView)
-      |> render("status.json", %{activity: activity, for: user})
+      |> render("status.json", %{activity: activity})
     else
       true ->
         {:param_cast, nil}
@@ -356,10 +348,24 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     end
   end
 
+  def status_update(conn, %{"id" => id} = params) do
+    with {:ok, activity} <- CommonAPI.update_activitiy_scope(id, params) do
+      conn
+      |> put_view(StatusView)
+      |> render("status.json", %{activity: activity})
+    end
+  end
+
   def errors(conn, {:error, :not_found}) do
     conn
     |> put_status(404)
     |> json("Not found")
+  end
+
+  def errors(conn, {:error, reason}) do
+    conn
+    |> put_status(400)
+    |> json(reason)
   end
 
   def errors(conn, {:param_cast, _}) do

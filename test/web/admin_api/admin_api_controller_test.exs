@@ -1146,7 +1146,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
   end
 
-  describe "POST /api/pleroma/admin/reports/:id/respond " do
+  describe "POST /api/pleroma/admin/reports/:id/respond" do
     setup %{conn: conn} do
       admin = insert(:user, info: %{is_admin: true})
 
@@ -1192,6 +1192,63 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         })
 
       assert json_response(conn, :not_found) == "Not found"
+    end
+  end
+
+  describe "PUT /api/pleroma/admin/statuses/:id" do
+    setup %{conn: conn} do
+      admin = insert(:user, info: %{is_admin: true})
+      user = insert(:user)
+      activity = insert(:note_activity, user: user)
+
+      %{conn: assign(conn, :user, admin), id: activity.id}
+    end
+
+    test "toggle sensitive flag", %{conn: conn, id: id} do
+      response =
+        conn
+        |> put("/api/pleroma/admin/statuses/#{id}", %{"sensitive" => true})
+        |> json_response(:ok)
+
+      assert response["sensitive"]
+
+      response =
+        conn
+        |> put("/api/pleroma/admin/statuses/#{id}", %{"sensitive" => false})
+        |> json_response(:ok)
+
+      refute response["sensitive"]
+    end
+
+    test "change visibility flag", %{conn: conn, id: id} do
+      response =
+        conn
+        |> put("/api/pleroma/admin/statuses/#{id}", %{"visibility" => "public"})
+        |> json_response(:ok)
+
+      assert response["visibility"] == "public"
+
+      response =
+        conn
+        |> put("/api/pleroma/admin/statuses/#{id}", %{"visibility" => "private"})
+        |> json_response(:ok)
+
+      assert response["visibility"] == "private"
+
+      response =
+        conn
+        |> put("/api/pleroma/admin/statuses/#{id}", %{"visibility" => "unlisted"})
+        |> json_response(:ok)
+
+      assert response["visibility"] == "unlisted"
+    end
+
+    test "returns 400 when visibility is unknown", %{conn: conn, id: id} do
+      conn =
+        conn
+        |> put("/api/pleroma/admin/statuses/#{id}", %{"visibility" => "test"})
+
+      assert json_response(conn, :bad_request) == "Unsupported visibility"
     end
   end
 end
