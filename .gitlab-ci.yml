@@ -50,7 +50,9 @@ unit-testing:
   script:
     - mix deps.get
     - mix ecto.create
+    - echo "use Mix.Config\nconfig :logger, level: :debug" > config/test.secret.exs
     - mix ecto.migrate --log-sql
+    - rm -f config/test.secret.exs
     - mix test --trace --preload-modules
 
 lint:
