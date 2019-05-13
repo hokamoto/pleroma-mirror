@@ -1722,8 +1722,6 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       |> Map.put("bio", params["bio"] || "")
       |> Map.put("confirm", params["password"])
 
-    # TODO: Move TwitterAPI.register_user to CommonAPI?
-    # TODO: Fix applications to be able put only "read" scope instead for this token?
     with {:ok, user} <- TwitterAPI.register_user(params, need_confirmation: true),
          {:ok, token} <- Token.create_token(app, user, %{scopes: app.scopes}) do
       json(conn, %{

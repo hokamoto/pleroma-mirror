@@ -385,7 +385,6 @@ defmodule Pleroma.Web.Router do
   scope "/api/v1", Pleroma.Web.MastodonAPI do
     pipe_through(:api)
 
-    # TODO: Restrain to Applications in the router?
     post("/accounts", MastodonAPIController, :account_register)
 
     get("/instance", MastodonAPIController, :masto_instance)

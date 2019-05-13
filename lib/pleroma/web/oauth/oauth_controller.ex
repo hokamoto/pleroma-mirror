@@ -206,9 +206,6 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     end
   end
 
-  # Is this function even ever used?
-  # def token_exchange(conn, %{"grant_type" => "password"} = params)
-  # should have grabbed it already
   def token_exchange(
         conn,
         %{"grant_type" => "password", "name" => name, "password" => _password} = params
