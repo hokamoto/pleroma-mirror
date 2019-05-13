@@ -4,7 +4,19 @@ defmodule Pleroma.Plugs.RateLimitPlugTest do
 
   alias Pleroma.Plugs.RateLimitPlug
 
-  @opts RateLimitPlug.init(%{max_requests: 5, interval: 500, enabled: true})
+  @opts RateLimitPlug.init(%{max_requests: 5, interval: 500})
+
+  setup do
+    enabled = Pleroma.Config.get([:app_account_creation, :enabled])
+
+    Pleroma.Config.put([:app_account_creation, :enabled], true)
+
+    on_exit(fn ->
+      Pleroma.Config.put([:app_account_creation, :enabled], enabled)
+    end)
+
+    :ok
+  end
 
   test "it restricts by opts" do
     conn = conn(:get, "/")

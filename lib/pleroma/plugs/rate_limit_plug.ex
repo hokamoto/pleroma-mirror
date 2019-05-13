@@ -8,21 +8,24 @@ defmodule Pleroma.Plugs.RateLimitPlug do
 
   def init(opts), do: opts
 
-  def call(conn, %{enabled: true} = opts) do
-    case check_rate(conn, opts) do
+  def call(conn, opts) do
+    enabled? = Pleroma.Config.get([:app_account_creation, :enabled])
+
+    case check_rate(conn, Map.put(opts, :enabled, enabled?)) do
       {:ok, _count} -> conn
       {:error, _count} -> render_error(conn)
+      %Plug.Conn{} = conn -> conn
     end
   end
 
-  def call(conn, _), do: conn
-
-  defp check_rate(conn, opts) do
+  defp check_rate(conn, %{enabled: true} = opts) do
     max_requests = opts[:max_requests]
     bucket_name = conn.remote_ip |> Tuple.to_list() |> Enum.join(".")
 
     ExRated.check_rate(bucket_name, opts[:interval], max_requests)
   end
+
+  defp check_rate(conn, _), do: conn
 
   defp render_error(conn) do
     conn
