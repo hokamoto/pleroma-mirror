@@ -3225,7 +3225,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
       Pleroma.Config.put([:app_account_creation, :enabled], true)
       Pleroma.Config.put([:app_account_creation, :max_requests], 5)
-      Pleroma.Config.put([:app_account_creation, :interval], 1000)
+      Pleroma.Config.put([:app_account_creation, :interval], 1)
 
       on_exit(fn ->
         Pleroma.Config.put([:app_account_creation, :enabled], enabled)

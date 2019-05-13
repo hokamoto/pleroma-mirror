@@ -22,7 +22,7 @@ defmodule Pleroma.Plugs.RateLimitPlug do
     max_requests = opts[:max_requests]
     bucket_name = conn.remote_ip |> Tuple.to_list() |> Enum.join(".")
 
-    ExRated.check_rate(bucket_name, opts[:interval], max_requests)
+    ExRated.check_rate(bucket_name, opts[:interval] * 1000, max_requests)
   end
 
   defp check_rate(conn, _), do: conn

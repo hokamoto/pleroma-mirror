@@ -234,7 +234,7 @@ config :pleroma, :instance,
   safe_dm_mentions: false,
   healthcheck: false
 
-config :pleroma, :app_account_creation, enabled: false, max_requests: 5, interval: 30 * 60 * 1000
+config :pleroma, :app_account_creation, enabled: false, max_requests: 5, interval: 1800
 
 config :pleroma, :markup,
   # XXX - unfortunately, inline images must be enabled by default right now, because

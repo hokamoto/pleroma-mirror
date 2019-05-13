@@ -4,7 +4,7 @@ defmodule Pleroma.Plugs.RateLimitPlugTest do
 
   alias Pleroma.Plugs.RateLimitPlug
 
-  @opts RateLimitPlug.init(%{max_requests: 5, interval: 500})
+  @opts RateLimitPlug.init(%{max_requests: 5, interval: 1})
 
   setup do
     enabled = Pleroma.Config.get([:app_account_creation, :enabled])
@@ -21,7 +21,7 @@ defmodule Pleroma.Plugs.RateLimitPlugTest do
   test "it restricts by opts" do
     conn = conn(:get, "/")
     bucket_name = conn.remote_ip |> Tuple.to_list() |> Enum.join(".")
-    ms = 500
+    ms = 1000
 
     conn = RateLimitPlug.call(conn, @opts)
     {1, 4, _, _, _} = ExRated.inspect_bucket(bucket_name, ms, 5)
