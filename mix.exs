@@ -115,6 +115,7 @@ defmodule Pleroma.Mixfile do
       {:benchee, "~> 1.0"},
       {:esshd, "~> 0.1.0"},
       {:pot, "~> 0.9.7"},
+      {:ex_rated, "~> 1.2"},
       {:plug_static_index_html, "~> 1.0.0"}
     ] ++ oauth_deps
   end

@@ -215,6 +215,7 @@ defmodule Pleroma.Web.Router do
       post("/change_password", UtilController, :change_password)
       post("/delete_account", UtilController, :delete_account)
       put("/notification_settings", UtilController, :update_notificaton_settings)
+      post("/disable_account", UtilController, :disable_account)
     end
 
     scope [] do
@@ -392,6 +393,8 @@ defmodule Pleroma.Web.Router do
 
   scope "/api/v1", Pleroma.Web.MastodonAPI do
     pipe_through(:api)
+
+    post("/accounts", MastodonAPIController, :account_register)
 
     get("/instance", MastodonAPIController, :masto_instance)
     get("/instance/peers", MastodonAPIController, :peers)
