@@ -52,7 +52,6 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
     else
       {:error, msg} ->
         conn
-        |> put_status(422)
         |> json(%{error: msg, status: "error"})
     end
   end

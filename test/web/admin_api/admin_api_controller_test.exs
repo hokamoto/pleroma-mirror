@@ -842,7 +842,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
       response =
         conn
-        |> put("/api/pleroma/admin/user/disable_mfa", %{nickname: user.nickname})
+        |> put("/api/pleroma/admin/users/disable_mfa", %{nickname: user.nickname})
         |> json_response(200)
 
       assert response == user.nickname
@@ -855,7 +855,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     test "returns 404 if user not found", %{conn: conn} do
       response =
         conn
-        |> put("/api/pleroma/admin/user/disable_mfa", %{nickname: "nickname"})
+        |> put("/api/pleroma/admin/users/disable_mfa", %{nickname: "nickname"})
         |> json_response(404)
 
       assert response == "Not found"

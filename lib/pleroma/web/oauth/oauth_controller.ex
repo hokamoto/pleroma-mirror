@@ -223,21 +223,11 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     token_exchange(conn, params)
   end
 
-  def token_exchange(conn, %{"grant_type" => "client_credentials"} = params) do
-    with %App{} = app <- get_app_from_request(conn, params),
+  def token_exchange(conn, %{"grant_type" => "client_credentials"} = _params) do
+    with {:ok, app} <- Token.Utils.fetch_app(conn),
          {:ok, auth} <- Authorization.create_authorization(app, %User{}),
-         {:ok, token} <- Token.exchange_token(app, auth),
-         {:ok, inserted_at} <- DateTime.from_naive(token.inserted_at, "Etc/UTC") do
-      response = %{
-        token_type: "Bearer",
-        access_token: token.token,
-        refresh_token: token.refresh_token,
-        created_at: DateTime.to_unix(inserted_at),
-        expires_in: 60 * 10,
-        scope: Enum.join(token.scopes, " ")
-      }
-
-      json(conn, response)
+         {:ok, token} <- Token.exchange_token(app, auth) do
+      json(conn, Token.Response.build_for_client_credentials(token))
     else
       _error ->
         put_status(conn, 400)

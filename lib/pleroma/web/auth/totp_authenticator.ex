@@ -14,7 +14,8 @@ defmodule Pleroma.Web.Auth.TOTPAuthenticator do
   def verify(
         token,
         %User{
-          multi_factor_authentication_settings: %{enabled: true, totp: %{secret: secret, confirmed: true}} = _
+          multi_factor_authentication_settings:
+            %{enabled: true, totp: %{secret: secret, confirmed: true}} = _
         } = _user
       )
       when is_binary(token) and byte_size(token) > 0 do
