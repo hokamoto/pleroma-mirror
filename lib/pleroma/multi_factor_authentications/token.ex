@@ -38,6 +38,7 @@ defmodule Pleroma.MultiFactorAuthentications.Token do
 
   def create_token(user, scopes \\ []) do
     %__MODULE__{scopes: scopes}
+    |> change
     |> assign_user(user)
     |> put_token
     |> put_valid_until
