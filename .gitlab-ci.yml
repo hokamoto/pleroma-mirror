@@ -64,6 +64,11 @@ analysis:
     - mix deps.get
     - mix credo --strict --only=warnings,todo,fixme,consistency,readability
 
+coverage:
+  stage: test
+  script:
+    - mix coveralls
+
 
 docs-deploy:
   stage: deploy
