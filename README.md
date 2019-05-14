@@ -1,5 +1,8 @@
 # Pleroma
 
+[![pipeline status](https://git.pleroma.social/pleroma/pleroma/badges/develop/pipeline.svg)](https://git.pleroma.social/pleroma/pleroma/commits/master)
+
+
 **Note**: This readme as well as complete documentation is also available at <https://docs-develop.pleroma.social>
 
 ## About Pleroma
