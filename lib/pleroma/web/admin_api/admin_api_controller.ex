@@ -349,10 +349,16 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   end
 
   def status_update(conn, %{"id" => id} = params) do
-    with {:ok, activity} <- CommonAPI.update_activitiy_scope(id, params) do
+    with {:ok, activity} <- CommonAPI.update_activity_scope(id, params) do
       conn
       |> put_view(StatusView)
       |> render("status.json", %{activity: activity})
+    end
+  end
+
+  def status_delete(%{assigns: %{user: user}} = conn, %{"id" => id}) do
+    with {:ok, %Activity{}} <- CommonAPI.delete(id, user) do
+      json(conn, %{})
     end
   end
 

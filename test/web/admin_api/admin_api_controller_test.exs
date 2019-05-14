@@ -5,6 +5,7 @@
 defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
   use Pleroma.Web.ConnCase
 
+  alias Pleroma.Activity
   alias Pleroma.User
   alias Pleroma.UserInviteToken
   alias Pleroma.Web.CommonAPI
@@ -1198,8 +1199,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
   describe "PUT /api/pleroma/admin/statuses/:id" do
     setup %{conn: conn} do
       admin = insert(:user, info: %{is_admin: true})
-      user = insert(:user)
-      activity = insert(:note_activity, user: user)
+      activity = insert(:note_activity)
 
       %{conn: assign(conn, :user, admin), id: activity.id}
     end
@@ -1249,6 +1249,31 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         |> put("/api/pleroma/admin/statuses/#{id}", %{"visibility" => "test"})
 
       assert json_response(conn, :bad_request) == "Unsupported visibility"
+    end
+  end
+
+  describe "DELETE /api/pleroma/admin/statuses/:id" do
+    setup %{conn: conn} do
+      admin = insert(:user, info: %{is_admin: true})
+      activity = insert(:note_activity)
+
+      %{conn: assign(conn, :user, admin), id: activity.id}
+    end
+
+    test "deletes status", %{conn: conn, id: id} do
+      conn
+      |> delete("/api/pleroma/admin/statuses/#{id}")
+      |> json_response(:ok)
+
+      refute Activity.get_by_id(id)
+    end
+
+    test "returns error when status is not exist", %{conn: conn} do
+      conn =
+        conn
+        |> delete("/api/pleroma/admin/statuses/test")
+
+      assert json_response(conn, :bad_request) == "Could not delete"
     end
   end
 end

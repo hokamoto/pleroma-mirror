@@ -71,6 +71,9 @@ defmodule Pleroma.Web.CommonAPI do
          {:ok, _} <- unpin(activity_id, user),
          {:ok, delete} <- ActivityPub.delete(object) do
       {:ok, delete}
+    else
+      _ ->
+        {:error, "Could not delete"}
     end
   end
 
@@ -327,7 +330,7 @@ defmodule Pleroma.Web.CommonAPI do
     end
   end
 
-  def update_activitiy_scope(activity_id, opts \\ %{}) do
+  def update_activity_scope(activity_id, opts \\ %{}) do
     with %Activity{} = activity <- Activity.get_by_id_with_object(activity_id),
          {:ok, activity} <- toggle_sensitive(activity, opts),
          {:ok, activity} <- set_visibility(activity, opts) do

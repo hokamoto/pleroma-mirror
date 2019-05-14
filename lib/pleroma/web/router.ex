@@ -199,6 +199,7 @@ defmodule Pleroma.Web.Router do
     post("/reports/:id/respond", AdminAPIController, :report_respond)
 
     put("/statuses/:id", AdminAPIController, :status_update)
+    delete("/statuses/:id", AdminAPIController, :status_delete)
   end
 
   scope "/", Pleroma.Web.TwitterAPI do
