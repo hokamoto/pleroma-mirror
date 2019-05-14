@@ -1207,14 +1207,14 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     test "toggle sensitive flag", %{conn: conn, id: id} do
       response =
         conn
-        |> put("/api/pleroma/admin/statuses/#{id}", %{"sensitive" => true})
+        |> put("/api/pleroma/admin/statuses/#{id}", %{"sensitive" => "true"})
         |> json_response(:ok)
 
       assert response["sensitive"]
 
       response =
         conn
-        |> put("/api/pleroma/admin/statuses/#{id}", %{"sensitive" => false})
+        |> put("/api/pleroma/admin/statuses/#{id}", %{"sensitive" => "false"})
         |> json_response(:ok)
 
       refute response["sensitive"]

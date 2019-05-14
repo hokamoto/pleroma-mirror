@@ -344,6 +344,10 @@ defmodule Pleroma.Web.CommonAPI do
     end
   end
 
+  defp toggle_sensitive(activity, %{"sensitive" => sensitive}) when sensitive in ~w(true false) do
+    toggle_sensitive(activity, %{"sensitive" => String.to_existing_atom(sensitive)})
+  end
+
   defp toggle_sensitive(%Activity{object: object} = activity, %{"sensitive" => sensitive})
        when is_boolean(sensitive) do
     new_data = Map.put(object.data, "sensitive", sensitive)
