@@ -14,7 +14,7 @@ defmodule Pleroma.Web.Auth.TOTPAuthenticator do
   def verify(
         token,
         %User{
-          multi_factor_authentication_settings: %{totp: %{secret: secret, confirmed: true}} = _
+          multi_factor_authentication_settings: %{enabled: true, totp: %{secret: secret, confirmed: true}} = _
         } = _user
       )
       when is_binary(token) and byte_size(token) > 0 do
@@ -26,7 +26,7 @@ defmodule Pleroma.Web.Auth.TOTPAuthenticator do
   @spec verify_recovery_code(User.t(), String.t()) ::
           {:ok, :pass} | {:error, :invalid_token}
   def verify_recovery_code(
-        %User{multi_factor_authentication_settings: %{backup_codes: codes}} = user,
+        %User{multi_factor_authentication_settings: %{enabled: true, backup_codes: codes}} = user,
         code
       )
       when is_list(codes) and is_binary(code) do

@@ -41,13 +41,19 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
 
   @doc """
   Confirm setup and enable mfa method
+
+  - params:
+  `code`
+  `password`
   """
   def confirm(%{assigns: %{user: user}} = conn, %{"method" => "totp"} = params) do
     with {:ok, _user} <- MFA.confirm_totp(user, params) do
       json(conn, %{status: "success"})
     else
       {:error, msg} ->
-        json(conn, %{error: msg, status: "error"})
+        conn
+        |> put_status(422)
+        |> json(%{error: msg, status: "error"})
     end
   end
 
