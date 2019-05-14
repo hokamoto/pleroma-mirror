@@ -6,6 +6,8 @@ defmodule Pleroma.Web.OAuth.Token.Utils do
   alias Pleroma.Repo
   alias Pleroma.Web.OAuth.App
 
+  @doc "Fetch app by client credentials from request"
+  @spec fetch_app(Plug.Conn.t()) :: {:ok, App.t()} | {:error, :not_found}
   def fetch_app(conn) do
     res =
       conn
