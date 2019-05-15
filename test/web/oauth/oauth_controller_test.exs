@@ -9,6 +9,8 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
   alias Pleroma.Registration
   alias Pleroma.Repo
+  alias Pleroma.MultiFactorAuthentications, as: MFA
+  alias Pleroma.Web.Auth.TOTP
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.Token
 
@@ -583,6 +585,46 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       token = Repo.get_by(Token, token: token)
       assert token
       assert token.scopes == app.scopes
+    end
+
+    test "issues a mfa token for `password` grant_type, when MFA enabled" do
+      password = "testpassword"
+      otp_secret = TOTP.generate_secret()
+
+      user =
+        insert(:user,
+          password_hash: Comeonin.Pbkdf2.hashpwsalt(password),
+          multi_factor_authentication_settings: %MFA.Settings{
+            enabled: true,
+            totp: %MFA.Settings.TOTP{secret: otp_secret, confirmed: true}
+          }
+        )
+
+      app = insert(:oauth_app, scopes: ["read", "write"])
+
+      response =
+        build_conn()
+        |> post("/oauth/token", %{
+          "grant_type" => "password",
+          "username" => user.nickname,
+          "password" => password,
+          "client_id" => app.client_id,
+          "client_secret" => app.client_secret
+        })
+        |> json_response(403)
+
+      assert match?(
+               %{
+                 "supported_challenge_types" => "totp",
+                 "mfa_token" => _,
+                 "error" => "mfa_required"
+               },
+               response
+             )
+
+      token = Repo.get_by(MFA.Token, token: response["mfa_token"])
+      assert token.user_id == user.id
+      assert token.scopes == ["read", "write"]
     end
 
     test "issues a token for request with HTTP basic auth client credentials" do
