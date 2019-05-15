@@ -248,7 +248,7 @@ config :pleroma, :instance,
     ]
   ]
 
-config :pleroma, :app_account_creation, enabled: false, max_requests: 5, interval: 1800
+config :pleroma, :app_account_creation, enabled: true, max_requests: 25, interval: 1800
 
 config :pleroma, :markup,
   # XXX - unfortunately, inline images must be enabled by default right now, because
@@ -261,25 +261,6 @@ config :pleroma, :markup,
     Pleroma.HTML.Transform.MediaProxy,
     Pleroma.HTML.Scrubber.Default
   ]
-
-# Deprecated, will be gone in 1.0
-config :pleroma, :fe,
-  theme: "pleroma-dark",
-  logo: "/static/logo.png",
-  logo_mask: true,
-  logo_margin: "0.1em",
-  background: "/static/aurora_borealis.jpg",
-  redirect_root_no_login: "/main/all",
-  redirect_root_login: "/main/friends",
-  show_instance_panel: true,
-  scope_options_enabled: false,
-  formatting_options_enabled: false,
-  collapse_message_with_subject: false,
-  hide_post_stats: false,
-  hide_user_stats: false,
-  scope_copy: true,
-  subject_line_behavior: "email",
-  always_show_subject_input: true
 
 config :pleroma, :frontend_configurations,
   pleroma_fe: %{
@@ -433,8 +414,7 @@ config :pleroma_job_queue, :queues,
   mailer: 10,
   transmogrifier: 20,
   scheduled_activities: 10,
-  background: 5,
-  user: 10
+  background: 5
 
 config :pleroma, :fetch_initial_posts,
   enabled: false,
@@ -492,6 +472,9 @@ config :pleroma, Pleroma.ScheduledActivity,
 config :pleroma, :oauth2,
   token_expires_in: 600,
   issue_new_refresh_token: true
+
+config :http_signatures,
+  adapter: Pleroma.Signature
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
