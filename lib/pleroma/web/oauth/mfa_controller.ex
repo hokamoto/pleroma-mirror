@@ -3,6 +3,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.OAuth.MFAController do
+  @moduledoc """
+  The model represents api to use Multi Factor authentications.
+  """
+
   use Pleroma.Web, :controller
 
   alias Pleroma.MultiFactorAuthentications, as: MFA
@@ -10,17 +14,19 @@ defmodule Pleroma.Web.OAuth.MFAController do
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.Token
 
-  @moduledoc """
-  The model represents api to use Multi Factor authentications.
-  """
-
   @doc """
-  client_id
-  client_secret
-  mfa_token
+  Verification second step of MFA (or recovery) and returns access token.
 
-  challenge_type
-  code
+  ## Endpoint
+  POST /oauth/mfa/challenge
+
+  params:
+  `client_id`
+  `client_secret`
+  `mfa_token` - access token to check second step of mfa
+  `challenge_type` - 'totp' or 'recovery'
+  `code`
+
   """
   def challenge(conn, %{"mfa_token" => mfa_token} = params) do
     with {:ok, app} <- Token.Utils.fetch_app(conn),
@@ -30,8 +36,7 @@ defmodule Pleroma.Web.OAuth.MFAController do
          {:ok, token} <- Token.exchange_token(app, auth) do
       json(conn, Token.Response.build(user, token))
     else
-      error ->
-        IO.inspect error
+      _error ->
         conn
         |> put_status(400)
         |> json(%{error: "Invalid code"})
@@ -42,7 +47,7 @@ defmodule Pleroma.Web.OAuth.MFAController do
     TOTPAuthenticator.verify(code, user)
   end
 
-  defp validates_challenge(user, %{"challenge_type" => "recovery_code", "code" => code} = _) do
+  defp validates_challenge(user, %{"challenge_type" => "recovery", "code" => code} = _) do
     TOTPAuthenticator.verify_recovery_code(user, code)
   end
 

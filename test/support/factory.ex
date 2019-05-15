@@ -309,4 +309,13 @@ defmodule Pleroma.Factory do
       }
     }
   end
+
+  def mfa_token_factory do
+    %Pleroma.MultiFactorAuthentications.Token{
+      token: :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false),
+      scopes: ["read", "write", "follow", "push"],
+      valid_until: NaiveDateTime.add(NaiveDateTime.utc_now(), 60 * 10),
+      user: build(:user)
+    }
+  end
 end

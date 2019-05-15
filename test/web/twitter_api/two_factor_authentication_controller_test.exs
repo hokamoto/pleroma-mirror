@@ -45,7 +45,10 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
     test "returns backup codes", %{conn: conn} do
       user =
         insert(:user,
-          multi_factor_authentication_settings: %Settings{backup_codes: ["1", "2", "3"]}
+          multi_factor_authentication_settings: %Settings{
+            backup_codes: ["1", "2", "3"],
+            totp: %Settings.TOTP{secret: "secret"}
+          }
         )
 
       response =
@@ -58,6 +61,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
       assert [<<_::bytes-size(6)>>, <<_::bytes-size(6)>>] = response["codes"]
       user = refresh_record(user)
       mfa_settings = user.multi_factor_authentication_settings
+      assert mfa_settings.totp.secret == "secret"
       refute mfa_settings.backup_codes == ["1", "2", "3"]
       refute mfa_settings.backup_codes == []
     end
@@ -73,7 +77,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
         |> get("/api/pleroma/profile/mfa/setup/torf")
         |> json_response(:ok)
 
-      assert response == %{"error" => "undefined mfa method"}
+      assert response == %{"error" => "undefined method"}
     end
 
     test "returns key and provisioning_uri", %{conn: conn} do

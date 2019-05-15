@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
-  @moduledoc "The module represents actions to manage 2FA/TOTP"
+  @moduledoc "The module represents actions to manage MFA"
   use Pleroma.Web, :controller
 
   alias Pleroma.Web.Auth.TOTP
@@ -11,6 +11,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
 
   @doc """
   Gets user multi factor authentication settings
+
   ## Endpoint
   GET /api/pleroma/profile/mfa
 
@@ -21,6 +22,10 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
 
   @doc """
   Prepare setup mfa method
+
+  ## Endpoint
+  GET /api/pleroma/profile/mfa/setup/[:method]
+
   """
   def setup(%{assigns: %{user: user}} = conn, %{"method" => "totp"} = _params) do
     with {:ok, user} <- MFA.setup_totp(user),
@@ -37,16 +42,22 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
     end
   end
 
-  def setup(conn, _params), do: json(conn, %{error: "undefined mfa method"})
+  def setup(conn, _params), do: json(conn, %{error: "undefined method"})
 
   @doc """
-  Confirm setup and enable mfa method
+  Confirms setup and enable mfa method
+
+  ## Endpoint
+  POST /api/pleroma/profile/mfa/confirm/:method
 
   - params:
-  `code`
-  `password`
+  `code` - confirmation code
+  `password` - current password
   """
-  def confirm(%{assigns: %{user: user}} = conn, %{"method" => "totp"} = params) do
+  def confirm(
+        %{assigns: %{user: user}} = conn,
+        %{"method" => "totp", "password" => _, "code" => _} = params
+      ) do
     with {:ok, _user} <- MFA.confirm_totp(user, params) do
       json(conn, %{status: "success"})
     else
