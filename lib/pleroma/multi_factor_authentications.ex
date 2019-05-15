@@ -75,7 +75,7 @@ defmodule Pleroma.MultiFactorAuthentications do
 
   def confirm_totp(%User{} = user, attrs) do
     with settings <- user.multi_factor_authentication_settings.totp,
-         {:ok, user} <- Utils.confirm_current_password(user, attrs["password"]),
+         {:ok, _user} <- Utils.confirm_current_password(user, attrs["password"]),
          {:ok, :pass} <- TOTP.validate_token(settings.secret, attrs["code"]) do
       user
       |> Changeset.confirm_totp()

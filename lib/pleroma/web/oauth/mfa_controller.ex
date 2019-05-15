@@ -29,6 +29,12 @@ defmodule Pleroma.Web.OAuth.MFAController do
          {:ok, auth} <- Authorization.create_authorization(app, user, scopes),
          {:ok, token} <- Token.exchange_token(app, auth) do
       json(conn, Token.Response.build(user, token))
+    else
+      error ->
+        IO.inspect error
+        conn
+        |> put_status(400)
+        |> json(%{error: "Invalid code"})
     end
   end
 
