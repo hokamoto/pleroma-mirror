@@ -6,7 +6,6 @@ defmodule Mix.Tasks.Pleroma.User do
   use Mix.Task
   import Ecto.Changeset
   alias Mix.Tasks.Pleroma.Common
-  alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.UserInviteToken
 
@@ -82,10 +81,6 @@ defmodule Mix.Tasks.Pleroma.User do
   ## Toggle confirmation of the user's account.
 
       mix pleroma.user toggle_confirmed NICKNAME
-
-  ## Remove duplicated items from following and update followers count for all users
-
-      mix pleroma.user update_following_followers_counts
   """
   def run(["new", nickname, email | rest]) do
     {options, [], []} =
@@ -410,14 +405,6 @@ defmodule Mix.Tasks.Pleroma.User do
       _ ->
         Mix.shell().error("No local user #{nickname}")
     end
-  end
-
-  def run(["update_following_followers_counts"]) do
-    Common.start_pleroma()
-
-    users = Repo.all(User)
-    Enum.each(users, &User.remove_duplicated_following/1)
-    Enum.each(users, &User.update_follower_count/1)
   end
 
   defp set_moderator(user, value) do
