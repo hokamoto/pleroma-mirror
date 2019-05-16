@@ -252,6 +252,8 @@ defmodule Pleroma.Web.Router do
     get("/registration_details", OAuthController, :registration_details)
 
     post("/mfa/challenge", MFAController, :challenge)
+    post("/mfa/verify", MFAController, :verify, as: :mfa_verify)
+    get("/mfa", MFAController, :show)
 
     scope [] do
       pipe_through(:browser)

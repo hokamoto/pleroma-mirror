@@ -74,7 +74,8 @@ defmodule Pleroma.Web.OAuth.OAuthController do
         %{"authorization" => _} = params,
         opts \\ []
       ) do
-    with {:ok, auth} <- do_create_authorization(conn, params, opts[:user]) do
+    with {:ok, auth, user} <- do_create_authorization(conn, params, opts[:user]),
+         {:mfa_required, _, _, false} <- {:mfa_required, user, auth, MFA.require?(user)} do
       after_create_authorization(conn, auth, params)
     else
       error ->
@@ -136,6 +137,18 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     |> authorize(params)
   end
 
+  defp handle_create_authorization_error(conn, {:mfa_required, user, auth, _}, params) do
+    {:ok, token} = MFA.Token.create_token(user, auth)
+
+    data = %{
+      "mfa_token" => token.token,
+      "redirect_uri" => params["authorization"]["redirect_uri"],
+      "state" => params["authorization"]["state"]
+    }
+
+    Pleroma.Web.OAuth.MFAController.show(conn, data)
+  end
+
   defp handle_create_authorization_error(conn, error, %{"authorization" => _}) do
     Authenticator.handle_error(conn, error)
   end
@@ -163,7 +176,6 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          fixed_token = Token.Utils.fix_padding(params["code"]),
          {:ok, auth} <- Authorization.get_by_token(app, fixed_token),
          %User{} = user <- User.get_cached_by_id(auth.user_id),
-         {:mfa_required, _, _, false} <- {:mfa_required, user, auth, MFA.require?(user)},
          {:ok, token} <- Token.exchange_token(app, auth) do
       response_attrs = %{created_at: Token.Utils.format_created_at(token)}
 
@@ -357,7 +369,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   def register(conn, %{"authorization" => _, "op" => "connect"} = params) do
     with registration_id when not is_nil(registration_id) <- get_session_registration_id(conn),
          %Registration{} = registration <- Repo.get(Registration, registration_id),
-         {_, {:ok, auth}} <-
+         {_, {:ok, auth, _user}} <-
            {:create_authorization, do_create_authorization(conn, params)},
          %User{} = user <- Repo.preload(auth, :user).user,
          {:ok, _updated_registration} <- Registration.bind_to_user(registration, user) do
@@ -424,8 +436,9 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          %App{} = app <- Repo.get_by(App, client_id: client_id),
          true <- redirect_uri in String.split(app.redirect_uris),
          {:ok, scopes} <- validate_scopes(app, auth_attrs),
-         {:auth_active, true} <- {:auth_active, User.auth_active?(user)} do
-      Authorization.create_authorization(app, user, scopes)
+         {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
+         {:ok, auth} <- Authorization.create_authorization(app, user, scopes) do
+      {:ok, auth, user}
     end
   end
 

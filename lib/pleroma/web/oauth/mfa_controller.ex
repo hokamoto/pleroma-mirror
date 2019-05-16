@@ -12,6 +12,42 @@ defmodule Pleroma.Web.OAuth.MFAController do
   alias Pleroma.MultiFactorAuthentications, as: MFA
   alias Pleroma.Web.Auth.TOTPAuthenticator
   alias Pleroma.Web.OAuth.Token
+  alias Pleroma.Web.OAuth.MFAView, as: View
+  alias Pleroma.Web.OAuth.OAuthController
+
+  plug(:fetch_session when action in [:show, :verify])
+  plug(:fetch_flash when action in [:show, :verify])
+
+  def show(conn, %{"mfa_token" => mfa_token} = params) do
+    template = Map.get(params, "challenge_type", "totp")
+
+    conn
+    |> put_view(View)
+    |> render("#{template}.html", %{
+      mfa_token: mfa_token,
+      redirect_uri: params["redirect_uri"],
+      state: params["state"]
+    })
+  end
+
+  def verify(conn, %{"mfa" => %{"mfa_token" => mfa_token} = mfa_params} = _) do
+    with {:ok, %{user: user, authorization: auth}} <- MFA.Token.validate(mfa_token),
+         {:ok, _} <- validates_challenge(user, mfa_params) do
+      conn
+      |> OAuthController.after_create_authorization(auth, %{
+        "authorization" => %{
+          "redirect_uri" => mfa_params["redirect_uri"],
+          "state" => mfa_params["state"]
+        }
+      })
+    else
+      _ ->
+        conn
+        |> put_flash(:error, "Two-factor authentication failed.")
+        |> put_status(:unauthorized)
+        |> show(mfa_params)
+    end
+  end
 
   @doc """
   Verification second step of MFA (or recovery) and returns access token.
