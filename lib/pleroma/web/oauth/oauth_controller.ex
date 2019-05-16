@@ -163,14 +163,14 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          fixed_token = Token.Utils.fix_padding(params["code"]),
          {:ok, auth} <- Authorization.get_by_token(app, fixed_token),
          %User{} = user <- User.get_cached_by_id(auth.user_id),
+         {:mfa_required, _, _, false} <- {:mfa_required, user, auth, MFA.require?(user)},
          {:ok, token} <- Token.exchange_token(app, auth) do
       response_attrs = %{created_at: Token.Utils.format_created_at(token)}
 
       json(conn, Token.Response.build(user, token, response_attrs))
     else
-      _error ->
-        put_status(conn, 400)
-        |> json(%{error: "Invalid credentials"})
+      error ->
+        handle_token_exchange_error(conn, error)
     end
   end
 
@@ -183,31 +183,13 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          {:user_active, true} <- {:user_active, !user.info.deactivated},
          {:ok, app} <- Token.Utils.fetch_app(conn),
          {:ok, scopes} <- validate_scopes(app, params),
-         {:mfa_required, _, _, false} <- {:mfa_required, user, scopes, MFA.require?(user)},
          {:ok, auth} <- Authorization.create_authorization(app, user, scopes),
+         {:mfa_required, _, _, false} <- {:mfa_required, user, auth, MFA.require?(user)},
          {:ok, token} <- Token.exchange_token(app, auth) do
       json(conn, Token.Response.build(user, token))
     else
-      {:mfa_required, user, scopes, _} ->
-        conn
-        |> put_status(:forbidden)
-        |> json(build_and_response_mfa_token(user, scopes))
-
-      {:auth_active, false} ->
-        # Per https://github.com/tootsuite/mastodon/blob/
-        #   51e154f5e87968d6bb115e053689767ab33e80cd/app/controllers/api/base_controller.rb#L76
-        conn
-        |> put_status(:forbidden)
-        |> json(%{error: "Your login is missing a confirmed e-mail address"})
-
-      {:user_active, false} ->
-        conn
-        |> put_status(:forbidden)
-        |> json(%{error: "Your account is currently disabled"})
-
-      _error ->
-        put_status(conn, 400)
-        |> json(%{error: "Invalid credentials"})
+      error ->
+        handle_token_exchange_error(conn, error)
     end
   end
 
@@ -230,13 +212,38 @@ defmodule Pleroma.Web.OAuth.OAuthController do
       json(conn, Token.Response.build_for_client_credentials(token))
     else
       _error ->
-        put_status(conn, 400)
-        |> json(%{error: "Invalid credentials"})
+        handle_token_exchange_error(conn, :invalid_credentails)
     end
   end
 
   # Bad request
   def token_exchange(conn, params), do: bad_request(conn, params)
+
+  defp handle_token_exchange_error(conn, {:mfa_required, user, auth, _}) do
+    conn
+    |> put_status(:forbidden)
+    |> json(build_and_response_mfa_token(user, auth))
+  end
+
+  defp handle_token_exchange_error(conn, {:auth_active, false}) do
+    # Per https://github.com/tootsuite/mastodon/blob/
+    #   51e154f5e87968d6bb115e053689767ab33e80cd/app/controllers/api/base_controller.rb#L76
+    conn
+    |> put_status(:forbidden)
+    |> json(%{error: "Your login is missing a confirmed e-mail address"})
+  end
+
+  defp handle_token_exchange_error(conn, {:user_active, false}) do
+    conn
+    |> put_status(:forbidden)
+    |> json(%{error: "Your account is currently disabled"})
+  end
+
+  defp handle_token_exchange_error(conn, _error) do
+    conn
+    |> put_status(400)
+    |> json(%{error: "Invalid credentials"})
+  end
 
   def token_revoke(conn, %{"token" => _token} = params) do
     with {:ok, app} <- Token.Utils.fetch_app(conn),
@@ -432,14 +439,10 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   defp put_session_registration_id(conn, registration_id),
     do: put_session(conn, :registration_id, registration_id)
 
-  defp build_and_response_mfa_token(user, scopes) do
-    {:ok, %MFA.Token{token: mfa_token}} = MFA.Token.create_token(user, scopes)
-
-    %{
-      error: "mfa_required",
-      mfa_token: mfa_token,
-      supported_challenge_types: MFA.supported_challenge_types(user)
-    }
+  defp build_and_response_mfa_token(user, auth) do
+    with {:ok, token} <- MFA.Token.create_token(user, auth) do
+      Token.Response.build_for_mfa_token(user, token)
+    end
   end
 
   @spec validate_scopes(App.t(), map()) ::

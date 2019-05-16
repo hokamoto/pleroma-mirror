@@ -7,21 +7,26 @@ defmodule Pleroma.MultiFactorAuthentications.Token do
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web.OAuth.Token, as: OAuthToken
+  alias Pleroma.Web.OAuth.Authorization
 
   @expires 300
 
   schema "mfa_tokens" do
     field(:token, :string)
     field(:valid_until, :naive_datetime_usec)
-    field(:scopes, {:array, :string}, default: [])
 
     belongs_to(:user, User, type: FlakeId)
+    belongs_to(:authorization, Authorization)
 
     timestamps()
   end
 
   def get_by_token(token) do
-    from(t in __MODULE__, where: t.token == ^token, preload: [:user])
+    from(
+      t in __MODULE__,
+      where: t.token == ^token,
+      preload: [:user, :authorization]
+    )
     |> Repo.find_resource()
   end
 
@@ -36,10 +41,11 @@ defmodule Pleroma.MultiFactorAuthentications.Token do
     end
   end
 
-  def create_token(user, scopes \\ []) do
-    %__MODULE__{scopes: scopes}
+  def create_token(user, authorization) do
+    %__MODULE__{}
     |> change
     |> assign_user(user)
+    |> assign_authorization(authorization)
     |> put_token
     |> put_valid_until
     |> Repo.insert()
@@ -49,6 +55,12 @@ defmodule Pleroma.MultiFactorAuthentications.Token do
     changeset
     |> put_assoc(:user, user)
     |> validate_required([:user])
+  end
+
+  defp assign_authorization(changeset, authorization) do
+    changeset
+    |> put_assoc(:authorization, authorization)
+    |> validate_required([:authorization])
   end
 
   defp put_token(changeset) do

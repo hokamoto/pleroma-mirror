@@ -27,7 +27,12 @@ defmodule Pleroma.Web.OAuth.MFAControllerTest do
 
     test "returns access token with valid code", %{conn: conn, user: user, app: app} do
       otp_token = TOTP.generate_token(user.multi_factor_authentication_settings.totp.secret)
-      mfa_token = insert(:mfa_token, user: user, scopes: ["write"])
+
+      mfa_token =
+        insert(:mfa_token,
+          user: user,
+          authorization: build(:oauth_authorization, app: app, scopes: ["write"])
+        )
 
       response =
         conn
@@ -73,7 +78,7 @@ defmodule Pleroma.Web.OAuth.MFAControllerTest do
     end
 
     test "returns error when otp code is invalid", %{conn: conn, user: user, app: app} do
-      mfa_token = insert(:mfa_token, user: user, scopes: ["write"])
+      mfa_token = insert(:mfa_token, user: user)
 
       response =
         conn
@@ -91,7 +96,7 @@ defmodule Pleroma.Web.OAuth.MFAControllerTest do
 
     test "returns error when client credentails is wrong ", %{conn: conn, user: user} do
       otp_token = TOTP.generate_token(user.multi_factor_authentication_settings.totp.secret)
-      mfa_token = insert(:mfa_token, user: user, scopes: ["write"])
+      mfa_token = insert(:mfa_token, user: user)
 
       response =
         conn
@@ -132,7 +137,11 @@ defmodule Pleroma.Web.OAuth.MFAControllerTest do
           }
         )
 
-      mfa_token = insert(:mfa_token, user: user, scopes: ["write"])
+      mfa_token =
+        insert(:mfa_token,
+          user: user,
+          authorization: build(:oauth_authorization, app: app, scopes: ["write"])
+        )
 
       response =
         conn

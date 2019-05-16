@@ -313,7 +313,7 @@ defmodule Pleroma.Factory do
   def mfa_token_factory do
     %Pleroma.MultiFactorAuthentications.Token{
       token: :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false),
-      scopes: ["read", "write", "follow", "push"],
+      authorization: build(:oauth_authorization),
       valid_until: NaiveDateTime.add(NaiveDateTime.utc_now(), 60 * 10),
       user: build(:user)
     }

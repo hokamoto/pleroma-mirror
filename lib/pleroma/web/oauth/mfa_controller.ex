@@ -11,7 +11,6 @@ defmodule Pleroma.Web.OAuth.MFAController do
 
   alias Pleroma.MultiFactorAuthentications, as: MFA
   alias Pleroma.Web.Auth.TOTPAuthenticator
-  alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.Token
 
   @doc """
@@ -30,9 +29,8 @@ defmodule Pleroma.Web.OAuth.MFAController do
   """
   def challenge(conn, %{"mfa_token" => mfa_token} = params) do
     with {:ok, app} <- Token.Utils.fetch_app(conn),
-         {:ok, %{user: user, scopes: scopes}} <- MFA.Token.validate(mfa_token),
+         {:ok, %{user: user, authorization: auth}} <- MFA.Token.validate(mfa_token),
          {:ok, _} <- validates_challenge(user, params),
-         {:ok, auth} <- Authorization.create_authorization(app, user, scopes),
          {:ok, token} <- Token.exchange_token(app, auth) do
       json(conn, Token.Response.build(user, token))
     else

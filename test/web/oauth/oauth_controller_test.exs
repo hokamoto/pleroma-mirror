@@ -624,7 +624,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       token = Repo.get_by(MFA.Token, token: response["mfa_token"])
       assert token.user_id == user.id
-      assert token.scopes == ["read", "write"]
+      assert token.authorization_id
     end
 
     test "issues a token for request with HTTP basic auth client credentials" do
