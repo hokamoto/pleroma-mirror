@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Support for Mastodon's remote interaction
 - Mix Tasks: `mix pleroma.database bump_all_conversations`
 - Mix Tasks: `mix pleroma.database remove_embedded_objects`
+- Mix Tasks: `mix pleroma.database update_users_following_followers_counts`
 - Mix Tasks: `mix pleroma.user toggle_confirmed`
 - Federation: Support for reports
 - Configuration: `safe_dm_mentions` option
@@ -19,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Configuration: `fetch_initial_posts` option
 - Configuration: `notify_email` option
 - Configuration: Media proxy `whitelist` option
+- Configuration: `report_uri` option
 - Pleroma API: User subscriptions
 - Pleroma API: Healthcheck endpoint
 - Admin API: Endpoints for listing/revoking invite tokens
