@@ -6,25 +6,142 @@ defmodule Pleroma.Web.OAuth.MFAControllerTest do
   use Pleroma.Web.ConnCase
   import Pleroma.Factory
 
+  alias Pleroma.Repo
   alias Pleroma.MultiFactorAuthentications, as: MFA
   alias Pleroma.Web.Auth.TOTP
+  alias Pleroma.Web.OAuth.Authorization
 
-  describe "challenge/totp" do
-    setup %{conn: conn} do
-      otp_secret = TOTP.generate_secret()
+  setup %{conn: conn} do
+    otp_secret = TOTP.generate_secret()
 
-      user =
-        insert(:user,
-          multi_factor_authentication_settings: %MFA.Settings{
-            enabled: true,
-            totp: %MFA.Settings.TOTP{secret: otp_secret, confirmed: true}
+    user =
+      insert(:user,
+        multi_factor_authentication_settings: %MFA.Settings{
+          enabled: true,
+          backup_codes: [Comeonin.Pbkdf2.hashpwsalt("test-code")],
+          totp: %MFA.Settings.TOTP{secret: otp_secret, confirmed: true}
+        }
+      )
+
+    app = insert(:oauth_app)
+    {:ok, conn: conn, user: user, app: app}
+  end
+
+  describe "show" do
+    setup %{conn: conn, user: user, app: app} do
+      mfa_token =
+        insert(:mfa_token,
+          user: user,
+          authorization: build(:oauth_authorization, app: app, scopes: ["write"])
+        )
+
+      {:ok, conn: conn, mfa_token: mfa_token}
+    end
+
+    test "GET /oauth/mfa renders mfa forms", %{conn: conn, mfa_token: mfa_token} do
+      conn =
+        get(
+          conn,
+          "/oauth/mfa",
+          %{
+            "mfa_token" => mfa_token.token,
+            "state" => "a_state",
+            "redirect_uri" => "http://localhost:8080/callback"
           }
         )
 
-      app = insert(:oauth_app)
-      {:ok, conn: conn, app: app, user: user}
+      assert response = html_response(conn, 200)
+      assert response =~ "Two-factor authentication"
+      assert response =~ mfa_token.token
+      assert response =~ "http://localhost:8080/callback"
     end
 
+    test "GET /oauth/mfa renders mfa recovery forms", %{conn: conn, mfa_token: mfa_token} do
+      conn =
+        get(
+          conn,
+          "/oauth/mfa",
+          %{
+            "mfa_token" => mfa_token.token,
+            "state" => "a_state",
+            "redirect_uri" => "http://localhost:8080/callback",
+            "challenge_type" => "recovery"
+          }
+        )
+
+      assert response = html_response(conn, 200)
+      assert response =~ "Two-factor recovery"
+      assert response =~ mfa_token.token
+      assert response =~ "http://localhost:8080/callback"
+    end
+  end
+
+  describe "verify" do
+    setup %{conn: conn, user: user, app: app} do
+      mfa_token =
+        insert(:mfa_token,
+          user: user,
+          authorization: build(:oauth_authorization, app: app, scopes: ["write"])
+        )
+
+      {:ok, conn: conn, user: user, mfa_token: mfa_token}
+    end
+
+    test "POST /oauth/mfa/verify, verify totp code", %{
+      conn: conn,
+      user: user,
+      mfa_token: mfa_token
+    } do
+      otp_token = TOTP.generate_token(user.multi_factor_authentication_settings.totp.secret)
+
+      conn =
+        conn
+        |> post("/oauth/mfa/verify", %{
+          "mfa" => %{
+            "mfa_token" => mfa_token.token,
+            "challenge_type" => "totp",
+            "code" => otp_token,
+            "state" => "a_state",
+            "redirect_uri" => "http://localhost:8080/callback"
+          }
+        })
+
+      target = redirected_to(conn)
+      target_url = %URI{URI.parse(target) | query: nil} |> URI.to_string()
+      query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
+      assert %{"state" => "a_state", "code" => code} = query
+      assert target_url == "http://localhost:8080/callback"
+      auth = Repo.get_by(Authorization, token: code)
+      assert auth.scopes == ["write"]
+    end
+
+    test "POST /oauth/mfa/verify, verify recovery code", %{
+      conn: conn,
+      mfa_token: mfa_token
+    } do
+      conn =
+        conn
+        |> post("/oauth/mfa/verify", %{
+          "mfa" => %{
+            "mfa_token" => mfa_token.token,
+            "challenge_type" => "recovery",
+            "code" => "test-code",
+            "state" => "a_state",
+            "redirect_uri" => "http://localhost:8080/callback"
+          }
+        })
+
+      target = redirected_to(conn)
+      target_url = %URI{URI.parse(target) | query: nil} |> URI.to_string()
+      query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
+      assert %{"state" => "a_state", "code" => code} = query
+      assert target_url == "http://localhost:8080/callback"
+      auth = Repo.get_by(Authorization, token: code)
+      assert auth.scopes == ["write"]
+    end
+  end
+
+  describe "challenge/totp" do
     test "returns access token with valid code", %{conn: conn, user: user, app: app} do
       otp_token = TOTP.generate_token(user.multi_factor_authentication_settings.totp.secret)
 

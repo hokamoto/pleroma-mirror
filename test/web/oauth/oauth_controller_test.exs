@@ -459,6 +459,41 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert auth.scopes == ["read", "write"]
     end
 
+    test "redirect to on two-factor auth page" do
+      otp_secret = TOTP.generate_secret()
+
+      user =
+        insert(:user,
+          multi_factor_authentication_settings: %MFA.Settings{
+            enabled: true,
+            totp: %MFA.Settings.TOTP{secret: otp_secret, confirmed: true}
+          }
+        )
+
+      app = insert(:oauth_app, scopes: ["read", "write", "follow"])
+
+      conn =
+        build_conn()
+        |> post("/oauth/authorize", %{
+          "authorization" => %{
+            "name" => user.nickname,
+            "password" => "test",
+            "client_id" => app.client_id,
+            "redirect_uri" => app.redirect_uris,
+            "scope" => "read write",
+            "state" => "statepassed"
+          }
+        })
+
+      result = html_response(conn, 200)
+
+      mfa_token = Repo.get_by(MFA.Token, user_id: user.id)
+      assert result =~ app.redirect_uris
+      assert result =~ "statepassed"
+      assert result =~ mfa_token.token
+      assert result =~ "Two-factor authentication"
+    end
+
     test "returns 401 for wrong credentials", %{conn: conn} do
       user = insert(:user)
       app = insert(:oauth_app)

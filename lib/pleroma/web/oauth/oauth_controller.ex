@@ -17,6 +17,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   alias Pleroma.Web.OAuth.Token.Strategy.Revoke, as: RevokeToken
   alias Pleroma.Web.OAuth.Scopes
   alias Pleroma.MultiFactorAuthentications, as: MFA
+  alias Pleroma.Web.OAuth.MFAController
 
   if Pleroma.Config.oauth_consumer_enabled?(), do: plug(Ueberauth)
 
@@ -146,7 +147,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
       "state" => params["authorization"]["state"]
     }
 
-    Pleroma.Web.OAuth.MFAController.show(conn, data)
+    MFAController.show(conn, data)
   end
 
   defp handle_create_authorization_error(conn, error, %{"authorization" => _}) do
