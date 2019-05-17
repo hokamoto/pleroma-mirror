@@ -104,6 +104,7 @@ defmodule Pleroma.HTML.Scrubber.TwitterText do
   paragraphs, breaks and links are allowed through the filter.
   """
 
+  @markup Pleroma.Config.get(:markup)
   @valid_schemes Pleroma.Config.get([:uri_schemes, :valid_schemes], [])
 
   require HtmlSanitizeEx.Scrubber.Meta
@@ -165,6 +166,7 @@ defmodule Pleroma.HTML.Scrubber.Default do
   # credo:disable-for-previous-line
   # No idea how to fix this one…
 
+  @markup Pleroma.Config.get(:markup)
   @valid_schemes Pleroma.Config.get([:uri_schemes, :valid_schemes], [])
 
   Meta.remove_cdata_sections_before_scrub()
