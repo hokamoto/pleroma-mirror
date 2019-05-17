@@ -22,7 +22,6 @@ defmodule Pleroma.Emoji do
 
   @ets __MODULE__.Ets
   @ets_options [:ordered_set, :protected, :named_table, {:read_concurrency, true}]
-  @groups Pleroma.Config.get([:emoji, :groups])
 
   @doc false
   def start_link do
@@ -155,7 +154,7 @@ defmodule Pleroma.Emoji do
       |> Enum.map(fn {shortcode, rel_file} ->
         filename = Path.join("/emoji/#{pack_name}", rel_file)
 
-        {shortcode, filename, [to_string(match_extra(@groups, filename))]}
+        {shortcode, filename, [to_string(match_extra(groups(), filename))]}
       end)
     end
   end
@@ -198,7 +197,7 @@ defmodule Pleroma.Emoji do
     |> Stream.map(fn line ->
       case String.split(line, ~r/,\s*/) do
         [name, file] ->
-          {name, file, [to_string(match_extra(@groups, file))]}
+          {name, file, [to_string(match_extra(groups(), file))]}
 
         [name, file | tags] ->
           {name, file, tags}
@@ -221,7 +220,7 @@ defmodule Pleroma.Emoji do
       |> Enum.concat()
 
     Enum.map(paths, fn path ->
-      tag = match_extra(@groups, Path.join("/", Path.relative_to(path, static_path)))
+      tag = match_extra(groups(), Path.join("/", Path.relative_to(path, static_path)))
       shortcode = Path.basename(path, Path.extname(path))
       external_path = Path.join("/", Path.relative_to(path, static_path))
       {shortcode, external_path, [to_string(tag)]}
@@ -257,4 +256,6 @@ defmodule Pleroma.Emoji do
       Enum.any?(patterns, matcher) && group
     end)
   end
+
+  def groups, do: Pleroma.Config.get([:emoji, :groups])
 end
