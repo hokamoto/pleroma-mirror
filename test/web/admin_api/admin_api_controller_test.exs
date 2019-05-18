@@ -1292,4 +1292,94 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       assert json_response(conn, :bad_request) == "Could not delete"
     end
   end
+
+  describe "GET /api/pleroma/admin/config" do
+    setup %{conn: conn} do
+      admin = insert(:user, info: %{is_admin: true})
+
+      %{conn: assign(conn, :user, admin)}
+    end
+
+    test "without any settings in db", %{conn: conn} do
+      conn = get(conn, "/api/pleroma/admin/config")
+
+      assert json_response(conn, 200) == %{"configs" => []}
+    end
+
+    test "with settings in db", %{conn: conn} do
+      config1 = insert(:config)
+      config2 = insert(:config)
+
+      conn = get(conn, "/api/pleroma/admin/config")
+
+      %{
+        "configs" => [
+          %{
+            "key" => key1,
+            "value" => _
+          },
+          %{
+            "key" => key2,
+            "value" => _
+          }
+        ]
+      } = json_response(conn, 200)
+
+      assert key1 == config1.key
+      assert key2 == config2.key
+    end
+  end
+
+  describe "POST /api/pleroma/admin/config" do
+    setup %{conn: conn} do
+      admin = insert(:user, info: %{is_admin: true})
+
+      %{conn: assign(conn, :user, admin)}
+    end
+
+    test "create new config setting in db", %{conn: conn} do
+      conn =
+        post(conn, "/api/pleroma/admin/config", %{
+          configs: [
+            %{key: "key1", value: "value1"},
+            %{key: "key2", value: %{nested_1: "nested_value1", nested_2: "nested_value2"}}
+          ]
+        })
+
+      assert json_response(conn, 200) == %{
+               "configs" => [
+                 %{
+                   "key" => "key1",
+                   "value" => "value1"
+                 },
+                 %{
+                   "key" => "key2",
+                   "value" => %{"nested_1" => "nested_value1", "nested_2" => "nested_value2"}
+                 }
+               ]
+             }
+    end
+
+    test "update config setting & delete", %{conn: conn} do
+      config1 = insert(:config)
+      config2 = insert(:config)
+
+      conn =
+        post(conn, "/api/pleroma/admin/config", %{
+          configs: [
+            %{key: config1.key, value: "another_value"},
+            %{key: config2.key, delete: "true"}
+          ]
+        })
+
+      assert json_response(conn, 200) == %{
+               "configs" => [
+                 %{
+                   "key" => config1.key,
+                   "value" => "another_value"
+                 }
+               ]
+             }
+    end
+  end
 end
