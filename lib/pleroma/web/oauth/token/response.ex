@@ -35,7 +35,7 @@ defmodule Pleroma.Web.OAuth.Token.Response do
     %{
       error: "mfa_required",
       mfa_token: mfa_token.token,
-      supported_challenge_types: MFA.supported_challenge_types(user)
+      supported_challenge_types: MFA.supported_methods(user)
     }
   end
 end

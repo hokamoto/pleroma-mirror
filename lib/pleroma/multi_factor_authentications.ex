@@ -13,7 +13,8 @@ defmodule Pleroma.MultiFactorAuthentications do
   alias Pleroma.Repo
   alias Pleroma.Web.CommonAPI.Utils
 
-  def supported_challenge_types(user) do
+  @doc "Returns enabled methods of user"
+  def supported_methods(user) do
     settings = fetch_settings(user)
 
     Settings.mfa_methods()
@@ -29,10 +30,14 @@ defmodule Pleroma.MultiFactorAuthentications do
     |> Enum.join(",")
   end
 
+  @doc "Checks that user enabled MFA"
   def require?(user) do
     fetch_settings(user).enabled
   end
 
+  @doc """
+  Display MFA settings of user
+  """
   def mfa_settings(user) do
     settings = fetch_settings(user)
 
@@ -41,6 +46,7 @@ defmodule Pleroma.MultiFactorAuthentications do
     |> Enum.into(%{enabled: settings.enabled}, fn [a, b] -> {a, b} end)
   end
 
+  @doc false
   def fetch_settings(%User{} = user) do
     user.multi_factor_authentication_settings || %Settings{}
   end
@@ -54,6 +60,8 @@ defmodule Pleroma.MultiFactorAuthentications do
     |> Repo.update()
   end
 
+  @doc "generates backup codes"
+  @spec generate_backup_codes(User.t()) :: {:ok, list(binary)} | {:error, String.t()}
   def generate_backup_codes(%User{} = user) do
     with codes <- TOTP.generate_backup_codes(),
          hashed_codes <- Enum.map(codes, fn code -> Pbkdf2.hashpwsalt(code) end),
@@ -67,12 +75,25 @@ defmodule Pleroma.MultiFactorAuthentications do
     end
   end
 
+  @doc """
+  Generates secret key and set delivery_type to 'app' for TOTP method.
+  """
+  @spec setup_totp(User.t()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def setup_totp(user) do
     user
     |> Changeset.setup_totp(%{secret: TOTP.generate_secret(), delivery_type: "app"})
     |> Repo.update()
   end
 
+  @doc """
+  Confirms the TOTP method for user.
+
+  `attrs`:
+    `password` - current user password
+    `code` - TOTP token
+  """
+  @spec confirm_totp(User.t(), map()) ::
+          {:ok, User.t()} | {:error, Ecto.Changeset.t() | String.t() | atom()}
   def confirm_totp(%User{} = user, attrs) do
     with settings <- user.multi_factor_authentication_settings.totp,
          {:ok, _user} <- Utils.confirm_current_password(user, attrs["password"]),
@@ -83,6 +104,13 @@ defmodule Pleroma.MultiFactorAuthentications do
     end
   end
 
+  @doc """
+  Disables the TOTP method for user.
+
+  `attrs`:
+    `password` - current user password
+  """
+  @spec disable_totp(User.t(), map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t() | String.t()}
   def disable_totp(%User{} = user, attrs) do
     with {:ok, user} <- Utils.confirm_current_password(user, attrs["password"]) do
       user
@@ -92,6 +120,10 @@ defmodule Pleroma.MultiFactorAuthentications do
     end
   end
 
+  @doc """
+  Force disable MFA for user. (for admin).
+  """
+  @spec disable(User.t()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def disable(%User{} = user) do
     user
     |> Changeset.disable_totp()
@@ -99,6 +131,9 @@ defmodule Pleroma.MultiFactorAuthentications do
     |> Repo.update()
   end
 
+  @doc """
+  Checks that user enabled method MFA.
+  """
   def enable_method?(method, settings) do
     with {:ok, %{confirmed: true} = _} <- Map.fetch(settings, method) do
       true
@@ -107,6 +142,9 @@ defmodule Pleroma.MultiFactorAuthentications do
     end
   end
 
+  @doc """
+  Checks that user has enabled at least one method
+  """
   def has_confirmed_method?(settings) do
     Settings.mfa_methods()
     |> Enum.map(fn m -> enable_method?(m, settings) end)
