@@ -122,40 +122,41 @@ Request parameters can be passed via [query strings](https://en.wikipedia.org/wi
 	"statusnet_profile_url": "https://pleroma.soykaf.com/users/lain"
 }
 
-## `/api/pleroma/2fa/provisioning_uri`
-#### Generates secret key and uri to generate qrcode
+## `/api/pleroma/profile/mfa`
+#### Gets current MFA settings
 * method: `GET`
 * Authentication: required
-* Params: none
-* Response: JSON. Returns `{"status": "success", "provisioning_uri": [uri]})}`, `{"error": "[error message]"}` otherwise
-* Example response: `{"status": "success", "provisioning_uri": "otpauth://totp/test@example.com?digits=8&issuer=Plerome-42&period=60&secret=test-secrcet"}`
+* Response: JSON. Returns `{"enabed": "false", "totp": false }`
 
+## `/api/pleroma/profile/mfa/setup/totp`
+#### Pre-setup the MFA/TOTP method
+* method: `GET`
+* Authentication: required
+* Response: JSON. Returns `{"status": "success", "key": [secret_key], "provisioning_uri": "[qr code uri]"  }`
 
-## `/api/pleroma/2fa/enable`
-#### Enables 2FA support for user account.
+## `/api/pleroma/profile/mfa/confirm/totp`
+#### Confirms & enables MFA/TOTP support for user account.
 * method: `POST`
 * Authentication: required
 * Params:
     * `password`: user's password
-    * `otp_token`: token from TOTP App
-* Response: JSON. Returns `{"status": "success"}` if the enable was successful, `{"error": "[error message]"}` otherwise
-* Example response: `{"error": "Invalid password."}`
+    * `code`: token from TOTP App
+* Response: JSON. Returns `{"status": "success"}` if the enable was successful, `{"error": "[error message]", "status": "error"}` otherwise
 
-## `/api/pleroma/2fa/disable`
-####  Disables 2FA for user account.
-* method: `POST`
+
+## `/api/pleroma/profile/mfa/totp`
+####  Disables MFA/TOTP method for user account.
+* method: `DELETE`
 * Authentication: required
 * Params:
     * `password`: user's password
 * Response: JSON. Returns `{"status": "success"}` if the disable was successful, `{"error": "[error message]"}` otherwise
 * Example response: `{"error": "Invalid password."}`
 
-## `/api/pleroma/2fa/backup_codes`
-####  Generstes backup codes 2FA for user account.
+## `/api/pleroma/profile/mfa/backup_codes`
+####  Generstes backup codes MFA for user account.
 * method: `GET`
 * Authentication: required
-* Params:
-    * `password`: user's password
 * Response: JSON. Returns `{"status": "success", "codes": codes}`, `{"error": "[error message]"}` otherwise
 
 

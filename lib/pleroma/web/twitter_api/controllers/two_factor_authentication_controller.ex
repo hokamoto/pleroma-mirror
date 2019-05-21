@@ -38,7 +38,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
       )
     else
       {:error, msg} ->
-        json(conn, %{error: msg})
+        json(conn, %{error: msg, status: "error"})
     end
   end
 
