@@ -4,10 +4,8 @@
 
 defmodule Pleroma.Web.OAuth.Token.CleanWorker do
   @moduledoc """
-  The genserver to clean an expired oauth tokens.
+  The module represents functions to clean an expired oauth tokens.
   """
-
-  use GenServer
 
   # 10 seconds
   @start_interval 10_000
@@ -19,25 +17,24 @@ defmodule Pleroma.Web.OAuth.Token.CleanWorker do
 
   alias Pleroma.Web.OAuth.Token
 
-  @doc false
-  def start_link do
+  def start_link, do: GenServer.start_link(__MODULE__, nil)
+
+  def init(_) do
     if Pleroma.Config.get([:oauth2, :clean_expired_tokens], false) do
-      GenServer.start_link(__MODULE__, [], name: __MODULE__)
+      Process.send_after(self(), :perform, @start_interval)
+      {:ok, nil}
     else
       :ignore
     end
   end
 
   @doc false
-  def init(_) do
-    Process.send_after(self(), :perform, @start_interval)
-    {:ok, nil}
-  end
-
-  @doc false
   def handle_info(:perform, state) do
-    Token.delete_expired_tokens()
     Process.send_after(self(), :perform, @interval)
+    PleromaJobQueue.enqueue(:clean_oauth_tokens, __MODULE__, [:clean])
     {:noreply, state}
   end
+
+  # Job Worker Callbacks
+  def perform(:clean), do: Token.delete_expired_tokens()
 end
