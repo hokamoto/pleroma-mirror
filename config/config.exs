@@ -240,6 +240,7 @@ config :pleroma, :instance,
   max_report_comment_size: 1000,
   safe_dm_mentions: false,
   healthcheck: false,
+  remote_post_retention_days: 90,
   two_factor_authentication: [
     # digits 6 or 8
     digits: 6,
