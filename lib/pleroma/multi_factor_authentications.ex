@@ -13,20 +13,26 @@ defmodule Pleroma.MultiFactorAuthentications do
   alias Pleroma.Repo
   alias Pleroma.Web.CommonAPI.Utils
 
-  @doc "Returns enabled methods of user"
+  @doc """
+  Returns enabled MFA methods user's
+
+  ## Examples
+
+    iex> Pleroma.MultiFactorAuthentications.supported_method(User)
+    "totp, u2f"
+  """
+  @spec supported_methods(User.t()) :: String.t()
   def supported_methods(user) do
     settings = fetch_settings(user)
 
     Settings.mfa_methods()
-    |> Enum.map(fn m -> [m, enable_method?(m, settings)] end)
-    |> Enum.into(%{}, fn [m, v] -> {m, v} end)
-    |> Enum.reduce(
-      [],
-      fn
-        {k, true}, acc -> acc ++ [k]
-        _, acc -> acc
+    |> Enum.reduce([], fn m, acc ->
+      if enable_method?(m, settings) do
+        acc ++ [m]
+      else
+        acc
       end
-    )
+    end)
     |> Enum.join(",")
   end
 
