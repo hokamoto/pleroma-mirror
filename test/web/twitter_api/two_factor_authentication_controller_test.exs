@@ -3,7 +3,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
 
   import Pleroma.Factory
   alias Pleroma.MultiFactorAuthentications.Settings
-  alias Pleroma.Web.Auth.TOTP
+  alias Pleroma.MultiFactorAuthentications.TOTP
 
   describe "GET /api/pleroma/profile/mfa/settings" do
     test "returns user mfa settings for new user", %{conn: conn} do

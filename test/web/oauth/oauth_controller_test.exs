@@ -10,7 +10,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
   alias Pleroma.Registration
   alias Pleroma.Repo
   alias Pleroma.MultiFactorAuthentications, as: MFA
-  alias Pleroma.Web.Auth.TOTP
+  alias Pleroma.MultiFactorAuthentications.TOTP
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.Token
 

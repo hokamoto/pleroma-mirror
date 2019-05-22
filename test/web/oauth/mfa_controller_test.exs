@@ -6,9 +6,10 @@ defmodule Pleroma.Web.OAuth.MFAControllerTest do
   use Pleroma.Web.ConnCase
   import Pleroma.Factory
 
+  alias Pleroma.MultiFactorAuthentications.BackupCodes
   alias Pleroma.Repo
   alias Pleroma.MultiFactorAuthentications, as: MFA
-  alias Pleroma.Web.Auth.TOTP
+  alias Pleroma.MultiFactorAuthentications.TOTP
   alias Pleroma.Web.OAuth.Authorization
 
   setup %{conn: conn} do
@@ -239,7 +240,7 @@ defmodule Pleroma.Web.OAuth.MFAControllerTest do
     test "returns access token with valid code", %{conn: conn, app: app} do
       otp_secret = TOTP.generate_secret()
 
-      [code | _] = backup_codes = TOTP.generate_backup_codes()
+      [code | _] = backup_codes = BackupCodes.generate()
 
       hashed_codes =
         backup_codes

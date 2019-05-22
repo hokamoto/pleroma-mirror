@@ -1,6 +1,7 @@
-defmodule Pleroma.Web.Auth.TOTPTest do
+defmodule Pleroma.MultiFactorAuthentications.TOTPTest do
   use Pleroma.DataCase
-  alias Pleroma.Web.Auth.TOTP
+
+  alias Pleroma.MultiFactorAuthentications.TOTP
 
   test "create provisioning_uri to generate qrcode" do
     uri =
@@ -12,11 +13,5 @@ defmodule Pleroma.Web.Auth.TOTPTest do
 
     assert uri ==
              "otpauth://totp/test@example.com?digits=8&issuer=Plerome-42&period=60&secret=test-secrcet"
-  end
-
-  test "generate backup codes" do
-    codes = TOTP.generate_backup_codes(number_of_codes: 2, code_length: 4)
-
-    assert [<<_::bytes-size(4)>>, <<_::bytes-size(4)>>] = codes
   end
 end

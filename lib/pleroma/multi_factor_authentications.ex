@@ -5,10 +5,11 @@ defmodule Pleroma.MultiFactorAuthentications do
 
   alias Comeonin.Pbkdf2
   alias Pleroma.User
-  alias Pleroma.Web.Auth.TOTP
 
+  alias Pleroma.MultiFactorAuthentications.BackupCodes
   alias Pleroma.MultiFactorAuthentications.Changeset
   alias Pleroma.MultiFactorAuthentications.Settings
+  alias Pleroma.MultiFactorAuthentications.TOTP
 
   alias Pleroma.Repo
   alias Pleroma.Web.CommonAPI.Utils
@@ -69,7 +70,7 @@ defmodule Pleroma.MultiFactorAuthentications do
   @doc "generates backup codes"
   @spec generate_backup_codes(User.t()) :: {:ok, list(binary)} | {:error, String.t()}
   def generate_backup_codes(%User{} = user) do
-    with codes <- TOTP.generate_backup_codes(),
+    with codes <- BackupCodes.generate(),
          hashed_codes <- Enum.map(codes, fn code -> Pbkdf2.hashpwsalt(code) end),
          %Ecto.Changeset{valid?: true} = changeset <-
            Changeset.cast_backup_codes(user, hashed_codes),

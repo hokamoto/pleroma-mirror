@@ -241,10 +241,12 @@ config :pleroma, :instance,
   safe_dm_mentions: false,
   healthcheck: false,
   remote_post_retention_days: 90,
-  two_factor_authentication: [
-    # digits 6 or 8
-    digits: 6,
-    period: 30,
+  multi_factor_authentication: [
+    totp: [
+      # digits 6 or 8
+      digits: 6,
+      period: 30
+    ],
     backup_codes: [
       number: 5,
       code_length: 16

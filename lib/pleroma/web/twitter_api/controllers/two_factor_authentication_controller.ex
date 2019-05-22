@@ -6,7 +6,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
   @moduledoc "The module represents actions to manage MFA"
   use Pleroma.Web, :controller
 
-  alias Pleroma.Web.Auth.TOTP
+  alias Pleroma.MultiFactorAuthentications.TOTP
   alias Pleroma.MultiFactorAuthentications, as: MFA
 
   @doc """

@@ -572,3 +572,5 @@ To enable them, both the `rum_enabled` flag has to be set and the following spec
 `mix ecto.migrate --migrations-path priv/repo/optional_migrations/rum_indexing/`
 
 This will probably take a long time.
+
+## Multi-factor authentication -  :two_factor_authentication

@@ -5,9 +5,11 @@
 defmodule Pleroma.Web.Auth.TOTPAuthenticatorTest do
   use Pleroma.Web.ConnCase
 
+  alias Pleroma.MultiFactorAuthentications.BackupCodes
   alias Pleroma.MultiFactorAuthentications, as: MFA
-  alias Pleroma.Web.Auth.TOTP
+  alias Pleroma.MultiFactorAuthentications.TOTP
   alias Pleroma.Web.Auth.TOTPAuthenticator
+
   import Pleroma.Factory
 
   test "verify token" do
@@ -28,7 +30,7 @@ defmodule Pleroma.Web.Auth.TOTPAuthenticatorTest do
   end
 
   test "checks backup codes" do
-    [code | _] = backup_codes = Pleroma.Web.Auth.TOTP.generate_backup_codes()
+    [code | _] = backup_codes = BackupCodes.generate()
 
     hashed_codes =
       backup_codes

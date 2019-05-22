@@ -45,10 +45,12 @@ config :tesla, adapter: Tesla.Mock
 config :pleroma, :rich_media, enabled: false
 
 config :pleroma, :instance,
-  two_factor_authentication: [
-    # digits 6 or 8
-    digits: 6,
-    period: 30,
+  multi_factor_authentication: [
+    totp: [
+      # digits 6 or 8
+      digits: 6,
+      period: 30
+    ],
     backup_codes: [
       number: 2,
       code_length: 6

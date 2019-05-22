@@ -1,11 +1,11 @@
-defmodule Pleroma.Web.Auth.TOTP do
+defmodule Pleroma.MultiFactorAuthentications.TOTP do
   @moduledoc """
   This module represents functions to create secrets for
   TOTP Application as well as validate them with a time based token.
   """
   alias Pleroma.Config
 
-  @config_ns [:instance, :two_factor_authentication]
+  @config_ns [:instance, :multi_factor_authentication, :totp]
 
   @doc """
   https://github.com/google/google-authenticator/wiki/Key-Uri-Format
@@ -32,12 +32,6 @@ defmodule Pleroma.Web.Auth.TOTP do
   defp default_issuer,
     do: Config.get(@config_ns ++ [:issuer], Config.get([:instance, :name]))
 
-  defp default_backup_codes_number,
-    do: Config.get(@config_ns ++ [:backup_codes, :number], 5)
-
-  defp default_backup_codes_code_length,
-    do: Config.get(@config_ns ++ [:backup_codes, :code_length], 16)
-
   @doc "Creates a random Base 32 encoded string"
   def generate_secret do
     :crypto.strong_rand_bytes(10)
@@ -47,20 +41,6 @@ defmodule Pleroma.Web.Auth.TOTP do
   @doc "Generates a valid token based on a secret"
   def generate_token(secret) do
     :pot.totp(secret)
-  end
-
-  @doc """
-  Generates a backup codes.
-  """
-  @spec generate_backup_codes(Keyword.t()) :: list(String.t())
-  def generate_backup_codes(opts \\ []) do
-    number_of_codes = Keyword.get(opts, :number_of_codes, default_backup_codes_number())
-    code_length = Keyword.get(opts, :code_length, default_backup_codes_code_length())
-
-    Enum.map(1..number_of_codes, fn _ ->
-      :crypto.strong_rand_bytes(div(code_length, 2))
-      |> Base.encode16(case: :lower)
-    end)
   end
 
   @doc """
