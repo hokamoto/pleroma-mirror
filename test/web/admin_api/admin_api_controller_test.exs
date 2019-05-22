@@ -1334,6 +1334,15 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     setup %{conn: conn} do
       admin = insert(:user, info: %{is_admin: true})
 
+      on_exit(fn ->
+        Application.delete_env(:pleroma, :key1)
+        Application.delete_env(:pleroma, :key2)
+        Application.delete_env(:pleroma, :key3)
+        Application.delete_env(:pleroma, :key4)
+        Application.delete_env(:pleroma, :keyaa1)
+        Application.delete_env(:pleroma, :keyaa2)
+      end)
+
       %{conn: assign(conn, :user, admin)}
     end
 
@@ -1342,7 +1351,27 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         post(conn, "/api/pleroma/admin/config", %{
           configs: [
             %{key: "key1", value: "value1"},
-            %{key: "key2", value: %{nested_1: "nested_value1", nested_2: "nested_value2"}}
+            %{
+              key: "key2",
+              value: %{
+                "nested_1" => "nested_value1",
+                "nested_2" => [
+                  %{"nested_22" => "nested_value222"},
+                  %{"nested_33" => %{"nested_44" => "nested_444"}}
+                ]
+              }
+            },
+            %{
+              key: "key3",
+              value: [
+                %{"nested_3" => ":nested_3", "nested_33" => "nested_33"},
+                %{"nested_4" => ":true"}
+              ]
+            },
+            %{
+              key: "key4",
+              value: %{"nested_5" => ":upload", "endpoint" => "https://example.com"}
+            }
           ]
         })
 
@@ -1354,15 +1383,54 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                  },
                  %{
                    "key" => "key2",
-                   "value" => %{"nested_1" => "nested_value1", "nested_2" => "nested_value2"}
+                   "value" => [
+                     %{"nested_1" => "nested_value1"},
+                     %{
+                       "nested_2" => [
+                         %{"nested_22" => "nested_value222"},
+                         %{"nested_33" => %{"nested_44" => "nested_444"}}
+                       ]
+                     }
+                   ]
+                 },
+                 %{
+                   "key" => "key3",
+                   "value" => [
+                     [%{"nested_3" => "nested_3"}, %{"nested_33" => "nested_33"}],
+                     %{"nested_4" => true}
+                   ]
+                 },
+                 %{
+                   "key" => "key4",
+                   "value" => [%{"endpoint" => "https://example.com"}, %{"nested_5" => "upload"}]
                  }
                ]
              }
+
+      assert Application.get_env(:pleroma, :key1) == "value1"
+
+      assert Application.get_env(:pleroma, :key2) == [
+               nested_1: "nested_value1",
+               nested_2: [
+                 [nested_22: "nested_value222"],
+                 [nested_33: [nested_44: "nested_444"]]
+               ]
+             ]
+
+      assert Application.get_env(:pleroma, :key3) == [
+               [nested_3: :nested_3, nested_33: "nested_33"],
+               [nested_4: true]
+             ]
+
+      assert Application.get_env(:pleroma, :key4) == [
+               endpoint: "https://example.com",
+               nested_5: :upload
+             ]
     end
 
     test "update config setting & delete", %{conn: conn} do
-      config1 = insert(:config)
-      config2 = insert(:config)
+      config1 = insert(:config, key: "keyaa1")
+      config2 = insert(:config, key: "keyaa2")
 
       conn =
         post(conn, "/api/pleroma/admin/config", %{
@@ -1380,6 +1448,9 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                  }
                ]
              }
+
+      assert Application.get_env(:pleroma, :keyaa1) == "another_value"
+      refute Application.get_env(:pleroma, :keyaa2)
     end
   end
 end

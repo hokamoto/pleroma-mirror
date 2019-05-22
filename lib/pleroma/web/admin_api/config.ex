@@ -31,14 +31,14 @@ defmodule Pleroma.Web.AdminAPI.Config do
   @spec create(map()) :: {:ok, Config.t()} | {:error, Changeset.t()}
   def create(%{key: key, value: value}) do
     %Config{}
-    |> changeset(%{key: key, value: prepare_value(value)})
+    |> changeset(%{key: key, value: transform(value)})
     |> Repo.insert()
   end
 
   @spec update(Config.t(), map()) :: {:ok, Config} | {:error, Changeset.t()}
   def update(%Config{} = config, %{value: value}) do
     config
-    |> change(value: prepare_value(value))
+    |> change(value: transform(value))
     |> Repo.update()
   end
 
@@ -60,9 +60,81 @@ defmodule Pleroma.Web.AdminAPI.Config do
     end
   end
 
-  @spec convert_value(binary()) :: term()
-  def convert_value(value), do: :erlang.binary_to_term(value)
+  @spec from_binary(binary()) :: term()
+  def from_binary(value), do: :erlang.binary_to_term(value)
 
-  @spec prepare_value(String.t()) :: binary()
-  def prepare_value(value), do: :erlang.term_to_binary(value)
+  @spec from_binary_to_map(binary()) :: any()
+  def from_binary_to_map(binary) do
+    from_binary(binary)
+    |> do_convert()
+  end
+
+  defp do_convert([{k, v}] = value) when is_list(value) and length(value) == 1,
+    do: %{k => do_convert(v)}
+
+  defp do_convert(values) when is_list(values), do: for(val <- values, do: do_convert(val))
+
+  defp do_convert({k, v} = value) when is_tuple(value),
+    do: %{k => do_convert(v)}
+
+  defp do_convert(value) when is_binary(value) or is_atom(value) or is_map(value),
+    do: value
+
+  @spec transform(any()) :: binary()
+  def transform(entity) when is_map(entity) do
+    tuples =
+      for {key, value} <- entity,
+          into: [],
+          do: {String.to_atom(key), do_transform(value)}
+
+    Enum.reject(tuples, fn {_k, v} -> is_nil(v) end)
+    |> Enum.sort()
+    |> :erlang.term_to_binary()
+  end
+
+  def transform(entity) when is_list(entity) do
+    list = Enum.map(entity, &do_transform(&1))
+    :erlang.term_to_binary(list)
+  end
+
+  def transform(entity), do: :erlang.term_to_binary(entity)
+
+  defp do_transform(value) when is_map(value) do
+    values =
+      for {key, val} <- value,
+          into: [],
+          do: {String.to_atom(key), do_transform(val)}
+
+    Enum.sort(values)
+  end
+
+  defp do_transform(value) when is_list(value) do
+    Enum.map(value, &do_transform(&1))
+  end
+
+  defp do_transform(value) when is_binary(value) do
+    value = String.trim(value)
+
+    case String.length(value) do
+      0 ->
+        nil
+
+      _ ->
+        cond do
+          String.starts_with?(value, "Pleroma") ->
+            String.to_existing_atom("Elixir." <> value)
+
+          String.starts_with?(value, ":") ->
+            String.replace(value, ":", "") |> String.to_existing_atom()
+
+          String.starts_with?(value, "i:") ->
+            String.replace(value, "i:", "") |> String.to_integer()
+
+          true ->
+            value
+        end
+    end
+  end
+
+  defp do_transform(value), do: value
 end

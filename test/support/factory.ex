@@ -313,7 +313,7 @@ defmodule Pleroma.Factory do
 
   def config_factory do
     %Pleroma.Web.AdminAPI.Config{
-      key: sequence(:key, &"some key #{&1}"),
+      key: sequence(:key, &"some_key_#{&1}"),
       value:
         sequence(
           :value,

@@ -10,7 +10,7 @@ defmodule Pleroma.Web.AdminAPI.ConfigView do
   def render("show.json", %{config: config}) do
     %{
       key: config.key,
-      value: Pleroma.Web.AdminAPI.Config.convert_value(config.value)
+      value: Pleroma.Web.AdminAPI.Config.from_binary_to_map(config.value)
     }
   end
 end

@@ -40,8 +40,8 @@ defmodule Pleroma.Web.AdminAPI.ConfigTest do
     config1 = Config.get_by_key(config.key)
     config2 = Config.get_by_key(key2)
 
-    assert config1.value == Config.prepare_value("new_value")
-    assert config2.value == Config.prepare_value("another_value")
+    assert config1.value == Config.transform("new_value")
+    assert config2.value == Config.transform("another_value")
   end
 
   test "delete/1" do
@@ -50,13 +50,115 @@ defmodule Pleroma.Web.AdminAPI.ConfigTest do
     refute Config.get_by_key(config.key)
   end
 
-  test "prepare_value/1" do
-    assert Config.prepare_value("some_value") == :erlang.term_to_binary("some_value")
-  end
+  describe "transform/1" do
+    test "string" do
+      binary = Config.transform("value as string")
+      assert binary == :erlang.term_to_binary("value as string")
+      assert Config.from_binary(binary) == "value as string"
+    end
 
-  test "convert_value/1" do
-    assert Config.convert_value(
-             <<131, 109, 0, 0, 0, 10, 115, 111, 109, 101, 95, 118, 97, 108, 117, 101>>
-           ) == "some_value"
+    test "list of modules" do
+      binary = Config.transform(["Pleroma.Repo", "Pleroma.Activity"])
+      assert binary == :erlang.term_to_binary([Pleroma.Repo, Pleroma.Activity])
+      assert Config.from_binary(binary) == [Pleroma.Repo, Pleroma.Activity]
+    end
+
+    test "list of strings" do
+      binary = Config.transform(["string1", "string2"])
+      assert binary == :erlang.term_to_binary(["string1", "string2"])
+      assert Config.from_binary(binary) == ["string1", "string2"]
+    end
+
+    test "map" do
+      binary =
+        Config.transform(%{
+          "types" => "Pleroma.PostgresTypes",
+          "telemetry_event" => ["Pleroma.Repo.Instrumenter"],
+          "migration_lock" => ""
+        })
+
+      assert binary ==
+               :erlang.term_to_binary(
+                 telemetry_event: [Pleroma.Repo.Instrumenter],
+                 types: Pleroma.PostgresTypes
+               )
+
+      assert Config.from_binary(binary) == [
+               telemetry_event: [Pleroma.Repo.Instrumenter],
+               types: Pleroma.PostgresTypes
+             ]
+    end
+
+    test "complex map with nested integers, lists and atoms" do
+      binary =
+        Config.transform(%{
+          "uploader" => "Pleroma.Uploaders.Local",
+          "filters" => ["Pleroma.Upload.Filter.Dedupe"],
+          "link_name" => ":true",
+          "proxy_remote" => ":false",
+          "proxy_opts" => %{
+            "redirect_on_failure" => ":false",
+            "max_body_length" => "i:1048576",
+            "http" => %{
+              "follow_redirect" => ":true",
+              "pool" => ":upload"
+            }
+          }
+        })
+
+      assert binary ==
+               :erlang.term_to_binary(
+                 filters: [Pleroma.Upload.Filter.Dedupe],
+                 link_name: true,
+                 proxy_opts: [
+                   http: [
+                     follow_redirect: true,
+                     pool: :upload
+                   ],
+                   max_body_length: 1_048_576,
+                   redirect_on_failure: false
+                 ],
+                 proxy_remote: false,
+                 uploader: Pleroma.Uploaders.Local
+               )
+
+      assert Config.from_binary(binary) ==
+               [
+                 filters: [Pleroma.Upload.Filter.Dedupe],
+                 link_name: true,
+                 proxy_opts: [
+                   http: [
+                     follow_redirect: true,
+                     pool: :upload
+                   ],
+                   max_body_length: 1_048_576,
+                   redirect_on_failure: false
+                 ],
+                 proxy_remote: false,
+                 uploader: Pleroma.Uploaders.Local
+               ]
+    end
+
+    test "keyword" do
+      binary =
+        Config.transform(%{
+          "level" => ":warn",
+          "meta" => [":all"],
+          "webhook_url" => "https://hooks.slack.com/services/YOUR-KEY-HERE"
+        })
+
+      assert binary ==
+               :erlang.term_to_binary(
+                 level: :warn,
+                 meta: [:all],
+                 webhook_url: "https://hooks.slack.com/services/YOUR-KEY-HERE"
+               )
+
+      assert Config.from_binary(binary) == [
+               level: :warn,
+               meta: [:all],
+               webhook_url: "https://hooks.slack.com/services/YOUR-KEY-HERE"
+             ]
+    end
   end
 end
