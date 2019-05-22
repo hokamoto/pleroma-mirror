@@ -14,6 +14,7 @@ defmodule Pleroma.Web.OAuth.Token.CleanWorker do
               [:oauth2, :clean_expired_tokens_interval],
               86_400_000
             )
+  @queue :background
 
   alias Pleroma.Web.OAuth.Token
 
@@ -31,7 +32,7 @@ defmodule Pleroma.Web.OAuth.Token.CleanWorker do
   @doc false
   def handle_info(:perform, state) do
     Process.send_after(self(), :perform, @interval)
-    PleromaJobQueue.enqueue(:clean_oauth_tokens, __MODULE__, [:clean])
+    PleromaJobQueue.enqueue(@queue, __MODULE__, [:clean])
     {:noreply, state}
   end
 
