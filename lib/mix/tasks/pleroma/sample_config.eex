@@ -7,6 +7,9 @@ use Mix.Config
 
 config :pleroma, Pleroma.Web.Endpoint,
    url: [host: "<%= domain %>", scheme: "https", port: <%= port %>],
+   # Remove the following line to stop Pleroma binding on IPv4, if your system
+   # does not support IPv6. Pleroma always binds on IPv4. 
+   http: [:inet6],
    secret_key_base: "<%= secret %>",
    signing_salt: "<%= signing_salt %>"
 
