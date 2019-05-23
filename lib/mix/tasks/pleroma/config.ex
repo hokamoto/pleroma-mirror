@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Pleroma.Config do
   use Mix.Task
-  alias Pleroma.Repo
   alias Mix.Tasks.Pleroma.Common
+  alias Pleroma.Repo
   alias Pleroma.Web.AdminAPI.Config
   @shortdoc "Manages the location of the config"
   @moduledoc """
