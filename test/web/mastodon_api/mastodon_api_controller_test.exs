@@ -1301,6 +1301,70 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       assert [%{"id" => id}] = json_response(conn, 200)
       assert id == to_string(post.id)
     end
+
+    test "GET /api/v1/accounts/:id/statuses link response header", %{conn: conn} do
+      user = insert(:user)
+
+      ids =
+        0..6
+        |> Enum.map(fn i ->
+          {:ok, activity} = CommonAPI.post(user, %{"status" => "Status #{i}"})
+          activity.id
+        end)
+        |> List.to_tuple()
+
+      resp = get(conn, "/api/v1/accounts/#{user.id}/statuses", limit: "4")
+
+      assert resp
+             |> json_response(200)
+             |> Enum.map(& &1["id"]) == [
+               elem(ids, 6),
+               elem(ids, 5),
+               elem(ids, 4),
+               elem(ids, 3)
+             ]
+
+      assert resp
+             |> get_resp_header("link")
+             |> link_query_params == [
+               "?max_id=#{elem(ids, 3)}&limit=4>; rel=\"next\"",
+               "?min_id=#{elem(ids, 6)}&limit=4>; rel=\"prev\""
+             ]
+
+      resp = get(conn, "/api/v1/accounts/#{user.id}/statuses", max_id: elem(ids, 3), limit: "4")
+
+      assert resp
+             |> json_response(200)
+             |> Enum.map(& &1["id"]) == [
+               elem(ids, 2),
+               elem(ids, 1),
+               elem(ids, 0)
+             ]
+
+      assert resp
+             |> get_resp_header("link")
+             |> link_query_params == [
+               "?max_id=#{elem(ids, 0)}&limit=4>; rel=\"next\"",
+               "?min_id=#{elem(ids, 2)}&limit=4>; rel=\"prev\""
+             ]
+
+      resp = get(conn, "/api/v1/accounts/#{user.id}/statuses", max_id: elem(ids, 0), limit: "4")
+
+      assert resp
+             |> json_response(200) == []
+
+      assert resp
+             |> get_resp_header("link")
+             |> link_query_params == []
+    end
+
+    defp link_query_params([]), do: []
+
+    defp link_query_params([link_resp_header]) do
+      ~r/\?[=\w&]+>; rel="\w{4}"/
+      |> Regex.scan(link_resp_header)
+      |> List.flatten()
+    end
   end
 
   describe "user relationships" do
