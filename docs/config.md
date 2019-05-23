@@ -3,6 +3,15 @@
 This file describe the configuration, it is recommended to edit the relevant *.secret.exs file instead of the others founds in the ``config`` directory.
 If you run Pleroma with ``MIX_ENV=prod`` the file is ``prod.secret.exs``, otherwise it is ``dev.secret.exs``.
 
+Compile time settings (these settings can't be configured in DB):
+- :hackney_pools
+- Pleroma.Captcha, :seconds_valid
+- Pleroma.Uploader, :proxy_remote
+- :chat, :enabled
+- Pleroma.Web.Endpoint
+- :instance, :upload_limit
+
+
 ## Pleroma.Upload
 * `uploader`: Select which `Pleroma.Uploaders` to use
 * `filters`: List of `Pleroma.Upload.Filter` to use.

@@ -12,9 +12,16 @@ defmodule Pleroma.Config.TransferTask do
 
   defp update_env(setting) do
     try do
+      key =
+        if String.starts_with?(setting.key, "Pleroma.") do
+          "Elixir." <> setting.key
+        else
+          setting.key
+        end
+
       Application.put_env(
         :pleroma,
-        String.to_existing_atom(setting.key),
+        String.to_existing_atom(key),
         Config.from_binary(setting.value)
       )
     rescue

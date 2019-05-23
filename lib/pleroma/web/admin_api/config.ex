@@ -83,9 +83,9 @@ defmodule Pleroma.Web.AdminAPI.Config do
   @spec transform(any()) :: binary()
   def transform(entity) when is_map(entity) do
     tuples =
-      for {key, value} <- entity,
+      for {k, v} <- entity,
           into: [],
-          do: {String.to_atom(key), do_transform(value)}
+          do: {if(is_atom(k), do: k, else: String.to_atom(k)), do_transform(v)}
 
     Enum.reject(tuples, fn {_k, v} -> is_nil(v) end)
     |> Enum.sort()
@@ -99,6 +99,8 @@ defmodule Pleroma.Web.AdminAPI.Config do
 
   def transform(entity), do: :erlang.term_to_binary(entity)
 
+  defp do_transform(%Regex{} = value) when is_map(value), do: value
+
   defp do_transform(value) when is_map(value) do
     values =
       for {key, val} <- value,
@@ -111,6 +113,8 @@ defmodule Pleroma.Web.AdminAPI.Config do
   defp do_transform(value) when is_list(value) do
     Enum.map(value, &do_transform(&1))
   end
+
+  defp do_transform(entity) when is_list(entity) and length(entity) == 1, do: hd(entity)
 
   defp do_transform(value) when is_binary(value) do
     value = String.trim(value)

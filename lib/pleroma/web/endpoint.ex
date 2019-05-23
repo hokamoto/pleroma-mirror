@@ -66,14 +66,14 @@ defmodule Pleroma.Web.Endpoint do
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
     json_decoder: Jason,
-    length: Application.get_env(:pleroma, :instance)[:upload_limit],
+    length: Pleroma.Config.get([:instance, :upload_limit]),
     body_reader: {Pleroma.Web.Plugs.DigestPlug, :read_body, []}
   )
 
   plug(Plug.MethodOverride)
   plug(Plug.Head)
 
-  secure_cookies = Application.get_env(:pleroma, __MODULE__)[:secure_cookie_flag]
+  secure_cookies = Pleroma.Config.get([__MODULE__, :secure_cookie_flag])
 
   cookie_name =
     if secure_cookies,
@@ -81,7 +81,7 @@ defmodule Pleroma.Web.Endpoint do
       else: "pleroma_key"
 
   extra =
-    Application.get_env(:pleroma, __MODULE__)[:extra_cookie_attrs]
+    Pleroma.Config.get([__MODULE__, :extra_cookie_attrs])
     |> Enum.join(";")
 
   # The session will be stored in the cookie and signed,
@@ -91,14 +91,14 @@ defmodule Pleroma.Web.Endpoint do
     Plug.Session,
     store: :cookie,
     key: cookie_name,
-    signing_salt: Application.get_env(:pleroma, __MODULE__)[:signing_salt] || "CqaoopA2",
+    signing_salt: Pleroma.Config.get([__MODULE__, :signing_salt], "CqaoopA2"),
     http_only: true,
     secure: secure_cookies,
     extra: extra
   )
 
   # Note: the plug and its configuration is compile-time this can't be upstreamed yet
-  if proxies = Application.get_env(:pleroma, __MODULE__)[:reverse_proxies] do
+  if proxies = Pleroma.Config.get([__MODULE__, :reverse_proxies]) do
     plug(RemoteIp, proxies: proxies)
   end
 

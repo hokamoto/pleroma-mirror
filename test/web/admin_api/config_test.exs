@@ -160,5 +160,24 @@ defmodule Pleroma.Web.AdminAPI.ConfigTest do
                webhook_url: "https://hooks.slack.com/services/YOUR-KEY-HERE"
              ]
     end
+
+    test "complex map with sigil" do
+      binary =
+        Config.transform(%{
+          federated_timeline_removal: [],
+          reject: [~r/comp[lL][aA][iI][nN]er/],
+          replace: []
+        })
+
+      assert binary ==
+               :erlang.term_to_binary(
+                 federated_timeline_removal: [],
+                 reject: [~r/comp[lL][aA][iI][nN]er/],
+                 replace: []
+               )
+
+      assert Config.from_binary(binary) ==
+               [federated_timeline_removal: [], reject: [~r/comp[lL][aA][iI][nN]er/], replace: []]
+    end
   end
 end
