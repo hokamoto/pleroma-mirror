@@ -1,3 +1,7 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.MultiFactorAuthentications.Settings do
   use Ecto.Schema
 
@@ -11,7 +15,7 @@ defmodule Pleroma.MultiFactorAuthentications.Settings do
     embeds_one :totp, TOTP, on_replace: :delete, primary_key: false do
       field(:secret, :string)
       # app | sms
-      field(:delivery_type, :string)
+      field(:delivery_type, :string, default: "app")
       field(:confirmed, :boolean, default: false)
     end
 

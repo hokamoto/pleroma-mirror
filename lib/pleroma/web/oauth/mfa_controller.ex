@@ -18,6 +18,9 @@ defmodule Pleroma.Web.OAuth.MFAController do
   plug(:fetch_session when action in [:show, :verify])
   plug(:fetch_flash when action in [:show, :verify])
 
+  @doc """
+  Display form to input mfa code or recovery code.
+  """
   def show(conn, %{"mfa_token" => mfa_token} = params) do
     template = Map.get(params, "challenge_type", "totp")
 
@@ -30,6 +33,9 @@ defmodule Pleroma.Web.OAuth.MFAController do
     })
   end
 
+  @doc """
+  Verification code and continue authorization.
+  """
   def verify(conn, %{"mfa" => %{"mfa_token" => mfa_token} = mfa_params} = _) do
     with {:ok, %{user: user, authorization: auth}} <- MFA.Token.validate(mfa_token),
          {:ok, _} <- validates_challenge(user, mfa_params) do
@@ -77,10 +83,12 @@ defmodule Pleroma.Web.OAuth.MFAController do
     end
   end
 
+  # Verify TOTP Code
   defp validates_challenge(user, %{"challenge_type" => "totp", "code" => code} = _) do
     TOTPAuthenticator.verify(code, user)
   end
 
+  # Verify Recovery Code
   defp validates_challenge(user, %{"challenge_type" => "recovery", "code" => code} = _) do
     TOTPAuthenticator.verify_recovery_code(user, code)
   end

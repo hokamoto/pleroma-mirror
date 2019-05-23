@@ -577,3 +577,9 @@ To enable them, both the `rum_enabled` flag has to be set and the following spec
 This will probably take a long time.
 
 ## Multi-factor authentication -  :two_factor_authentication
+* `totp` - a list containing TOTP configuration
+  - `digits` - The digits parameter may have the values 6 or 8, and determines how long of a one-time passcode to display to the user. The default is 6.
+  - `period` - The period parameter defines a period that a TOTP code will be valid for, in seconds. The default value is 30.
+* `backup_codes` - a list containing Backup codes configuration
+  - `number` - number backup codes to generate
+  - `code_length` - length backup code. Defaults to `16`.

@@ -1,3 +1,7 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.MultiFactorAuthentications do
   @moduledoc """
   The MultiFactorAuthentications context.
@@ -71,9 +75,8 @@ defmodule Pleroma.MultiFactorAuthentications do
   @spec generate_backup_codes(User.t()) :: {:ok, list(binary)} | {:error, String.t()}
   def generate_backup_codes(%User{} = user) do
     with codes <- BackupCodes.generate(),
-         hashed_codes <- Enum.map(codes, fn code -> Pbkdf2.hashpwsalt(code) end),
-         %Ecto.Changeset{valid?: true} = changeset <-
-           Changeset.cast_backup_codes(user, hashed_codes),
+         hashed_codes <- Enum.map(codes, &Pbkdf2.hashpwsalt/1),
+         changeset <- Changeset.cast_backup_codes(user, hashed_codes),
          {:ok, _} <- Repo.update(changeset) do
       {:ok, codes}
     else
