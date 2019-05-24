@@ -566,12 +566,12 @@ Note: Available `:permission_group` is currently moderator and admin. 404 is ret
 
 ```json
 {
-  configs: {
+  configs: [
     {
       "key": string,
       "value": string or {} or []
      }
-  }
+  ]
 }
 ```
 
@@ -591,11 +591,11 @@ Integer with `i:`, e.g. `"i:150"`.
 
 ```json
 {
-  configs: {
+  configs: [
     {
       "key": string,
       "value": string or {} or []
      }
-  }
+  ]
 }
 ```
