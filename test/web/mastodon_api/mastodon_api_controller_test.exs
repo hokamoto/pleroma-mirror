@@ -1355,7 +1355,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
       assert resp
              |> get_resp_header("link")
-             |> link_query_params == []
+             |> link_query_params == [
+               "?since_id=#{elem(ids, 6)}&limit=4>; rel=\"prev\""
+             ]
     end
 
     defp link_query_params([]), do: []
