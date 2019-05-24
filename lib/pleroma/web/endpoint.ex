@@ -23,6 +23,7 @@ defmodule Pleroma.Web.Endpoint do
   # Cache-control headers are duplicated in case we turn off etags in the future
   plug(Pleroma.Plugs.InstanceStatic,
     at: "/",
+    gzip: true,
     cache_control_for_etags: @static_cache_control,
     headers: %{
       "cache-control" => @static_cache_control
@@ -36,6 +37,7 @@ defmodule Pleroma.Web.Endpoint do
     only:
       ~w(index.html robots.txt static finmoji emoji packs sounds images instance sw.js sw-pleroma.js favicon.png schemas doc),
     # credo:disable-for-previous-line Credo.Check.Readability.MaxLineLength
+    gzip: true,
     cache_control_for_etags: @static_cache_control,
     headers: %{
       "cache-control" => @static_cache_control
