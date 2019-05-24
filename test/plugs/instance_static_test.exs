@@ -4,7 +4,6 @@
 
 defmodule Pleroma.Web.RuntimeStaticPlugTest do
   use Pleroma.Web.ConnCase
-  alias Plug.Conn
 
   @dir "test/tmp/instance_static"
 
