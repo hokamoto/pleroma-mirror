@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Web.RuntimeStaticPlugTest do
   use Pleroma.Web.ConnCase
+  alias Plug.Conn
 
   @dir "test/tmp/instance_static"
 
@@ -43,5 +44,11 @@ defmodule Pleroma.Web.RuntimeStaticPlugTest do
     File.write!(@dir <> "/static/kaniini.html", "<h1>rabbit hugs as a service</h1>")
     index = get(build_conn(), "/static/kaniini.html")
     assert html_response(index, 200) == "<h1>rabbit hugs as a service</h1>"
+  end
+
+  test "Verify Cache-Control header on static assets", %{conn: conn} do
+    conn = get(conn, "/index.html")
+
+    assert Conn.get_resp_header(conn, "cache-control") == ["public, no-cache"]
   end
 end
