@@ -1334,6 +1334,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     setup %{conn: conn} do
       admin = insert(:user, info: %{is_admin: true})
 
+      temp_file = "config/test.migrated.secret.exs"
+
       on_exit(fn ->
         Application.delete_env(:pleroma, :key1)
         Application.delete_env(:pleroma, :key2)
@@ -1341,6 +1343,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         Application.delete_env(:pleroma, :key4)
         Application.delete_env(:pleroma, :keyaa1)
         Application.delete_env(:pleroma, :keyaa2)
+        :ok = File.rm(temp_file)
       end)
 
       %{conn: assign(conn, :user, admin)}

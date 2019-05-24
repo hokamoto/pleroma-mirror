@@ -581,11 +581,23 @@ Module name can be passed as string, which starts with `Pleroma`, e.g. `"Pleroma
 Atom or boolean value can be passed with `:` in the beginning, e.g. `":true"`, `":upload"`.
 Integer with `i:`, e.g. `"i:150"`.
 
+Compile time settings (need instance reboot):
+- all settings by this keys:
+  - `:hackney_pools`
+  - `:chat`
+  - `Pleroma.Web.Endpoint`
+  - `Pleroma.Repo`
+- part settings:
+  - `Pleroma.Captcha` -> `:seconds_valid`
+  - `Pleroma.Upload` -> `:proxy_remote`
+  - `:instance` -> `:upload_limit`
+
 - Method `POST`
 - Params:
   - `configs` => [
     - `key` (string)
     - `value` (string, [], {})
+    - `delete` = true (optional, if parameter must be deleted)
   ]
 - Response:
 

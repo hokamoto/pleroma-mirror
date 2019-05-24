@@ -16,13 +16,11 @@ defmodule Mix.Tasks.Pleroma.Config do
       mix pleroma.config migrate_from_db ENV
   """
 
-  @compile_time_settings [Pleroma.Repo, Pleroma.Captcha, :hackney_pools]
-
   def run(["migrate_to_db"]) do
     Common.start_pleroma()
 
     Application.get_all_env(:pleroma)
-    |> Enum.reject(fn {k, _v} -> k in @compile_time_settings end)
+    |> Enum.reject(fn {k, _v} -> k == Pleroma.Repo end)
     |> Enum.each(fn {k, v} ->
       key = to_string(k) |> String.replace("Elixir.", "")
       {:ok, _} = Config.update_or_create(%{key: key, value: v})
@@ -35,12 +33,9 @@ defmodule Mix.Tasks.Pleroma.Config do
   def run(["migrate_from_db", env]) do
     Common.start_pleroma()
 
-    path = "config/#{env}.secret"
-    backup_path = path <> ".bak"
-    config_path = path <> ".exs"
-    File.cp(config_path, backup_path, fn _, _ -> false end)
+    config_path = "config/#{env}.migrated.secret.exs"
 
-    {:ok, file} = File.open(config_path, [:append])
+    {:ok, file} = File.open(config_path, [:write])
 
     Repo.all(Config)
     |> Enum.each(fn config ->

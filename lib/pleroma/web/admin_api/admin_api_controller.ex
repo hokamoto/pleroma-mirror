@@ -385,7 +385,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
       end)
       |> Enum.reject(&is_nil(&1))
 
-    Pleroma.Config.TransferTask.start_link()
+    Pleroma.Config.TransferTask.load_and_update_env()
+    Mix.Tasks.Pleroma.Config.run(["migrate_from_db", Mix.env()])
 
     conn
     |> put_view(ConfigView)

@@ -3,11 +3,14 @@ defmodule Pleroma.Config.TransferTask do
   alias Pleroma.Web.AdminAPI.Config
 
   def start_link do
-    Pleroma.Repo.all(Config)
-    |> Enum.each(&update_env(&1))
-
+    load_and_update_env()
     if Mix.env() == :test, do: Ecto.Adapters.SQL.Sandbox.checkin(Pleroma.Repo)
     :ignore
+  end
+
+  def load_and_update_env do
+    Pleroma.Repo.all(Config)
+    |> Enum.each(&update_env(&1))
   end
 
   defp update_env(setting) do

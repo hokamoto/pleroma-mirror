@@ -5,8 +5,7 @@ defmodule Mix.Tasks.Pleroma.ConfigTest do
 
   setup_all do
     Mix.shell(Mix.Shell.Process)
-    temp_path = "config/temp.secret"
-    temp_file = temp_path <> ".exs"
+    temp_file = "config/temp.migrated.secret.exs"
 
     on_exit(fn ->
       Mix.shell(Mix.Shell.IO)
@@ -28,6 +27,7 @@ defmodule Mix.Tasks.Pleroma.ConfigTest do
 
     first_db = Config.get_by_key("first_setting")
     second_db = Config.get_by_key("second_setting")
+    refute Config.get_by_key("Pleroma.Repo")
 
     assert Config.from_binary(first_db.value) == [key: "value", key2: [Pleroma.Repo]]
     assert Config.from_binary(second_db.value) == [key: "value2", key2: [Pleroma.Activity]]
