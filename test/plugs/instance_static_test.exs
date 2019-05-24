@@ -45,10 +45,4 @@ defmodule Pleroma.Web.RuntimeStaticPlugTest do
     index = get(build_conn(), "/static/kaniini.html")
     assert html_response(index, 200) == "<h1>rabbit hugs as a service</h1>"
   end
-
-  test "Verify Cache-Control header on static assets", %{conn: conn} do
-    conn = get(conn, "/index.html")
-
-    assert Conn.get_resp_header(conn, "cache-control") == ["public, no-cache"]
-  end
 end
