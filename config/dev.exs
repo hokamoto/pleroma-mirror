@@ -8,7 +8,7 @@ use Mix.Config
 # with brunch.io to recompile .js and .css sources.
 config :pleroma, Pleroma.Web.Endpoint,
   http: [
-    port: 4000,
+    port: String.to_integer(System.get_env("PORT") || "4000"),
     protocol_options: [max_request_line_length: 8192, max_header_value_length: 8192]
   ],
   protocol: "http",
