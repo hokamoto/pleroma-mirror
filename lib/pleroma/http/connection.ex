@@ -38,6 +38,6 @@ defmodule Pleroma.HTTP.Connection do
     @hackney_options
     |> Keyword.merge(adapter_options)
     |> Keyword.merge(options)
-    |> Keyword.merge({proxy, proxy_url})
+    |> Keyword.merge([proxy: proxy_url])
   end
 end
