@@ -400,6 +400,4 @@ defmodule Pleroma.Web.OStatus do
       Logger.debug("Couldn't get #{url}: #{inspect(e)}")
       {:error, "Couldn't get #{url}: #{inspect(e)}"}
   end
-
-  defp httpoison, do: Pleroma.Config.get(:httpoison)
 end
