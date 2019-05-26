@@ -599,6 +599,32 @@ Compile time settings (need instance reboot):
     - `value` (string, [], {})
     - `delete` = true (optional, if parameter must be deleted)
   ]
+
+- Request (example):
+
+```json
+{
+  configs: [
+    {
+      "key": "Pleroma.Upload",
+      "value": {
+        "uploader": "Pleroma.Uploaders.Local",
+        "filters": ["Pleroma.Upload.Filter.Dedupe"],
+        "link_name": ":true",
+        "proxy_remote": ":false",
+        "proxy_opts": {
+          "redirect_on_failure": ":false",
+          "max_body_length": "i:1048576",
+          "http": {
+            "follow_redirect": ":true",
+            "pool": ":upload"
+          }
+        }
+      }
+     }
+  ]
+}
+
 - Response:
 
 ```json
