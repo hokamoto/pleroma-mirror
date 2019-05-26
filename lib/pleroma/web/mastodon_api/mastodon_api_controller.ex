@@ -1756,11 +1756,14 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   end
 
   def conversations(%{assigns: %{user: user}} = conn, params) do
-    participations = Participation.for_user_with_last_activity_id(user, params)
+    participations = Participation.for_user_with_last_activities(user, params)
 
     conversations =
       Enum.map(participations, fn participation ->
-        ConversationView.render("participation.json", %{participation: participation, user: user})
+        ConversationView.render("participation.json", %{
+          participation: participation,
+          user: user
+        })
       end)
 
     conn
@@ -1771,9 +1774,14 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   def conversation_read(%{assigns: %{user: user}} = conn, %{"id" => participation_id}) do
     with %Participation{} = participation <-
            Repo.get_by(Participation, id: participation_id, user_id: user.id),
-         {:ok, participation} <- Participation.mark_as_read(participation) do
+         {:ok, participation} <- Participation.mark_as_read(participation),
+         participation <- Repo.preload(participation, conversation: :users),
+         participation <- Participation.for_user_with_last_activity(participation, user) do
       participation_view =
-        ConversationView.render("participation.json", %{participation: participation, user: user})
+        ConversationView.render("participation.json", %{
+          participation: participation,
+          user: user
+        })
 
       conn
       |> json(participation_view)

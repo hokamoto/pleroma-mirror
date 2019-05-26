@@ -513,14 +513,38 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> Repo.all()
   end
 
-  @spec fetch_latest_activity_id_for_context(String.t(), keyword() | map()) ::
-          Pleroma.FlakeId.t() | nil
-  def fetch_latest_activity_id_for_context(context, opts \\ %{}) do
+  @spec fetch_latest_activity_for_context(String.t(), keyword() | map()) :: Activity.t() | nil
+  def fetch_latest_activity_for_context(context, opts \\ %{}) do
     context
     |> fetch_activities_for_context_query(Map.merge(%{"skip_preload" => true}, opts))
     |> limit(1)
-    |> select([a], a.id)
     |> Repo.one()
+  end
+
+  @spec fetch_latest_activities_for_contexts(String.t(), keyword() | map()) :: [Activity.t()]
+  def fetch_latest_activities_for_contexts(contexts, opts \\ %{}) do
+    public = ["https://www.w3.org/ns/activitystreams#Public"]
+
+    recipients =
+      if opts["user"], do: [opts["user"].ap_id | opts["user"].following] ++ public, else: public
+
+    from(activity in Activity)
+    |> maybe_preload_objects(opts)
+    |> restrict_blocked(opts)
+    |> restrict_recipients(recipients, opts["user"])
+    |> where(
+      [activity],
+      fragment(
+        "?->>'type' = ? and ?->>'context' = ANY(?)",
+        activity.data,
+        "Create",
+        activity.data,
+        ^contexts
+      )
+    )
+    |> distinct([activity], fragment("?->>'context'", activity.data))
+    |> order_by([activity], desc: activity.id)
+    |> Repo.all()
   end
 
   def fetch_public_activities(opts \\ %{}) do

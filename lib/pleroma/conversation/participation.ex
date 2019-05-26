@@ -15,7 +15,7 @@ defmodule Pleroma.Conversation.Participation do
     belongs_to(:user, User, type: Pleroma.FlakeId)
     belongs_to(:conversation, Conversation)
     field(:read, :boolean, default: false)
-    field(:last_activity_id, Pleroma.FlakeId, virtual: true)
+    field(:last_activity, :map, virtual: true)
 
     timestamps()
   end
@@ -65,19 +65,34 @@ defmodule Pleroma.Conversation.Participation do
     |> Pleroma.Pagination.fetch_paginated(params)
   end
 
-  def for_user_with_last_activity_id(user, params \\ %{}) do
-    for_user(user, params)
-    |> Enum.map(fn participation ->
-      activity_id =
-        ActivityPub.fetch_latest_activity_id_for_context(participation.conversation.ap_id, %{
-          "user" => user,
-          "blocking_user" => user
-        })
+  def for_user_with_last_activity(participation, user) do
+    activity =
+      ActivityPub.fetch_latest_activity_for_context(participation.conversation.ap_id, %{
+        "user" => user,
+        "blocking_user" => user
+      })
 
-      %{
-        participation
-        | last_activity_id: activity_id
-      }
+    %{participation | last_activity: activity}
+  end
+
+  def for_user_with_last_activities(user, params \\ %{}) do
+    participations = for_user(user, params)
+
+    activities =
+      participations
+      |> Enum.map(& &1.conversation.ap_id)
+      |> ActivityPub.fetch_latest_activities_for_contexts(%{
+        "user" => user,
+        "blocking_user" => user
+      })
+
+    Enum.map(participations, fn participation ->
+      activity =
+        Enum.find(activities, fn activity ->
+          activity.data["context"] == participation.conversation.ap_id
+        end)
+
+      %{participation | last_activity: activity}
     end)
     |> Enum.filter(& &1.last_activity_id)
   end
