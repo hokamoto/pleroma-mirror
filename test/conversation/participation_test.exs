@@ -56,30 +56,29 @@ defmodule Pleroma.Conversation.ParticipationTest do
   test "gets all the participations for a user, ordered by updated at descending" do
     [user, user_two] = insert_pair(:user)
 
-    {:ok, activity_one} = CommonAPI.post(user, %{"status" => "x1", "visibility" => "direct"})
-    :timer.sleep(1000)
-    {:ok, activity_two} = CommonAPI.post(user, %{"status" => "x2", "visibility" => "direct"})
-    :timer.sleep(1000)
+    {:ok, activity_one} = CommonAPI.post(user, %{"status" => "x", "visibility" => "direct"})
+    {:ok, activity_two} = CommonAPI.post(user, %{"status" => "x", "visibility" => "direct"})
 
     {:ok, activity_three} =
       CommonAPI.post(user_two, %{
-        "status" => "x3",
+        "status" => "x",
         "visibility" => "direct",
         "in_reply_to_status_id" => activity_one.id
       })
 
     {:ok, activity_four} =
       CommonAPI.post(user_two, %{
-        "status" => "x4",
+        "status" => "x",
         "visibility" => "direct",
         "in_reply_to_status_id" => activity_two.id
       })
 
-    user = Repo.get(Pleroma.User, user.id)
+    [participation_one, participation_two] = Participation.for_user(user)
+    assert participation_one.conversation.ap_id == activity_two.data["context"]
+    assert participation_two.conversation.ap_id == activity_one.data["context"]
 
-    assert participation_one.conversation.ap_id == object3.data["context"]
-    assert participation_two.conversation.ap_id == object2.data["context"]
-    assert participation_one.conversation.users == [user]
+    users = Enum.map(participation_one.conversation.users, & &1.id)
+    assert users == [user.id, user_two.id]
 
     # Pagination
     [participation_one] = Participation.for_user(user, %{"limit" => 1})
@@ -99,12 +98,12 @@ defmodule Pleroma.Conversation.ParticipationTest do
     user = insert(:user)
 
     {:ok, activity} = CommonAPI.post(user, %{"status" => ".", "visibility" => "direct"})
-    [participation] = Participation.for_user_with_last_activity_id(user)
+    [participation] = Participation.for_user_with_last_activities(user)
 
-    assert participation.last_activity_id == activity.id
+    assert participation.last_activity == activity
 
     {:ok, _} = CommonAPI.delete(activity.id, user)
 
-    [] = Participation.for_user_with_last_activity_id(user)
+    [] = Participation.for_user_with_last_activities(user)
   end
 end

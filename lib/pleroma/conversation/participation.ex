@@ -94,6 +94,6 @@ defmodule Pleroma.Conversation.Participation do
 
       %{participation | last_activity: activity}
     end)
-    |> Enum.filter(& &1.last_activity_id)
+    |> Enum.filter(& &1.last_activity)
   end
 end

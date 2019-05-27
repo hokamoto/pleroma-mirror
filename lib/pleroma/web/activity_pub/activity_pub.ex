@@ -482,47 +482,11 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     end
   end
 
-  defp fetch_activities_for_context_query(context, opts) do
-    public = ["https://www.w3.org/ns/activitystreams#Public"]
-
-    recipients =
-      if opts["user"], do: [opts["user"].ap_id | opts["user"].following] ++ public, else: public
-
-    from(activity in Activity)
-    |> maybe_preload_objects(opts)
-    |> restrict_blocked(opts)
-    |> restrict_recipients(recipients, opts["user"])
-    |> where(
-      [activity],
-      fragment(
-        "?->>'type' = ? and ?->>'context' = ?",
-        activity.data,
-        "Create",
-        activity.data,
-        ^context
-      )
-    )
-    |> exclude_poll_votes(opts)
-    |> order_by([activity], desc: activity.id)
+  defp fetch_activities_for_contexts_query(context, opts) when is_binary(context) do
+    fetch_activities_for_contexts_query([context], opts)
   end
 
-  @spec fetch_activities_for_context(String.t(), keyword() | map()) :: [Activity.t()]
-  def fetch_activities_for_context(context, opts \\ %{}) do
-    context
-    |> fetch_activities_for_context_query(opts)
-    |> Repo.all()
-  end
-
-  @spec fetch_latest_activity_for_context(String.t(), keyword() | map()) :: Activity.t() | nil
-  def fetch_latest_activity_for_context(context, opts \\ %{}) do
-    context
-    |> fetch_activities_for_context_query(Map.merge(%{"skip_preload" => true}, opts))
-    |> limit(1)
-    |> Repo.one()
-  end
-
-  @spec fetch_latest_activities_for_contexts(String.t(), keyword() | map()) :: [Activity.t()]
-  def fetch_latest_activities_for_contexts(contexts, opts \\ %{}) do
+  defp fetch_activities_for_contexts_query(contexts, opts) when is_list(contexts) do
     public = ["https://www.w3.org/ns/activitystreams#Public"]
 
     recipients =
@@ -542,8 +506,31 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         ^contexts
       )
     )
-    |> distinct([activity], fragment("?->>'context'", activity.data))
+    |> exclude_poll_votes(opts)
     |> order_by([activity], desc: activity.id)
+  end
+
+  @spec fetch_activities_for_context(String.t(), keyword() | map()) :: [Activity.t()]
+  def fetch_activities_for_context(context, opts \\ %{}) do
+    context
+    |> fetch_activities_for_contexts_query(opts)
+    |> Repo.all()
+  end
+
+  @spec fetch_latest_activity_for_context(String.t(), keyword() | map()) :: Activity.t() | nil
+  def fetch_latest_activity_for_context(context, opts \\ %{}) do
+    context
+    |> fetch_activities_for_contexts_query(Map.merge(%{"skip_preload" => true}, opts))
+    |> limit(1)
+    |> Repo.one()
+  end
+
+  @spec fetch_latest_activities_for_contexts([String.t()], keyword() | map()) :: [Activity.t()]
+  def fetch_latest_activities_for_contexts(contexts, opts \\ %{}) do
+    contexts
+    |> fetch_activities_for_contexts_query(opts)
+    |> distinct([activity], fragment("?->>'context'", activity.data))
+    |> maybe_preload_objects(opts)
     |> Repo.all()
   end
 
