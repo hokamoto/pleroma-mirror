@@ -16,7 +16,6 @@ defmodule Pleroma.MultiFactorAuthentications do
   alias Pleroma.MultiFactorAuthentications.TOTP
 
   alias Pleroma.Repo
-  alias Pleroma.Web.CommonAPI.Utils
 
   @doc """
   Returns enabled MFA methods user's
@@ -102,11 +101,9 @@ defmodule Pleroma.MultiFactorAuthentications do
     `password` - current user password
     `code` - TOTP token
   """
-  @spec confirm_totp(User.t(), map()) ::
-          {:ok, User.t()} | {:error, Ecto.Changeset.t() | String.t() | atom()}
+  @spec confirm_totp(User.t(), map()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t() | atom()}
   def confirm_totp(%User{} = user, attrs) do
     with settings <- user.multi_factor_authentication_settings.totp,
-         {:ok, _user} <- Utils.confirm_current_password(user, attrs["password"]),
          {:ok, :pass} <- TOTP.validate_token(settings.secret, attrs["code"]) do
       user
       |> Changeset.confirm_totp()
@@ -120,18 +117,16 @@ defmodule Pleroma.MultiFactorAuthentications do
   `attrs`:
     `password` - current user password
   """
-  @spec disable_totp(User.t(), map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t() | String.t()}
-  def disable_totp(%User{} = user, attrs) do
-    with {:ok, user} <- Utils.confirm_current_password(user, attrs["password"]) do
-      user
-      |> Changeset.disable_totp()
-      |> Changeset.disable()
-      |> Repo.update()
-    end
+  @spec disable_totp(User.t()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def disable_totp(%User{} = user) do
+    user
+    |> Changeset.disable_totp()
+    |> Changeset.disable()
+    |> Repo.update()
   end
 
   @doc """
-  Force disable MFA for user. (for admin).
+  Force disable all MFA methods for user.
   """
   @spec disable(User.t()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def disable(%User{} = user) do

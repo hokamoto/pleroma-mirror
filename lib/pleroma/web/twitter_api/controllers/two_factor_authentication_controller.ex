@@ -8,6 +8,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
 
   alias Pleroma.MultiFactorAuthentications.TOTP
   alias Pleroma.MultiFactorAuthentications, as: MFA
+  alias Pleroma.Web.CommonAPI.Utils
 
   @doc """
   Gets user multi factor authentication settings
@@ -58,7 +59,8 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
         %{assigns: %{user: user}} = conn,
         %{"method" => "totp", "password" => _, "code" => _} = params
       ) do
-    with {:ok, _user} <- MFA.confirm_totp(user, params) do
+    with {:ok, _user} <- Utils.confirm_current_password(user, params["password"]),
+         {:ok, _user} <- MFA.confirm_totp(user, params) do
       json(conn, %{status: "success"})
     else
       {:error, msg} ->
@@ -73,7 +75,18 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
   Disable mfa method and disable mfa if need.
   """
   def disable(%{assigns: %{user: user}} = conn, %{"method" => "totp"} = params) do
-    with {:ok, _user} <- MFA.disable_totp(user, params) do
+    with {:ok, user} <- Utils.confirm_current_password(user, params["password"]),
+         {:ok, _user} <- MFA.disable_totp(user) do
+      json(conn, %{status: "success"})
+    else
+      {:error, msg} ->
+        json(conn, %{error: msg})
+    end
+  end
+
+  def disable(%{assigns: %{user: user}} = conn, %{"method" => "mfa"} = params) do
+    with {:ok, user} <- Utils.confirm_current_password(user, params["password"]),
+         {:ok, _user} <- MFA.disable(user) do
       json(conn, %{status: "success"})
     else
       {:error, msg} ->
