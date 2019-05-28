@@ -17,9 +17,15 @@ config :pleroma, Pleroma.Captcha,
 # Print only warnings and errors during test
 config :logger, level: :warn
 
+config :pleroma, Pleroma.Upload, filters: [], link_name: false
+
 config :pleroma, Pleroma.Uploaders.Local, uploads: "test/uploads"
 
-config :pleroma, Pleroma.Mailer, adapter: Swoosh.Adapters.Test
+config :pleroma, Pleroma.Emails.Mailer, adapter: Swoosh.Adapters.Test
+
+config :pleroma, :instance,
+  email: "admin@example.com",
+  notify_email: "noreply@example.com"
 
 # Configure your database
 config :pleroma, Pleroma.Repo,
@@ -33,15 +39,33 @@ config :pleroma, Pleroma.Repo,
 # Reduce hash rounds for testing
 config :pbkdf2_elixir, rounds: 1
 
-config :pleroma, :websub, Pleroma.Web.WebsubMock
-config :pleroma, :ostatus, Pleroma.Web.OStatusMock
 config :tesla, adapter: Tesla.Mock
+config :pleroma, :rich_media, enabled: false
 
 config :web_push_encryption, :vapid_details,
   subject: "mailto:administrator@example.com",
   public_key:
     "BLH1qVhJItRGCfxgTtONfsOKDc9VRAraXw-3NsmjMngWSh7NxOizN6bkuRA7iLTMPS82PjwJAr3UoK9EC1IFrz4",
   private_key: "_-XZ0iebPrRfZ_o0-IatTdszYa8VCH1yLN-JauK7HHA"
+
+config :web_push_encryption, :http_client, Pleroma.Web.WebPushHttpClientMock
+
+config :pleroma_job_queue, disabled: true
+
+config :pleroma, Pleroma.ScheduledActivity,
+  daily_user_limit: 2,
+  total_user_limit: 3,
+  enabled: false
+
+config :pleroma, :app_account_creation, max_requests: 5
+
+config :pleroma, :http_security, report_uri: "https://endpoint.com"
+
+config :pleroma, :http, send_user_agent: false
+
+rum_enabled = System.get_env("RUM_ENABLED") == "true"
+config :pleroma, :database, rum_enabled: rum_enabled
+IO.puts("RUM enabled: #{rum_enabled}")
 
 try do
   import_config "test.secret.exs"

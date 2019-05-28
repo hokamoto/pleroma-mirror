@@ -14,10 +14,10 @@ defmodule Pleroma.Uploaders.Swift.Keystone do
 
   def process_response_body(body) do
     body
-    |> Poison.decode!()
+    |> Jason.decode!()
   end
 
-  def get_token() do
+  def get_token do
     settings = Pleroma.Config.get(Pleroma.Uploaders.Swift)
     username = Keyword.fetch!(settings, :username)
     password = Keyword.fetch!(settings, :password)
@@ -38,7 +38,7 @@ defmodule Pleroma.Uploaders.Swift.Keystone do
   end
 
   def make_auth_body(username, password, tenant) do
-    Poison.encode!(%{
+    Jason.encode!(%{
       :auth => %{
         :passwordCredentials => %{
           :username => username,

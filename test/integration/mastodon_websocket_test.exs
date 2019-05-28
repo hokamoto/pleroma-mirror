@@ -7,9 +7,9 @@ defmodule Pleroma.Integration.MastodonWebsocketTest do
 
   import Pleroma.Factory
 
+  alias Pleroma.Integration.WebsocketClient
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.OAuth
-  alias Pleroma.Integration.WebsocketClient
   alias Pleroma.Web.Streamer
 
   @path Pleroma.Web.Endpoint.url()
@@ -66,13 +66,10 @@ defmodule Pleroma.Integration.MastodonWebsocketTest do
     assert json["payload"]
     assert {:ok, json} = Jason.decode(json["payload"])
 
-    # Note: we remove the "statuses_count" from this result as it changes in the meantime
-
     view_json =
       Pleroma.Web.MastodonAPI.StatusView.render("status.json", activity: activity, for: nil)
       |> Jason.encode!()
       |> Jason.decode!()
-      |> put_in(["account", "statuses_count"], 0)
 
     assert json == view_json
   end
@@ -83,7 +80,7 @@ defmodule Pleroma.Integration.MastodonWebsocketTest do
         Pleroma.Repo.insert(
           OAuth.App.register_changeset(%OAuth.App{}, %{
             client_name: "client",
-            scopes: "scope",
+            scopes: ["scope"],
             redirect_uris: "url"
           })
         )

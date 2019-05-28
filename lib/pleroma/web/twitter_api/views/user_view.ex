@@ -4,11 +4,11 @@
 
 defmodule Pleroma.Web.TwitterAPI.UserView do
   use Pleroma.Web, :view
-  alias Pleroma.User
   alias Pleroma.Formatter
+  alias Pleroma.HTML
+  alias Pleroma.User
   alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.MediaProxy
-  alias Pleroma.HTML
 
   def render("show.json", %{user: user = %User{}} = assigns) do
     render_one(user, Pleroma.Web.TwitterAPI.UserView, "user.json", assigns)
@@ -67,6 +67,13 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
         {String.trim(name, ":"), url}
       end)
 
+    emoji = Enum.dedup(emoji ++ user.info.emoji)
+
+    description_html =
+      (user.bio || "")
+      |> HTML.filter_tags(User.html_filter_policy(for_user))
+      |> Formatter.emojify(emoji)
+
     # ``fields`` is an array of mastodon profile field, containing ``{"name": "…", "value": "…"}``.
     # For example: [{"name": "Pronoun", "value": "she/her"}, …]
     fields =
@@ -74,48 +81,49 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
       |> Enum.filter(fn %{"type" => t} -> t == "PropertyValue" end)
       |> Enum.map(fn fields -> Map.take(fields, ["name", "value"]) end)
 
-    data = %{
-      "created_at" => user.inserted_at |> Utils.format_naive_asctime(),
-      "description" => HTML.strip_tags((user.bio || "") |> String.replace("<br>", "\n")),
-      "description_html" => HTML.filter_tags(user.bio, User.html_filter_policy(for_user)),
-      "favourites_count" => 0,
-      "followers_count" => user_info[:follower_count],
-      "following" => following,
-      "follows_you" => follows_you,
-      "statusnet_blocking" => statusnet_blocking,
-      "friends_count" => user_info[:following_count],
-      "id" => user.id,
-      "name" => user.name || user.nickname,
-      "name_html" =>
-        if(user.name,
-          do: HTML.strip_tags(user.name) |> Formatter.emojify(emoji),
-          else: user.nickname
-        ),
-      "profile_image_url" => image,
-      "profile_image_url_https" => image,
-      "profile_image_url_profile_size" => image,
-      "profile_image_url_original" => image,
-      "rights" => %{
-        "delete_others_notice" => !!user.info.is_moderator,
-        "admin" => !!user.info.is_admin
-      },
-      "screen_name" => user.nickname,
-      "statuses_count" => user_info[:note_count],
-      "statusnet_profile_url" => user.ap_id,
-      "cover_photo" => User.banner_url(user) |> MediaProxy.url(),
-      "background_image" => image_url(user.info.background) |> MediaProxy.url(),
-      "is_local" => user.local,
-      "locked" => user.info.locked,
-      "default_scope" => user.info.default_scope,
-      "no_rich_text" => user.info.no_rich_text,
-      "fields" => fields,
+    data =
+      %{
+        "created_at" => user.inserted_at |> Utils.format_naive_asctime(),
+        "description" => HTML.strip_tags((user.bio || "") |> String.replace("<br>", "\n")),
+        "description_html" => description_html,
+        "favourites_count" => 0,
+        "followers_count" => user_info[:follower_count],
+        "following" => following,
+        "follows_you" => follows_you,
+        "statusnet_blocking" => statusnet_blocking,
+        "friends_count" => user_info[:following_count],
+        "id" => user.id,
+        "name" => user.name || user.nickname,
+        "name_html" =>
+          if(user.name,
+            do: HTML.strip_tags(user.name) |> Formatter.emojify(emoji),
+            else: user.nickname
+          ),
+        "profile_image_url" => image,
+        "profile_image_url_https" => image,
+        "profile_image_url_profile_size" => image,
+        "profile_image_url_original" => image,
+        "screen_name" => user.nickname,
+        "statuses_count" => user_info[:note_count],
+        "statusnet_profile_url" => user.ap_id,
+        "cover_photo" => User.banner_url(user) |> MediaProxy.url(),
+        "background_image" => image_url(user.info.background) |> MediaProxy.url(),
+        "is_local" => user.local,
+        "locked" => user.info.locked,
+        "hide_followers" => user.info.hide_followers,
+        "hide_follows" => user.info.hide_follows,
+        "fields" => fields,
 
-      # Pleroma extension
-      "pleroma" => %{
-        "confirmation_pending" => user_info.confirmation_pending,
-        "tags" => user.tags
+        # Pleroma extension
+        "pleroma" =>
+          %{
+            "confirmation_pending" => user_info.confirmation_pending,
+            "tags" => user.tags
+          }
+          |> maybe_with_activation_status(user, for_user)
       }
-    }
+      |> maybe_with_user_settings(user, for_user)
+      |> maybe_with_role(user, for_user)
 
     if assigns[:token] do
       Map.put(data, "token", token_string(assigns[:token]))
@@ -123,6 +131,46 @@ defmodule Pleroma.Web.TwitterAPI.UserView do
       data
     end
   end
+
+  defp maybe_with_activation_status(data, user, %User{info: %{is_admin: true}}) do
+    Map.put(data, "deactivated", user.info.deactivated)
+  end
+
+  defp maybe_with_activation_status(data, _, _), do: data
+
+  defp maybe_with_role(data, %User{id: id} = user, %User{id: id}) do
+    Map.merge(data, %{
+      "role" => role(user),
+      "show_role" => user.info.show_role,
+      "rights" => %{
+        "delete_others_notice" => !!user.info.is_moderator,
+        "admin" => !!user.info.is_admin
+      }
+    })
+  end
+
+  defp maybe_with_role(data, %User{info: %{show_role: true}} = user, _user) do
+    Map.merge(data, %{
+      "role" => role(user),
+      "rights" => %{
+        "delete_others_notice" => !!user.info.is_moderator,
+        "admin" => !!user.info.is_admin
+      }
+    })
+  end
+
+  defp maybe_with_role(data, _, _), do: data
+
+  defp maybe_with_user_settings(data, %User{info: info, id: id} = _user, %User{id: id}) do
+    data
+    |> Kernel.put_in(["default_scope"], info.default_scope)
+    |> Kernel.put_in(["no_rich_text"], info.no_rich_text)
+  end
+
+  defp maybe_with_user_settings(data, _, _), do: data
+  defp role(%User{info: %{:is_admin => true}}), do: "admin"
+  defp role(%User{info: %{:is_moderator => true}}), do: "moderator"
+  defp role(_), do: "member"
 
   defp image_url(%{"url" => [%{"href" => href} | _]}), do: href
   defp image_url(_), do: nil

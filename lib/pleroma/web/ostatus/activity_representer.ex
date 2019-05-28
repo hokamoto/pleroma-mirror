@@ -3,8 +3,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.OStatus.ActivityRepresenter do
-  alias Pleroma.{Activity, User, Object}
+  alias Pleroma.Activity
+  alias Pleroma.Object
+  alias Pleroma.User
   alias Pleroma.Web.OStatus.UserRepresenter
+
   require Logger
 
   defp get_href(id) do
@@ -15,14 +18,17 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenter do
     end
   end
 
-  defp get_in_reply_to(%{"object" => %{"inReplyTo" => in_reply_to}}) do
-    [
-      {:"thr:in-reply-to",
-       [ref: to_charlist(in_reply_to), href: to_charlist(get_href(in_reply_to))], []}
-    ]
+  defp get_in_reply_to(activity) do
+    with %Object{data: %{"inReplyTo" => in_reply_to}} <- Object.normalize(activity) do
+      [
+        {:"thr:in-reply-to",
+         [ref: to_charlist(in_reply_to), href: to_charlist(get_href(in_reply_to))], []}
+      ]
+    else
+      _ ->
+        []
+    end
   end
-
-  defp get_in_reply_to(_), do: []
 
   defp get_mentions(to) do
     Enum.map(to, fn id ->
@@ -51,23 +57,16 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenter do
     end)
   end
 
-  defp get_links(%{local: true, data: data}) do
+  defp get_links(%{local: true}, %{"id" => object_id}) do
     h = fn str -> [to_charlist(str)] end
 
     [
-      {:link, [type: ['application/atom+xml'], href: h.(data["object"]["id"]), rel: 'self'], []},
-      {:link, [type: ['text/html'], href: h.(data["object"]["id"]), rel: 'alternate'], []}
+      {:link, [type: ['application/atom+xml'], href: h.(object_id), rel: 'self'], []},
+      {:link, [type: ['text/html'], href: h.(object_id), rel: 'alternate'], []}
     ]
   end
 
-  defp get_links(%{
-         local: false,
-         data: %{
-           "object" => %{
-             "external_url" => external_url
-           }
-         }
-       }) do
+  defp get_links(%{local: false}, %{"external_url" => external_url}) do
     h = fn str -> [to_charlist(str)] end
 
     [
@@ -75,7 +74,7 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenter do
     ]
   end
 
-  defp get_links(_activity), do: []
+  defp get_links(_activity, _object_data), do: []
 
   defp get_emoji_links(emojis) do
     Enum.map(emojis, fn {emoji, file} ->
@@ -85,14 +84,16 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenter do
 
   def to_simple_form(activity, user, with_author \\ false)
 
-  def to_simple_form(%{data: %{"object" => %{"type" => "Note"}}} = activity, user, with_author) do
+  def to_simple_form(%{data: %{"type" => "Create"}} = activity, user, with_author) do
     h = fn str -> [to_charlist(str)] end
 
-    updated_at = activity.data["object"]["published"]
-    inserted_at = activity.data["object"]["published"]
+    object = Object.normalize(activity)
+
+    updated_at = object.data["published"]
+    inserted_at = object.data["published"]
 
     attachments =
-      Enum.map(activity.data["object"]["attachment"] || [], fn attachment ->
+      Enum.map(object.data["attachment"] || [], fn attachment ->
         url = hd(attachment["url"])
 
         {:link,
@@ -100,12 +101,12 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenter do
          []}
       end)
 
-    in_reply_to = get_in_reply_to(activity.data)
+    in_reply_to = get_in_reply_to(activity)
     author = if with_author, do: [{:author, UserRepresenter.to_simple_form(user)}], else: []
     mentions = activity.recipients |> get_mentions
 
     categories =
-      (activity.data["object"]["tag"] || [])
+      (object.data["tag"] || [])
       |> Enum.map(fn tag ->
         if is_binary(tag) do
           {:category, [term: to_charlist(tag)], []}
@@ -115,11 +116,11 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenter do
       end)
       |> Enum.filter(& &1)
 
-    emoji_links = get_emoji_links(activity.data["object"]["emoji"] || %{})
+    emoji_links = get_emoji_links(object.data["emoji"] || %{})
 
     summary =
-      if activity.data["object"]["summary"] do
-        [{:summary, [], h.(activity.data["object"]["summary"])}]
+      if object.data["summary"] do
+        [{:summary, [], h.(object.data["summary"])}]
       else
         []
       end
@@ -128,10 +129,9 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenter do
       {:"activity:object-type", ['http://activitystrea.ms/schema/1.0/note']},
       {:"activity:verb", ['http://activitystrea.ms/schema/1.0/post']},
       # For notes, federate the object id.
-      {:id, h.(activity.data["object"]["id"])},
+      {:id, h.(object.data["id"])},
       {:title, ['New note by #{user.nickname}']},
-      {:content, [type: 'html'],
-       h.(activity.data["object"]["content"] |> String.replace(~r/[\n\r]/, ""))},
+      {:content, [type: 'html'], h.(object.data["content"] |> String.replace(~r/[\n\r]/, ""))},
       {:published, h.(inserted_at)},
       {:updated, h.(updated_at)},
       {:"ostatus:conversation", [ref: h.(activity.data["context"])],
@@ -139,7 +139,7 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenter do
       {:link, [ref: h.(activity.data["context"]), rel: 'ostatus:conversation'], []}
     ] ++
       summary ++
-      get_links(activity) ++
+      get_links(activity, object.data) ++
       categories ++ attachments ++ in_reply_to ++ author ++ mentions ++ emoji_links
   end
 
@@ -149,7 +149,6 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenter do
     updated_at = activity.data["published"]
     inserted_at = activity.data["published"]
 
-    _in_reply_to = get_in_reply_to(activity.data)
     author = if with_author, do: [{:author, UserRepresenter.to_simple_form(user)}], else: []
     mentions = activity.recipients |> get_mentions
 
@@ -180,10 +179,9 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenter do
     updated_at = activity.data["published"]
     inserted_at = activity.data["published"]
 
-    _in_reply_to = get_in_reply_to(activity.data)
     author = if with_author, do: [{:author, UserRepresenter.to_simple_form(user)}], else: []
 
-    retweeted_activity = Activity.get_create_activity_by_object_ap_id(activity.data["object"])
+    retweeted_activity = Activity.get_create_by_object_ap_id(activity.data["object"])
     retweeted_user = User.get_cached_by_ap_id(retweeted_activity.data["actor"])
 
     retweeted_xml = to_simple_form(retweeted_activity, retweeted_user, true)

@@ -2,19 +2,21 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.UserEmail do
+defmodule Pleroma.Emails.UserEmail do
   @moduledoc "User emails"
 
   import Swoosh.Email
 
-  alias Pleroma.Web.{Endpoint, Router}
+  alias Pleroma.Web.Endpoint
+  alias Pleroma.Web.Router
 
   defp instance_config, do: Pleroma.Config.get(:instance)
 
   defp instance_name, do: instance_config()[:name]
 
   defp sender do
-    {instance_name(), instance_config()[:email]}
+    email = Keyword.get(instance_config(), :notify_email, instance_config()[:email])
+    {instance_name(), email}
   end
 
   defp recipient(email, nil), do: email

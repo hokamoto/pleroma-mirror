@@ -3,54 +3,65 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Federator do
-  use GenServer
-  alias Pleroma.User
   alias Pleroma.Activity
-  alias Pleroma.Web.{WebFinger, Websub}
-  alias Pleroma.Web.Federator.RetryQueue
+  alias Pleroma.Object.Containment
+  alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
-  alias Pleroma.Web.ActivityPub.Relay
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.ActivityPub.Utils
+  alias Pleroma.Web.Federator.Publisher
+  alias Pleroma.Web.Federator.RetryQueue
   alias Pleroma.Web.OStatus
+  alias Pleroma.Web.Websub
+
   require Logger
 
-  @websub Application.get_env(:pleroma, :websub)
-  @ostatus Application.get_env(:pleroma, :ostatus)
-
-  def init(args) do
-    {:ok, args}
+  def init do
+    # 1 minute
+    Process.sleep(1000 * 60)
+    refresh_subscriptions()
   end
 
-  def start_link do
-    spawn(fn ->
-      # 1 minute
-      Process.sleep(1000 * 60 * 1)
-      enqueue(:refresh_subscriptions, nil)
-    end)
+  # Client API
 
-    GenServer.start_link(
-      __MODULE__,
-      %{
-        in: {:sets.new(), []},
-        out: {:sets.new(), []}
-      },
-      name: __MODULE__
-    )
+  def incoming_doc(doc) do
+    PleromaJobQueue.enqueue(:federator_incoming, __MODULE__, [:incoming_doc, doc])
   end
 
-  def handle(:refresh_subscriptions, _) do
+  def incoming_ap_doc(params) do
+    PleromaJobQueue.enqueue(:federator_incoming, __MODULE__, [:incoming_ap_doc, params])
+  end
+
+  def publish(activity, priority \\ 1) do
+    PleromaJobQueue.enqueue(:federator_outgoing, __MODULE__, [:publish, activity], priority)
+  end
+
+  def verify_websub(websub) do
+    PleromaJobQueue.enqueue(:federator_outgoing, __MODULE__, [:verify_websub, websub])
+  end
+
+  def request_subscription(sub) do
+    PleromaJobQueue.enqueue(:federator_outgoing, __MODULE__, [:request_subscription, sub])
+  end
+
+  def refresh_subscriptions do
+    PleromaJobQueue.enqueue(:federator_outgoing, __MODULE__, [:refresh_subscriptions])
+  end
+
+  # Job Worker Callbacks
+
+  def perform(:refresh_subscriptions) do
     Logger.debug("Federator running refresh subscriptions")
     Websub.refresh_subscriptions()
 
     spawn(fn ->
       # 6 hours
       Process.sleep(1000 * 60 * 60 * 6)
-      enqueue(:refresh_subscriptions, nil)
+      refresh_subscriptions()
     end)
   end
 
-  def handle(:request_subscription, websub) do
+  def perform(:request_subscription, websub) do
     Logger.debug("Refreshing #{websub.topic}")
 
     with {:ok, websub} <- Websub.request_subscription(websub) do
@@ -60,46 +71,29 @@ defmodule Pleroma.Web.Federator do
     end
   end
 
-  def handle(:publish, activity) do
+  def perform(:publish, activity) do
     Logger.debug(fn -> "Running publish for #{activity.data["id"]}" end)
 
-    with actor when not is_nil(actor) <- User.get_cached_by_ap_id(activity.data["actor"]) do
-      {:ok, actor} = WebFinger.ensure_keys_present(actor)
-
-      if ActivityPub.is_public?(activity) do
-        if OStatus.is_representable?(activity) do
-          Logger.info(fn -> "Sending #{activity.data["id"]} out via WebSub" end)
-          Websub.publish(Pleroma.Web.OStatus.feed_path(actor), actor, activity)
-
-          Logger.info(fn -> "Sending #{activity.data["id"]} out via Salmon" end)
-          Pleroma.Web.Salmon.publish(actor, activity)
-        end
-
-        if Keyword.get(Application.get_env(:pleroma, :instance), :allow_relay) do
-          Logger.info(fn -> "Relaying #{activity.data["id"]} out" end)
-          Relay.publish(activity)
-        end
-      end
-
-      Logger.info(fn -> "Sending #{activity.data["id"]} out via AP" end)
-      Pleroma.Web.ActivityPub.ActivityPub.publish(actor, activity)
+    with %User{} = actor <- User.get_cached_by_ap_id(activity.data["actor"]),
+         {:ok, actor} <- User.ensure_keys_present(actor) do
+      Publisher.publish(actor, activity)
     end
   end
 
-  def handle(:verify_websub, websub) do
+  def perform(:verify_websub, websub) do
     Logger.debug(fn ->
       "Running WebSub verification for #{websub.id} (#{websub.topic}, #{websub.callback})"
     end)
 
-    @websub.verify(websub)
+    Websub.verify(websub)
   end
 
-  def handle(:incoming_doc, doc) do
+  def perform(:incoming_doc, doc) do
     Logger.info("Got document, trying to parse")
-    @ostatus.handle_incoming(doc)
+    OStatus.handle_incoming(doc)
   end
 
-  def handle(:incoming_ap_doc, params) do
+  def perform(:incoming_ap_doc, params) do
     Logger.info("Handling incoming AP activity")
 
     params = Utils.normalize_params(params)
@@ -108,7 +102,7 @@ defmodule Pleroma.Web.Federator do
     # actor shouldn't be acting on objects outside their own AP server.
     with {:ok, _user} <- ap_enabled_actor(params["actor"]),
          nil <- Activity.normalize(params["id"]),
-         :ok <- Transmogrifier.contain_origin_from_id(params["actor"], params),
+         :ok <- Containment.contain_origin_from_id(params["actor"], params),
          {:ok, activity} <- Transmogrifier.handle_incoming(params) do
       {:ok, activity}
     else
@@ -119,22 +113,12 @@ defmodule Pleroma.Web.Federator do
       _e ->
         # Just drop those for now
         Logger.info("Unhandled activity")
-        Logger.info(Poison.encode!(params, pretty: 2))
+        Logger.info(Jason.encode!(params, pretty: true))
         :error
     end
   end
 
-  def handle(:publish_single_ap, params) do
-    case ActivityPub.publish_one(params) do
-      {:ok, _} ->
-        :ok
-
-      {:error, _} ->
-        RetryQueue.enqueue(params, ActivityPub)
-    end
-  end
-
-  def handle(
+  def perform(
         :publish_single_websub,
         %{xml: _xml, topic: _topic, callback: _callback, secret: _secret} = params
       ) do
@@ -147,77 +131,13 @@ defmodule Pleroma.Web.Federator do
     end
   end
 
-  def handle(type, _) do
+  def perform(type, _) do
     Logger.debug(fn -> "Unknown task: #{type}" end)
     {:error, "Don't know what to do with this"}
   end
 
-  if Mix.env() == :test do
-    def enqueue(type, payload, _priority \\ 1) do
-      if Pleroma.Config.get([:instance, :federating]) do
-        handle(type, payload)
-      end
-    end
-  else
-    def enqueue(type, payload, priority \\ 1) do
-      if Pleroma.Config.get([:instance, :federating]) do
-        GenServer.cast(__MODULE__, {:enqueue, type, payload, priority})
-      end
-    end
-  end
-
-  def maybe_start_job(running_jobs, queue) do
-    if :sets.size(running_jobs) < Pleroma.Config.get([__MODULE__, :max_jobs]) && queue != [] do
-      {{type, payload}, queue} = queue_pop(queue)
-      {:ok, pid} = Task.start(fn -> handle(type, payload) end)
-      mref = Process.monitor(pid)
-      {:sets.add_element(mref, running_jobs), queue}
-    else
-      {running_jobs, queue}
-    end
-  end
-
-  def handle_cast({:enqueue, type, payload, _priority}, state)
-      when type in [:incoming_doc, :incoming_ap_doc] do
-    %{in: {i_running_jobs, i_queue}, out: {o_running_jobs, o_queue}} = state
-    i_queue = enqueue_sorted(i_queue, {type, payload}, 1)
-    {i_running_jobs, i_queue} = maybe_start_job(i_running_jobs, i_queue)
-    {:noreply, %{in: {i_running_jobs, i_queue}, out: {o_running_jobs, o_queue}}}
-  end
-
-  def handle_cast({:enqueue, type, payload, _priority}, state) do
-    %{in: {i_running_jobs, i_queue}, out: {o_running_jobs, o_queue}} = state
-    o_queue = enqueue_sorted(o_queue, {type, payload}, 1)
-    {o_running_jobs, o_queue} = maybe_start_job(o_running_jobs, o_queue)
-    {:noreply, %{in: {i_running_jobs, i_queue}, out: {o_running_jobs, o_queue}}}
-  end
-
-  def handle_cast(m, state) do
-    IO.inspect("Unknown: #{inspect(m)}, #{inspect(state)}")
-    {:noreply, state}
-  end
-
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, state) do
-    %{in: {i_running_jobs, i_queue}, out: {o_running_jobs, o_queue}} = state
-    i_running_jobs = :sets.del_element(ref, i_running_jobs)
-    o_running_jobs = :sets.del_element(ref, o_running_jobs)
-    {i_running_jobs, i_queue} = maybe_start_job(i_running_jobs, i_queue)
-    {o_running_jobs, o_queue} = maybe_start_job(o_running_jobs, o_queue)
-
-    {:noreply, %{in: {i_running_jobs, i_queue}, out: {o_running_jobs, o_queue}}}
-  end
-
-  def enqueue_sorted(queue, element, priority) do
-    [%{item: element, priority: priority} | queue]
-    |> Enum.sort_by(fn %{priority: priority} -> priority end)
-  end
-
-  def queue_pop([%{item: element} | queue]) do
-    {element, queue}
-  end
-
   def ap_enabled_actor(id) do
-    user = User.get_by_ap_id(id)
+    user = User.get_cached_by_ap_id(id)
 
     if User.ap_enabled?(user) do
       {:ok, user}

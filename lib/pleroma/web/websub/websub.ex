@@ -4,18 +4,28 @@
 
 defmodule Pleroma.Web.Websub do
   alias Ecto.Changeset
+  alias Pleroma.Activity
+  alias Pleroma.HTTP
+  alias Pleroma.Instances
   alias Pleroma.Repo
-  alias Pleroma.Web.Websub.{WebsubServerSubscription, WebsubClientSubscription}
+  alias Pleroma.User
+  alias Pleroma.Web.ActivityPub.Visibility
+  alias Pleroma.Web.Endpoint
+  alias Pleroma.Web.Federator
+  alias Pleroma.Web.Federator.Publisher
+  alias Pleroma.Web.OStatus
   alias Pleroma.Web.OStatus.FeedRepresenter
-  alias Pleroma.Web.{XML, Endpoint, OStatus}
   alias Pleroma.Web.Router.Helpers
+  alias Pleroma.Web.Websub.WebsubClientSubscription
+  alias Pleroma.Web.Websub.WebsubServerSubscription
+  alias Pleroma.Web.XML
   require Logger
 
   import Ecto.Query
 
-  @httpoison Application.get_env(:pleroma, :httpoison)
+  @behaviour Pleroma.Web.Federator.Publisher
 
-  def verify(subscription, getter \\ &@httpoison.get/3) do
+  def verify(subscription, getter \\ &HTTP.get/3) do
     challenge = Base.encode16(:crypto.strong_rand_bytes(8))
     lease_seconds = NaiveDateTime.diff(subscription.valid_until, subscription.updated_at)
     lease_seconds = lease_seconds |> to_string
@@ -51,37 +61,52 @@ defmodule Pleroma.Web.Websub do
     "Undo",
     "Delete"
   ]
+
+  def is_representable?(%Activity{data: %{"type" => type}} = activity)
+      when type in @supported_activities,
+      do: Visibility.is_public?(activity)
+
+  def is_representable?(_), do: false
+
   def publish(topic, user, %{data: %{"type" => type}} = activity)
       when type in @supported_activities do
-    # TODO: Only send to still valid subscriptions.
+    response =
+      user
+      |> FeedRepresenter.to_simple_form([activity], [user])
+      |> :xmerl.export_simple(:xmerl_xml)
+      |> to_string
+
     query =
       from(
         sub in WebsubServerSubscription,
         where: sub.topic == ^topic and sub.state == "active",
-        where: fragment("? > NOW()", sub.valid_until)
+        where: fragment("? > (NOW() at time zone 'UTC')", sub.valid_until)
       )
 
     subscriptions = Repo.all(query)
 
-    Enum.each(subscriptions, fn sub ->
-      response =
-        user
-        |> FeedRepresenter.to_simple_form([activity], [user])
-        |> :xmerl.export_simple(:xmerl_xml)
-        |> to_string
+    callbacks = Enum.map(subscriptions, & &1.callback)
+    reachable_callbacks_metadata = Instances.filter_reachable(callbacks)
+    reachable_callbacks = Map.keys(reachable_callbacks_metadata)
 
+    subscriptions
+    |> Enum.filter(&(&1.callback in reachable_callbacks))
+    |> Enum.each(fn sub ->
       data = %{
         xml: response,
         topic: topic,
         callback: sub.callback,
-        secret: sub.secret
+        secret: sub.secret,
+        unreachable_since: reachable_callbacks_metadata[sub.callback]
       }
 
-      Pleroma.Web.Federator.enqueue(:publish_single_websub, data)
+      Publisher.enqueue_one(__MODULE__, data)
     end)
   end
 
   def publish(_, _, _), do: ""
+
+  def publish(actor, activity), do: publish(Pleroma.Web.OStatus.feed_path(actor), actor, activity)
 
   def sign(secret, doc) do
     :crypto.hmac(:sha, secret, to_string(doc)) |> Base.encode16() |> String.downcase()
@@ -109,7 +134,7 @@ defmodule Pleroma.Web.Websub do
 
       websub = Repo.update!(change)
 
-      Pleroma.Web.Federator.enqueue(:verify_websub, websub)
+      Federator.verify_websub(websub)
 
       {:ok, websub}
     else
@@ -119,6 +144,12 @@ defmodule Pleroma.Web.Websub do
 
         {:error, reason}
     end
+  end
+
+  def incoming_subscription_request(user, params) do
+    Logger.info("Unhandled WebSub request for #{user.nickname}: #{inspect(params)}")
+
+    {:error, "Invalid WebSub request"}
   end
 
   defp get_subscription(topic, callback) do
@@ -175,7 +206,7 @@ defmodule Pleroma.Web.Websub do
     requester.(subscription)
   end
 
-  def gather_feed_data(topic, getter \\ &@httpoison.get/1) do
+  def gather_feed_data(topic, getter \\ &HTTP.get/1) do
     with {:ok, response} <- getter.(topic),
          status when status in 200..299 <- response.status,
          body <- response.body,
@@ -183,8 +214,8 @@ defmodule Pleroma.Web.Websub do
          uri when not is_nil(uri) <- XML.string_from_xpath("/feed/author[1]/uri", doc),
          hub when not is_nil(hub) <- XML.string_from_xpath(~S{/feed/link[@rel="hub"]/@href}, doc) do
       name = XML.string_from_xpath("/feed/author[1]/name", doc)
-      preferredUsername = XML.string_from_xpath("/feed/author[1]/poco:preferredUsername", doc)
-      displayName = XML.string_from_xpath("/feed/author[1]/poco:displayName", doc)
+      preferred_username = XML.string_from_xpath("/feed/author[1]/poco:preferredUsername", doc)
+      display_name = XML.string_from_xpath("/feed/author[1]/poco:displayName", doc)
       avatar = OStatus.make_avatar_object(doc)
       bio = XML.string_from_xpath("/feed/author[1]/summary", doc)
 
@@ -192,8 +223,8 @@ defmodule Pleroma.Web.Websub do
        %{
          "uri" => uri,
          "hub" => hub,
-         "nickname" => preferredUsername || name,
-         "name" => displayName || name,
+         "nickname" => preferred_username || name,
+         "name" => display_name || name,
          "host" => URI.parse(uri).host,
          "avatar" => avatar,
          "bio" => bio
@@ -204,7 +235,7 @@ defmodule Pleroma.Web.Websub do
     end
   end
 
-  def request_subscription(websub, poster \\ &@httpoison.post/3, timeout \\ 10_000) do
+  def request_subscription(websub, poster \\ &HTTP.post/3, timeout \\ 10_000) do
     data = [
       "hub.mode": "subscribe",
       "hub.topic": websub.topic,
@@ -253,16 +284,16 @@ defmodule Pleroma.Web.Websub do
     subs = Repo.all(query)
 
     Enum.each(subs, fn sub ->
-      Pleroma.Web.Federator.enqueue(:request_subscription, sub)
+      Federator.request_subscription(sub)
     end)
   end
 
-  def publish_one(%{xml: xml, topic: topic, callback: callback, secret: secret}) do
+  def publish_one(%{xml: xml, topic: topic, callback: callback, secret: secret} = params) do
     signature = sign(secret || "", xml)
     Logger.info(fn -> "Pushing #{topic} to #{callback}" end)
 
-    with {:ok, %{status: code}} <-
-           @httpoison.post(
+    with {:ok, %{status: code}} when code in 200..299 <-
+           HTTP.post(
              callback,
              xml,
              [
@@ -270,12 +301,32 @@ defmodule Pleroma.Web.Websub do
                {"X-Hub-Signature", "sha1=#{signature}"}
              ]
            ) do
+      if !Map.has_key?(params, :unreachable_since) || params[:unreachable_since],
+        do: Instances.set_reachable(callback)
+
       Logger.info(fn -> "Pushed to #{callback}, code #{code}" end)
       {:ok, code}
     else
-      e ->
-        Logger.debug(fn -> "Couldn't push to #{callback}, #{inspect(e)}" end)
-        {:error, e}
+      {_post_result, response} ->
+        unless params[:unreachable_since], do: Instances.set_reachable(callback)
+        Logger.debug(fn -> "Couldn't push to #{callback}, #{inspect(response)}" end)
+        {:error, response}
     end
   end
+
+  def gather_webfinger_links(%User{} = user) do
+    [
+      %{
+        "rel" => "http://schemas.google.com/g/2010#updates-from",
+        "type" => "application/atom+xml",
+        "href" => OStatus.feed_path(user)
+      },
+      %{
+        "rel" => "http://ostatus.org/schema/1.0/subscribe",
+        "template" => OStatus.remote_follow_path()
+      }
+    ]
+  end
+
+  def gather_nodeinfo_protocol_names, do: ["ostatus"]
 end

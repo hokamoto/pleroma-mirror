@@ -6,11 +6,10 @@ defmodule Pleroma.Plugs.OAuthPlug do
   import Plug.Conn
   import Ecto.Query
 
-  alias Pleroma.{
-    User,
-    Repo,
-    Web.OAuth.Token
-  }
+  alias Pleroma.Repo
+  alias Pleroma.User
+  alias Pleroma.Web.OAuth.App
+  alias Pleroma.Web.OAuth.Token
 
   @realm_reg Regex.compile!("Bearer\:?\s+(.*)$", "i")
 
@@ -18,14 +17,45 @@ defmodule Pleroma.Plugs.OAuthPlug do
 
   def call(%{assigns: %{user: %User{}}} = conn, _), do: conn
 
-  def call(conn, _) do
-    with {:ok, token_str} <- fetch_token_str(conn),
-         {:ok, user, token_record} <- fetch_user_and_token(token_str) do
+  def call(%{params: %{"access_token" => access_token}} = conn, _) do
+    with {:ok, user, token_record} <- fetch_user_and_token(access_token) do
       conn
       |> assign(:token, token_record)
       |> assign(:user, user)
     else
-      _ -> conn
+      _ ->
+        # token found, but maybe only with app
+        with {:ok, app, token_record} <- fetch_app_and_token(access_token) do
+          conn
+          |> assign(:token, token_record)
+          |> assign(:app, app)
+        else
+          _ -> conn
+        end
+    end
+  end
+
+  def call(conn, _) do
+    case fetch_token_str(conn) do
+      {:ok, token} ->
+        with {:ok, user, token_record} <- fetch_user_and_token(token) do
+          conn
+          |> assign(:token, token_record)
+          |> assign(:user, user)
+        else
+          _ ->
+            # token found, but maybe only with app
+            with {:ok, app, token_record} <- fetch_app_and_token(token) do
+              conn
+              |> assign(:token, token_record)
+              |> assign(:app, app)
+            else
+              _ -> conn
+            end
+        end
+
+      _ ->
+        conn
     end
   end
 
@@ -33,10 +63,26 @@ defmodule Pleroma.Plugs.OAuthPlug do
   #
   @spec fetch_user_and_token(String.t()) :: {:ok, User.t(), Token.t()} | nil
   defp fetch_user_and_token(token) do
-    query = from(q in Token, where: q.token == ^token, preload: [:user])
+    query =
+      from(t in Token,
+        where: t.token == ^token,
+        join: user in assoc(t, :user),
+        preload: [user: user]
+      )
 
+    # credo:disable-for-next-line Credo.Check.Readability.MaxLineLength
     with %Token{user: %{info: %{deactivated: false} = _} = user} = token_record <- Repo.one(query) do
       {:ok, user, token_record}
+    end
+  end
+
+  @spec fetch_app_and_token(String.t()) :: {:ok, App.t(), Token.t()} | nil
+  defp fetch_app_and_token(token) do
+    query =
+      from(t in Token, where: t.token == ^token, join: app in assoc(t, :app), preload: [app: app])
+
+    with %Token{app: app} = token_record <- Repo.one(query) do
+      {:ok, app, token_record}
     end
   end
 

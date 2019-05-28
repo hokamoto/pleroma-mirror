@@ -4,11 +4,16 @@
 
 defmodule Pleroma.List do
   use Ecto.Schema
-  import Ecto.{Changeset, Query}
-  alias Pleroma.{User, Repo, Activity}
+
+  import Ecto.Query
+  import Ecto.Changeset
+
+  alias Pleroma.Activity
+  alias Pleroma.Repo
+  alias Pleroma.User
 
   schema "lists" do
-    belongs_to(:user, Pleroma.User)
+    belongs_to(:user, User, type: Pleroma.FlakeId)
     field(:title, :string)
     field(:following, {:array, :string}, default: [])
 
@@ -75,7 +80,7 @@ defmodule Pleroma.List do
 
   # Get lists to which the account belongs.
   def get_lists_account_belongs(%User{} = owner, account_id) do
-    user = Repo.get(User, account_id)
+    user = User.get_cached_by_id(account_id)
 
     query =
       from(

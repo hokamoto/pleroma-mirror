@@ -4,11 +4,12 @@
 
 defmodule Pleroma.Web.MastodonAPI.AccountView do
   use Pleroma.Web, :view
-  alias Pleroma.User
-  alias Pleroma.Web.MastodonAPI.AccountView
-  alias Pleroma.Web.CommonAPI.Utils
-  alias Pleroma.Web.MediaProxy
+
   alias Pleroma.HTML
+  alias Pleroma.User
+  alias Pleroma.Web.CommonAPI.Utils
+  alias Pleroma.Web.MastodonAPI.AccountView
+  alias Pleroma.Web.MediaProxy
 
   def render("accounts.json", %{users: users} = opts) do
     users
@@ -31,11 +32,15 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     }
   end
 
-  def render("relationship.json", %{user: user, target: target}) do
+  def render("relationship.json", %{user: nil, target: _target}) do
+    %{}
+  end
+
+  def render("relationship.json", %{user: %User{} = user, target: %User{} = target}) do
     follow_activity = Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(user, target)
 
     requested =
-      if follow_activity do
+      if follow_activity && !User.following?(target, user) do
         follow_activity.data["state"] == "pending"
       else
         false
@@ -46,11 +51,12 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       following: User.following?(user, target),
       followed_by: User.following?(target, user),
       blocking: User.blocks?(user, target),
-      muting: false,
+      muting: User.mutes?(user, target),
       muting_notifications: false,
+      subscribing: User.subscribed_to?(user, target),
       requested: requested,
       domain_blocking: false,
-      showing_reblogs: false,
+      showing_reblogs: User.showing_reblogs?(user, target),
       endorsed: false
     }
   end
@@ -62,7 +68,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   defp do_render("account.json", %{user: user} = opts) do
     image = User.avatar_url(user) |> MediaProxy.url()
     header = User.banner_url(user) |> MediaProxy.url()
-    user_info = User.user_info(user)
+    user_info = User.get_cached_user_info(user)
     bot = (user.info.source_data["type"] || "Person") in ["Application", "Service"]
 
     emojis =
@@ -84,6 +90,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
 
     bio = HTML.filter_tags(user.bio, User.html_filter_policy(opts[:for]))
 
+    relationship = render("relationship.json", %{user: opts[:for], target: user})
+
     %{
       id: to_string(user.id),
       username: username_from_nickname(user.nickname),
@@ -104,17 +112,24 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       fields: fields,
       bot: bot,
       source: %{
-        note: "",
-        privacy: user_info.default_scope,
-        sensitive: false
+        note: HTML.strip_tags((user.bio || "") |> String.replace("<br>", "\n")),
+        sensitive: false,
+        pleroma: %{}
       },
 
       # Pleroma extension
       pleroma: %{
         confirmation_pending: user_info.confirmation_pending,
-        tags: user.tags
+        tags: user.tags,
+        hide_followers: user.info.hide_followers,
+        hide_follows: user.info.hide_follows,
+        hide_favorites: user.info.hide_favorites,
+        relationship: relationship
       }
     }
+    |> maybe_put_role(user, opts[:for])
+    |> maybe_put_settings(user, opts[:for], user_info)
+    |> maybe_put_notification_settings(user, opts[:for])
   end
 
   defp username_from_nickname(string) when is_binary(string) do
@@ -122,4 +137,38 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   end
 
   defp username_from_nickname(_), do: nil
+
+  defp maybe_put_settings(
+         data,
+         %User{id: user_id} = user,
+         %User{id: user_id},
+         user_info
+       ) do
+    data
+    |> Kernel.put_in([:source, :privacy], user_info.default_scope)
+    |> Kernel.put_in([:source, :pleroma, :show_role], user.info.show_role)
+    |> Kernel.put_in([:source, :pleroma, :no_rich_text], user.info.no_rich_text)
+  end
+
+  defp maybe_put_settings(data, _, _, _), do: data
+
+  defp maybe_put_role(data, %User{info: %{show_role: true}} = user, _) do
+    data
+    |> Kernel.put_in([:pleroma, :is_admin], user.info.is_admin)
+    |> Kernel.put_in([:pleroma, :is_moderator], user.info.is_moderator)
+  end
+
+  defp maybe_put_role(data, %User{id: user_id} = user, %User{id: user_id}) do
+    data
+    |> Kernel.put_in([:pleroma, :is_admin], user.info.is_admin)
+    |> Kernel.put_in([:pleroma, :is_moderator], user.info.is_moderator)
+  end
+
+  defp maybe_put_role(data, _, _), do: data
+
+  defp maybe_put_notification_settings(data, %User{id: user_id} = user, %User{id: user_id}) do
+    Kernel.put_in(data, [:pleroma, :notification_settings], user.info.notification_settings)
+  end
+
+  defp maybe_put_notification_settings(data, _, _), do: data
 end

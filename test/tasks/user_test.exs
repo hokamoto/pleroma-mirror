@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Mix.Tasks.Pleroma.UserTest do
+  alias Pleroma.Repo
   alias Pleroma.User
   use Pleroma.DataCase
 
@@ -50,7 +51,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
       assert_received {:mix_shell, :info, [message]}
       assert message =~ "created"
 
-      user = User.get_by_nickname(unsaved.nickname)
+      user = User.get_cached_by_nickname(unsaved.nickname)
       assert user.name == unsaved.name
       assert user.email == unsaved.email
       assert user.bio == unsaved.bio
@@ -75,7 +76,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
       assert_received {:mix_shell, :info, [message]}
       assert message =~ "will not be created"
 
-      refute User.get_by_nickname(unsaved.nickname)
+      refute User.get_cached_by_nickname(unsaved.nickname)
     end
   end
 
@@ -88,7 +89,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
       assert_received {:mix_shell, :info, [message]}
       assert message =~ " deleted"
 
-      user = User.get_by_nickname(user.nickname)
+      user = User.get_cached_by_nickname(user.nickname)
       assert user.info.deactivated
     end
 
@@ -109,7 +110,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
       assert_received {:mix_shell, :info, [message]}
       assert message =~ " deactivated"
 
-      user = User.get_by_nickname(user.nickname)
+      user = User.get_cached_by_nickname(user.nickname)
       assert user.info.deactivated
     end
 
@@ -121,7 +122,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
       assert_received {:mix_shell, :info, [message]}
       assert message =~ " activated"
 
-      user = User.get_by_nickname(user.nickname)
+      user = User.get_cached_by_nickname(user.nickname)
       refute user.info.deactivated
     end
 
@@ -150,8 +151,8 @@ defmodule Mix.Tasks.Pleroma.UserTest do
       assert_received {:mix_shell, :info, [message]}
       assert message =~ "Successfully unsubscribed"
 
-      user = User.get_by_nickname(user.nickname)
-      assert length(user.following) == 0
+      user = User.get_cached_by_nickname(user.nickname)
+      assert Enum.empty?(user.following)
       assert user.info.deactivated
     end
 
@@ -178,7 +179,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
       assert_received {:mix_shell, :info, [message]}
       assert message =~ ~r/Admin status .* true/
 
-      user = User.get_by_nickname(user.nickname)
+      user = User.get_cached_by_nickname(user.nickname)
       assert user.info.is_moderator
       assert user.info.locked
       assert user.info.is_admin
@@ -204,7 +205,7 @@ defmodule Mix.Tasks.Pleroma.UserTest do
       assert_received {:mix_shell, :info, [message]}
       assert message =~ ~r/Admin status .* false/
 
-      user = User.get_by_nickname(user.nickname)
+      user = User.get_cached_by_nickname(user.nickname)
       refute user.info.is_moderator
       refute user.info.locked
       refute user.info.is_admin
@@ -245,7 +246,124 @@ defmodule Mix.Tasks.Pleroma.UserTest do
              end) =~ "http"
 
       assert_received {:mix_shell, :info, [message]}
-      assert message =~ "Generated"
+      assert message =~ "Generated user invite token one time"
+    end
+
+    test "token is generated with expires_at" do
+      assert capture_io(fn ->
+               Mix.Tasks.Pleroma.User.run([
+                 "invite",
+                 "--expires-at",
+                 Date.to_string(Date.utc_today())
+               ])
+             end)
+
+      assert_received {:mix_shell, :info, [message]}
+      assert message =~ "Generated user invite token date limited"
+    end
+
+    test "token is generated with max use" do
+      assert capture_io(fn ->
+               Mix.Tasks.Pleroma.User.run([
+                 "invite",
+                 "--max-use",
+                 "5"
+               ])
+             end)
+
+      assert_received {:mix_shell, :info, [message]}
+      assert message =~ "Generated user invite token reusable"
+    end
+
+    test "token is generated with max use and expires date" do
+      assert capture_io(fn ->
+               Mix.Tasks.Pleroma.User.run([
+                 "invite",
+                 "--max-use",
+                 "5",
+                 "--expires-at",
+                 Date.to_string(Date.utc_today())
+               ])
+             end)
+
+      assert_received {:mix_shell, :info, [message]}
+      assert message =~ "Generated user invite token reusable date limited"
+    end
+  end
+
+  describe "running invites" do
+    test "invites are listed" do
+      {:ok, invite} = Pleroma.UserInviteToken.create_invite()
+
+      {:ok, invite2} =
+        Pleroma.UserInviteToken.create_invite(%{expires_at: Date.utc_today(), max_use: 15})
+
+      # assert capture_io(fn ->
+      Mix.Tasks.Pleroma.User.run([
+        "invites"
+      ])
+
+      #  end)
+
+      assert_received {:mix_shell, :info, [message]}
+      assert_received {:mix_shell, :info, [message2]}
+      assert_received {:mix_shell, :info, [message3]}
+      assert message =~ "Invites list:"
+      assert message2 =~ invite.invite_type
+      assert message3 =~ invite2.invite_type
+    end
+  end
+
+  describe "running revoke_invite" do
+    test "invite is revoked" do
+      {:ok, invite} = Pleroma.UserInviteToken.create_invite(%{expires_at: Date.utc_today()})
+
+      assert capture_io(fn ->
+               Mix.Tasks.Pleroma.User.run([
+                 "revoke_invite",
+                 invite.token
+               ])
+             end)
+
+      assert_received {:mix_shell, :info, [message]}
+      assert message =~ "Invite for token #{invite.token} was revoked."
+    end
+  end
+
+  describe "running delete_activities" do
+    test "activities are deleted" do
+      %{nickname: nickname} = insert(:user)
+
+      assert :ok == Mix.Tasks.Pleroma.User.run(["delete_activities", nickname])
+      assert_received {:mix_shell, :info, [message]}
+      assert message == "User #{nickname} statuses deleted."
+    end
+  end
+
+  describe "running toggle_confirmed" do
+    test "user is confirmed" do
+      %{id: id, nickname: nickname} = insert(:user, info: %{confirmation_pending: false})
+
+      assert :ok = Mix.Tasks.Pleroma.User.run(["toggle_confirmed", nickname])
+      assert_received {:mix_shell, :info, [message]}
+      assert message == "#{nickname} needs confirmation."
+
+      user = Repo.get(User, id)
+      assert user.info.confirmation_pending
+      assert user.info.confirmation_token
+    end
+
+    test "user is not confirmed" do
+      %{id: id, nickname: nickname} =
+        insert(:user, info: %{confirmation_pending: true, confirmation_token: "some token"})
+
+      assert :ok = Mix.Tasks.Pleroma.User.run(["toggle_confirmed", nickname])
+      assert_received {:mix_shell, :info, [message]}
+      assert message == "#{nickname} doesn't need confirmation."
+
+      user = Repo.get(User, id)
+      refute user.info.confirmation_pending
+      refute user.info.confirmation_token
     end
   end
 end

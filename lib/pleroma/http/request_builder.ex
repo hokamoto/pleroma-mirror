@@ -45,8 +45,15 @@ defmodule Pleroma.HTTP.RequestBuilder do
   Add headers to the request
   """
   @spec headers(map(), list(tuple)) :: map()
-  def headers(request, h) do
-    Map.put_new(request, :headers, h)
+  def headers(request, header_list) do
+    header_list =
+      if Pleroma.Config.get([:http, :send_user_agent]) do
+        header_list ++ [{"User-Agent", Pleroma.Application.user_agent()}]
+      else
+        header_list
+      end
+
+    Map.put_new(request, :headers, header_list)
   end
 
   @doc """
@@ -100,6 +107,8 @@ defmodule Pleroma.HTTP.RequestBuilder do
   Map
   """
   @spec add_param(map(), atom, atom, any()) :: map()
+  def add_param(request, :query, :query, values), do: Map.put(request, :query, values)
+
   def add_param(request, :body, :body, value), do: Map.put(request, :body, value)
 
   def add_param(request, :body, key, value) do
@@ -107,7 +116,10 @@ defmodule Pleroma.HTTP.RequestBuilder do
     |> Map.put_new_lazy(:body, &Tesla.Multipart.new/0)
     |> Map.update!(
       :body,
-      &Tesla.Multipart.add_field(&1, key, Poison.encode!(value),
+      &Tesla.Multipart.add_field(
+        &1,
+        key,
+        Jason.encode!(value),
         headers: [{:"Content-Type", "application/json"}]
       )
     )

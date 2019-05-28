@@ -5,10 +5,12 @@
 defmodule Pleroma.Web.OStatus.ActivityRepresenterTest do
   use Pleroma.DataCase
 
-  alias Pleroma.Web.OStatus.ActivityRepresenter
-  alias Pleroma.{User, Activity, Object}
+  alias Pleroma.Activity
+  alias Pleroma.Object
+  alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.OStatus
+  alias Pleroma.Web.OStatus.ActivityRepresenter
 
   import Pleroma.Factory
   import Tesla.Mock
@@ -65,37 +67,31 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenterTest do
   end
 
   test "a reply note" do
-    note = insert(:note_activity)
-    answer = insert(:note_activity)
-    object = answer.data["object"]
-    object = Map.put(object, "inReplyTo", note.data["object"]["id"])
-
-    data = %{answer.data | "object" => object}
-    answer = %{answer | data: data}
-
-    note_object = Object.get_by_ap_id(note.data["object"]["id"])
+    user = insert(:user)
+    note_object = insert(:note)
+    _note = insert(:note_activity, %{note: note_object})
+    object = insert(:note, %{data: %{"inReplyTo" => note_object.data["id"]}})
+    answer = insert(:note_activity, %{note: object})
 
     Repo.update!(
       Object.change(note_object, %{data: Map.put(note_object.data, "external_url", "someurl")})
     )
 
-    user = User.get_cached_by_ap_id(answer.data["actor"])
-
     expected = """
     <activity:object-type>http://activitystrea.ms/schema/1.0/note</activity:object-type>
     <activity:verb>http://activitystrea.ms/schema/1.0/post</activity:verb>
-    <id>#{answer.data["object"]["id"]}</id>
+    <id>#{object.data["id"]}</id>
     <title>New note by #{user.nickname}</title>
-    <content type="html">#{answer.data["object"]["content"]}</content>
-    <published>#{answer.data["object"]["published"]}</published>
-    <updated>#{answer.data["object"]["published"]}</updated>
+    <content type="html">#{object.data["content"]}</content>
+    <published>#{object.data["published"]}</published>
+    <updated>#{object.data["published"]}</updated>
     <ostatus:conversation ref="#{answer.data["context"]}">#{answer.data["context"]}</ostatus:conversation>
     <link ref="#{answer.data["context"]}" rel="ostatus:conversation" />
     <summary>2hu</summary>
-    <link type="application/atom+xml" href="#{answer.data["object"]["id"]}" rel="self" />
-    <link type="text/html" href="#{answer.data["object"]["id"]}" rel="alternate" />
+    <link type="application/atom+xml" href="#{object.data["id"]}" rel="self" />
+    <link type="text/html" href="#{object.data["id"]}" rel="alternate" />
     <category term="2hu"/>
-    <thr:in-reply-to ref="#{note.data["object"]["id"]}" href="someurl" />
+    <thr:in-reply-to ref="#{note_object.data["id"]}" href="someurl" />
     <link rel="mentioned" ostatus:object-type="http://activitystrea.ms/schema/1.0/collection" href="http://activityschema.org/collection/public"/>
     <link name="2hu" rel="emoji" href="corndog.png" />
     """
@@ -114,10 +110,10 @@ defmodule Pleroma.Web.OStatus.ActivityRepresenterTest do
 
     {:ok, announce, _object} = ActivityPub.announce(user, object)
 
-    announce = Repo.get(Activity, announce.id)
+    announce = Activity.get_by_id(announce.id)
 
     note_user = User.get_cached_by_ap_id(note.data["actor"])
-    note = Repo.get(Activity, note.id)
+    note = Activity.get_by_id(note.id)
 
     note_xml =
       ActivityRepresenter.to_simple_form(note, note_user, true)

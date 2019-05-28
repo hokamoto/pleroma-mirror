@@ -7,11 +7,13 @@ use Mix.Config
 
 config :pleroma, Pleroma.Web.Endpoint,
    url: [host: "<%= domain %>", scheme: "https", port: <%= port %>],
-   secret_key_base: "<%= secret %>"
+   secret_key_base: "<%= secret %>",
+   signing_salt: "<%= signing_salt %>"
 
 config :pleroma, :instance,
   name: "<%= name %>",
   email: "<%= email %>",
+  notify_email: "<%= notify_email %>",
   limit: 5000,
   registrations_open: true,
   dedupe_media: false
@@ -74,4 +76,3 @@ config :web_push_encryption, :vapid_details,
 #  storage_url: "https://swift-endpoint.prodider.com/v1/AUTH_<tenant>/<container>",
 #  object_url: "https://cdn-endpoint.provider.com/<container>"
 #
-

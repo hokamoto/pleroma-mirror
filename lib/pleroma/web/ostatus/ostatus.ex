@@ -3,26 +3,34 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.OStatus do
-  @httpoison Application.get_env(:pleroma, :httpoison)
-
   import Ecto.Query
   import Pleroma.Web.XML
   require Logger
 
-  alias Pleroma.{Repo, User, Web, Object, Activity}
+  alias Pleroma.Activity
+  alias Pleroma.HTTP
+  alias Pleroma.Object
+  alias Pleroma.Repo
+  alias Pleroma.User
+  alias Pleroma.Web
   alias Pleroma.Web.ActivityPub.ActivityPub
-  alias Pleroma.Web.{WebFinger, Websub}
-  alias Pleroma.Web.OStatus.{FollowHandler, UnfollowHandler, NoteHandler, DeleteHandler}
   alias Pleroma.Web.ActivityPub.Transmogrifier
+  alias Pleroma.Web.ActivityPub.Visibility
+  alias Pleroma.Web.OStatus.DeleteHandler
+  alias Pleroma.Web.OStatus.FollowHandler
+  alias Pleroma.Web.OStatus.NoteHandler
+  alias Pleroma.Web.OStatus.UnfollowHandler
+  alias Pleroma.Web.WebFinger
+  alias Pleroma.Web.Websub
 
-  def is_representable?(%Activity{data: data}) do
-    object = Object.normalize(data["object"])
+  def is_representable?(%Activity{} = activity) do
+    object = Object.normalize(activity)
 
     cond do
       is_nil(object) ->
         false
 
-      object.data["type"] == "Note" ->
+      Visibility.is_public?(activity) && object.data["type"] == "Note" ->
         true
 
       true ->
@@ -48,6 +56,9 @@ defmodule Pleroma.Web.OStatus do
 
   def handle_incoming(xml_string) do
     with doc when doc != :error <- parse_document(xml_string) do
+      with {:ok, actor_user} <- find_make_or_update_user(doc),
+           do: Pleroma.Instances.set_reachable(actor_user.ap_id)
+
       entries = :xmerl_xpath.string('//entry', doc)
 
       activities =
@@ -108,7 +119,7 @@ defmodule Pleroma.Web.OStatus do
 
   def make_share(entry, doc, retweeted_activity) do
     with {:ok, actor} <- find_make_or_update_user(doc),
-         %Object{} = object <- Object.normalize(retweeted_activity.data["object"]),
+         %Object{} = object <- Object.normalize(retweeted_activity),
          id when not is_nil(id) <- string_from_xpath("/entry/id", entry),
          {:ok, activity, _object} = ActivityPub.announce(actor, object, id, false) do
       {:ok, activity}
@@ -126,7 +137,7 @@ defmodule Pleroma.Web.OStatus do
 
   def make_favorite(entry, doc, favorited_activity) do
     with {:ok, actor} <- find_make_or_update_user(doc),
-         %Object{} = object <- Object.normalize(favorited_activity.data["object"]),
+         %Object{} = object <- Object.normalize(favorited_activity),
          id when not is_nil(id) <- string_from_xpath("/entry/id", entry),
          {:ok, activity, _object} = ActivityPub.like(actor, object, id, false) do
       {:ok, activity}
@@ -148,7 +159,7 @@ defmodule Pleroma.Web.OStatus do
     Logger.debug("Trying to get entry from db")
 
     with id when not is_nil(id) <- string_from_xpath("//activity:object[1]/id", entry),
-         %Activity{} = activity <- Activity.get_create_activity_by_object_ap_id(id) do
+         %Activity{} = activity <- Activity.get_create_by_object_ap_id_with_object(id) do
       {:ok, activity}
     else
       _ ->
@@ -283,7 +294,7 @@ defmodule Pleroma.Web.OStatus do
       }
 
       with false <- update,
-           %User{} = user <- User.get_by_ap_id(data.ap_id) do
+           %User{} = user <- User.get_cached_by_ap_id(data.ap_id) do
         {:ok, user}
       else
         _e -> User.insert_or_update_user(data)
@@ -351,7 +362,7 @@ defmodule Pleroma.Web.OStatus do
   def fetch_activity_from_atom_url(url) do
     with true <- String.starts_with?(url, "http"),
          {:ok, %{body: body, status: code}} when code in 200..299 <-
-           @httpoison.get(
+           HTTP.get(
              url,
              [{:Accept, "application/atom+xml"}]
            ) do
@@ -368,7 +379,7 @@ defmodule Pleroma.Web.OStatus do
     Logger.debug("Trying to fetch #{url}")
 
     with true <- String.starts_with?(url, "http"),
-         {:ok, %{body: body}} <- @httpoison.get(url, []),
+         {:ok, %{body: body}} <- HTTP.get(url, []),
          {:ok, atom_url} <- get_atom_url(body) do
       fetch_activity_from_atom_url(atom_url)
     else

@@ -3,7 +3,6 @@
 /db
 /deps
 /*.ez
-/uploads
 /test/uploads
 /.elixir_ls
 /test/fixtures/test_tmp.txt
@@ -11,6 +10,7 @@
 /test/tmp/
 /doc
 /instance
+/priv/ssh_keys
 
 # Prevent committing custom emojis
 /priv/static/emoji/custom/*
@@ -25,6 +25,7 @@ erl_crash.dump
 # secrets files as long as you replace their contents by environment
 # variables.
 /config/*.secret.exs
+/config/generated_config.exs
 
 # Database setup file, some may forget to delete it
 /config/setup_db.psql
@@ -34,3 +35,10 @@ erl_crash.dump
 
 # Editor config
 /.vscode/
+
+# Prevent committing docs files
+/priv/static/doc/*
+
+# Code test coverage
+/cover
+/Elixir.*.coverdata

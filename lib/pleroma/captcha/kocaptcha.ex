@@ -7,7 +7,7 @@ defmodule Pleroma.Captcha.Kocaptcha do
   @behaviour Service
 
   @impl Service
-  def new() do
+  def new do
     endpoint = Pleroma.Config.get!([__MODULE__, :endpoint])
 
     case Tesla.get(endpoint <> "/new") do
@@ -15,7 +15,7 @@ defmodule Pleroma.Captcha.Kocaptcha do
         %{error: "Kocaptcha service unavailable"}
 
       {:ok, res} ->
-        json_resp = Poison.decode!(res.body)
+        json_resp = Jason.decode!(res.body)
 
         %{
           type: :kocaptcha,
