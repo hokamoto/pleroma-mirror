@@ -35,27 +35,6 @@ sub vcl_recv {
       }
       return(purge);
     }
-
-    # Pleroma MediaProxy - strip headers that will affect caching
-    if (req.url ~ "^/proxy/") {
-      unset req.http.Cookie;
-      unset req.http.Authorization;
-      unset req.http.Accept;
-      return (hash);
-    }
-
-    # Strip headers that will affect caching from all other static content
-    # This also permits caching of individual toots and AP Activities
-    if ((req.url ~ "^/(media|static)/") ||
-    (req.url ~ "(?i)\.(html|js|css|jpg|jpeg|png|gif|gz|tgz|bz2|tbz|mp3|mp4|ogg|webm|svg|swf|ttf|pdf|woff|woff2)$"))
-    {
-      unset req.http.Cookie;
-      unset req.http.Authorization;
-      return (hash);
-    }
-
-    # Assume everything else should just be passed (uncachable)
-    return (pass);
 }
 
 sub vcl_backend_response {
@@ -82,8 +61,6 @@ sub vcl_backend_response {
       return (deliver);
     }
 
-    # Default object caching of 86400s;
-    set beresp.ttl = 86400s;
     # Allow serving cached content for 6h in case backend goes down
     set beresp.grace = 6h;
 
@@ -98,20 +75,6 @@ sub vcl_backend_response {
       set beresp.uncacheable = true;
       set beresp.ttl = 30s;
       return (deliver);
-    }
-
-    # Pleroma MediaProxy internally sets headers properly
-    if (bereq.url ~ "^/proxy/") {
-      return (deliver);
-    }
-
-    # Strip cache-restricting headers from Pleroma on static content that we want to cache
-    if (bereq.url ~ "(?i)\.(js|css|jpg|jpeg|png|gif|gz|tgz|bz2|tbz|mp3|mp4|ogg|webm|svg|swf|ttf|pdf|woff|woff2)$")
-    {
-      unset beresp.http.set-cookie;
-      unset beresp.http.Cache-Control;
-      unset beresp.http.x-request-id;
-      set beresp.http.Cache-Control = "public, max-age=86400";
     }
 }
 
