@@ -98,7 +98,9 @@ docs-deploy:
 
 review_app:
   image: ilyasemenov/gitlab-ci-git-push
-  stage: deploy
+  stage: build
+  before_script:
+    - echo 'nothing'
   when: manual
   environment:
     name: review/$CI_COMMIT_REF_NAME
@@ -109,9 +111,12 @@ review_app:
     - master
     - develop
   script:
-    - mkdir -p ~/.ssh && echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
-    - ssh-keyscan -H 22 "pleroma.online" >> ~/.ssh/known_hosts
-    - ssh -t dokku@pleroma.online -- apps:create --ignore-existing --skip-deploy "$CI_ENVIRONMENT_SLUG"
+    - echo "$CI_ENVIRONMENT_SLUG"
+    - mkdir -p ~/.ssh
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - ssh-keyscan -H "pleroma.online" >> ~/.ssh/known_hosts
+    - ssh -t dokku@pleroma.online -- apps:clone --ignore-existing --skip-deploy pleroma-ci "$CI_ENVIRONMENT_SLUG"
     - ssh -t dokku@pleroma.online -- config:set "$CI_ENVIRONMENT_SLUG" APP_NAME="$CI_ENVIRONMENT_SLUG" APP_HOST="$CI_ENVIRONMENT_SLUG.pleroma.online" MIX_ENV=dokku
     - ssh -t dokku@pleroma.online -- postgres:create "$CI_ENVIRONMENT_SLUG-db"
     - ssh -t dokku@pleroma.online -- postgres:link "$CI_ENVIRONMENT_SLUG-db" "$CI_ENVIRONMENT_SLUG"
