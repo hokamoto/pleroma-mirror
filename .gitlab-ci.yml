@@ -116,8 +116,9 @@ review_app:
     - eval $(ssh-agent -s)
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - ssh-keyscan -H "pleroma.online" >> ~/.ssh/known_hosts
-    - ssh -t dokku@pleroma.online -- apps:clone --ignore-existing --skip-deploy pleroma-ci "$CI_ENVIRONMENT_SLUG"
+    - (ssh -t dokku@pleroma.online -- apps:create pleroma-ci "$CI_ENVIRONMENT_SLUG") || true
     - ssh -t dokku@pleroma.online -- config:set "$CI_ENVIRONMENT_SLUG" APP_NAME="$CI_ENVIRONMENT_SLUG" APP_HOST="$CI_ENVIRONMENT_SLUG.pleroma.online" MIX_ENV=dokku
-    - ssh -t dokku@pleroma.online -- postgres:create $(echo $CI_ENVIRONMENT_SLUG | sed -e 's/-/_/g')_db
-    - ssh -t dokku@pleroma.online -- postgres:link $(echo $CI_ENVIRONMENT_SLUG | sed -e 's/-/_/g')_db "$CI_ENVIRONMENT_SLUG"
-    - git-push ssh://dokku@pleroma.online:22/$CI_ENVIRONMENT_SLUG
+    - (ssh -t dokku@pleroma.online -- postgres:create $(echo $CI_ENVIRONMENT_SLUG | sed -e 's/-/_/g')_db; exit 0)
+    - (ssh -t dokku@pleroma.online -- postgres:link $(echo $CI_ENVIRONMENT_SLUG | sed -e 's/-/_/g')_db "$CI_ENVIRONMENT_SLUG"; exit 0)
+    - (git remote add dokku dokku@pleroma.online/$CI_ENVIRONMENT_SLUG; exit 0)
+    - git push dokku $CI_COMMIT_SHA:master
