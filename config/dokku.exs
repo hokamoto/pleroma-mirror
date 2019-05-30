@@ -6,11 +6,9 @@ config :pleroma, Pleroma.Web.Endpoint,
     protocol_options: [max_request_line_length: 8192, max_header_value_length: 8192]
   ],
   protocol: "http",
-  debug_errors: true,
-  code_reloader: true,
-  check_origin: false,
-  watchers: [],
   secure_cookie_flag: false
+  url: [host: System.get_env("APP_URL"), scheme: "https", port: 443],
+  secret_key_base: "+S+ULgf7+N37c/lc9K66SMphnjQIRGklTu0BRr2vLm2ZzvK0Z6OH/PE77wlUNtvP"
 
 database_url =
   System.get_env("DATABASE_URL") ||
@@ -25,4 +23,4 @@ config :pleroma, Pleroma.Repo,
   pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
 
 config :pleroma, :instance,
-  name: "#{System.get_env("DOKKU_APP_NAME")} CI Instance"
+  name: "#{System.get_env("APP_NAME")} CI Instance"
