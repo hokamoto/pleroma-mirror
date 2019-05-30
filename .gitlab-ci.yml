@@ -118,6 +118,6 @@ review_app:
     - ssh-keyscan -H "pleroma.online" >> ~/.ssh/known_hosts
     - ssh -t dokku@pleroma.online -- apps:clone --ignore-existing --skip-deploy pleroma-ci "$CI_ENVIRONMENT_SLUG"
     - ssh -t dokku@pleroma.online -- config:set "$CI_ENVIRONMENT_SLUG" APP_NAME="$CI_ENVIRONMENT_SLUG" APP_HOST="$CI_ENVIRONMENT_SLUG.pleroma.online" MIX_ENV=dokku
-    - ssh -t dokku@pleroma.online -- postgres:create "$CI_ENVIRONMENT_SLUG-db"
-    - ssh -t dokku@pleroma.online -- postgres:link "$CI_ENVIRONMENT_SLUG-db" "$CI_ENVIRONMENT_SLUG"
+    - ssh -t dokku@pleroma.online -- postgres:create "$CI_ENVIRONMENT_SLUG_db"
+    - ssh -t dokku@pleroma.online -- postgres:link "$CI_ENVIRONMENT_SLUG_db" "$CI_ENVIRONMENT_SLUG"
     - git-push ssh://dokku@pleroma.online:22/$CI_ENVIRONMENT_SLUG
