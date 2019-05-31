@@ -98,13 +98,14 @@ docs-deploy:
 
 review_app:
   image: alpine:3.9
-  stage: build
+  stage: deploy
   before_script:
     - apk update && apk add openssh-client git
   when: manual
   environment:
     name: review/$CI_COMMIT_REF_NAME
     url: https://$CI_ENVIRONMENT_SLUG.pleroma.online/
+    on_stop: stop_review_app
   only:
     - branches
   except:
@@ -123,3 +124,21 @@ review_app:
     - (ssh -t dokku@pleroma.online -- certs:add "$CI_ENVIRONMENT_SLUG" /home/dokku/server.crt /home/dokku/server.key) || true
     - (git remote add dokku dokku@pleroma.online:$CI_ENVIRONMENT_SLUG) || true
     - git push -f dokku $CI_COMMIT_SHA:refs/heads/master
+
+stop_review_app:
+  image: alpine:3.9
+  stage: build
+  before_script:
+    - apk update && apk add openssh-client git
+  when: manual
+  environment:
+    name: review/$CI_COMMIT_REF_NAME
+    action: stop
+  script:
+    - echo "$CI_ENVIRONMENT_SLUG"
+    - mkdir -p ~/.ssh
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - ssh-keyscan -H "pleroma.online" >> ~/.ssh/known_hosts
+    - ssh -t dokku@pleroma.online -- --force apps:destroy "$CI_ENVIRONMENT_SLUG"
+    - ssh -t dokku@pleroma.online -- postgres:destroy $(echo $CI_ENVIRONMENT_SLUG | sed -e 's/-/_/g')_db)
