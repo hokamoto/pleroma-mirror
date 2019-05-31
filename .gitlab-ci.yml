@@ -127,7 +127,7 @@ review_app:
 
 stop_review_app:
   image: alpine:3.9
-  stage: build
+  stage: deploy
   before_script:
     - apk update && apk add openssh-client git
   when: manual
@@ -141,4 +141,4 @@ stop_review_app:
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - ssh-keyscan -H "pleroma.online" >> ~/.ssh/known_hosts
     - ssh -t dokku@pleroma.online -- --force apps:destroy "$CI_ENVIRONMENT_SLUG"
-    - ssh -t dokku@pleroma.online -- postgres:destroy $(echo $CI_ENVIRONMENT_SLUG | sed -e 's/-/_/g')_db)
+    - ssh -t dokku@pleroma.online -- postgres:destroy $(echo $CI_ENVIRONMENT_SLUG | sed -e 's/-/_/g')_db
