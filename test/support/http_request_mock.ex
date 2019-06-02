@@ -556,7 +556,7 @@ defmodule HttpRequestMock do
         _,
         Accept: "application/activity+json"
       ) do
-    {:ok, Tesla.Mock.json(%{"id" => "http://gs.example.org:4040/index.php/user/1"}, status: 200)}
+    {:ok, %Tesla.Env{status: 406, body: ""}}
   end
 
   def get("http://gs.example.org/index.php/api/statuses/user_timeline/1.atom", _, _, _) do
