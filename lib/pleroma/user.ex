@@ -766,7 +766,7 @@ defmodule Pleroma.User do
 
     from(s in subquery(boost_search_rank_query(distinct_query, for_user)),
       order_by: [desc: s.search_rank],
-      limit: 20
+      limit: 40
     )
   end
 
