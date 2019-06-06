@@ -50,7 +50,7 @@ defmodule Pleroma.User.Search do
   end
 
   defp restrict_local? do
-    Pleroma.Config.get([:instance, :limit_unauthenticated_to_local], true)
+    Pleroma.Config.get([:instance, :limit_unauthenticated_to_local_content], true)
   end
 
   defp union_query(query) do

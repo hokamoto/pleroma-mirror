@@ -112,7 +112,7 @@ config :pleroma, Pleroma.Emails.Mailer,
 * `healthcheck`: If set to true, system data will be shown on ``/api/pleroma/healthcheck``.
 * `remote_post_retention_days`: The default amount of days to retain remote posts when pruning the database.
 * `skip_thread_containment`: Skip filter out broken threads. The default is `false`.
-* `limit_unauthenticated_to_local`: Limit unauthenticated users to search for local statutes and users only. The default is `true`.
+* `limit_unauthenticated_to_local_content`: Limit unauthenticated users to search for local statutes and users only. The default is `true`.
 
 ## :app_account_creation
 REST API for creating an account settings

@@ -61,7 +61,7 @@ defmodule Pleroma.Activity.Search do
 
   # unauthenticated users can only search local activities
   defp maybe_restrict_local(q, _) do
-    if Pleroma.Config.get([:instance, :limit_unauthenticated_to_local], true) do
+    if Pleroma.Config.get([:instance, :limit_unauthenticated_to_local_content], true) do
       where(q, local: true)
     else
       q
