@@ -19,6 +19,8 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   alias Pleroma.MultiFactorAuthentications, as: MFA
   alias Pleroma.Web.OAuth.MFAController
 
+  require Logger
+
   if Pleroma.Config.oauth_consumer_enabled?(), do: plug(Ueberauth)
 
   plug(:fetch_session)
@@ -345,7 +347,9 @@ defmodule Pleroma.Web.OAuth.OAuthController do
           |> registration_details(%{"authorization" => registration_params})
       end
     else
-      _ ->
+      error ->
+        Logger.debug(inspect(["OAUTH_ERROR", error, conn.assigns]))
+
         conn
         |> put_flash(:error, "Failed to set up user account.")
         |> redirect(external: redirect_uri(conn, params["redirect_uri"]))

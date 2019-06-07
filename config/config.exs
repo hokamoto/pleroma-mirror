@@ -245,6 +245,7 @@ config :pleroma, :instance,
   healthcheck: false,
   remote_post_retention_days: 90,
   skip_thread_containment: false,
+  limit_unauthenticated_to_local_content: true,
   multi_factor_authentication: [
     totp: [
       # digits 6 or 8
