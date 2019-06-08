@@ -1346,6 +1346,14 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         :ok = File.rm(temp_file)
       end)
 
+      dynamic = Pleroma.Config.get([:instance, :dynamic_configuration])
+
+      Pleroma.Config.put([:instance, :dynamic_configuration], true)
+
+      on_exit(fn ->
+        Pleroma.Config.put([:instance, :dynamic_configuration], dynamic)
+      end)
+
       %{conn: assign(conn, :user, admin)}
     end
 

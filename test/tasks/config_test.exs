@@ -7,10 +7,15 @@ defmodule Mix.Tasks.Pleroma.ConfigTest do
     Mix.shell(Mix.Shell.Process)
     temp_file = "config/temp.migrated.secret.exs"
 
+    dynamic = Pleroma.Config.get([:instance, :dynamic_configuration])
+
+    Pleroma.Config.put([:instance, :dynamic_configuration], true)
+
     on_exit(fn ->
       Mix.shell(Mix.Shell.IO)
       Application.delete_env(:pleroma, :first_setting)
       Application.delete_env(:pleroma, :second_setting)
+      Pleroma.Config.put([:instance, :dynamic_configuration], dynamic)
       :ok = File.rm(temp_file)
     end)
 

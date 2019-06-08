@@ -1,5 +1,15 @@
 defmodule Pleroma.Config.TransferTaskTest do
-  use Pleroma.DataCase, async: true
+  use Pleroma.DataCase
+
+  setup do
+    dynamic = Pleroma.Config.get([:instance, :dynamic_configuration])
+
+    Pleroma.Config.put([:instance, :dynamic_configuration], true)
+
+    on_exit(fn ->
+      Pleroma.Config.put([:instance, :dynamic_configuration], dynamic)
+    end)
+  end
 
   test "transfer config values from db to env" do
     refute Application.get_env(:pleroma, :test_key)
