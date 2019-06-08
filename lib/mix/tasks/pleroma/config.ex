@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Pleroma.Config do
     Common.start_pleroma()
 
     Application.get_all_env(:pleroma)
-    |> Enum.reject(fn {k, _v} -> k == Pleroma.Repo end)
+    |> Enum.reject(fn {k, _v} -> k in [Pleroma.Repo, :env] end)
     |> Enum.each(fn {k, v} ->
       key = to_string(k) |> String.replace("Elixir.", "")
       {:ok, _} = Config.update_or_create(%{key: key, value: v})

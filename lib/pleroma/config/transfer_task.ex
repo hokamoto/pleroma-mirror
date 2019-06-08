@@ -4,7 +4,7 @@ defmodule Pleroma.Config.TransferTask do
 
   def start_link do
     load_and_update_env()
-    if Mix.env() == :test, do: Ecto.Adapters.SQL.Sandbox.checkin(Pleroma.Repo)
+    if Pleroma.Config.get(:env) == :test, do: Ecto.Adapters.SQL.Sandbox.checkin(Pleroma.Repo)
     :ignore
   end
 
