@@ -374,19 +374,25 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
   def config_update(conn, %{"configs" => configs}) do
     updated =
-      Enum.map(configs, fn
-        %{"key" => key, "value" => value} ->
-          {:ok, config} = Config.update_or_create(%{key: key, value: value})
-          config
+      if Pleroma.Config.get([:instance, :dynamic_configuration]) do
+        updated =
+          Enum.map(configs, fn
+            %{"key" => key, "value" => value} ->
+              {:ok, config} = Config.update_or_create(%{key: key, value: value})
+              config
 
-        %{"key" => key, "delete" => "true"} ->
-          {:ok, _} = Config.delete(key)
-          nil
-      end)
-      |> Enum.reject(&is_nil(&1))
+            %{"key" => key, "delete" => "true"} ->
+              {:ok, _} = Config.delete(key)
+              nil
+          end)
+          |> Enum.reject(&is_nil(&1))
 
-    Pleroma.Config.TransferTask.load_and_update_env()
-    Mix.Tasks.Pleroma.Config.run(["migrate_from_db", Pleroma.Config.get(:env)])
+        Pleroma.Config.TransferTask.load_and_update_env()
+        Mix.Tasks.Pleroma.Config.run(["migrate_from_db", Pleroma.Config.get(:env)])
+        updated
+      else
+        []
+      end
 
     conn
     |> put_view(ConfigView)

@@ -9,8 +9,10 @@ defmodule Pleroma.Config.TransferTask do
   end
 
   def load_and_update_env do
-    Pleroma.Repo.all(Config)
-    |> Enum.each(&update_env(&1))
+    if Pleroma.Config.get([:instance, :dynamic_configuration]) do
+      Pleroma.Repo.all(Config)
+      |> Enum.each(&update_env(&1))
+    end
   end
 
   defp update_env(setting) do
