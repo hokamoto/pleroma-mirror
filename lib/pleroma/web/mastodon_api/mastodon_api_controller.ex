@@ -1162,8 +1162,19 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     json(conn, res)
   end
 
+  @doc """
+  https://docs.joinmastodon.org/api/rest/accounts/#get-api-v1-accounts-search
+  """
   def account_search(%{assigns: %{user: user}} = conn, %{"q" => query} = params) do
-    accounts = User.search(query, resolve: params["resolve"] == "true", for_user: user)
+    accounts =
+      User.search(
+        query,
+        resolve: params["resolve"] == "true",
+        following: params["following"] == "true",
+        limit: ControllerHelper.fetch_integer_param(params, "limit"),
+        offset: ControllerHelper.fetch_integer_param(params, "offset"),
+        for_user: user
+      )
 
     res = AccountView.render("accounts.json", users: accounts, for: user, as: :user)
 
