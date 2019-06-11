@@ -244,7 +244,7 @@ config :pleroma, :instance,
   safe_dm_mentions: false,
   healthcheck: false,
   remote_post_retention_days: 90,
-  skip_thread_containment: false,
+  skip_thread_containment: true,
   limit_unauthenticated_to_local_content: true,
   multi_factor_authentication: [
     totp: [
@@ -510,6 +510,8 @@ config :pleroma, :oauth2,
   clean_expired_tokens_interval: 86_400_000
 
 config :pleroma, :database, rum_enabled: false
+
+config :pleroma, :env, Mix.env()
 
 config :http_signatures,
   adapter: Pleroma.Signature
