@@ -110,7 +110,10 @@ defmodule Pleroma.Web.Streamer do
     {:noreply, topics}
   end
 
-  def handle_cast(%{action: :stream, topic: "user", item: %Notification{} = item}, topics) do
+  def handle_cast(
+        %{action: :stream, topic: "user:notification", item: %Notification{} = item},
+        topics
+      ) do
     topic = "user:#{item.user_id}"
 
     Enum.each(topics[topic] || [], fn socket ->
