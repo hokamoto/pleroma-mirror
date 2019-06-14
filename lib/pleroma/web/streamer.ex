@@ -115,7 +115,7 @@ defmodule Pleroma.Web.Streamer do
         topics
       )
       when topic in ["user", "user:notification"] do
-    topic = "user:#{item.user_id}"
+    topic = "#{topic}:#{item.user_id}"
 
     Enum.each(topics[topic] || [], fn socket ->
       json =
@@ -278,7 +278,7 @@ defmodule Pleroma.Web.Streamer do
     end)
   end
 
-  defp internal_topic(topic, socket) when topic in ~w[user direct] do
+  defp internal_topic(topic, socket) when topic in ~w[user user:notification direct] do
     "#{topic}:#{socket.assigns[:user].id}"
   end
 
