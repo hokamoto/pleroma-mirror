@@ -120,7 +120,7 @@ defmodule Pleroma.Web.Streamer do
     |> Enum.each(fn socket ->
       send(
         socket.transport_pid,
-        {:text, represent_notification(socket.assigns["user"], item)}
+        {:text, represent_notification(socket.assigns[:user], item)}
       )
     end)
 
