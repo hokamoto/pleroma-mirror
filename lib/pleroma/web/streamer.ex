@@ -115,22 +115,13 @@ defmodule Pleroma.Web.Streamer do
         topics
       )
       when topic in ["user", "user:notification"] do
-    topic = "#{topic}:#{item.user_id}"
-
-    Enum.each(topics[topic] || [], fn socket ->
-      json =
-        %{
-          event: "notification",
-          payload:
-            NotificationView.render("show.json", %{
-              notification: item,
-              for: socket.assigns["user"]
-            })
-            |> Jason.encode!()
-        }
-        |> Jason.encode!()
-
-      send(socket.transport_pid, {:text, json})
+    topics
+    |> Map.get("#{topic}:#{item.user_id}", [])
+    |> Enum.each(fn socket ->
+      send(
+        socket.transport_pid,
+        {:text, represent_notification(socket.assigns["user"], item)}
+      )
     end)
 
     {:noreply, topics}
@@ -215,6 +206,20 @@ defmodule Pleroma.Web.Streamer do
           participation: participation,
           user: participation.user
         })
+        |> Jason.encode!()
+    }
+    |> Jason.encode!()
+  end
+
+  @spec represent_notification(User.t(), Notification.t()) :: binary()
+  defp represent_notification(%User{} = user, %Notification{} = notify) do
+    %{
+      event: "notification",
+      payload:
+        NotificationView.render(
+          "show.json",
+          %{notification: notify, for: user}
+        )
         |> Jason.encode!()
     }
     |> Jason.encode!()
