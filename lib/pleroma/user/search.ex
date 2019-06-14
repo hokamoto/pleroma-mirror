@@ -196,7 +196,7 @@ defmodule Pleroma.User.Search do
 
   @spec trigram_search_subquery(User.t() | Ecto.Query.t(), String.t()) :: Ecto.Query.t()
   defp trigram_search_subquery(query, term) do
-    query =
+    term =
       if local_search?(term) do
         prepare_search(term)
       else
@@ -211,12 +211,12 @@ defmodule Pleroma.User.Search do
         search_rank:
           fragment(
             "similarity(?, trim(? || ' ' || coalesce(?, '')))",
-            ^query,
+            ^term,
             u.nickname,
             u.name
           )
       },
-      where: fragment("trim(? || ' ' || coalesce(?, '')) % ?", u.nickname, u.name, ^query)
+      where: fragment("trim(? || ' ' || coalesce(?, '')) % ?", u.nickname, u.name, ^term)
     )
     |> User.restrict_deactivated()
   end
