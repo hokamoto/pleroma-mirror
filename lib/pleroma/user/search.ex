@@ -150,12 +150,16 @@ defmodule Pleroma.User.Search do
   @spec fts_search_subquery(User.t() | Ecto.Query.t(), String.t()) :: Ecto.Query.t()
   defp fts_search_subquery(query, term) do
     processed_query =
-      term
-      |> String.replace(~r/\W+/, " ")
-      |> String.trim()
-      |> String.split()
-      |> Enum.map(&(&1 <> ":*"))
-      |> Enum.join(" | ")
+      if local_search?(term) && !String.equivalent?(term, local_domain()) do
+        prepare_search(term)
+        |> Kernel.<>(":*")
+      else
+        String.replace(term, ~r/\W+/, " ")
+        |> String.trim()
+        |> String.split()
+        |> Enum.map(&(&1 <> ":*"))
+        |> Enum.join(" | ")
+      end
 
     from(
       u in query,
@@ -192,6 +196,13 @@ defmodule Pleroma.User.Search do
 
   @spec trigram_search_subquery(User.t() | Ecto.Query.t(), String.t()) :: Ecto.Query.t()
   defp trigram_search_subquery(query, term) do
+    query =
+      if local_search?(term) do
+        prepare_search(term)
+      else
+        term
+      end
+
     from(
       u in query,
       select_merge: %{
@@ -200,13 +211,25 @@ defmodule Pleroma.User.Search do
         search_rank:
           fragment(
             "similarity(?, trim(? || ' ' || coalesce(?, '')))",
-            ^term,
+            ^query,
             u.nickname,
             u.name
           )
       },
-      where: fragment("trim(? || ' ' || coalesce(?, '')) % ?", u.nickname, u.name, ^term)
+      where: fragment("trim(? || ' ' || coalesce(?, '')) % ?", u.nickname, u.name, ^query)
     )
     |> User.restrict_deactivated()
+  end
+
+  defp local_search?(term), do: String.ends_with?(term, local_domain())
+
+  defp local_domain do
+    Application.get_env(:pleroma, Pleroma.Web.Endpoint)[:url][:host]
+  end
+
+  defp prepare_search(term) do
+    String.replace(term, local_domain(), "")
+    |> String.replace(~r/\W+/, "")
+    |> String.trim()
   end
 end
