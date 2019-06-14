@@ -151,8 +151,7 @@ defmodule Pleroma.User.Search do
   defp fts_search_subquery(query, term) do
     processed_query =
       if local_search?(term) && !String.equivalent?(term, local_domain()) do
-        prepare_search(term)
-        |> Kernel.<>(":*")
+        prepare_search(term) <> ":*"
       else
         String.replace(term, ~r/\W+/, " ")
         |> String.trim()
@@ -224,7 +223,7 @@ defmodule Pleroma.User.Search do
   defp local_search?(term), do: String.ends_with?(term, local_domain())
 
   defp local_domain do
-    Application.get_env(:pleroma, Pleroma.Web.Endpoint)[:url][:host]
+    Pleroma.Config.get([Pleroma.Web.Endpoint, :url, :host])
   end
 
   defp prepare_search(term) do
