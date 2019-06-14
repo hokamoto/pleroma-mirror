@@ -563,3 +563,83 @@ Note: Available `:permission_group` is currently moderator and admin. 404 is ret
     - 403 Forbidden `{"error": "error_msg"}`
     - 404 Not Found `"Not found"`
   - On success: 200 OK `{}`
+
+## `/api/pleroma/admin/config`
+### List config settings
+- Method `GET`
+- Params: none
+- Response:
+
+```json
+{
+  configs: [
+    {
+      "key": string,
+      "value": string or {} or []
+     }
+  ]
+}
+```
+
+## `/api/pleroma/admin/config`
+### Update config settings
+Module name can be passed as string, which starts with `Pleroma`, e.g. `"Pleroma.Upload"`.
+Atom or boolean value can be passed with `:` in the beginning, e.g. `":true"`, `":upload"`.
+Integer with `i:`, e.g. `"i:150"`.
+
+Compile time settings (need instance reboot):
+- all settings by this keys:
+  - `:hackney_pools`
+  - `:chat`
+  - `Pleroma.Web.Endpoint`
+  - `Pleroma.Repo`
+- part settings:
+  - `Pleroma.Captcha` -> `:seconds_valid`
+  - `Pleroma.Upload` -> `:proxy_remote`
+  - `:instance` -> `:upload_limit`
+
+- Method `POST`
+- Params:
+  - `configs` => [
+    - `key` (string)
+    - `value` (string, [], {})
+    - `delete` = true (optional, if parameter must be deleted)
+  ]
+
+- Request (example):
+
+```json
+{
+  configs: [
+    {
+      "key": "Pleroma.Upload",
+      "value": {
+        "uploader": "Pleroma.Uploaders.Local",
+        "filters": ["Pleroma.Upload.Filter.Dedupe"],
+        "link_name": ":true",
+        "proxy_remote": ":false",
+        "proxy_opts": {
+          "redirect_on_failure": ":false",
+          "max_body_length": "i:1048576",
+          "http": {
+            "follow_redirect": ":true",
+            "pool": ":upload"
+          }
+        }
+      }
+     }
+  ]
+}
+
+- Response:
+
+```json
+{
+  configs: [
+    {
+      "key": string,
+      "value": string or {} or []
+     }
+  ]
+}
+```

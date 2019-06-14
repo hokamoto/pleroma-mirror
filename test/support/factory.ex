@@ -312,6 +312,19 @@ defmodule Pleroma.Factory do
     }
   end
 
+  def config_factory do
+    %Pleroma.Web.AdminAPI.Config{
+      key: sequence(:key, &"some_key_#{&1}"),
+      value:
+        sequence(
+          :value,
+          fn key ->
+            :erlang.term_to_binary(%{another_key: "#{key}somevalue", another: "#{key}somevalue"})
+          end
+        )
+    }
+  end
+
   def mfa_token_factory do
     %Pleroma.MultiFactorAuthentications.Token{
       token: :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false),
