@@ -150,15 +150,10 @@ defmodule Pleroma.User.Search do
   @spec fts_search_subquery(User.t() | Ecto.Query.t(), String.t()) :: Ecto.Query.t()
   defp fts_search_subquery(query, term) do
     processed_query =
-      if local_search?(term) && !String.equivalent?(term, local_domain()) do
-        prepare_search(term) <> ":*"
-      else
-        String.replace(term, ~r/\W+/, " ")
-        |> String.trim()
-        |> String.split()
-        |> Enum.map(&(&1 <> ":*"))
-        |> Enum.join(" | ")
-      end
+      clean_term(term)
+      |> String.split()
+      |> Enum.map(&(&1 <> ":*"))
+      |> Enum.join(" | ")
 
     from(
       u in query,
@@ -196,8 +191,8 @@ defmodule Pleroma.User.Search do
   @spec trigram_search_subquery(User.t() | Ecto.Query.t(), String.t()) :: Ecto.Query.t()
   defp trigram_search_subquery(query, term) do
     term =
-      if local_search?(term) do
-        prepare_search(term)
+      if String.ends_with?(term, local_domain()) do
+        clean_term(term)
       else
         term
       end
@@ -220,15 +215,11 @@ defmodule Pleroma.User.Search do
     |> User.restrict_deactivated()
   end
 
-  defp local_search?(term), do: String.ends_with?(term, local_domain())
+  defp local_domain, do: Pleroma.Config.get([Pleroma.Web.Endpoint, :url, :host])
 
-  defp local_domain do
-    Pleroma.Config.get([Pleroma.Web.Endpoint, :url, :host])
-  end
-
-  defp prepare_search(term) do
-    String.replace(term, local_domain(), "")
-    |> String.replace(~r/\W+/, "")
+  defp clean_term(term) do
+    String.trim_trailing(term, local_domain())
+    |> String.replace(~r/\W+/, " ")
     |> String.trim()
   end
 end
