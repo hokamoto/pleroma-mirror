@@ -6,6 +6,21 @@ defmodule Mix.Tasks.Pleroma.Ecto.Migrate do
   use Mix.Task
   require Logger
   @shortdoc "Wrapper on `ecto.migrate` task."
+
+  @aliases [
+    n: :step
+  ]
+
+  @switches [
+    all: :boolean,
+    step: :integer,
+    to: :integer,
+    quiet: :boolean,
+    log_sql: :boolean,
+    strict_version_order: :boolean,
+    migrations_path: :string
+  ]
+
   @moduledoc """
   Changes `Logger` level to `:info` before start migration.
   Changes level back when migration ends.
@@ -18,17 +33,29 @@ defmodule Mix.Tasks.Pleroma.Ecto.Migrate do
     - see https://hexdocs.pm/ecto/2.0.0/Mix.Tasks.Ecto.Migrate.html
   """
 
-  defdelegate run_migrations(args, migrator), to: Mix.Tasks.Ecto.Migrate, as: :run
-
   @impl true
-  def run(args \\ [], migrator \\ &Ecto.Migrator.run/4) do
+  def run(args \\ []) do
+    {opts, _} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
+
+    opts =
+      if opts[:to] || opts[:step] || opts[:all],
+        do: opts,
+        else: Keyword.put(opts, :all, true)
+
+    opts =
+      if opts[:quiet],
+        do: Keyword.merge(opts, log: false, log_sql: false),
+        else: opts
+
+    {:ok, _} = Application.ensure_all_started(:ecto_sql)
+
     level = Logger.level()
     Logger.configure(level: :info)
 
     if Pleroma.Config.get(:env) == :test do
       Logger.info("[info] Already up!!!")
     else
-      run_migrations(args, migrator)
+      {:ok, _, _} = Ecto.Migrator.with_repo(Pleroma.Repo, &Ecto.Migrator.run(&1, :up, opts))
     end
 
     Logger.configure(level: level)
