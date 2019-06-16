@@ -48,16 +48,10 @@ defmodule Mix.Tasks.Pleroma.Ecto.Migrate do
         do: Keyword.merge(opts, log: false, log_sql: false),
         else: opts
 
-    {:ok, _} = Application.ensure_all_started(:ecto_sql)
-
     level = Logger.level()
     Logger.configure(level: :info)
 
-    if Pleroma.Config.get(:env) == :test do
-      Logger.info("[info] Already up!!!")
-    else
-      {:ok, _, _} = Ecto.Migrator.with_repo(Pleroma.Repo, &Ecto.Migrator.run(&1, :up, opts))
-    end
+    {:ok, _, _} = Ecto.Migrator.with_repo(Pleroma.Repo, &Ecto.Migrator.run(&1, :up, opts))
 
     Logger.configure(level: level)
   end

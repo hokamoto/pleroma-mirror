@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Pleroma.Ecto.RollbackTest do
-  use ExUnit.Case, async: true
+  use Pleroma.DataCase
   import ExUnit.CaptureLog
   require Logger
 

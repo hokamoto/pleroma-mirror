@@ -6,7 +6,6 @@ defmodule Pleroma.ReleaseTasks do
   @repo Pleroma.Repo
 
   def run(args) do
-    Mix.Tasks.Pleroma.Common.start_pleroma()
     [task | args] = String.split(args)
 
     case task do
