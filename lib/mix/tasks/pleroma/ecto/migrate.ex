@@ -8,7 +8,8 @@ defmodule Mix.Tasks.Pleroma.Ecto.Migrate do
   @shortdoc "Wrapper on `ecto.migrate` task."
 
   @aliases [
-    n: :step
+    n: :step,
+    v: :to
   ]
 
   @switches [

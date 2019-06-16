@@ -8,7 +8,8 @@ defmodule Mix.Tasks.Pleroma.Ecto.Rollback do
   @shortdoc "Wrapper on `ecto.rollback` task"
 
   @aliases [
-    n: :step
+    n: :step,
+    v: :to
   ]
 
   @switches [
