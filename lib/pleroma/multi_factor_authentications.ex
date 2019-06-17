@@ -148,7 +148,7 @@ defmodule Pleroma.MultiFactorAuthentications do
   end
 
   @doc """
-  Checks that user has enabled at least one method
+  Checks if the user has enabled at least one MFA method.
   """
   def has_confirmed_method?(settings) do
     Settings.mfa_methods()
