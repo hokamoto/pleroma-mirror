@@ -244,11 +244,11 @@ defmodule Pleroma.Web.Router do
       post("/notifications/read", UtilController, :notifications_read)
     end
 
-    get("/profile/mfa", TwoFactorAuthenticationController, :settings)
-    get("/profile/mfa/backup_codes", TwoFactorAuthenticationController, :backup_codes)
-    get("/profile/mfa/setup/:method", TwoFactorAuthenticationController, :setup)
-    post("/profile/mfa/confirm/:method", TwoFactorAuthenticationController, :confirm)
-    delete("/profile/mfa/:method", TwoFactorAuthenticationController, :disable)
+    get("/accounts/mfa", TwoFactorAuthenticationController, :settings)
+    get("/accounts/mfa/backup_codes", TwoFactorAuthenticationController, :backup_codes)
+    get("/accounts/mfa/setup/:method", TwoFactorAuthenticationController, :setup)
+    post("/accounts/mfa/confirm/:method", TwoFactorAuthenticationController, :confirm)
+    delete("/accounts/mfa/:method", TwoFactorAuthenticationController, :disable)
   end
 
   scope "/oauth", Pleroma.Web.OAuth do

@@ -5,14 +5,14 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
   alias Pleroma.MFA.Settings
   alias Pleroma.MFA.TOTP
 
-  describe "GET /api/pleroma/profile/mfa/settings" do
+  describe "GET /api/pleroma/accounts/mfa/settings" do
     test "returns user mfa settings for new user", %{conn: conn} do
       user = insert(:user)
 
       response =
         conn
         |> assign(:user, user)
-        |> get("/api/pleroma/profile/mfa")
+        |> get("/api/pleroma/accounts/mfa")
         |> json_response(:ok)
 
       assert response == %{
@@ -32,7 +32,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
       response =
         conn
         |> assign(:user, user)
-        |> get("/api/pleroma/profile/mfa")
+        |> get("/api/pleroma/accounts/mfa")
         |> json_response(:ok)
 
       assert response == %{
@@ -41,7 +41,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
     end
   end
 
-  describe "GET /api/pleroma/profile/mfa/backup_codes" do
+  describe "GET /api/pleroma/accounts/mfa/backup_codes" do
     test "returns backup codes", %{conn: conn} do
       user =
         insert(:user,
@@ -54,7 +54,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
       response =
         conn
         |> assign(:user, user)
-        |> get("/api/pleroma/profile/mfa/backup_codes")
+        |> get("/api/pleroma/accounts/mfa/backup_codes")
         |> json_response(:ok)
 
       assert response["status"] == "success"
@@ -67,14 +67,14 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
     end
   end
 
-  describe "GET /api/pleroma/profile/mfa/setup/totp" do
+  describe "GET /api/pleroma/accounts/mfa/setup/totp" do
     test "return errors when method is invalid", %{conn: conn} do
       user = insert(:user)
 
       response =
         conn
         |> assign(:user, user)
-        |> get("/api/pleroma/profile/mfa/setup/torf")
+        |> get("/api/pleroma/accounts/mfa/setup/torf")
         |> json_response(:ok)
 
       assert response == %{"error" => "undefined method"}
@@ -89,7 +89,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
       response =
         conn
         |> assign(:user, user)
-        |> get("/api/pleroma/profile/mfa/setup/totp")
+        |> get("/api/pleroma/accounts/mfa/setup/totp")
         |> json_response(:ok)
 
       user = refresh_record(user)
@@ -106,7 +106,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
     end
   end
 
-  describe "GET /api/pleroma/profile/mfa/confirm/totp" do
+  describe "GET /api/pleroma/accounts/mfa/confirm/totp" do
     test "returns success result", %{conn: conn} do
       secret = TOTP.generate_secret()
       code = TOTP.generate_token(secret)
@@ -122,7 +122,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
       response =
         conn
         |> assign(:user, user)
-        |> post("/api/pleroma/profile/mfa/confirm/totp", %{password: "test", code: code})
+        |> post("/api/pleroma/accounts/mfa/confirm/totp", %{password: "test", code: code})
         |> json_response(:ok)
 
       settings = refresh_record(user).multi_factor_authentication_settings
@@ -148,7 +148,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
       response =
         conn
         |> assign(:user, user)
-        |> post("/api/pleroma/profile/mfa/confirm/totp", %{password: "xxx", code: code})
+        |> post("/api/pleroma/accounts/mfa/confirm/totp", %{password: "xxx", code: code})
         |> json_response(:ok)
 
       settings = refresh_record(user).multi_factor_authentication_settings
@@ -172,7 +172,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
       response =
         conn
         |> assign(:user, user)
-        |> post("/api/pleroma/profile/mfa/confirm/totp", %{password: "test", code: "code"})
+        |> post("/api/pleroma/accounts/mfa/confirm/totp", %{password: "test", code: "code"})
         |> json_response(:ok)
 
       settings = refresh_record(user).multi_factor_authentication_settings
@@ -183,7 +183,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
     end
   end
 
-  describe "DELETE /api/pleroma/profile/mfa/totp" do
+  describe "DELETE /api/pleroma/accounts/mfa/totp" do
     test "returns success result", %{conn: conn} do
       user =
         insert(:user,
@@ -196,7 +196,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
       response =
         conn
         |> assign(:user, user)
-        |> delete("/api/pleroma/profile/mfa/totp", %{password: "test"})
+        |> delete("/api/pleroma/accounts/mfa/totp", %{password: "test"})
         |> json_response(:ok)
 
       settings = refresh_record(user).multi_factor_authentication_settings
