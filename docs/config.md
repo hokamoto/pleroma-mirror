@@ -631,5 +631,5 @@ See [`Pleroma.Plugs.RateLimiter`](Pleroma.Plugs.RateLimiter.html) documentation 
   - `digits` - The digits parameter may have the values 6 or 8, and determines how long of a one-time passcode to display to the user. The default is 6.
   - `period` - The period parameter defines a period that a TOTP code will be valid for, in seconds. The default value is 30.
 * `backup_codes` - a list containing Backup codes configuration
-  - `number` - number backup codes to generate
+  - `number` - number of backup codes to generate.
   - `length` - backup code length. Defaults to 16 characters.
