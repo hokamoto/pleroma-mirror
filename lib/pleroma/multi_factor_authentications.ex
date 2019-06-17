@@ -137,7 +137,7 @@ defmodule Pleroma.MultiFactorAuthentications do
   end
 
   @doc """
-  Checks that user enabled method MFA.
+  Checks if the user has MFA method enabled.
   """
   def enable_method?(method, settings) do
     with {:ok, %{confirmed: true} = _} <- Map.fetch(settings, method) do
