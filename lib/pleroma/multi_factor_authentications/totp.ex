@@ -50,7 +50,7 @@ defmodule Pleroma.MultiFactorAuthentications.TOTP do
   @doc """
   Validates a given token based on a secret.
 
-  optional options:
+  optional parameters:
   `token_length` default `6`
   `interval_length` default `30`
   `window` default 0
