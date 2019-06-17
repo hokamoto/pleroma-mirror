@@ -126,7 +126,7 @@ defmodule Pleroma.MultiFactorAuthentications do
   end
 
   @doc """
-  Force disable all MFA methods for user.
+  Force disables all MFA methods for user.
   """
   @spec disable(User.t()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def disable(%User{} = user) do
