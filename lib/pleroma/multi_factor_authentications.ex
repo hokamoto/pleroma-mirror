@@ -18,7 +18,7 @@ defmodule Pleroma.MultiFactorAuthentications do
   alias Pleroma.Repo
 
   @doc """
-  Returns enabled MFA methods user's
+  Returns MFA methods the user has enabled.
 
   ## Examples
 
