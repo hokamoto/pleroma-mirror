@@ -11,7 +11,7 @@ defmodule Pleroma.MultiFactorAuthentications.BackupCodes do
   @config_ns [:instance, :multi_factor_authentication]
 
   @doc """
-  Generates a backup codes.
+  Generates backup codes.
   """
   @spec generate(Keyword.t()) :: list(String.t())
   def generate(opts \\ []) do
