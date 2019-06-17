@@ -19,7 +19,7 @@ defmodule Pleroma.Web.Auth.PleromaAuthenticator do
          {_, true} <- {:checkpw, Pbkdf2.checkpw(password, user.password_hash)} do
       {:ok, user}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} = error -> error
       error -> {:error, error}
     end
   end
