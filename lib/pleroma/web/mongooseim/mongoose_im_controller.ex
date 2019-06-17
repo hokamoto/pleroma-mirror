@@ -38,4 +38,9 @@ defmodule Pleroma.Web.MongooseIM.MongooseIMController do
         |> json(false)
     end
   end
+
+  def prebind(conn, params) do
+    IO.inspect(params)
+    json(conn, false)
+  end
 end

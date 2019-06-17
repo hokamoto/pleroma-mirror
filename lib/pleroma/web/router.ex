@@ -125,8 +125,8 @@ defmodule Pleroma.Web.Router do
     plug(:accepts, ["html"])
 
     plug(:put_secure_browser_headers, %{
-      "content-security-policy" =>
-        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' 'unsafe-eval'"
+      "content-security-policy" => ""
+      # "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' 'unsafe-eval'"
     })
   end
 
@@ -707,6 +707,7 @@ defmodule Pleroma.Web.Router do
   scope "/", Pleroma.Web.MongooseIM do
     get("/user_exists", MongooseIMController, :user_exists)
     get("/check_password", MongooseIMController, :check_password)
+    get("/prebind", MongooseIMController, :prebind)
   end
 
   scope "/", Fallback do

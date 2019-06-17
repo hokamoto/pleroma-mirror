@@ -1,1 +1,33 @@
-<!DOCTYPE html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Pleroma</title><!--server-generated-meta--><link rel=icon type=image/png href=/favicon.png><link rel=stylesheet href=/static/font/css/fontello.css><link rel=stylesheet href=/static/font/css/animation.css><link href=/static/css/app.a81578273cb4c57163939ab70c80eb06.css rel=stylesheet></head><body style="display: none"><div id=app></div><script type=text/javascript src=/static/js/manifest.bf15f24d205c8cf4ee4a.js></script><script type=text/javascript src=/static/js/vendor.0d1eeaf25aa1d2fc51b0.js></script><script type=text/javascript src=/static/js/app.c914d9a57d5da7aa5553.js></script></body></html>
+<!DOCTYPE html>
+<html lang=en>
+
+<head>
+  <meta charset=utf-8>
+  <meta name=viewport content="width=device-width,initial-scale=1">
+  <title>Pleroma</title>
+  <!--server-generated-meta-->
+  <link rel=icon type=image/png href=/favicon.png> <link rel=stylesheet href=/static/font/css/fontello.css> <link
+    rel=stylesheet href=/static/font/css/animation.css> <link href=/static/css/app.a81578273cb4c57163939ab70c80eb06.css
+    rel=stylesheet>
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.conversejs.org/4.2.0/css/converse.min.css">
+  <script src="https://cdn.conversejs.org/4.2.0/dist/converse.min.js" charset="utf-8"></script>
+</head>
+
+<body style="display: none">
+  <div id=app></div>
+  <script type=text/javascript src=/static/js/manifest.bf15f24d205c8cf4ee4a.js> </script> <script type=text/javascript
+    src=/static/js/vendor.0d1eeaf25aa1d2fc51b0.js> </script> <script type=text/javascript
+    src=/static/js/app.c914d9a57d5da7aa5553.js> </script> <script type="text/javascript">
+      converse.initialize({
+        debug: true,
+        authentication: 'login',
+        auto_away: 300,
+        auto_reconnect: true,
+        bosh_service_url: 'https://p.devs.live/http-bind/',
+        message_archiving: 'always',
+        view_mode: 'overlayed'
+      });
+    </script>
+</body>
+
+</html>
