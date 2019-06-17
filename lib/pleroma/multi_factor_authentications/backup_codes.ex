@@ -4,7 +4,7 @@
 
 defmodule Pleroma.MultiFactorAuthentications.BackupCodes do
   @moduledoc """
-  This module represents functions to generate backup codes.
+  This module contains functions for generating backup codes.
   """
   alias Pleroma.Config
 
