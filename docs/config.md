@@ -628,7 +628,7 @@ See [`Pleroma.Plugs.RateLimiter`](Pleroma.Plugs.RateLimiter.html) documentation 
 
 ## Multi-factor authentication -  :two_factor_authentication
 * `totp` - a list containing TOTP configuration
-  - `digits` - The digits parameter may have the values 6 or 8, and determines how long of a one-time passcode to display to the user. The default is 6.
+  - `digits` - Determines the length of a one-time pass-code, in characters. Defaults to 6 characters.
   - `period` - a period for which the TOTP code will be valid, in seconds. Defaults to 30 seconds.
 * `backup_codes` - a list containing Backup codes configuration
   - `number` - number of backup codes to generate.
