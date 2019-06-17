@@ -1,7 +1,7 @@
-defmodule Pleroma.MultiFactorAuthentications.BackupCodesTest do
+defmodule Pleroma.MFA.BackupCodesTest do
   use Pleroma.DataCase
 
-  alias Pleroma.MultiFactorAuthentications.BackupCodes
+  alias Pleroma.MFA.BackupCodes
 
   test "generate backup codes" do
     codes = BackupCodes.generate(number_of_codes: 2, length: 4)

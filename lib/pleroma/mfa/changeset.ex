@@ -2,9 +2,9 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.MultiFactorAuthentications.Changeset do
-  alias Pleroma.MultiFactorAuthentications, as: MFA
-  alias Pleroma.MultiFactorAuthentications.Settings
+defmodule Pleroma.MFA.Changeset do
+  alias Pleroma.MFA
+  alias Pleroma.MFA.Settings
   alias Pleroma.User
 
   def disable(%Ecto.Changeset{} = changeset, force \\ false) do

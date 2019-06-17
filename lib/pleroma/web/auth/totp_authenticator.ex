@@ -4,9 +4,9 @@
 
 defmodule Pleroma.Web.Auth.TOTPAuthenticator do
   alias Comeonin.Pbkdf2
+  alias Pleroma.MFA
+  alias Pleroma.MFA.TOTP
   alias Pleroma.User
-  alias Pleroma.MultiFactorAuthentications, as: MFA
-  alias Pleroma.MultiFactorAuthentications.TOTP
 
   @doc "Verify code or check backup code."
   @spec verify(String.t(), User.t()) ::

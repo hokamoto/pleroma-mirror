@@ -9,7 +9,7 @@ defmodule Pleroma.Web.OAuth.MFAController do
 
   use Pleroma.Web, :controller
 
-  alias Pleroma.MultiFactorAuthentications, as: MFA
+  alias Pleroma.MFA
   alias Pleroma.Web.Auth.TOTPAuthenticator
   alias Pleroma.Web.OAuth.Token
   alias Pleroma.Web.OAuth.MFAView, as: View

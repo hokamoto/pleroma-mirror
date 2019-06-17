@@ -6,10 +6,10 @@ defmodule Pleroma.Web.OAuth.MFAControllerTest do
   use Pleroma.Web.ConnCase
   import Pleroma.Factory
 
-  alias Pleroma.MultiFactorAuthentications.BackupCodes
+  alias Pleroma.MFA
+  alias Pleroma.MFA.BackupCodes
+  alias Pleroma.MFA.TOTP
   alias Pleroma.Repo
-  alias Pleroma.MultiFactorAuthentications, as: MFA
-  alias Pleroma.MultiFactorAuthentications.TOTP
   alias Pleroma.Web.OAuth.Authorization
 
   setup %{conn: conn} do

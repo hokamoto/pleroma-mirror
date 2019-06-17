@@ -11,7 +11,7 @@ defmodule Pleroma.User do
   alias Comeonin.Pbkdf2
   alias Pleroma.Activity
   alias Pleroma.Keys
-  alias Pleroma.MultiFactorAuthentications
+  alias Pleroma.MFA
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Registration
@@ -61,7 +61,7 @@ defmodule Pleroma.User do
 
     embeds_one(
       :multi_factor_authentication_settings,
-      MultiFactorAuthentications.Settings,
+      MFA.Settings,
       on_replace: :delete
     )
 

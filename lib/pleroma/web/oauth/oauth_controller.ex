@@ -6,6 +6,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   use Pleroma.Web, :controller
 
   alias Pleroma.Helpers.UriHelper
+  alias Pleroma.MFA
   alias Pleroma.Registration
   alias Pleroma.Repo
   alias Pleroma.User
@@ -13,12 +14,11 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   alias Pleroma.Web.ControllerHelper
   alias Pleroma.Web.OAuth.App
   alias Pleroma.Web.OAuth.Authorization
+  alias Pleroma.Web.OAuth.MFAController
   alias Pleroma.Web.OAuth.Token
   alias Pleroma.Web.OAuth.Token.Strategy.RefreshToken
   alias Pleroma.Web.OAuth.Token.Strategy.Revoke, as: RevokeToken
   alias Pleroma.Web.OAuth.Scopes
-  alias Pleroma.MultiFactorAuthentications, as: MFA
-  alias Pleroma.Web.OAuth.MFAController
 
   require Logger
 

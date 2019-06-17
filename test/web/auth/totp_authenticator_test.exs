@@ -5,9 +5,9 @@
 defmodule Pleroma.Web.Auth.TOTPAuthenticatorTest do
   use Pleroma.Web.ConnCase
 
-  alias Pleroma.MultiFactorAuthentications.BackupCodes
-  alias Pleroma.MultiFactorAuthentications, as: MFA
-  alias Pleroma.MultiFactorAuthentications.TOTP
+  alias Pleroma.MFA
+  alias Pleroma.MFA.BackupCodes
+  alias Pleroma.MFA.TOTP
   alias Pleroma.Web.Auth.TOTPAuthenticator
 
   import Pleroma.Factory

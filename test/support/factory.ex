@@ -31,7 +31,7 @@ defmodule Pleroma.Factory do
       password_hash: Comeonin.Pbkdf2.hashpwsalt("test"),
       bio: sequence(:bio, &"Tester Number #{&1}"),
       info: %{},
-      multi_factor_authentication_settings: %Pleroma.MultiFactorAuthentications.Settings{}
+      multi_factor_authentication_settings: %Pleroma.MFA.Settings{}
     }
 
     %{
@@ -326,7 +326,7 @@ defmodule Pleroma.Factory do
   end
 
   def mfa_token_factory do
-    %Pleroma.MultiFactorAuthentications.Token{
+    %Pleroma.MFA.Token{
       token: :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false),
       authorization: build(:oauth_authorization),
       valid_until: NaiveDateTime.add(NaiveDateTime.utc_now(), 60 * 10),

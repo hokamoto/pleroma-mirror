@@ -1,7 +1,7 @@
-defmodule Pleroma.MultiFactorAuthentications.TOTPTest do
+defmodule Pleroma.MFA.TOTPTest do
   use Pleroma.DataCase
 
-  alias Pleroma.MultiFactorAuthentications.TOTP
+  alias Pleroma.MFA.TOTP
 
   test "create provisioning_uri to generate qrcode" do
     uri =

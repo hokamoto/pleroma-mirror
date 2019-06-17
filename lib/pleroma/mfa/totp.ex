@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.MultiFactorAuthentications.TOTP do
+defmodule Pleroma.MFA.TOTP do
   @moduledoc """
   This module represents functions to create secrets for
   TOTP Application as well as validate them with a time based token.

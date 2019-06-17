@@ -1,9 +1,9 @@
 defmodule Pleroma.Web.OAuth.Token.Response do
   @moduledoc false
 
+  alias Pleroma.MFA
   alias Pleroma.User
   alias Pleroma.Web.OAuth.Token.Utils
-  alias Pleroma.MultiFactorAuthentications, as: MFA
 
   @doc false
   def build(%User{} = user, token, opts \\ %{}) do

@@ -2,12 +2,12 @@
 # Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.MultiFactorAuthenticationsTest do
+defmodule Pleroma.MFATest do
   use Pleroma.DataCase
 
   import Pleroma.Factory
-  alias Pleroma.MultiFactorAuthentications, as: MFA
   alias Comeonin.Pbkdf2
+  alias Pleroma.MFA
 
   describe "mfa_settings" do
     test "returns settings user's" do

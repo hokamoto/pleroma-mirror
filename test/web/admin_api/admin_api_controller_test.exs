@@ -6,9 +6,9 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
   use Pleroma.Web.ConnCase
 
   alias Pleroma.Activity
+  alias Pleroma.MFA
   alias Pleroma.User
   alias Pleroma.UserInviteToken
-  alias Pleroma.MultiFactorAuthentications, as: MFA
   alias Pleroma.Web.CommonAPI
 
   import Pleroma.Factory

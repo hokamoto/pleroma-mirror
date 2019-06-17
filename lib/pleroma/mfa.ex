@@ -2,18 +2,18 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.MultiFactorAuthentications do
+defmodule Pleroma.MFA do
   @moduledoc """
-  The MultiFactorAuthentications context.
+  The MFA context.
   """
 
   alias Comeonin.Pbkdf2
   alias Pleroma.User
 
-  alias Pleroma.MultiFactorAuthentications.BackupCodes
-  alias Pleroma.MultiFactorAuthentications.Changeset
-  alias Pleroma.MultiFactorAuthentications.Settings
-  alias Pleroma.MultiFactorAuthentications.TOTP
+  alias Pleroma.MFA.BackupCodes
+  alias Pleroma.MFA.Changeset
+  alias Pleroma.MFA.Settings
+  alias Pleroma.MFA.TOTP
 
   alias Pleroma.Repo
 
@@ -22,7 +22,7 @@ defmodule Pleroma.MultiFactorAuthentications do
 
   ## Examples
 
-    iex> Pleroma.MultiFactorAuthentications.supported_method(User)
+    iex> Pleroma.MFA.supported_method(User)
     "totp, u2f"
   """
   @spec supported_methods(User.t()) :: String.t()

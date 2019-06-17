@@ -7,7 +7,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
   alias Ecto.Changeset
   alias Pleroma.Activity
-  alias Pleroma.MultiFactorAuthentications
+  alias Pleroma.MFA
   alias Pleroma.User
   alias Pleroma.UserInviteToken
   alias Pleroma.Web.ActivityPub.ActivityPub
@@ -299,7 +299,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   def disable_mfa(conn, %{"nickname" => nickname}) do
     case User.get_by_nickname(nickname) do
       %User{} = user ->
-        MultiFactorAuthentications.disable(user)
+        MFA.disable(user)
         json(conn, nickname)
 
       _ ->

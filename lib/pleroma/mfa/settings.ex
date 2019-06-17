@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.MultiFactorAuthentications.Settings do
+defmodule Pleroma.MFA.Settings do
   use Ecto.Schema
 
   @primary_key false
