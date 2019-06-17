@@ -632,4 +632,4 @@ See [`Pleroma.Plugs.RateLimiter`](Pleroma.Plugs.RateLimiter.html) documentation 
   - `period` - The period parameter defines a period that a TOTP code will be valid for, in seconds. The default value is 30.
 * `backup_codes` - a list containing Backup codes configuration
   - `number` - number backup codes to generate
-  - `code_length` - length backup code. Defaults to `16`.
+  - `length` - backup code length. Defaults to 16 characters.
