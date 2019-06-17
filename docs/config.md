@@ -630,6 +630,6 @@ See [`Pleroma.Plugs.RateLimiter`](Pleroma.Plugs.RateLimiter.html) documentation 
 * `totp` - a list containing TOTP configuration
   - `digits` - Determines the length of a one-time pass-code, in characters. Defaults to 6 characters.
   - `period` - a period for which the TOTP code will be valid, in seconds. Defaults to 30 seconds.
-* `backup_codes` - a list containing Backup codes configuration
+* `backup_codes` - a list containing backup codes configuration
   - `number` - number of backup codes to generate.
   - `length` - backup code length. Defaults to 16 characters.
