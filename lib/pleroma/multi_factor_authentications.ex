@@ -31,7 +31,7 @@ defmodule Pleroma.MultiFactorAuthentications do
 
     Settings.mfa_methods()
     |> Enum.reduce([], fn m, acc ->
-      if enable_method?(m, settings) do
+      if method_enabled?(m, settings) do
         acc ++ [m]
       else
         acc
@@ -52,7 +52,7 @@ defmodule Pleroma.MultiFactorAuthentications do
     settings = fetch_settings(user)
 
     Settings.mfa_methods()
-    |> Enum.map(fn m -> [m, enable_method?(m, settings)] end)
+    |> Enum.map(fn m -> [m, method_enabled?(m, settings)] end)
     |> Enum.into(%{enabled: settings.enabled}, fn [a, b] -> {a, b} end)
   end
 
@@ -139,7 +139,7 @@ defmodule Pleroma.MultiFactorAuthentications do
   @doc """
   Checks if the user has MFA method enabled.
   """
-  def enable_method?(method, settings) do
+  def method_enabled?(method, settings) do
     with {:ok, %{confirmed: true} = _} <- Map.fetch(settings, method) do
       true
     else
@@ -150,9 +150,9 @@ defmodule Pleroma.MultiFactorAuthentications do
   @doc """
   Checks if the user has enabled at least one MFA method.
   """
-  def has_confirmed_method?(settings) do
+  def enabled?(settings) do
     Settings.mfa_methods()
-    |> Enum.map(fn m -> enable_method?(m, settings) end)
+    |> Enum.map(fn m -> method_enabled?(m, settings) end)
     |> Enum.any?()
   end
 end

@@ -255,7 +255,7 @@ config :pleroma, :instance,
     ],
     backup_codes: [
       number: 5,
-      code_length: 16
+      length: 16
     ]
   ]
 

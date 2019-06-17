@@ -13,7 +13,7 @@ defmodule Pleroma.MultiFactorAuthentications.Changeset do
       |> Ecto.Changeset.apply_changes()
       |> MFA.fetch_settings()
 
-    if force || not MFA.has_confirmed_method?(settings) do
+    if force || not MFA.enabled?(settings) do
       put_change(changeset, %Settings{settings | enabled: false})
     else
       changeset

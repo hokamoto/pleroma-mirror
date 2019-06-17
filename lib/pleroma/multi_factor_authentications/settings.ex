@@ -18,12 +18,6 @@ defmodule Pleroma.MultiFactorAuthentications.Settings do
       field(:delivery_type, :string, default: "app")
       field(:confirmed, :boolean, default: false)
     end
-
-    # embeds_one :u2f, U2f, on_replace: :delete, primary_key: false do
-    #   field(:key_handle, :string)
-    #   field(:public_key, :string)
-    #   field(:confirmed, :boolean, default: false)
-    # end
   end
 
   def mfa_methods, do: @mfa_methods
