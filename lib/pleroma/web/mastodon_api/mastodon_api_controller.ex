@@ -51,6 +51,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   @local_mastodon_name "Mastodon-Local"
 
+  @default_context_responses_limit 100
+
   action_fallback(:errors)
 
   def create_app(conn, params) do
@@ -397,17 +399,31 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     end
   end
 
-  def get_context(%{assigns: %{user: user}} = conn, %{"id" => id}) do
+  def get_context(%{assigns: %{user: user}} = conn, %{"id" => id} = params) do
+    activities_limit =
+      if Map.has_key?(params, "limit") do
+        params["limit"]
+      else
+        @default_context_responses_limit
+      end
+
+    activities_offset = params["offset"] || 0
+
     with %Activity{} = activity <- Activity.get_by_id(id),
          activities <-
            ActivityPub.fetch_activities_for_context(activity.data["context"], %{
              "blocking_user" => user,
-             "user" => user
+             "user" => user,
+             "limit" => activities_limit,
+             "offset" => activities_offset
            }),
          activities <-
-           activities |> Enum.filter(fn %{id: aid} -> to_string(aid) != to_string(id) end),
-         activities <-
-           activities |> Enum.filter(fn %{data: %{"type" => type}} -> type == "Create" end),
+           Enum.filter(
+             activities,
+             fn %{id: aid, data: %{"type" => "Create"}} ->
+               to_string(aid) != to_string(id)
+             end
+           ),
          grouped_activities <- Enum.group_by(activities, fn %{id: id} -> id < activity.id end) do
       result = %{
         ancestors:

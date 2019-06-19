@@ -486,7 +486,11 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     public = ["https://www.w3.org/ns/activitystreams#Public"]
 
     recipients =
-      if opts["user"], do: [opts["user"].ap_id | opts["user"].following] ++ public, else: public
+      if opts["user"] do
+        [opts["user"].ap_id | opts["user"].following] ++ public
+      else
+        public
+      end
 
     from(activity in Activity)
     |> maybe_preload_objects(opts)
@@ -503,6 +507,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       )
     )
     |> exclude_poll_votes(opts)
+    |> apply_limit(opts)
+    |> apply_offset(opts)
     |> order_by([activity], desc: activity.id)
   end
 
@@ -531,6 +537,18 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> Pagination.fetch_paginated(opts)
     |> Enum.reverse()
   end
+
+  def apply_limit(query, %{"limit" => limit}) when not is_nil(limit) do
+    limit(query, ^limit)
+  end
+
+  def apply_limit(query, _), do: query
+
+  def apply_offset(query, %{"offset" => offset}) when not is_nil(offset) do
+    offset(query, ^offset)
+  end
+
+  def apply_offset(query, _), do: query
 
   @valid_visibilities ~w[direct unlisted public private]
 
