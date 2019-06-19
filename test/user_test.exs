@@ -927,7 +927,7 @@ defmodule Pleroma.UserTest do
     end)
   end
 
-  test ".delete deactivates a user, all follow relationships and all create activities" do
+  test ".delete deactivates a user, all follow relationships and all activities" do
     user = insert(:user)
     followed = insert(:user)
     follower = insert(:user)
@@ -938,9 +938,9 @@ defmodule Pleroma.UserTest do
     {:ok, activity} = CommonAPI.post(user, %{"status" => "2hu"})
     {:ok, activity_two} = CommonAPI.post(follower, %{"status" => "3hu"})
 
-    {:ok, _, _} = CommonAPI.favorite(activity_two.id, user)
-    {:ok, _, _} = CommonAPI.favorite(activity.id, follower)
-    {:ok, _, _} = CommonAPI.repeat(activity.id, follower)
+    {:ok, like, _} = CommonAPI.favorite(activity_two.id, user)
+    {:ok, like_two, _} = CommonAPI.favorite(activity.id, follower)
+    {:ok, repeat, _} = CommonAPI.repeat(activity_two.id, user)
 
     {:ok, _} = User.delete(user)
 
@@ -953,9 +953,21 @@ defmodule Pleroma.UserTest do
     refute User.following?(user, followed)
     refute User.following?(followed, follower)
 
-    # TODO: Remove favorites, repeats, delete activities.
+    # TODO: Remove "Delete" and "Undo" activities.
+    user_activities =
+      user.ap_id
+      |> Activity.query_by_actor()
+      |> Repo.all()
+      |> Enum.map(fn act -> act.data["type"] end)
+
+    assert Enum.all?(~w(Delete Undo Undo), fn activity -> activity in user_activities end)
 
     refute Activity.get_by_id(activity.id)
+    refute Activity.get_by_id(like.id)
+    refute Activity.get_by_id(like_two.id)
+    refute Activity.get_by_id(repeat.id)
+
+    # TODO: Remove the user from the database.
   end
 
   test "get_public_key_for_ap_id fetches a user that's not in the db" do

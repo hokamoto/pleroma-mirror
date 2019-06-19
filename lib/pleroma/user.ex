@@ -934,11 +934,9 @@ defmodule Pleroma.User do
   def perform(:delete, %User{} = user) do
     # Remove all relationships
     {:ok, followers} = User.get_followers(user)
-
     Enum.each(followers, fn follower -> User.unfollow(follower, user) end)
 
     {:ok, friends} = User.get_friends(user)
-
     Enum.each(friends, fn followed -> User.unfollow(user, followed) end)
 
     delete_user_activities(user)
@@ -1027,7 +1025,23 @@ defmodule Pleroma.User do
   end
 
   defp delete_activity(%{data: %{"type" => "Create"}} = activity) do
-    Object.normalize(activity) |> ActivityPub.delete()
+    activity
+    |> Object.normalize()
+    |> ActivityPub.delete()
+  end
+
+  defp delete_activity(%{data: %{"type" => "Like"}} = activity) do
+    user = get_cached_by_ap_id(activity.actor)
+    object = Object.normalize(activity)
+
+    ActivityPub.unlike(user, object)
+  end
+
+  defp delete_activity(%{data: %{"type" => "Announce"}} = activity) do
+    user = get_cached_by_ap_id(activity.actor)
+    object = Object.normalize(activity)
+
+    ActivityPub.unannounce(user, object)
   end
 
   defp delete_activity(_activity), do: "Doing nothing"
