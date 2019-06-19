@@ -932,8 +932,6 @@ defmodule Pleroma.User do
 
   @spec perform(atom(), User.t()) :: {:ok, User.t()}
   def perform(:delete, %User{} = user) do
-    {:ok, user} = User.deactivate(user)
-
     # Remove all relationships
     {:ok, followers} = User.get_followers(user)
 
@@ -944,6 +942,8 @@ defmodule Pleroma.User do
     Enum.each(friends, fn followed -> User.unfollow(user, followed) end)
 
     delete_user_activities(user)
+
+    {:ok, _user} = User.deactivate(user)
   end
 
   @spec perform(atom(), User.t()) :: {:ok, User.t()}
