@@ -8,6 +8,8 @@ defmodule Pleroma.Web.MongooseIM.MongooseIMController do
   alias Pleroma.Repo
   alias Pleroma.User
 
+  require Logger
+
   def user_exists(conn, %{"user" => username}) do
     with %User{} <- Repo.get_by(User, nickname: username, local: true) do
       conn
@@ -40,7 +42,33 @@ defmodule Pleroma.Web.MongooseIM.MongooseIMController do
   end
 
   def prebind(conn, params) do
+    Logger.warn("Conn: #{inspect(conn)}\n\nParams: #{inspect(params)}")
+    # from = user.name
+
+    _body = """
+      <body
+        content='text/xml; charset=utf-8'
+        from='user1@p.devs.live'
+        hold='1'
+        rid='1'
+        to='p.devs.live'
+        route='xmpp:p.devs.live:9999'
+        wait='60'
+        xml:lang='en'
+        xmpp:version='1.0'
+        xmlns='http://jabber.org/protocol/httpbind'
+        xmlns:xmpp='urn:xmpp:xbosh'
+      />
+    """
+
     IO.inspect(params)
-    json(conn, false)
+
+    response = %{
+      "jid" => "user1@p.devs.live",
+      "sid" => "",
+      "rid" => ""
+    }
+
+    json(conn, response)
   end
 end

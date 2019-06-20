@@ -707,7 +707,12 @@ defmodule Pleroma.Web.Router do
   scope "/", Pleroma.Web.MongooseIM do
     get("/user_exists", MongooseIMController, :user_exists)
     get("/check_password", MongooseIMController, :check_password)
-    get("/prebind", MongooseIMController, :prebind)
+
+    scope "/prebind" do
+      pipe_through([:authenticated_api, :oauth_read])
+
+      get("/", MongooseIMController, :prebind)
+    end
   end
 
   scope "/", Fallback do
