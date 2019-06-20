@@ -920,11 +920,10 @@ defmodule Pleroma.UserTest do
 
     {:ok, activity} = CommonAPI.post(user, %{"status" => "2hu"})
 
-    Ecto.Adapters.SQL.Sandbox.unboxed_run(Repo, fn ->
-      {:ok, _} = User.delete_user_activities(user)
-      # TODO: Remove favorites, repeats, delete activities.
-      refute Activity.get_by_id(activity.id)
-    end)
+    {:ok, _} = User.delete_user_activities(user)
+
+    # TODO: Remove favorites, repeats, delete activities.
+    refute Activity.get_by_id(activity.id)
   end
 
   test ".delete deactivates a user, all follow relationships and all activities" do

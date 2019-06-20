@@ -15,6 +15,7 @@ defmodule Pleroma.User do
   alias Pleroma.Object
   alias Pleroma.Registration
   alias Pleroma.Repo
+  alias Pleroma.RepoStreamer
   alias Pleroma.User
   alias Pleroma.Web
   alias Pleroma.Web.ActivityPub.ActivityPub
@@ -1014,12 +1015,13 @@ defmodule Pleroma.User do
       ])
 
   def delete_user_activities(%User{ap_id: ap_id} = user) do
-    stream =
-      ap_id
-      |> Activity.query_by_actor()
-      |> Repo.stream()
-
-    Repo.transaction(fn -> Enum.each(stream, &delete_activity(&1)) end, timeout: :infinity)
+    ap_id
+    |> Activity.query_by_actor()
+    |> RepoStreamer.chunk_stream(50)
+    |> Stream.each(fn activities ->
+      Enum.each(activities, &delete_activity(&1))
+    end)
+    |> Stream.run()
 
     {:ok, user}
   end
