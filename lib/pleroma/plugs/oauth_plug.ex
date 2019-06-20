@@ -38,33 +38,24 @@ defmodule Pleroma.Plugs.OAuthPlug do
   def call(conn, _) do
     case fetch_token_str(conn) do
       {:ok, token} ->
-        IO.inspect({1, :ok, token})
-
         with {:ok, user, token_record} <- fetch_user_and_token(token) do
-          IO.inspect({2, :ok, user, token_record})
-
           conn
           |> assign(:token, token_record)
           |> assign(:user, user)
         else
           e ->
-            IO.inspect({3, :err, e})
             # token found, but maybe only with app
             with {:ok, app, token_record} <- fetch_app_and_token(token) do
-              IO.inspect({4, :ok, app, token_record})
-
               conn
               |> assign(:token, token_record)
               |> assign(:app, app)
             else
               e ->
-                IO.inspect({5, :err, e})
                 conn
             end
         end
 
       e ->
-        IO.inspect({6, :err, e})
         conn
     end
   end

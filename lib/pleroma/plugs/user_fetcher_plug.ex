@@ -11,6 +11,8 @@ defmodule Pleroma.Plugs.UserFetcherPlug do
   end
 
   def call(conn, _options) do
+    IO.inspect({:assigns, conn.assigns})
+
     with %{auth_credentials: %{username: username}} <- conn.assigns,
          %User{} = user <- User.get_by_nickname_or_email(username) do
       assign(conn, :auth_user, user)
