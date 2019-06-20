@@ -65,4 +65,4 @@ config :logger, level: :warn
 import_config "prod.secret.exs"
 
 if File.exists?("./config/prod.migrated.secret.exs"),
-  do: import_config("./config/prod.migrated.secret.exs")
+  do: import_config("prod.migrated.secret.exs")

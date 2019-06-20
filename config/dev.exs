@@ -61,4 +61,4 @@ else
 end
 
 if File.exists?("./config/dev.migrated.secret.exs"),
-  do: import_config("./config/dev.migrated.secret.exs")
+  do: import_config("dev.migrated.secret.exs")
