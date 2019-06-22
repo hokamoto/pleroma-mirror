@@ -959,7 +959,8 @@ defmodule Pleroma.UserTest do
       |> Repo.all()
       |> Enum.map(fn act -> act.data["type"] end)
 
-    assert Enum.all?(~w(Delete Undo Undo), fn activity -> activity in user_activities end)
+    assert "Delete" in user_activities
+    assert "Undo" in user_activities
 
     refute Activity.get_by_id(activity.id)
     refute Activity.get_by_id(like.id)

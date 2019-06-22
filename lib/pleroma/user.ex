@@ -935,10 +935,18 @@ defmodule Pleroma.User do
   def perform(:delete, %User{} = user) do
     # Remove all relationships
     {:ok, followers} = User.get_followers(user)
-    Enum.each(followers, fn follower -> User.unfollow(follower, user) end)
+
+    Enum.each(followers, fn follower ->
+      ActivityPub.unfollow(follower, user)
+      User.unfollow(follower, user)
+    end)
 
     {:ok, friends} = User.get_friends(user)
-    Enum.each(friends, fn followed -> User.unfollow(user, followed) end)
+
+    Enum.each(friends, fn followed ->
+      ActivityPub.unfollow(user, followed)
+      User.unfollow(user, followed)
+    end)
 
     delete_user_activities(user)
 
