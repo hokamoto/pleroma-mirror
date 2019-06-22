@@ -37,14 +37,14 @@ defmodule Pleroma.Mixfile do
         pleroma: [
           include_executables_for: [:unix],
           applications: [ex_syslogger: :load, syslog: :load],
-          steps: [:assemble, &copy_pleroma_ctl/1]
+          steps: [:assemble, &copy_files/1]
         ]
       ]
     ]
   end
 
-  def copy_pleroma_ctl(%{path: target_path} = release) do
-    File.cp!("./rel/pleroma_ctl", Path.join([target_path, "bin", "pleroma_ctl"]))
+  def copy_files(%{path: target_path} = release) do
+    File.cp_r!("./rel/files", target_path)
     release
   end
 
@@ -108,7 +108,7 @@ defmodule Pleroma.Mixfile do
       {:ex_aws, "~> 2.0"},
       {:ex_aws_s3, "~> 2.0"},
       {:earmark, "~> 1.3"},
-      {:bbcode, "~> 0.1"},
+      {:bbcode, "~> 0.1.1"},
       {:ex_machina, "~> 2.3", only: :test},
       {:credo, "~> 0.9.3", only: [:dev, :test]},
       {:mock, "~> 0.3.3", only: :test},
@@ -126,7 +126,7 @@ defmodule Pleroma.Mixfile do
       {:ueberauth, "~> 0.4"},
       {:auto_linker,
        git: "https://git.pleroma.social/pleroma/auto_linker.git",
-       ref: "e2385402bcd24fc659fee83b3eb8863b0528ad42"},
+       ref: "95e8188490e97505c56636c1379ffdf036c1fdde"},
       {:http_signatures,
        git: "https://git.pleroma.social/pleroma/http_signatures.git",
        ref: "9789401987096ead65646b52b5a2ca6bf52fc531"},
@@ -154,6 +154,8 @@ defmodule Pleroma.Mixfile do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
+      "ecto.migrate": ["pleroma.ecto.migrate"],
+      "ecto.rollback": ["pleroma.ecto.rollback"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate", "test"]
@@ -207,6 +209,7 @@ defmodule Pleroma.Mixfile do
 
     branch_name =
       with {branch_name, 0} <- System.cmd("git", ["rev-parse", "--abbrev-ref", "HEAD"]),
+           branch_name <- System.get_env("PLEROMA_BUILD_BRANCH") || branch_name,
            true <- branch_name != "master" do
         branch_name =
           String.trim(branch_name)
