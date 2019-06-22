@@ -1,192 +1,260 @@
-# Pleromaの入れ方
+# Debianベースのディストリビューションにインストールする
 ## 日本語訳について
 
-この記事は [Installing on Debian based distributions](Installing on Debian based distributions) の日本語訳です。何かがおかしいと思ったら、原文を見てください。
+この記事は [Installing on Debian based distributions](debian_based_en.html) の日本語訳です。何かがおかしいと思ったら、原文を見てください。
 
 ## インストール
 
-このガイドはDebian Stretchを仮定しています。Ubuntu 16.04でも可能です。
+このガイドはステップ・バイ・ステップのインストールガイドです。Debianベースのディストリビューション、特にDebian Stretchを仮定しています。
 
-### 必要なソフトウェア
+コマンドが `#` で始まるならば、ルートで実行してください。コマンドが `$` で始まるならば、`pleroma` ユーザーで実行してください。コマンドが `%` で始まるならば、特にユーザーの指定はありません。これら以外に特にユーザーの指定が必要なときは `username $` と表記します。
 
-- PostgreSQL 9.6+ (postgresql-contrib-9.6 または他のバージョンの PSQL をインストールしてください)
-- Elixir 1.5 以上 ([Debianのリポジトリからインストールしないこと！！！ ここからインストールすること！](https://elixir-lang.org/install.html#unix-and-unix-like))。または [asdf](https://github.com/asdf-vm/asdf) を pleroma ユーザーでインストール。
-- erlang-dev
-- erlang-tools
-- erlang-parsetools
-- erlang-ssh
-- erlang-xmerl (Jessieではバックポートからインストールすること！)
-- git
-- build-essential
-- openssh
-- openssl
-- nginx prefered (Apacheも動くかもしれませんが、誰もテストしていません！)
-- certbot (または何らかのACME Let's encryptクライアント)
+ユーザーを切り替えるときか、exit するよう指示されたときを除いては、セッションを維持してください。
+
+### 必要なパッケージ
+
+* `postgresql` (9.6以上。Ubuntu 16.04のPostgreSQLは9.5なので、[新しいバージョンを取得する](https://www.postgresql.org/download/linux/ubuntu/)必要がある。)
+* `postgresql-contrib` (9.6以上。同上。)
+* `elixir` (1.7以上。[DebianとUbuntuのパッケージは古いので、ここからインストールすること](https://elixir-lang.org/install.html#unix-and-unix-like)。または、[asdf](https://github.com/asdf-vm/asdf)をpleromaユーザーで使うこと。)
+* `erlang-dev`
+* `erlang-tools`
+* `erlang-parsetools`
+* `erlang-eldap`
+* `erlang-xmerl`
+* `erlang-ssh`
+* `git`
+* `build-essential`
+
+#### オプションのパッケージ
+
+* `nginx` (推奨。他のリバースプロクシの設定の雛形も用意されている。)
+* `certbot` (または他のACMEクライアント。)
 
 ### システムを準備する
 
 * まずシステムをアップデートしてください。
-```
-apt update && apt dist-upgrade
+
+```shell
+# apt update
+# apt full-upgrade
+# apt autoremove
+# reboot
 ```
 
-* 複数のツールとpostgresqlをインストールします。あとで必要になるので。
+* 必要なソフトウェアの一部をインストールします。
+
+```shell
+# apt install git build-essential
 ```
-apt install git build-essential openssl ssh sudo postgresql-9.6 postgresql-contrib-9.6
+
+* 新しいユーザーを作成します。
+
+```shell
+# useradd -r -m -d /var/lib/pleroma -U pleroma
 ```
-(postgresqlのバージョンは、あなたのディストロにあわせて変えてください。または、バージョン番号がいらないかもしれません。)
+
+### PostgreSQLをインストールします
+
+以下の例はUbuntu 16です。他のプラットフォームの説明は [PostgreSQLのウェブサイト](https://www.postgresql.org/download/linux/ubuntu/) にあります。
+
+```shell
+# nano /etc/apt/sources.list.d/pgdg.list
+```
+
+`pgdg.list` に以下のコードを入力します。
+
+```
+deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main
+```
+
+```shell
+% wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+# apt update
+# apt install postgresql postgresql-contrib
+```
+
+PostgreSQLのポート番号とバージョンを確認します。
+
+```shell
+postgres $ psql -p 5432 -c 'SELECT version()'
+```
+
+システムに複数のバージョンのPostgreSQLがインストールされているならば、希望するバージョンが得られるまで、ポート番号を5432から順に試してください。
 
 ### ElixirとErlangをインストールします
 
-* Erlangのリポジトリをダウンロードおよびインストールします。
-```
-wget -P /tmp/ https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb && sudo dpkg -i /tmp/erlang-solutions_1.0_all.deb
+* Erlangのリポジトリをダウンロードおよび追加します。
+
+```shell
+% wget -P /tmp/ https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb
+# dpkg -i /tmp/erlang-solutions_1.0_all.deb
 ```
 
-* ElixirとErlangをインストールします、
-```
-apt update && apt install elixir erlang-dev erlang-parsetools erlang-xmerl erlang-tools erlang-ssh
+* ElixirとErlangをインストールします
+
+```shell
+# apt update
+# apt install elixir erlang-dev erlang-tools erlang-parsetools erlang-eldap erlang-xmerl erlang-ssh
 ```
 
-### Pleroma BE (バックエンド) をインストールします
+### Pleromaのインストールとコンフィギュレーション
 
-*  新しいユーザーを作ります。
-```
-adduser pleroma
-``` 
-(Give it any password you want, make it STRONG)
-
-*  新しいユーザーをsudoグループに入れます。
-```
-usermod -aG sudo pleroma
+#### Pleromaのソースコードを取得する
+```shell
+$ git clone -b master https://git.pleroma.social/pleroma/pleroma ~pleroma/pleroma
+$ cd ~pleroma/pleroma
 ```
 
-*  新しいユーザーに変身し、ホームディレクトリに移動します。
-```
-su pleroma
-cd ~
+**注意** いま `master` ブランチが選択されており、`git checkout` で別のブランチに切り替えることができます。しかし、気を付けるべきことがあり、他のほとんどのブランチは `develop` ブランチから派生しています。([GitFlow](https://nvie.com/posts/a-successful-git-branching-model/) を見るとよい。) `develop` とそこから派生したブランチは、データベースのミグレーションを先行して行っており、そのミグレーションは `master` ブランチには反映されていないことがあります。つまり、`master` から別のブランチに切り替えたら、`master` に戻ってくることはおそらく不可能だろうということです。
+
+#### Elixirの依存をインストールする
+* Pleromaのための依存をインストールします。`Hex` をインストールするか聞かれたら、`Y` と回答してください。
+
+```shell
+$ mix deps.get
 ```
 
-*  Gitリポジトリをクローンします。
-```
-git clone -b master https://git.pleroma.social/pleroma/pleroma
+#### コンフィギュレーション
+* コンフィギュレーションを生成する: ``mix pleroma.instance gen``
+  * `rebar3` をインストールするか聞かれたら、`Y` と回答してください。
+  * これには時間がかかります。Pleromaをコンパイルするためです。
+  * あなたのインスタンスについていくつかの質問があります。コンフィギュレーションファイルが `config/generated_config.exs` に生成されます。
+
+* コンフィギュレーションが正しいかどうか、ファイルの内容を確認してください。もし問題なければ、コピーしてください。Pleromaが読み込むのはコピーのほうです。コピー先のファイル名は、プロダクションインスタンスであれば `prod.secret.exs`、開発インスタンスであれば `dev.secret.exs` です。
+
+```shell
+$ cp config/generated_config.exs config/prod.secret.exs
 ```
 
-*  新しいディレクトリに移動します。
-```
-cd pleroma/
+* PostgreSQLのポート番号が5432でなければ、コンフィギュレーションファイルの `Pleroma.Repo` セクションに `port` レコードを追加する必要があります。
+
+* 先ほどのコンフィギュレーションジェネレーターは `config/setup_db.psql` というファイルも生成します。これを使ってデータベースを作ります:
+
+```shell
+postgres $ psql -U postgres -f config/setup_db.psql
 ```
 
-* Pleromaが依存するパッケージをインストールします。Hexをインストールしてもよいか聞かれたら、yesを入力してください。
-```
-mix deps.get
+* プロダクションモードに変更します。また、`pleroma` ユーザーのセッションが常にプロダクションモードになるようにします。
+
+```shell
+$ export MIX_ENV=prod
+$ echo MIX_ENV=prod > ~/.profile
 ```
 
-* コンフィギュレーションを生成します。
-```
-mix pleroma.instance gen
-```
-    * rebar3をインストールしてもよいか聞かれたら、yesを入力してください。
-    * この処理には時間がかかります。私もよく分かりませんが、何らかのコンパイルが行われているようです。
-    * あなたのインスタンスについて、いくつかの質問があります。その回答は `config/generated_config.exs` というコンフィギュレーションファイルに保存されます。
+* ベータベースのミグレーションを実行します。
 
-**注意**: メディアプロクシを有効にすると回答して、なおかつ、キャッシュのURLは空欄のままにしている場合は、`generated_config.exs` を編集して、`base_url` で始まる行をコメントアウトまたは削除してください。そして、上にある行の `true` の後にあるコンマを消してください。
-
-* コンフィギュレーションを確認して、もし問題なければ、ファイル名を変更してください。
-```
-mv config/{generated_config.exs,prod.secret.exs}
+```shell
+$ mix ecto.migrate
 ```
 
-* これまでのコマンドで、すでに `config/setup_db.psql` というファイルが作られています。このファイルをもとに、データベースを作成します。
-```
-sudo su postgres -c 'psql -f config/setup_db.psql'
+* 管理者アカウントを作成します。
+
+```shell
+$ mix pleroma.user new <username> <your@emailaddress> --admin
 ```
 
-* そして、データベースのミグレーションを実行します。
-```
-MIX_ENV=prod mix ecto.migrate
+* ここまで来れば、Pleromaを手動で起動することができます。
+
+```shell
+$ mix phx.server
 ```
 
-* Pleromaを起動できるようになりました。
-```
-MIX_ENV=prod mix phx.server
+#### デーモンにする
+この節はsystemdを使うシステムのためのものです。ArchLinux、Debianの子孫たち、Gentoo with systemd、RedHatの子孫たち (CentOSなど) がそうです。
+
+* サービスファイルの例をコピーしてください。
+
+```shell
+# cp ~pleroma/pleroma/installation/pleroma.service /etc/systemd/system/pleroma.service
 ```
 
-### インストールを終わらせる
+* このサービスファイルの内容を編集して、すべてのパスが正しいことを確認してください。特に `WorkingDirectory=/opt/pleroma` は `WorkingDirectory=/var/lib/pleroma/pleroma` に訂正すべきです。
 
-あなたの新しいインスタンスを世界に向けて公開するには、nginxまたは何らかのウェブサーバー (プロクシ) を使用する必要があります。また、Pleroma のためにシステムサービスファイルを作成する必要があります。
+* `pleroma.service` サービスをイネーブルおよびスタートします。
 
-#### Nginx
-
-* まだインストールしていないなら、nginxをインストールします。
-```
-apt install nginx
+```shell
+# systemctl enable --now pleroma.service
 ```
 
-* SSLをセットアップします。他の方法でもよいですが、ここではcertbotを説明します。
-certbotを使うならば、まずそれをインストールします。
+### Nginxをインストールします
+
+* Nginxをインストールします。
+
+```shell
+# apt install nginx
 ```
-apt install certbot
+
+* SSLをセットアップします。certbotでよければ、まずそれをインストールします。
+
+```shell
+# apt install certbot
 ```
-そしてセットアップします。
+
+certbotをセットアップします。
+
+```shell
+# mkdir -p /var/lib/letsencrypt/
+# systemctl stop nginx
+# certbot certonly --email <your@emailaddress> -d <yourdomain> --standalone
+# systemctl start nginx
 ```
-mkdir -p /var/lib/letsencrypt/.well-known
-% certbot certonly --email your@emailaddress --webroot -w /var/lib/letsencrypt/ -d yourdomain
-```
-もしうまくいかないときは、先にnginxを設定してください。ssl "on" を "off" に変えてから再試行してください。
+
+もしうまくいかないならば、nginxが動作していないことを確認してください。それでもうまくいかないならば、先にnginxを設定 (ssl "on" を "off" に変える) してから再試行してください。
 
 ---
 
-* nginxコンフィギュレーションの例をnginxフォルダーにコピーします。
-```
-cp /home/pleroma/pleroma/installation/pleroma.nginx /etc/nginx/sites-enabled/pleroma.nginx
+* nginxコンフィギュレーションの例をコピーおよびアクティベートします。
+
+```shell
+# cp ~pleroma/pleroma/installation/pleroma.nginx /etc/nginx/sites-available
+# ln -s /etc/nginx/sites-available/pleroma.nginx /etc/nginx/sites-enabled/pleroma.nginx
 ```
 
 * nginxを起動する前に、コンフィギュレーションを編集してください。例えば、サーバー名、証明書のパスなどを変更する必要があります。
-* nginxを再起動します。
-```
-systemctl reload nginx.service
-```
 
-#### Systemd サービス
+* nginxをイネーブルおよび起動します。
 
-* サービスファイルの例をコピーします。
+```shell
+# systemctl enable --now nginx.service
 ```
-cp /home/pleroma/pleroma/installation/pleroma.service /usr/lib/systemd/system/pleroma.service
-```
+もし未来に証明書を延長する必要があるならば、nginxのコンフィグのリリバント・ロケーション・ブロックをアンコメントして、以下を実行してください。
 
-* サービスファイルを変更します。すべてのパスが正しいことを確認してください。また、`[Service]` セクションに以下の行があることを確認してください。
-```
-Environment="MIX_ENV=prod"
+```shell
+# certbot certonly --email <your@emailaddress> -d <yourdomain> --webroot -w /var/lib/letsencrypt/
 ```
 
-* `pleroma.service` を enable および start してください。
-```
-systemctl enable --now pleroma.service
-```
+#### nginxのワークアラウンド
 
-#### モデレーターを作る
+nginxのログは ``# systemctl status nginx`` または ``# journalctl -u nginx`` で見ることができます。
 
-新たにユーザーを作ったら、モデレーター権限を与えたいかもしれません。以下のタスクで可能です。
+nginxが動いておらず、以下のエラーメッセージが見えているならば、[nginxの既知のバグ](https://bugs.launchpad.net/ubuntu/+source/nginx/+bug/1581864) を踏んでいます。
+
 ```
-mix set_moderator username [true|false]
+systemd[1]: nginx.service: Failed to read PID from file /run/nginx.pid: Invalid argument
 ```
 
-モデレーターはすべてのポストを消すことができます。将来的には他のことも可能になるかもしれません。
+以下のワークアラウンドがあります。
 
-#### メディアプロクシを有効にする
+```shell
+# mkdir /etc/systemd/system/nginx.service.d
+# printf "[Service]\nExecStartPost=/bin/sleep 0.1\n" > /etc/systemd/system/nginx.service.d/override.conf
+# systemctl daemon-reload
+# systemctl restart nginx
+```
 
-`generate_config` でメディアプロクシを有効にしているなら、すでにメディアプロクシが動作しています。あとから設定を変更したいなら、[How to activate mediaproxy](How-to-activate-mediaproxy) を見てください。
+nginxが動いておらず、以下のエラーメッセージが見えているならば、nginxがモダンな楕円曲線に対応していません。
 
-#### コンフィギュレーションとカスタマイズ
+```
+nginx[1431]: nginx: [emerg] Unknown curve name "X25519:prime256v1:secp384r1:secp521r1" (SSL:)
+```
 
-* [Configuration tips](General tips for customizing pleroma fe)
-* [Small Pleroma-FE customizations](Small customizations)
-* [Admin tasks](Admin tasks)
+`/etc/nginx/sites-available/pleroma.nginx` を編集し、`ssl_ecdh_curve X25519:prime256v1:secp384r1:secp521r1;` という行をコメントアウトしてください。
+
+#### 他のウェブサーバーとプロクシ
+
+他のコンフィグレーションの例は `/var/lib/pleroma/installation/` にあります。
 
 ## 質問ある？
 
-インストールについて質問がある、もしくは、うまくいかないときは、以下のところで質問できます。
+何か質問があれば、以下のチャットルームに来てください。IRCは [Freenode](https://freenode.net/) の `#pleroma` チャンネルです。[Matrix on `#freenode_#pleroma:matrix.org`](https://matrix.heldscal.la/#/room/#freenode_#pleroma:matrix.org) もあります。
 
-* [#pleroma:matrix.org](https://matrix.heldscal.la/#/room/#freenode_#pleroma:matrix.org)
-* **Freenode** の **#pleroma** IRCチャンネル

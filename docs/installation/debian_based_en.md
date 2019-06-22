@@ -1,13 +1,14 @@
 # Installing on Debian Based Distributions
 ## Installation
 
-This guide will assume you are on Debian Stretch. This guide should also work with Ubuntu 16.04 and 18.04. It also assumes that you have administrative rights, either as root or a user with [sudo permissions](https://www.digitalocean.com/community/tutorials/how-to-add-delete-and-grant-sudo-privileges-to-users-on-a-debian-vps). If you want to run this guide with root, ignore the `sudo` at the beginning of the lines, unless it calls a user like `sudo -Hu pleroma`; in this case, use `su <username> -s $SHELL -c 'command'` instead.
+This guide is a step-by-step installation guide for Debian-based distributions, it assumes a setup similar to Debian Stretch.
+Commands starting with `#` should be launched as root, with `$` they should be launched as the `pleroma` user, with `%` they can be launched with any user on the machine, in case they need a specific user they’ll be prefixed with `username $`. It is recommended to keep the session until it changes of user or tells you to exit. See [[unix session management]] if you do not know how to do it.
 
 ### Required packages
 
-* `postgresql` (9.6+, Ubuntu 16.04 comes with 9.5, you can get a newer version from [here](https://www.postgresql.org/download/linux/ubuntu/))
+* `postgresql` (9.6+, Ubuntu 16.04 comes with 9.5, you can get a newer version from <https://www.postgresql.org/download/linux/ubuntu/>
 * `postgresql-contrib` (9.6+, same situtation as above)
-* `elixir` (1.5+, [install from here, Debian and Ubuntu ship older versions](https://elixir-lang.org/install.html#unix-and-unix-like) or use [asdf](https://github.com/asdf-vm/asdf) as the pleroma user)
+* `elixir` (1.7+, Debian and Ubuntu ships old versions, install from <https://elixir-lang.org/install.html#unix-and-unix-like> or use [asdf](https://github.com/asdf-vm/asdf) as the pleroma user)
 * `erlang-dev`
 * `erlang-tools`
 * `erlang-parsetools`
@@ -27,114 +28,177 @@ This guide will assume you are on Debian Stretch. This guide should also work wi
 * First update the system, if not already done:
 
 ```shell
-sudo apt update
-sudo apt full-upgrade
+# apt update
+# apt full-upgrade
+# apt autoremove
+# reboot
 ```
 
 * Install some of the above mentioned programs:
 
 ```shell
-sudo apt install git build-essential postgresql postgresql-contrib
+# apt install git build-essential
 ```
+
+* Add a new system user for the Pleroma service:
+
+```shell
+# useradd -r -m -d /var/lib/pleroma -U pleroma
+```
+
+### Install PostgreSQL
+
+Following tutorial is for Ubuntu 16. For other platforms, see [PostgreSQL's official document](https://www.postgresql.org/download/linux/ubuntu/).
+
+```shell
+# nano /etc/apt/sources.list.d/pgdg.list
+```
+
+Write following code into the `pgdg.list`.
+
+```
+deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main
+```
+
+```shell
+% wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+# apt update
+# apt install postgresql postgresql-contrib
+```
+
+Check PostgreSQL's port number and version.
+
+```shell
+postgres $ psql -p 5432 -c 'SELECT version()'
+```
+
+If some versions of PostgreSQL are installed in your system, try sequential port numbers 5432, 5433, ..., while you get the version you want.
 
 ### Install Elixir and Erlang
 
 * Download and add the Erlang repository:
 
 ```shell
-wget -P /tmp/ https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb
-sudo dpkg -i /tmp/erlang-solutions_1.0_all.deb
+% wget -P /tmp/ https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb
+# dpkg -i /tmp/erlang-solutions_1.0_all.deb
 ```
 
 * Install Elixir and Erlang:
 
 ```shell
-sudo apt update
-sudo apt install elixir erlang-dev erlang-parsetools erlang-xmerl erlang-tools erlang-ssh
+# apt update
+# apt install elixir erlang-dev erlang-tools erlang-parsetools erlang-eldap erlang-xmerl erlang-ssh
 ```
 
-### Install PleromaBE
+### Install and Configure Pleroma
 
-* Add a new system user for the Pleroma service:
+#### Get pleroma source code
+```shell
+$ cd
+$ git clone -b master https://git.pleroma.social/pleroma/pleroma.git ~pleroma/pleroma
+$ cd ~pleroma/pleroma
+```
+
+Note: The `master` branch was selected, you can switch to another one with `git checkout`. However, be aware almost all other branches are based on the `develop` branch (see [GitFlow](https://nvie.com/posts/a-successful-git-branching-model/)), which usually contains database migrations not present in `master`, meaning that if you choose to switch from master you **can't** switch back until the next release.
+
+#### Install Elixir dependencies
+* Install the dependencies for Pleroma and answer with `Y` if it asks you to install `Hex`:
 
 ```shell
-sudo useradd -r -s /bin/false -m -d /var/lib/pleroma -U pleroma
+$ mix deps.get
 ```
 
-**Note**: To execute a single command as the Pleroma system user, use `sudo -Hu pleroma command`. You can also switch to a shell by using `sudo -Hu pleroma $SHELL`. If you don’t have and want `sudo` on your system, you can use `su` as root user (UID 0) for a single command by using `su -l pleroma -s $SHELL -c 'command'` and `su -l pleroma -s $SHELL` for starting a shell.
+If you get ``mix: command not found``, a workaround ``$ export PATH=$PATH:/usr/local/bin`` may help you.
 
-* Git clone the PleromaBE repository and make the Pleroma user the owner of the directory:
-
-```shell
-sudo mkdir -p /opt/pleroma
-sudo chown -R pleroma:pleroma /opt/pleroma
-sudo -Hu pleroma git clone -b master https://git.pleroma.social/pleroma/pleroma /opt/pleroma
-```
-
-* Change to the new directory:
-
-```shell
-cd /opt/pleroma
-```
-
-* Install the dependencies for Pleroma and answer with `yes` if it asks you to install `Hex`:
-
-```shell
-sudo -Hu pleroma mix deps.get
-```
-
-* Generate the configuration: `sudo -Hu pleroma mix pleroma.instance gen`
-  * Answer with `yes` if it asks you to install `rebar3`.
+#### Configuration
+* Generate the configuration: ``mix pleroma.instance gen``
+  * Answer with `Y` if it asks you to install `rebar3`.
   * This may take some time, because parts of pleroma get compiled first.
   * After that it will ask you a few questions about your instance and generates a configuration file in `config/generated_config.exs`.
 
-* Check the configuration and if all looks right, rename it, so Pleroma will load it (`prod.secret.exs` for productive instance, `dev.secret.exs` for development instances):
+* Check the configuration and if all looks right, copy it, so Pleroma will load it (`prod.secret.exs` for production instances, `dev.secret.exs` for development instances):
 
 ```shell
-mv config/{generated_config.exs,prod.secret.exs}
+$ cp config/generated_config.exs config/prod.secret.exs
 ```
 
-* The previous command creates also the file `config/setup_db.psql`, with which you can create the database:
+* If your PostgreSQL's port number is not 5432, add `port` record into `Pleroma.Repo` section in the `prod.secret.exs` and/or `dev.secret.exs`.
+
+* The configuration generator also creates the file `config/setup_db.psql`, with which you can create the database:
 
 ```shell
-sudo -Hu postgres psql -f config/setup_db.psql
+postgres $ psql -U postgres -f config/setup_db.psql
+```
+Or sometimes following workaround may help you:
+
+```shell
+# cat ~pleroma/pleroma/config/setup_db.psql | sudo -Hu postgres psql -U postgres -f -
+```
+
+* Change to production mode and make the next `pleroma` sessions default to it:
+
+```shell
+$ export MIX_ENV=prod
+$ echo MIX_ENV=prod > ~/.profile
 ```
 
 * Now run the database migration:
 
 ```shell
-sudo -Hu pleroma MIX_ENV=prod mix ecto.migrate
+$ mix ecto.migrate
 ```
 
-* Now you can start Pleroma already
+* Create the admin account:
 
 ```shell
-sudo -Hu pleroma MIX_ENV=prod mix phx.server
+$ mix pleroma.user new <username> <your@emailaddress> --admin
 ```
 
-### Finalize installation
+* Now you can start Pleroma manually for tests:
 
-If you want to open your newly installed instance to the world, you should run nginx or some other webserver/proxy in front of Pleroma and you should consider to create a systemd service file for Pleroma.
+```shell
+$ mix phx.server
+```
 
-#### Nginx
+#### Daemonize
+This one is for systems using sytemd, such as: ArchLinux, Debian derivatives, Gentoo with systemd, RedHat-based (ie. CentOS)
+
+* Copy example service file
+
+```shell
+# cp ~pleroma/pleroma/installation/pleroma.service /etc/systemd/system/pleroma.service
+```
+
+* Edit the service file and make sure that all paths fit your installation. Especially `WorkingDirectory=/opt/pleroma` has to be `WorkingDirectory=/var/lib/pleroma/pleroma`.
+
+* Enable and start `pleroma.service`:
+
+```shell
+# systemctl enable --now pleroma.service
+```
+
+### Install nginx
 
 * Install nginx, if not already done:
 
 ```shell
-sudo apt install nginx
+# apt install nginx
 ```
 
 * Setup your SSL cert, using your method of choice or certbot. If using certbot, first install it:
 
 ```shell
-sudo apt install certbot
+# apt install certbot
 ```
 
 and then set it up:
 
 ```shell
-sudo mkdir -p /var/lib/letsencrypt/
-sudo certbot certonly --email <your@emailaddress> -d <yourdomain> --standalone
+# mkdir -p /var/lib/letsencrypt/
+# systemctl stop nginx
+# certbot certonly --email <your@emailaddress> -d <yourdomain> --standalone
+# systemctl start nginx
+--standalone
 ```
 
 If that doesn’t work, make sure, that nginx is not already running. If it still doesn’t work, try setting up nginx first (change ssl “on” to “off” and try again).
@@ -144,60 +208,55 @@ If that doesn’t work, make sure, that nginx is not already running. If it stil
 * Copy the example nginx configuration and activate it:
 
 ```shell
-sudo cp /opt/pleroma/installation/pleroma.nginx /etc/nginx/sites-available/pleroma.nginx
-sudo ln -s /etc/nginx/sites-available/pleroma.nginx /etc/nginx/sites-enabled/pleroma.nginx
+# cp ~pleroma/pleroma/installation/pleroma.nginx /etc/nginx/sites-available
+# ln -s /etc/nginx/sites-available/pleroma.nginx /etc/nginx/sites-enabled/pleroma.nginx
 ```
 
 * Before starting nginx edit the configuration and change it to your needs (e.g. change servername, change cert paths)
 * Enable and start nginx:
 
 ```shell
-sudo systemctl enable --now nginx.service
+# systemctl enable --now nginx.service
 ```
 
 If you need to renew the certificate in the future, uncomment the relevant location block in the nginx config and run:
 
 ```shell
-sudo certbot certonly --email <your@emailaddress> -d <yourdomain> --webroot -w /var/lib/letsencrypt/
+# certbot certonly --email <your@emailaddress> -d <yourdomain> --webroot -w /var/lib/letsencrypt/
 ```
+
+#### Workarounds for nginx
+
+You can watch the nginx's log by ``# systemctl status nginx`` or ``# journalctl -u nginx`` commands.
+
+If your nginx does not work, and claims following message, this is [nginx's known bug](https://bugs.launchpad.net/ubuntu/+source/nginx/+bug/1581864).
+
+```
+systemd[1]: nginx.service: Failed to read PID from file /run/nginx.pid: Invalid argument
+```
+
+Following workaround may helps you.
+
+```shell
+# mkdir /etc/systemd/system/nginx.service.d
+# printf "[Service]\nExecStartPost=/bin/sleep 0.1\n" > /etc/systemd/system/nginx.service.d/override.conf
+# systemctl daemon-reload
+# systemctl restart nginx
+```
+
+If your nginx still does not work, and claims following message, your nginx dose not know some of the modern cryptographic algorithms.
+
+```
+nginx[1431]: nginx: [emerg] Unknown curve name "X25519:prime256v1:secp384r1:secp521r1" (SSL:)
+```
+
+Edit `/etc/nginx/sites-available/pleroma.nginx` and just comment out `ssl_ecdh_curve X25519:prime256v1:secp384r1:secp521r1;`.
 
 #### Other webserver/proxies
 
-You can find example configurations for them in `/opt/pleroma/installation/`.
+You can find example configurations for them in `/var/lib/pleroma/installation/`.
 
-#### Systemd service
+## Support & Questions
 
-* Copy example service file
+For support or questions please ask in the chatroom, available via IRC at `#pleroma` on [Freenode](https://freenode.net/) and via [Matrix on `#freenode_#pleroma:matrix.org`](https://matrix.heldscal.la/#/room/#freenode_#pleroma:matrix.org).
 
-```shell
-sudo cp /opt/pleroma/installation/pleroma.service /etc/systemd/system/pleroma.service
-```
-
-* Edit the service file and make sure that all paths fit your installation
-* Enable and start `pleroma.service`:
-
-```shell
-sudo systemctl enable --now pleroma.service
-```
-
-#### Create your first user
-
-If your instance is up and running, you can create your first user with administrative rights with the following task:
-
-```shell
-sudo -Hu pleroma MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress> --admin
-```
-
-#### Further reading
-
-* [Admin tasks](Admin tasks)
-* [Backup your instance](Backup-your-instance)
-* [Configuration tips](General tips for customizing pleroma fe)
-* [Hardening your instance](Hardening-your-instance)
-* [How to activate mediaproxy](How-to-activate-mediaproxy)
-* [Small Pleroma-FE customizations](Small customizations)
-* [Updating your instance](Updating-your-instance)
-
-## Questions
-
-Questions about the installation or didn’t it work as it should be, ask in [#pleroma:matrix.org](https://matrix.heldscal.la/#/room/#freenode_#pleroma:matrix.org) or IRC Channel **#pleroma** on **Freenode**.
