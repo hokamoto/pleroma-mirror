@@ -161,10 +161,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
          {:ok, inserted_object} <- Repo.insert(changeset) do
       inserted_object
     else
-      false ->
-        object
-
-      {:error, _} ->
+      _ ->
         object
     end
   end

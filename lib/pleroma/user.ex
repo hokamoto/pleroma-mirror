@@ -950,7 +950,7 @@ defmodule Pleroma.User do
 
     delete_user_activities(user)
 
-    {:ok, _user} = User.deactivate(user)
+    {:ok, _user} = Repo.delete(user)
   end
 
   @spec perform(atom(), User.t()) :: {:ok, User.t()}

@@ -928,10 +928,8 @@ defmodule Pleroma.UserTest do
 
   test ".delete deactivates a user, all follow relationships and all activities" do
     user = insert(:user)
-    followed = insert(:user)
     follower = insert(:user)
 
-    {:ok, user} = User.follow(user, followed)
     {:ok, follower} = User.follow(follower, user)
 
     {:ok, activity} = CommonAPI.post(user, %{"status" => "2hu"})
@@ -943,31 +941,23 @@ defmodule Pleroma.UserTest do
 
     {:ok, _} = User.delete(user)
 
-    followed = User.get_cached_by_id(followed.id)
     follower = User.get_cached_by_id(follower.id)
-    user = User.get_cached_by_id(user.id)
 
-    assert user.info.deactivated
+    refute User.following?(follower, user)
+    refute User.get_by_id(user.id)
 
-    refute User.following?(user, followed)
-    refute User.following?(followed, follower)
-
-    # TODO: Remove "Delete" and "Undo" activities.
     user_activities =
       user.ap_id
       |> Activity.query_by_actor()
       |> Repo.all()
       |> Enum.map(fn act -> act.data["type"] end)
 
-    assert "Delete" in user_activities
-    assert "Undo" in user_activities
+    assert Enum.all?(user_activities, fn act -> act in ~w(Delete Undo) end)
 
     refute Activity.get_by_id(activity.id)
     refute Activity.get_by_id(like.id)
     refute Activity.get_by_id(like_two.id)
     refute Activity.get_by_id(repeat.id)
-
-    # TODO: Remove the user from the database.
   end
 
   test "get_public_key_for_ap_id fetches a user that's not in the db" do
