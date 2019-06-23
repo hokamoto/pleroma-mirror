@@ -139,6 +139,7 @@ config :pleroma, Pleroma.Web.Endpoint,
   instrumenters: [Pleroma.Web.Endpoint.Instrumenter],
   url: [host: "localhost"],
   http: [
+    ip: {127, 0, 0, 1},
     dispatch: [
       {:_,
        [
@@ -442,6 +443,8 @@ config :auto_linker,
   opts: [
     scheme: true,
     extra: true,
+    # TODO: Set to :no_scheme when it works properly
+    validate_tld: true,
     class: false,
     strip_prefix: false,
     new_window: false,
