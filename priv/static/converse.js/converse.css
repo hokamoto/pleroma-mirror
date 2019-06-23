@@ -3484,7 +3484,7 @@
   #conversejs .bs-popover-top .arrow::before, #conversejs .bs-popover-auto[x-placement^="top"] .arrow::before {
     bottom: 0;
     border-top-color: rgba(0, 0, 0, 0.25); }
-  
+
   #conversejs .bs-popover-top .arrow::after,
   #conversejs .bs-popover-auto[x-placement^="top"] .arrow::after {
     bottom: 1px;
@@ -3504,7 +3504,7 @@
   #conversejs .bs-popover-right .arrow::before, #conversejs .bs-popover-auto[x-placement^="right"] .arrow::before {
     left: 0;
     border-right-color: rgba(0, 0, 0, 0.25); }
-  
+
   #conversejs .bs-popover-right .arrow::after,
   #conversejs .bs-popover-auto[x-placement^="right"] .arrow::after {
     left: 1px;
@@ -3521,7 +3521,7 @@
   #conversejs .bs-popover-bottom .arrow::before, #conversejs .bs-popover-auto[x-placement^="bottom"] .arrow::before {
     top: 0;
     border-bottom-color: rgba(0, 0, 0, 0.25); }
-  
+
   #conversejs .bs-popover-bottom .arrow::after,
   #conversejs .bs-popover-auto[x-placement^="bottom"] .arrow::after {
     top: 1px;
@@ -3550,7 +3550,7 @@
   #conversejs .bs-popover-left .arrow::before, #conversejs .bs-popover-auto[x-placement^="left"] .arrow::before {
     right: 0;
     border-left-color: rgba(0, 0, 0, 0.25); }
-  
+
   #conversejs .bs-popover-left .arrow::after,
   #conversejs .bs-popover-auto[x-placement^="left"] .arrow::after {
     right: 1px;
@@ -5488,27 +5488,27 @@
   font-family: 'Baumans';
   font-style: normal;
   font-weight: 400;
-  src: local("Baumans Regular"), local("Baumans-Regular"), url(../dist/webfonts/baumans.ttf) format("truetype"); }
+  src: local("Baumans Regular"), local("Baumans-Regular"), url(/converse.js/webfonts/baumans.ttf) format("truetype"); }
 
 @font-face {
   font-family: 'Muli';
   font-style: normal;
   font-weight: 400;
-  src: local("Muli Regular"), local("Muli-Regular"), url(../dist/webfonts/muli.ttf) format("truetype"); }
+  src: local("Muli Regular"), local("Muli-Regular"), url(/converse.js/webfonts/muli.ttf) format("truetype"); }
 
 @font-face {
   font-family: 'ConverseFontAwesomeBrands';
   font-style: normal;
   font-weight: normal;
-  src: url(../dist/webfonts/fa-brands-400.eot);
-  src: url(../dist/webfonts/fa-brands-400.eot?#iefix) format("embedded-opentype"), url(../dist/webfonts/fa-brands-400.woff2) format("woff2"), url(../dist/webfonts/fa-brands-400.woff) format("woff"), url(../dist/webfonts/fa-brands-400.ttf) format("truetype"), url(../dist/webfonts/fa-brands-400.svg#fontawesome) format("svg"); }
+  src: url(/converse.js/webfonts/fa-brands-400.eot);
+  src: url(/converse.js/webfonts/fa-brands-400.eot?#iefix) format("embedded-opentype"), url(/converse.js/webfonts/fa-brands-400.woff2) format("woff2"), url(/converse.js/webfonts/fa-brands-400.woff) format("woff"), url(/converse.js/webfonts/fa-brands-400.ttf) format("truetype"), url(/converse.js/webfonts/fa-brands-400.svg#fontawesome) format("svg"); }
 
 @font-face {
   font-family: 'ConverseFontAwesomeRegular';
   font-style: normal;
   font-weight: 400;
-  src: url(../dist/webfonts/fa-regular-400.eot);
-  src: url(../dist/webfonts/fa-regular-400.eot?#iefix) format("embedded-opentype"), url(../dist/webfonts/fa-regular-400.woff2) format("woff2"), url(../dist/webfonts/fa-regular-400.woff) format("woff"), url(../dist/webfonts/fa-regular-400.ttf) format("truetype"), url(../dist/webfonts/fa-regular-400.svg#fontawesome) format("svg");
+  src: url(/converse.js/webfonts/fa-regular-400.eot);
+  src: url(/converse.js/webfonts/fa-regular-400.eot?#iefix) format("embedded-opentype"), url(/converse.js/webfonts/fa-regular-400.woff2) format("woff2"), url(/converse.js/webfonts/fa-regular-400.woff) format("woff"), url(/converse.js/webfonts/fa-regular-400.ttf) format("truetype"), url(/converse.js/webfonts/fa-regular-400.svg#fontawesome) format("svg");
   font-weight: normal;
   font-style: normal; }
 
@@ -5516,8 +5516,8 @@
   font-family: 'ConverseFontAwesomeSolid';
   font-style: normal;
   font-weight: 900;
-  src: url(../dist/webfonts/fa-solid-900.eot);
-  src: url(../dist/webfonts/fa-solid-900.eot?#iefix) format("embedded-opentype"), url(../dist/webfonts/fa-solid-900.svg#fontawesome) format("svg"), url(../dist/webfonts/fa-solid-900.woff2) format("woff2"), url(../dist/webfonts/fa-solid-900.woff) format("woff"), url(../dist/webfonts/fa-solid-900.ttf) format("truetype"); }
+  src: url(/converse.js/webfonts/fa-solid-900.eot);
+  src: url(/converse.js/webfonts/fa-solid-900.eot?#iefix) format("embedded-opentype"), url(/converse.js/webfonts/fa-solid-900.svg#fontawesome) format("svg"), url(/converse.js/webfonts/fa-solid-900.woff2) format("woff2"), url(/converse.js/webfonts/fa-solid-900.woff) format("woff"), url(/converse.js/webfonts/fa-solid-900.ttf) format("truetype"); }
 
 .fa,
 .fas,
