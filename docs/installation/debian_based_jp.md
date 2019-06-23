@@ -254,6 +254,16 @@ nginx[1431]: nginx: [emerg] Unknown curve name "X25519:prime256v1:secp384r1:secp
 
 他のコンフィグレーションの例は `/var/lib/pleroma/installation/` にあります。
 
+## カスタマイズとメンテナンス
+
+* <s>Admin tasks</s>
+* [Backup your instance](backup.html)
+* [Configuration tips](general-tips-for-customizing-pleroma-fe.html)
+* [Hardening your instance](hardening.html)
+* [How to activate mediaproxy](howto_mediaproxy.html)
+* [Small Pleroma-FE customizations](small_customizations.html)
+* [Updating your instance](updating.html)
+
 ## 質問ある？
 
 何か質問があれば、以下のチャットルームに来てください。IRCは [Freenode](https://freenode.net/) の `#pleroma` チャンネルです。[Matrix on `#freenode_#pleroma:matrix.org`](https://matrix.heldscal.la/#/room/#freenode_#pleroma:matrix.org) もあります。
