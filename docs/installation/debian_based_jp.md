@@ -180,9 +180,13 @@ mix set_moderator username [true|false]
 
 #### コンフィギュレーションとカスタマイズ
 
-* [Configuration tips](General tips for customizing pleroma fe)
-* [Small Pleroma-FE customizations](Small customizations)
 * [Admin tasks](Admin tasks)
+* [Backup your instance](../admin/backup.md)
+* [Configuration tips](../config/General-tips-for-customizing-Pleroma-FE.md)
+* [Hardening your instance](../config/hardening.md)
+* [How to activate mediaproxy](../config/howto_mediaproxy.md)
+* [Small Pleroma-FE customizations](../config/small_customizations.md)
+* [Updating your instance](../admin/updating.md)
 
 ## 質問ある？
 
