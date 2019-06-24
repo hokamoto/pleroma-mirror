@@ -284,12 +284,12 @@ If you opted to allow sudo for the `pleroma` user but would like to remove the a
 #### Further reading
 
 * [Admin tasks](Admin tasks)
-* [Backup your instance](Backup-your-instance)
-* [Configuration tips](General tips for customizing pleroma fe)
-* [Hardening your instance](Hardening-your-instance)
-* [How to activate mediaproxy](How-to-activate-mediaproxy)
-* [Small Pleroma-FE customizations](Small customizations)
-* [Updating your instance](Updating-your-instance)
+* [Backup your instance](../admin/backup.md)
+* [Configuration tips](../config/General-tips-for-customizing-Pleroma-FE.md)
+* [Hardening your instance](../config/hardening.md)
+* [How to activate mediaproxy](../config/howto_mediaproxy.md)
+* [Small Pleroma-FE customizations](../config/small_customizations.md)
+* [Updating your instance](../admin/updating.md)
 
 ## Questions
 
