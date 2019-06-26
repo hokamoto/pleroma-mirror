@@ -373,6 +373,100 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     end
   end
 
+  test "posting a sensitive status", %{conn: conn} do
+    user = insert(:user)
+
+    conn =
+      conn
+      |> assign(:user, user)
+      |> post("/api/v1/statuses", %{"status" => "cofe", "sensitive" => true})
+
+    assert %{"content" => "cofe", "id" => id, "sensitive" => true} = json_response(conn, 200)
+    assert Activity.get_by_id(id)
+  end
+
+  test "posting a fake status", %{conn: conn} do
+    user = insert(:user)
+
+    real_conn =
+      conn
+      |> assign(:user, user)
+      |> post("/api/v1/statuses", %{
+        "status" =>
+          "\"Tenshi Eating a Corndog\" is a much discussed concept on /jp/. The significance of it is disputed, so I will focus on one core concept: the symbolism behind it"
+      })
+
+    real_status = json_response(real_conn, 200)
+
+    assert real_status
+    assert Object.get_by_ap_id(real_status["uri"])
+
+    real_status =
+      real_status
+      |> Map.put("id", nil)
+      |> Map.put("url", nil)
+      |> Map.put("uri", nil)
+      |> Map.put("created_at", nil)
+      |> Kernel.put_in(["pleroma", "conversation_id"], nil)
+
+    fake_conn =
+      conn
+      |> assign(:user, user)
+      |> post("/api/v1/statuses", %{
+        "status" =>
+          "\"Tenshi Eating a Corndog\" is a much discussed concept on /jp/. The significance of it is disputed, so I will focus on one core concept: the symbolism behind it",
+        "preview" => true
+      })
+
+    fake_status = json_response(fake_conn, 200)
+
+    assert fake_status
+    refute Object.get_by_ap_id(fake_status["uri"])
+
+    fake_status =
+      fake_status
+      |> Map.put("id", nil)
+      |> Map.put("url", nil)
+      |> Map.put("uri", nil)
+      |> Map.put("created_at", nil)
+      |> Kernel.put_in(["pleroma", "conversation_id"], nil)
+
+    assert real_status == fake_status
+  end
+
+  test "posting a status with OGP link preview", %{conn: conn} do
+    Pleroma.Config.put([:rich_media, :enabled], true)
+    user = insert(:user)
+
+    conn =
+      conn
+      |> assign(:user, user)
+      |> post("/api/v1/statuses", %{
+        "status" => "https://example.com/ogp"
+      })
+
+    assert %{"id" => id, "card" => %{"title" => "The Rock"}} = json_response(conn, 200)
+    assert Activity.get_by_id(id)
+    Pleroma.Config.put([:rich_media, :enabled], false)
+  end
+
+  test "posting a direct status", %{conn: conn} do
+    user1 = insert(:user)
+    user2 = insert(:user)
+    content = "direct cofe @#{user2.nickname}"
+
+    conn =
+      conn
+      |> assign(:user, user1)
+      |> post("api/v1/statuses", %{"status" => content, "visibility" => "direct"})
+
+    assert %{"id" => id, "visibility" => "direct"} = json_response(conn, 200)
+    assert activity = Activity.get_by_id(id)
+    assert activity.recipients == [user2.ap_id, user1.ap_id]
+    assert activity.data["to"] == [user2.ap_id]
+    assert activity.data["cc"] == []
+  end
+
   test "direct timeline", %{conn: conn} do
     user_one = insert(:user)
     user_two = insert(:user)
@@ -2560,7 +2654,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     end
 
     test "returns rich-media card", %{conn: conn, user: user} do
-      {:ok, activity} = CommonAPI.post(user, %{"status" => "http://example.com/ogp"})
+      {:ok, activity} = CommonAPI.post(user, %{"status" => "https://example.com/ogp"})
 
       card_data = %{
         "image" => "http://ia.media-imdb.com/images/rock.jpg",
@@ -2592,7 +2686,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
       # works with private posts
       {:ok, activity} =
-        CommonAPI.post(user, %{"status" => "http://example.com/ogp", "visibility" => "direct"})
+        CommonAPI.post(user, %{"status" => "https://example.com/ogp", "visibility" => "direct"})
 
       response_two =
         conn
@@ -2604,7 +2698,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     end
 
     test "replaces missing description with an empty string", %{conn: conn, user: user} do
-      {:ok, activity} = CommonAPI.post(user, %{"status" => "http://example.com/ogp-missing-data"})
+      {:ok, activity} =
+        CommonAPI.post(user, %{"status" => "https://example.com/ogp-missing-data"})
 
       response =
         conn
