@@ -252,7 +252,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       conn =
         conn
         |> post("/api/v1/statuses", %{
-          "status" => "http://example.com/ogp"
+          "status" => "https://example.com/ogp"
         })
 
       assert %{"id" => id, "card" => %{"title" => "The Rock"}} = json_response(conn, 200)
@@ -371,100 +371,6 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       %{"error" => error} = json_response(conn, 422)
       assert error == "Expiration date is too far in the future"
     end
-  end
-
-  test "posting a sensitive status", %{conn: conn} do
-    user = insert(:user)
-
-    conn =
-      conn
-      |> assign(:user, user)
-      |> post("/api/v1/statuses", %{"status" => "cofe", "sensitive" => true})
-
-    assert %{"content" => "cofe", "id" => id, "sensitive" => true} = json_response(conn, 200)
-    assert Activity.get_by_id(id)
-  end
-
-  test "posting a fake status", %{conn: conn} do
-    user = insert(:user)
-
-    real_conn =
-      conn
-      |> assign(:user, user)
-      |> post("/api/v1/statuses", %{
-        "status" =>
-          "\"Tenshi Eating a Corndog\" is a much discussed concept on /jp/. The significance of it is disputed, so I will focus on one core concept: the symbolism behind it"
-      })
-
-    real_status = json_response(real_conn, 200)
-
-    assert real_status
-    assert Object.get_by_ap_id(real_status["uri"])
-
-    real_status =
-      real_status
-      |> Map.put("id", nil)
-      |> Map.put("url", nil)
-      |> Map.put("uri", nil)
-      |> Map.put("created_at", nil)
-      |> Kernel.put_in(["pleroma", "conversation_id"], nil)
-
-    fake_conn =
-      conn
-      |> assign(:user, user)
-      |> post("/api/v1/statuses", %{
-        "status" =>
-          "\"Tenshi Eating a Corndog\" is a much discussed concept on /jp/. The significance of it is disputed, so I will focus on one core concept: the symbolism behind it",
-        "preview" => true
-      })
-
-    fake_status = json_response(fake_conn, 200)
-
-    assert fake_status
-    refute Object.get_by_ap_id(fake_status["uri"])
-
-    fake_status =
-      fake_status
-      |> Map.put("id", nil)
-      |> Map.put("url", nil)
-      |> Map.put("uri", nil)
-      |> Map.put("created_at", nil)
-      |> Kernel.put_in(["pleroma", "conversation_id"], nil)
-
-    assert real_status == fake_status
-  end
-
-  test "posting a status with OGP link preview", %{conn: conn} do
-    Pleroma.Config.put([:rich_media, :enabled], true)
-    user = insert(:user)
-
-    conn =
-      conn
-      |> assign(:user, user)
-      |> post("/api/v1/statuses", %{
-        "status" => "https://example.com/ogp"
-      })
-
-    assert %{"id" => id, "card" => %{"title" => "The Rock"}} = json_response(conn, 200)
-    assert Activity.get_by_id(id)
-    Pleroma.Config.put([:rich_media, :enabled], false)
-  end
-
-  test "posting a direct status", %{conn: conn} do
-    user1 = insert(:user)
-    user2 = insert(:user)
-    content = "direct cofe @#{user2.nickname}"
-
-    conn =
-      conn
-      |> assign(:user, user1)
-      |> post("api/v1/statuses", %{"status" => content, "visibility" => "direct"})
-
-    assert %{"id" => id, "visibility" => "direct"} = json_response(conn, 200)
-    assert activity = Activity.get_by_id(id)
-    assert activity.recipients == [user2.ap_id, user1.ap_id]
-    assert activity.data["to"] == [user2.ap_id]
-    assert activity.data["cc"] == []
   end
 
   test "direct timeline", %{conn: conn} do
