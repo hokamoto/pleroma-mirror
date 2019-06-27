@@ -1626,7 +1626,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
     if Keyword.get(suggestions, :enabled, false) do
       api = Keyword.get(suggestions, :third_party_engine, "")
-      api_non_personalized = Keyword.get(suggestions, :third_party_engine_no_personalized, "")
+      api_non_personalized = Keyword.get(suggestions, :third_party_engine_non_personalized, "")
       timeout = Keyword.get(suggestions, :timeout, 5000)
       limit = Keyword.get(suggestions, :limit, 40)
 
