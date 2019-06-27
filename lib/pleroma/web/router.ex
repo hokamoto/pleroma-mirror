@@ -306,8 +306,6 @@ defmodule Pleroma.Web.Router do
 
       get("/filters", MastodonAPIController, :get_filters)
 
-      get("/suggestions", MastodonAPIController, :suggestions)
-
       get("/conversations", MastodonAPIController, :conversations)
       post("/conversations/:id/read", MastodonAPIController, :conversation_read)
 
@@ -437,6 +435,8 @@ defmodule Pleroma.Web.Router do
       get("/search", SearchController, :search)
 
       get("/pleroma/accounts/:id/favourites", MastodonAPIController, :user_favourites)
+
+      get("/suggestions", MastodonAPIController, :suggestions)
     end
   end
 

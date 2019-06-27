@@ -1626,17 +1626,19 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
     if Keyword.get(suggestions, :enabled, false) do
       api = Keyword.get(suggestions, :third_party_engine, "")
+      api_non_personalized = "https://vinayaka.distsn.org/cgi-bin/vinayaka-user-new-suggestions-api.cgi"
       timeout = Keyword.get(suggestions, :timeout, 5000)
       limit = Keyword.get(suggestions, :limit, 23)
 
-      host = Config.get([Pleroma.Web.Endpoint, :url, :host])
-
-      user = user.nickname
-
-      url =
+      url = if is_nil(user) do
+        api_non_personalized
+      else
+        host = Config.get([Pleroma.Web.Endpoint, :url, :host])
+        user = user.nickname
         api
-        |> String.replace("{{host}}", host)
-        |> String.replace("{{user}}", user)
+          |> String.replace("{{host}}", host)
+          |> String.replace("{{user}}", user)
+      end
 
       with {:ok, %{status: 200, body: body}} <-
              HTTP.get(
