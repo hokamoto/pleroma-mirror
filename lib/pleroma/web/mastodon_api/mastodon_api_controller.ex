@@ -1630,15 +1630,17 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       timeout = Keyword.get(suggestions, :timeout, 5000)
       limit = Keyword.get(suggestions, :limit, 40)
 
-      url = if is_nil(user) do
-        api_non_personalized
-      else
-        host = Config.get([Pleroma.Web.Endpoint, :url, :host])
-        user = user.nickname
-        api
+      url =
+        if is_nil(user) do
+          api_non_personalized
+        else
+          host = Config.get([Pleroma.Web.Endpoint, :url, :host])
+          user = user.nickname
+
+          api
           |> String.replace("{{host}}", host)
           |> String.replace("{{user}}", user)
-      end
+        end
 
       with {:ok, %{status: 200, body: body}} <-
              HTTP.get(

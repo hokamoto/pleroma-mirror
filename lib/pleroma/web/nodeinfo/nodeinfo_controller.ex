@@ -145,7 +145,8 @@ defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
         suggestions: %{
           enabled: Config.get([:suggestions, :enabled], false),
           thirdPartyEngine: Config.get([:suggestions, :third_party_engine], ""),
-          thirdPartyEngineNonPersonalized: Config.get([:suggestions, :third_party_engine_non_personalized], ""),
+          thirdPartyEngineNonPersonalized:
+            Config.get([:suggestions, :third_party_engine_non_personalized], ""),
           timeout: Config.get([:suggestions, :timeout], 5000),
           limit: Config.get([:suggestions, :limit], 23),
           web: Config.get([:suggestions, :web], "")
