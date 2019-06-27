@@ -1626,9 +1626,9 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
     if Keyword.get(suggestions, :enabled, false) do
       api = Keyword.get(suggestions, :third_party_engine, "")
-      api_non_personalized = "https://vinayaka.distsn.org/cgi-bin/vinayaka-user-new-suggestions-api.cgi"
+      api_non_personalized = Keyword.get(suggestions, :third_party_engine_no_personalized, "")
       timeout = Keyword.get(suggestions, :timeout, 5000)
-      limit = Keyword.get(suggestions, :limit, 23)
+      limit = Keyword.get(suggestions, :limit, 40)
 
       url = if is_nil(user) do
         api_non_personalized

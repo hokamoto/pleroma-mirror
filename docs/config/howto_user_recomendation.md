@@ -8,24 +8,14 @@ config :pleroma, :suggestions,
   enabled: true,
   third_party_engine:
     "http://vinayaka.distsn.org/cgi-bin/vinayaka-user-match-suggestions-api.cgi?{{host}}+{{user}}",
+  third_party_engine_non_personalized:
+    "https://vinayaka.distsn.org/cgi-bin/vinayaka-user-new-suggestions-api.cgi",
   timeout: 300_000,
   limit: 40,
-  web: "https://vinayaka.distsn.org"
-
+  web: "https://distsn.org/user-match.html"
 ```
 
 `config/config.exs` already includes this code, but `enabled:` is `false`.
 
 `/api/v1/suggestions` is also provided when *who to follow* panel is enabled.
 
-For advanced customization, following code shows the newcomers of the fediverse at the *who to follow* panel:
-
-```elixir
-config :pleroma, :suggestions,
-  enabled: true,
-  third_party_engine:
-    "http://vinayaka.distsn.org/cgi-bin/vinayaka-user-new-suggestions-api.cgi?{{host}}+{{user}}",
-  timeout: 60_000,
-  limit: 40,
-  web: "https://vinayaka.distsn.org/user-new.html"
-```
