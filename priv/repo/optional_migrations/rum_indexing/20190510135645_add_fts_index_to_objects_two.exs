@@ -23,9 +23,9 @@ defmodule Pleroma.Repo.Migrations.AddFtsIndexToObjectsTwo do
   end
 
   def down do
-    execute "drop index objects_fts"
-    execute "drop trigger tsvectorupdate on objects"
-    execute "drop function objects_fts_update()"
+    execute "drop index if exists objects_fts"
+    execute "drop trigger if exists tsvectorupdate on objects"
+    execute "drop function if exists objects_fts_update()"
     alter table(:objects) do
       remove(:fts_content, :tsvector)
     end

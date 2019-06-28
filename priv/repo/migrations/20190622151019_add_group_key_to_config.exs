@@ -6,7 +6,7 @@ defmodule Pleroma.Repo.Migrations.AddGroupKeyToConfig do
       add(:group, :string)
     end
 
-    drop(unique_index("config", :key))
+    drop_if_exists(unique_index("config", :key))
     create(unique_index("config", [:group, :key]))
   end
 end
