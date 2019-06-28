@@ -14,7 +14,7 @@ defmodule Pleroma.Repo.Migrations.AddFtsIndexToObjectsTwo do
       return new;
     end
     $$ LANGUAGE plpgsql")
-    execute("create index objects_fts on objects using RUM (fts_content rum_tsvector_addon_ops, inserted_at) with (attach = 'inserted_at', to = 'fts_content');")
+    execute("create index if not exists objects_fts on objects using RUM (fts_content rum_tsvector_addon_ops, inserted_at) with (attach = 'inserted_at', to = 'fts_content');")
 
     execute("CREATE TRIGGER tsvectorupdate BEFORE INSERT OR UPDATE ON objects
     FOR EACH ROW EXECUTE PROCEDURE objects_fts_update()")
@@ -29,6 +29,6 @@ defmodule Pleroma.Repo.Migrations.AddFtsIndexToObjectsTwo do
     alter table(:objects) do
       remove(:fts_content, :tsvector)
     end
-    create index(:objects, ["(to_tsvector('english', data->>'content'))"], using: :gin, name: :objects_fts)
+    create_if_not_exists index(:objects, ["(to_tsvector('english', data->>'content'))"], using: :gin, name: :objects_fts)
   end
 end
