@@ -636,6 +636,14 @@ defmodule Pleroma.Web.Router do
     plug(Pleroma.Plugs.EnsureUserKeyPlug)
   end
 
+  pipeline :conversejs_auth do
+    plug(:accepts, ["json"])
+    plug(:fetch_session)
+    plug(Pleroma.Plugs.SessionAuthenticationNocheckPlug)
+    plug(Pleroma.Plugs.UserEnabledPlug)
+    plug(Pleroma.Plugs.SetUserSessionIdPlug)
+  end
+
   scope "/", Pleroma.Web.ActivityPub do
     pipe_through([:activitypub_client])
 
@@ -709,7 +717,7 @@ defmodule Pleroma.Web.Router do
     get("/check_password", MongooseIMController, :check_password)
 
     scope "/prebind" do
-      pipe_through([:authenticated_api, :oauth_read])
+      pipe_through([:conversejs_auth])
 
       get("/", MongooseIMController, :prebind)
     end

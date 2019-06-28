@@ -10,8 +10,10 @@
     rel=stylesheet href=/static/font/css/animation.css> <link href=/static/css/vendors~app.b2603a50868c68a1c192.css
     rel=stylesheet>
   <link href=/static/css/app.db80066bde2c96ea6198.css rel=stylesheet>
-  <link rel="stylesheet" type="text/css" media="screen" href="/converse.js/converse.css">
-  <script src="/converse.js/converse.js" charset="utf-8"></script>
+  <!-- <link rel="stylesheet" type="text/css" media="screen" href="/converse.js/converse.css">
+  <script src="/converse.js/converse.js" charset="utf-8"></script> -->
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.conversejs.org/4.2.0/css/converse.min.css">
+  <script src="https://cdn.conversejs.org/4.2.0/dist/converse.min.js" charset="utf-8"></script>
 </head>
 
 <body style="display: none">
@@ -20,7 +22,9 @@
     type=text/javascript src=/static/js/app.83ab168f1882edc9bb37.js> </script> <script type="text/javascript">
       converse.initialize({
         debug: true,
-        authentication: 'login',
+        authentication: 'prebind',
+        prebind_url: 'http://localhost:4000/prebind',
+        keepalive: true,
         auto_away: 300,
         auto_reconnect: true,
         bosh_service_url: 'https://p.devs.live/http-bind/',

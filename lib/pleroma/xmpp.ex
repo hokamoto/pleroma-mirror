@@ -1,51 +1,25 @@
-# Pleroma: A lightweight social networking server
-# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
-# SPDX-License-Identifier: AGPL-3.0-only
+defmodule Pleroma.XMPP do
+  @moduledoc """
+  Module to deal with XMPP (currently tested with MongooseIM) stuff.
+  """
 
-defmodule Pleroma.Web.MongooseIM.MongooseIMController do
-  use Pleroma.Web, :controller
-  alias Comeonin.Pbkdf2
-  alias Pleroma.Repo
-  alias Pleroma.User
+  @doc """
+  Prebind to XMPP server.
+  Used for single-session support to provide local users with on-site XMPP capabilities.
+  Returns XMPP session id (SID)
 
-  require Logger
+  ## Examples
 
-  def user_exists(conn, %{"user" => username}) do
-    with %User{} <- Repo.get_by(User, nickname: username, local: true) do
-      conn
-      |> json(true)
-    else
-      _ ->
-        conn
-        |> put_status(:not_found)
-        |> json(false)
-    end
-  end
+    iex> Pleroma.XMPP.prebind("neo", "matrixHasMe")
+    "abcdef01234567890"
 
-  def check_password(conn, %{"user" => username, "pass" => password}) do
-    with %User{password_hash: password_hash} <-
-           Repo.get_by(User, nickname: username, local: true),
-         true <- Pbkdf2.checkpw(password, password_hash) do
-      conn
-      |> json(true)
-    else
-      false ->
-        conn
-        |> put_status(403)
-        |> json(false)
-
-      _ ->
-        conn
-        |> put_status(:not_found)
-        |> json(false)
-    end
-  end
-
-  def prebind(conn, _params) do
-    user = conn.assigns.auth_user
-
+    iex> Pleroma.XMPP.prebind("neo", "matrixHasYou")
+    {:error, "Invalid username or password"}
+  """
+  @spec prebind(String.t(), String.t()) :: String.t() | {:error, String.t()}
+  def prebind(username, _password) do
     host = Pleroma.Web.Endpoint.host()
-    jid = user.nickname <> "@" <> host
+    _jid = username <> "@" <> host
     rid = System.unique_integer([:monotonic, :positive])
     xmpp_host = "p.devs.live"
 
@@ -102,12 +76,8 @@ defmodule Pleroma.Web.MongooseIM.MongooseIMController do
 
     _res = Tesla.post!("https://" <> xmpp_host <> "/http-bind", body)
 
-    response = %{
-      "jid" => jid,
-      "sid" => "",
-      "rid" => rid
-    }
+    sid = "some sid"
 
-    json(conn, response)
+    sid
   end
 end
