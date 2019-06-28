@@ -7,6 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - MRF: Support for priming the mediaproxy cache (`Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy`)
 
+### Changed
+- NodeInfo: Return `skipThreadContainment` in `metadata` for the `skip_thread_containment` option
+
 ## [1.0.0] - 2019-06-29
 ### Security
 - Mastodon API: Fix display names not being sanitized
