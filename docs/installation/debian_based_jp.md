@@ -181,12 +181,12 @@ mix set_moderator username [true|false]
 #### コンフィギュレーションとカスタマイズ
 
 * [Admin tasks](Admin tasks)
-* [Backup your instance](https://docs-develop.pleroma.social/backup.html#content)
-* [Configuration tips](https://docs-develop.pleroma.social/general-tips-for-customizing-pleroma-fe.html#content)
-* [Hardening your instance](https://docs-develop.pleroma.social/hardening.html#content)
-* [How to activate mediaproxy](https://docs-develop.pleroma.social/howto_mediaproxy.html#content)
-* [Small Pleroma-FE customizations](https://docs-develop.pleroma.social/small_customizations.html#content)
-* [Updating your instance](https://docs-develop.pleroma.social/updating.html#content)
+* [Backup your instance](backup.html)
+* [Configuration tips](general-tips-for-customizing-pleroma-fe.html)
+* [Hardening your instance](hardening.html)
+* [How to activate mediaproxy](howto_mediaproxy.html)
+* [Small Pleroma-FE customizations](small_customizations.html)
+* [Updating your instance](updating.html)
 
 ## 質問ある？
 
