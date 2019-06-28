@@ -587,6 +587,7 @@ Atom or boolean value can be passed with `:` in the beginning, e.g. `":true"`, `
 Integer with `i:`, e.g. `"i:150"`.
 Tuple with more than 2 values with `{"tuple": ["first_val", Pleroma.Module, []]}`.
 `{"tuple": ["some_string", "Pleroma.Some.Module", []]}` will be converted to `{"some_string", Pleroma.Some.Module, []}`.
+Map can be passed with `{"map": {"key": "val"}}`, will be converted to `%{key: "val"}`.
 
 Compile time settings (need instance reboot):
 - all settings by this keys:
@@ -631,6 +632,9 @@ Compile time settings (need instance reboot):
         },
         "dispatch": {
           "tuple": ["/api/v1/streaming", "Pleroma.Web.MastodonAPI.WebsocketHandler", []]
+        },
+        "setting_key": {
+          "map": {"key": "val"}
         }
       }
      }
@@ -645,7 +649,7 @@ Compile time settings (need instance reboot):
     {
       "group": string,
       "key": string,
-      "value": string or {} or [] or {"tuple": []}
+      "value": string or {} or [] or {"tuple": []} or {"map": {}}
      }
   ]
 }

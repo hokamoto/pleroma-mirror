@@ -73,7 +73,7 @@ defmodule Pleroma.Web.AdminAPI.ConfigTest do
       assert Config.from_binary(binary) == ["string1", "string2"]
     end
 
-    test "map" do
+    test "keyword" do
       binary =
         Config.transform(%{
           "types" => "Pleroma.PostgresTypes",
@@ -93,7 +93,7 @@ defmodule Pleroma.Web.AdminAPI.ConfigTest do
              ]
     end
 
-    test "complex map with nested integers, lists and atoms" do
+    test "complex keyword with nested integers, lists and atoms" do
       binary =
         Config.transform(%{
           "uploader" => "Pleroma.Uploaders.Local",
@@ -143,7 +143,7 @@ defmodule Pleroma.Web.AdminAPI.ConfigTest do
                ]
     end
 
-    test "keyword" do
+    test "commmon keyword" do
       binary =
         Config.transform(%{
           "level" => ":warn",
@@ -165,7 +165,7 @@ defmodule Pleroma.Web.AdminAPI.ConfigTest do
              ]
     end
 
-    test "complex map with sigil" do
+    test "complex keyword with sigil" do
       binary =
         Config.transform(%{
           federated_timeline_removal: [],
@@ -184,7 +184,7 @@ defmodule Pleroma.Web.AdminAPI.ConfigTest do
                [federated_timeline_removal: [], reject: [~r/comp[lL][aA][iI][nN]er/], replace: []]
     end
 
-    test "complex map with tuples with more than 2 values" do
+    test "complex keyword with tuples with more than 2 values" do
       binary =
         Config.transform(%{
           "http" => %{
@@ -257,6 +257,41 @@ defmodule Pleroma.Web.AdminAPI.ConfigTest do
                  ]
                ]
              ]
+    end
+
+    test "map as main value and nested map" do
+      binary =
+        Config.transform(%{
+          "map" => %{
+            "key1" => "val1",
+            "key2" => "val2",
+            "key3" => %{
+              "map" => %{
+                "nested1" => "val3",
+                "nested2" => "val4"
+              }
+            }
+          }
+        })
+
+      assert binary ==
+               :erlang.term_to_binary(%{
+                 key1: "val1",
+                 key2: "val2",
+                 key3: %{
+                   nested1: "val3",
+                   nested2: "val4"
+                 }
+               })
+
+      assert Config.from_binary(binary) == %{
+               key1: "val1",
+               key2: "val2",
+               key3: %{
+                 nested1: "val3",
+                 nested2: "val4"
+               }
+             }
     end
   end
 end

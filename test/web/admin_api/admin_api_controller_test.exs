@@ -1668,6 +1668,90 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                ]
              }
     end
+
+    test "settings with nesting map", %{conn: conn} do
+      conn =
+        post(conn, "/api/pleroma/admin/config", %{
+          configs: [
+            %{
+              "group" => "pleroma",
+              "key" => "key1",
+              "value" => %{
+                "key2" => "some_val",
+                "key3" => %{
+                  "map" => %{
+                    "max_options" => "i:20",
+                    "max_option_chars" => "i:200",
+                    "min_expiration" => "i:0",
+                    "max_expiration" => "i:31536000",
+                    "nested" => %{
+                      "map" => %{
+                        "max_options" => "i:20",
+                        "max_option_chars" => "i:200",
+                        "min_expiration" => "i:0",
+                        "max_expiration" => "i:31536000"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        })
+
+      assert json_response(conn, 200) ==
+               %{
+                 "configs" => [
+                   %{
+                     "group" => "pleroma",
+                     "key" => "key1",
+                     "value" => [
+                       %{"key2" => "some_val"},
+                       %{
+                         "key3" => %{
+                           "max_expiration" => 31_536_000,
+                           "max_option_chars" => 200,
+                           "max_options" => 20,
+                           "min_expiration" => 0,
+                           "nested" => %{
+                             "max_expiration" => 31_536_000,
+                             "max_option_chars" => 200,
+                             "max_options" => 20,
+                             "min_expiration" => 0
+                           }
+                         }
+                       }
+                     ]
+                   }
+                 ]
+               }
+    end
+
+    test "value as map", %{conn: conn} do
+      conn =
+        post(conn, "/api/pleroma/admin/config", %{
+          configs: [
+            %{
+              "group" => "pleroma",
+              "key" => "key1",
+              "value" => %{
+                "map" => %{"key" => "some_val"}
+              }
+            }
+          ]
+        })
+
+      assert json_response(conn, 200) ==
+               %{
+                 "configs" => [
+                   %{
+                     "group" => "pleroma",
+                     "key" => "key1",
+                     "value" => %{"key" => "some_val"}
+                   }
+                 ]
+               }
+    end
   end
 end
 

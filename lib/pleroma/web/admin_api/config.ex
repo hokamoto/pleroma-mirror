@@ -98,6 +98,8 @@ defmodule Pleroma.Web.AdminAPI.Config do
   @spec transform(any()) :: binary()
   def transform(%{"tuple" => _} = entity), do: :erlang.term_to_binary(do_transform(entity))
 
+  def transform(%{"map" => _} = entity), do: :erlang.term_to_binary(do_transform(entity))
+
   def transform(entity) when is_map(entity) do
     tuples =
       for {k, v} <- entity,
@@ -124,6 +126,12 @@ defmodule Pleroma.Web.AdminAPI.Config do
 
   defp do_transform(%{"tuple" => values}) do
     Enum.reduce(values, {}, fn val, acc -> Tuple.append(acc, do_transform(val)) end)
+  end
+
+  defp do_transform(%{"map" => values}) do
+    Enum.reduce(values, %{}, fn {key, val}, acc ->
+      Map.put(acc, String.to_atom(key), do_transform(val))
+    end)
   end
 
   defp do_transform(value) when is_map(value) do
