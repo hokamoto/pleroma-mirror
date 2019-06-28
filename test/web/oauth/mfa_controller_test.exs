@@ -11,6 +11,7 @@ defmodule Pleroma.Web.OAuth.MFAControllerTest do
   alias Pleroma.MFA.TOTP
   alias Pleroma.Repo
   alias Pleroma.Web.OAuth.Authorization
+  alias Pleroma.Web.OAuth.OAuthController
 
   setup %{conn: conn} do
     otp_secret = TOTP.generate_secret()
@@ -85,13 +86,14 @@ defmodule Pleroma.Web.OAuth.MFAControllerTest do
           authorization: build(:oauth_authorization, app: app, scopes: ["write"])
         )
 
-      {:ok, conn: conn, user: user, mfa_token: mfa_token}
+      {:ok, conn: conn, user: user, mfa_token: mfa_token, app: app}
     end
 
     test "POST /oauth/mfa/verify, verify totp code", %{
       conn: conn,
       user: user,
-      mfa_token: mfa_token
+      mfa_token: mfa_token,
+      app: app
     } do
       otp_token = TOTP.generate_token(user.multi_factor_authentication_settings.totp.secret)
 
@@ -103,7 +105,7 @@ defmodule Pleroma.Web.OAuth.MFAControllerTest do
             "challenge_type" => "totp",
             "code" => otp_token,
             "state" => "a_state",
-            "redirect_uri" => "http://localhost:8080/callback"
+            "redirect_uri" => OAuthController.default_redirect_uri(app)
           }
         })
 
@@ -111,14 +113,15 @@ defmodule Pleroma.Web.OAuth.MFAControllerTest do
       target_url = %URI{URI.parse(target) | query: nil} |> URI.to_string()
       query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
       assert %{"state" => "a_state", "code" => code} = query
-      assert target_url == "http://localhost:8080/callback"
+      assert target_url == OAuthController.default_redirect_uri(app)
       auth = Repo.get_by(Authorization, token: code)
       assert auth.scopes == ["write"]
     end
 
     test "POST /oauth/mfa/verify, verify recovery code", %{
       conn: conn,
-      mfa_token: mfa_token
+      mfa_token: mfa_token,
+      app: app
     } do
       conn =
         conn
@@ -128,7 +131,7 @@ defmodule Pleroma.Web.OAuth.MFAControllerTest do
             "challenge_type" => "recovery",
             "code" => "test-code",
             "state" => "a_state",
-            "redirect_uri" => "http://localhost:8080/callback"
+            "redirect_uri" => OAuthController.default_redirect_uri(app)
           }
         })
 
@@ -136,7 +139,7 @@ defmodule Pleroma.Web.OAuth.MFAControllerTest do
       target_url = %URI{URI.parse(target) | query: nil} |> URI.to_string()
       query = URI.parse(target).query |> URI.query_decoder() |> Map.new()
       assert %{"state" => "a_state", "code" => code} = query
-      assert target_url == "http://localhost:8080/callback"
+      assert target_url == OAuthController.default_redirect_uri(app)
       auth = Repo.get_by(Authorization, token: code)
       assert auth.scopes == ["write"]
     end
