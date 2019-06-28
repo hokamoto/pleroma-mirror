@@ -574,8 +574,9 @@ Note: Available `:permission_group` is currently moderator and admin. 404 is ret
 {
   configs: [
     {
+      "group": string,
       "key": string,
-      "value": string or {} or []
+      "value": string or {} or [] or {"tuple": []}
      }
   ]
 }
@@ -584,8 +585,10 @@ Note: Available `:permission_group` is currently moderator and admin. 404 is ret
 ## `/api/pleroma/admin/config`
 ### Update config settings
 Module name can be passed as string, which starts with `Pleroma`, e.g. `"Pleroma.Upload"`.
-Atom or boolean value can be passed with `:` in the beginning, e.g. `":true"`, `":upload"`.
+Atom or boolean value can be passed with `:` in the beginning, e.g. `":true"`, `":upload"`. For keys it is not needed.
 Integer with `i:`, e.g. `"i:150"`.
+Tuple with more than 2 values with `{"tuple": ["first_val", Pleroma.Module, []]}`.
+`{"tuple": ["some_string", "Pleroma.Some.Module", []]}` will be converted to `{"some_string", Pleroma.Some.Module, []}`.
 
 Compile time settings (need instance reboot):
 - all settings by this keys:
@@ -601,8 +604,9 @@ Compile time settings (need instance reboot):
 - Method `POST`
 - Params:
   - `configs` => [
+    - `group` (string)
     - `key` (string)
-    - `value` (string, [], {})
+    - `value` (string, [], {} or {"tuple": []})
     - `delete` = true (optional, if parameter must be deleted)
   ]
 
@@ -612,6 +616,7 @@ Compile time settings (need instance reboot):
 {
   configs: [
     {
+      "group": "pleroma",
       "key": "Pleroma.Upload",
       "value": {
         "uploader": "Pleroma.Uploaders.Local",
@@ -625,6 +630,9 @@ Compile time settings (need instance reboot):
             "follow_redirect": ":true",
             "pool": ":upload"
           }
+        },
+        "dispatch": {
+          "tuple": ["/api/v1/streaming", "Pleroma.Web.MastodonAPI.WebsocketHandler", []]
         }
       }
      }
@@ -637,8 +645,9 @@ Compile time settings (need instance reboot):
 {
   configs: [
     {
+      "group": string,
       "key": string,
-      "value": string or {} or []
+      "value": string or {} or [] or {"tuple": []}
      }
   ]
 }

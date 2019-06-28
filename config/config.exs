@@ -99,6 +99,7 @@ config :pleroma, Pleroma.Uploaders.MDII,
 
 config :pleroma, :emoji,
   shortcode_globs: ["/emoji/custom/**/*.png"],
+  pack_extensions: [".png", ".gif"],
   groups: [
     # Put groups that have higher priority than defaults here. Example in `docs/config/custom_emoji.md`
     Custom: ["/emoji/*.png", "/emoji/**/*.png"]
@@ -139,6 +140,7 @@ config :pleroma, Pleroma.Web.Endpoint,
   instrumenters: [Pleroma.Web.Endpoint.Instrumenter],
   url: [host: "localhost"],
   http: [
+    ip: {127, 0, 0, 1},
     dispatch: [
       {:_,
        [
@@ -167,7 +169,7 @@ config :logger, :console,
 
 config :logger, :ex_syslogger,
   level: :debug,
-  ident: "Pleroma",
+  ident: "pleroma",
   format: "$metadata[$level] $message",
   metadata: [:request_id]
 
@@ -340,7 +342,10 @@ config :pleroma, :mrf_keyword,
 
 config :pleroma, :mrf_subchain, match_actor: %{}
 
-config :pleroma, :rich_media, enabled: true
+config :pleroma, :rich_media,
+  enabled: true,
+  ignore_hosts: [],
+  ignore_tld: ["local", "localdomain", "lan"]
 
 config :pleroma, :media_proxy,
   enabled: false,
@@ -453,6 +458,8 @@ config :auto_linker,
   opts: [
     scheme: true,
     extra: true,
+    # TODO: Set to :no_scheme when it works properly
+    validate_tld: true,
     class: false,
     strip_prefix: false,
     new_window: false,

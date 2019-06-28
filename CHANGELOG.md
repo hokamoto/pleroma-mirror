@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
+### Security
+- Mastodon API: Fix display names not being sanitized
+- Rich media: Do not crawl private IP ranges
+
 ### Added
 - Add a generic settings store for frontends / clients to use.
 - Explicit addressing option for posting.
@@ -24,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Federation: Support for `Question` and `Answer` objects
 - Federation: Support for reports
 - Configuration: `poll_limits` option
+- Configuration: `pack_extensions` option
 - Configuration: `safe_dm_mentions` option
 - Configuration: `link_name` option
 - Configuration: `fetch_initial_posts` option
@@ -60,8 +65,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - MRF: Support for running subchains.
 - Configuration: `skip_thread_containment` option
 - Configuration: `rate_limit` option. See `Pleroma.Plugs.RateLimiter` documentation for details.
+- MRF: Support for filtering out likely spam messages by rejecting posts from new users that contain links.
+- Configuration: `ignore_hosts` option
+- Configuration: `ignore_tld` option
+- Configuration: default syslog tag "Pleroma" is now lowercased to "pleroma"
 
 ### Changed
+- **Breaking:** bind to 127.0.0.1 instead of 0.0.0.0 by default
 - **Breaking:** Configuration: move from Pleroma.Mailer to Pleroma.Emails.Mailer
 - Thread containment / test for complete visibility will be skipped by default.
 - Enforcement of OAuth scopes
@@ -98,6 +108,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Posts which are marked sensitive or tagged nsfw no longer have link previews.
 - HTTP connection timeout is now set to 10 seconds.
 - Respond with a 404 Not implemented JSON error message when requested API is not implemented
+- Rich Media: crawl only https URLs.
 
 ### Fixed
 - Follow requests don't get 'stuck' anymore.
