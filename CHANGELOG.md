@@ -7,6 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - MRF: Support for priming the mediaproxy cache (`Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy`)
 
+### Changed
+- Configuration: Filter.AnonymizeFilename added ability to retain file extension with custom text
+
 ## [1.0.0] - 2019-06-29
 ### Security
 - Mastodon API: Fix display names not being sanitized
@@ -113,7 +116,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - HTTP connection timeout is now set to 10 seconds.
 - Respond with a 404 Not implemented JSON error message when requested API is not implemented
 - Rich Media: crawl only https URLs.
-- Configuration: Filter.AnonymizeFilename added ability to retain file extension with custom text
 
 ### Fixed
 - Follow requests don't get 'stuck' anymore.
