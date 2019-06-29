@@ -113,6 +113,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - HTTP connection timeout is now set to 10 seconds.
 - Respond with a 404 Not implemented JSON error message when requested API is not implemented
 - Rich Media: crawl only https URLs.
+- Configuration: Filter.AnonymizeFilename added ability to retain file extension with custom text
 
 ### Fixed
 - Follow requests don't get 'stuck' anymore.

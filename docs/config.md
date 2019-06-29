@@ -36,7 +36,7 @@ No specific configuration.
 This filter replaces the filename (not the path) of an upload. For complete obfuscation, add
 `Pleroma.Upload.Filter.Dedupe` before AnonymizeFilename.
 
-* `text`: Text to replace filenames in links. If empty, `{random}.extension` will be used.
+* `text`: Text to replace filenames in links. If empty, `{random}.extension` will be used. You can pass original extension of file to text. for instance `custom-file-name.{extension}`, where `{extension}` will be replace on original extension of file.
 
 ## Pleroma.Emails.Mailer
 * `adapter`: one of the mail adapters listed in [Swoosh readme](https://github.com/swoosh/swoosh#adapters), or `Swoosh.Adapters.Local` for in-memory mailbox.
