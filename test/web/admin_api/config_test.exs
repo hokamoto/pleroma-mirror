@@ -61,95 +61,239 @@ defmodule Pleroma.Web.AdminAPI.ConfigTest do
       assert Config.from_binary(binary) == "value as string"
     end
 
+    test "boolean" do
+      binary = Config.transform(false)
+      assert binary == :erlang.term_to_binary(false)
+      assert Config.from_binary(binary) == false
+    end
+
+    test "nil" do
+      binary = Config.transform(nil)
+      assert binary == :erlang.term_to_binary(nil)
+      assert Config.from_binary(binary) == nil
+    end
+
+    test "integer" do
+      binary = Config.transform(150)
+      assert binary == :erlang.term_to_binary(150)
+      assert Config.from_binary(binary) == 150
+    end
+
+    test "atom" do
+      binary = Config.transform(":atom")
+      assert binary == :erlang.term_to_binary(:atom)
+      assert Config.from_binary(binary) == :atom
+    end
+
+    test "pleroma module" do
+      binary = Config.transform("Pleroma.Bookmark")
+      assert binary == :erlang.term_to_binary(Pleroma.Bookmark)
+      assert Config.from_binary(binary) == Pleroma.Bookmark
+    end
+
+    test "phoenix module" do
+      binary = Config.transform("Phoenix.Socket.V1.JSONSerializer")
+      assert binary == :erlang.term_to_binary(Phoenix.Socket.V1.JSONSerializer)
+      assert Config.from_binary(binary) == Phoenix.Socket.V1.JSONSerializer
+    end
+
+    test "sigil" do
+      binary = Config.transform("~r/comp[lL][aA][iI][nN]er/")
+      assert binary == :erlang.term_to_binary(~r/comp[lL][aA][iI][nN]er/)
+      assert Config.from_binary(binary) == ~r/comp[lL][aA][iI][nN]er/
+    end
+
+    test "2 child tuple" do
+      binary = Config.transform(%{"tuple" => ["v1", ":v2"]})
+      assert binary == :erlang.term_to_binary({"v1", :v2})
+      assert Config.from_binary(binary) == {"v1", :v2}
+    end
+
+    test "tuple with n childs" do
+      binary =
+        Config.transform(%{
+          "tuple" => [
+            "v1",
+            ":v2",
+            "Pleroma.Bookmark",
+            150,
+            false,
+            "Phoenix.Socket.V1.JSONSerializer"
+          ]
+        })
+
+      assert binary ==
+               :erlang.term_to_binary(
+                 {"v1", :v2, Pleroma.Bookmark, 150, false, Phoenix.Socket.V1.JSONSerializer}
+               )
+
+      assert Config.from_binary(binary) ==
+               {"v1", :v2, Pleroma.Bookmark, 150, false, Phoenix.Socket.V1.JSONSerializer}
+    end
+
+    test "map with string key" do
+      binary = Config.transform(%{"key" => "value"})
+      assert binary == :erlang.term_to_binary(%{"key" => "value"})
+      assert Config.from_binary(binary) == %{"key" => "value"}
+    end
+
+    test "map with atom key" do
+      binary = Config.transform(%{":key" => "value"})
+      assert binary == :erlang.term_to_binary(%{key: "value"})
+      assert Config.from_binary(binary) == %{key: "value"}
+    end
+
+    test "list of strings" do
+      binary = Config.transform(["v1", "v2", "v3"])
+      assert binary == :erlang.term_to_binary(["v1", "v2", "v3"])
+      assert Config.from_binary(binary) == ["v1", "v2", "v3"]
+    end
+
     test "list of modules" do
       binary = Config.transform(["Pleroma.Repo", "Pleroma.Activity"])
       assert binary == :erlang.term_to_binary([Pleroma.Repo, Pleroma.Activity])
       assert Config.from_binary(binary) == [Pleroma.Repo, Pleroma.Activity]
     end
 
-    test "list of strings" do
-      binary = Config.transform(["string1", "string2"])
-      assert binary == :erlang.term_to_binary(["string1", "string2"])
-      assert Config.from_binary(binary) == ["string1", "string2"]
+    test "list of atoms" do
+      binary = Config.transform([":v1", ":v2", ":v3"])
+      assert binary == :erlang.term_to_binary([:v1, :v2, :v3])
+      assert Config.from_binary(binary) == [:v1, :v2, :v3]
+    end
+
+    test "list of mixed values" do
+      binary =
+        Config.transform([
+          "v1",
+          ":v2",
+          "Pleroma.Repo",
+          "Phoenix.Socket.V1.JSONSerializer",
+          15,
+          false
+        ])
+
+      assert binary ==
+               :erlang.term_to_binary([
+                 "v1",
+                 :v2,
+                 Pleroma.Repo,
+                 Phoenix.Socket.V1.JSONSerializer,
+                 15,
+                 false
+               ])
+
+      assert Config.from_binary(binary) == [
+               "v1",
+               :v2,
+               Pleroma.Repo,
+               Phoenix.Socket.V1.JSONSerializer,
+               15,
+               false
+             ]
+    end
+
+    test "simple keyword" do
+      binary = Config.transform([%{"tuple" => [":key", "value"]}])
+      assert binary == :erlang.term_to_binary([{:key, "value"}])
+      assert Config.from_binary(binary) == [{:key, "value"}]
+      assert Config.from_binary(binary) == [key: "value"]
     end
 
     test "keyword" do
       binary =
-        Config.transform(%{
-          "types" => "Pleroma.PostgresTypes",
-          "telemetry_event" => ["Pleroma.Repo.Instrumenter"],
-          "migration_lock" => ""
-        })
+        Config.transform([
+          %{"tuple" => [":types", "Pleroma.PostgresTypes"]},
+          %{"tuple" => [":telemetry_event", ["Pleroma.Repo.Instrumenter"]]},
+          %{"tuple" => [":migration_lock", nil]},
+          %{"tuple" => [":key1", 150]},
+          %{"tuple" => [":key2", "string"]}
+        ])
 
       assert binary ==
                :erlang.term_to_binary(
+                 types: Pleroma.PostgresTypes,
                  telemetry_event: [Pleroma.Repo.Instrumenter],
-                 types: Pleroma.PostgresTypes
+                 migration_lock: nil,
+                 key1: 150,
+                 key2: "string"
                )
 
       assert Config.from_binary(binary) == [
+               types: Pleroma.PostgresTypes,
                telemetry_event: [Pleroma.Repo.Instrumenter],
-               types: Pleroma.PostgresTypes
+               migration_lock: nil,
+               key1: 150,
+               key2: "string"
              ]
     end
 
-    test "complex keyword with nested integers, lists and atoms" do
+    test "complex keyword with nested mixed childs" do
       binary =
-        Config.transform(%{
-          "uploader" => "Pleroma.Uploaders.Local",
-          "filters" => ["Pleroma.Upload.Filter.Dedupe"],
-          "link_name" => ":true",
-          "proxy_remote" => ":false",
-          "proxy_opts" => %{
-            "redirect_on_failure" => ":false",
-            "max_body_length" => "i:1048576",
-            "http" => %{
-              "follow_redirect" => ":true",
-              "pool" => ":upload"
-            }
+        Config.transform([
+          %{"tuple" => [":uploader", "Pleroma.Uploaders.Local"]},
+          %{"tuple" => [":filters", ["Pleroma.Upload.Filter.Dedupe"]]},
+          %{"tuple" => [":link_name", true]},
+          %{"tuple" => [":proxy_remote", false]},
+          %{"tuple" => [":common_map", %{":key" => "value"}]},
+          %{
+            "tuple" => [
+              ":proxy_opts",
+              [
+                %{"tuple" => [":redirect_on_failure", false]},
+                %{"tuple" => [":max_body_length", 1_048_576]},
+                %{
+                  "tuple" => [
+                    ":http",
+                    [%{"tuple" => [":follow_redirect", true]}, %{"tuple" => [":pool", ":upload"]}]
+                  ]
+                }
+              ]
+            ]
           }
-        })
+        ])
 
       assert binary ==
                :erlang.term_to_binary(
+                 uploader: Pleroma.Uploaders.Local,
                  filters: [Pleroma.Upload.Filter.Dedupe],
                  link_name: true,
+                 proxy_remote: false,
+                 common_map: %{key: "value"},
                  proxy_opts: [
+                   redirect_on_failure: false,
+                   max_body_length: 1_048_576,
                    http: [
                      follow_redirect: true,
                      pool: :upload
-                   ],
-                   max_body_length: 1_048_576,
-                   redirect_on_failure: false
-                 ],
-                 proxy_remote: false,
-                 uploader: Pleroma.Uploaders.Local
+                   ]
+                 ]
                )
 
       assert Config.from_binary(binary) ==
                [
+                 uploader: Pleroma.Uploaders.Local,
                  filters: [Pleroma.Upload.Filter.Dedupe],
                  link_name: true,
+                 proxy_remote: false,
+                 common_map: %{key: "value"},
                  proxy_opts: [
+                   redirect_on_failure: false,
+                   max_body_length: 1_048_576,
                    http: [
                      follow_redirect: true,
                      pool: :upload
-                   ],
-                   max_body_length: 1_048_576,
-                   redirect_on_failure: false
-                 ],
-                 proxy_remote: false,
-                 uploader: Pleroma.Uploaders.Local
+                   ]
+                 ]
                ]
     end
 
-    test "commmon keyword" do
+    test "common keyword" do
       binary =
-        Config.transform(%{
-          "level" => ":warn",
-          "meta" => [":all"],
-          "webhook_url" => "https://hooks.slack.com/services/YOUR-KEY-HERE"
-        })
+        Config.transform([
+          %{"tuple" => [":level", ":warn"]},
+          %{"tuple" => [":meta", [":all"]]},
+          %{"tuple" => [":webhook_url", "https://hooks.slack.com/services/YOUR-KEY-HERE"]}
+        ])
 
       assert binary ==
                :erlang.term_to_binary(
@@ -167,11 +311,11 @@ defmodule Pleroma.Web.AdminAPI.ConfigTest do
 
     test "complex keyword with sigil" do
       binary =
-        Config.transform(%{
-          federated_timeline_removal: [],
-          reject: [~r/comp[lL][aA][iI][nN]er/],
-          replace: []
-        })
+        Config.transform([
+          %{"tuple" => [":federated_timeline_removal", []]},
+          %{"tuple" => [":reject", ["~r/comp[lL][aA][iI][nN]er/"]]},
+          %{"tuple" => [":replace", []]}
+        ])
 
       assert binary ==
                :erlang.term_to_binary(
@@ -186,47 +330,61 @@ defmodule Pleroma.Web.AdminAPI.ConfigTest do
 
     test "complex keyword with tuples with more than 2 values" do
       binary =
-        Config.transform(%{
-          "http" => %{
-            "dispatch" => [
-              %{
-                "tuple" => [
-                  ":_",
-                  [
-                    %{
-                      "tuple" => [
-                        "/api/v1/streaming",
-                        "Pleroma.Web.MastodonAPI.WebsocketHandler",
-                        []
-                      ]
-                    },
-                    %{
-                      "tuple" => [
-                        "/websocket",
-                        "Phoenix.Endpoint.CowboyWebSocket",
-                        %{
-                          "tuple" => [
-                            "Phoenix.Transports.WebSocket",
-                            %{"tuple" => ["Pleroma.Web.Endpoint", "Pleroma.Web.UserSocket", []]}
+        Config.transform([
+          %{
+            "tuple" => [
+              ":http",
+              [
+                %{
+                  "tuple" => [
+                    ":dispatch",
+                    [
+                      %{
+                        "tuple" => [
+                          ":_",
+                          [
+                            %{
+                              "tuple" => [
+                                "/api/v1/streaming",
+                                "Pleroma.Web.MastodonAPI.WebsocketHandler",
+                                []
+                              ]
+                            },
+                            %{
+                              "tuple" => [
+                                "/websocket",
+                                "Phoenix.Endpoint.CowboyWebSocket",
+                                %{
+                                  "tuple" => [
+                                    "Phoenix.Transports.WebSocket",
+                                    %{
+                                      "tuple" => [
+                                        "Pleroma.Web.Endpoint",
+                                        "Pleroma.Web.UserSocket",
+                                        []
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            %{
+                              "tuple" => [
+                                ":_",
+                                "Phoenix.Endpoint.Cowboy2Handler",
+                                %{"tuple" => ["Pleroma.Web.Endpoint", []]}
+                              ]
+                            }
                           ]
-                        }
-                      ]
-                    },
-                    %{
-                      "tuple" => [
-                        ":_",
-                        "Phoenix.Endpoint.Cowboy2Handler",
-                        %{
-                          "tuple" => ["Pleroma.Web.Endpoint", []]
-                        }
-                      ]
-                    }
+                        ]
+                      }
+                    ]
                   ]
-                ]
-              }
+                }
+              ]
             ]
           }
-        })
+        ])
 
       assert binary ==
                :erlang.term_to_binary(
@@ -257,41 +415,6 @@ defmodule Pleroma.Web.AdminAPI.ConfigTest do
                  ]
                ]
              ]
-    end
-
-    test "map as main value and nested map" do
-      binary =
-        Config.transform(%{
-          "map" => %{
-            "key1" => "val1",
-            "key2" => "val2",
-            "key3" => %{
-              "map" => %{
-                "nested1" => "val3",
-                "nested2" => "val4"
-              }
-            }
-          }
-        })
-
-      assert binary ==
-               :erlang.term_to_binary(%{
-                 key1: "val1",
-                 key2: "val2",
-                 key3: %{
-                   nested1: "val3",
-                   nested2: "val4"
-                 }
-               })
-
-      assert Config.from_binary(binary) == %{
-               key1: "val1",
-               key2: "val2",
-               key3: %{
-                 nested1: "val3",
-                 nested2: "val4"
-               }
-             }
     end
   end
 end

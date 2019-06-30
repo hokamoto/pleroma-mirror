@@ -1411,10 +1411,10 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
               group: "pleroma",
               key: "key2",
               value: %{
-                "nested_1" => "nested_value1",
-                "nested_2" => [
-                  %{"nested_22" => "nested_value222"},
-                  %{"nested_33" => %{"nested_44" => "nested_444"}}
+                ":nested_1" => "nested_value1",
+                ":nested_2" => [
+                  %{":nested_22" => "nested_value222"},
+                  %{":nested_33" => %{":nested_44" => "nested_444"}}
                 ]
               }
             },
@@ -1423,13 +1423,13 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
               key: "key3",
               value: [
                 %{"nested_3" => ":nested_3", "nested_33" => "nested_33"},
-                %{"nested_4" => ":true"}
+                %{"nested_4" => true}
               ]
             },
             %{
               group: "pleroma",
               key: "key4",
-              value: %{"nested_5" => ":upload", "endpoint" => "https://example.com"}
+              value: %{":nested_5" => ":upload", "endpoint" => "https://example.com"}
             },
             %{
               group: "idna",
@@ -1449,28 +1449,26 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                  %{
                    "group" => "pleroma",
                    "key" => "key2",
-                   "value" => [
-                     %{"nested_1" => "nested_value1"},
-                     %{
-                       "nested_2" => [
-                         %{"nested_22" => "nested_value222"},
-                         %{"nested_33" => %{"nested_44" => "nested_444"}}
-                       ]
-                     }
-                   ]
+                   "value" => %{
+                     ":nested_1" => "nested_value1",
+                     ":nested_2" => [
+                       %{":nested_22" => "nested_value222"},
+                       %{":nested_33" => %{":nested_44" => "nested_444"}}
+                     ]
+                   }
                  },
                  %{
                    "group" => "pleroma",
                    "key" => "key3",
                    "value" => [
-                     [%{"nested_3" => "nested_3"}, %{"nested_33" => "nested_33"}],
+                     %{"nested_3" => ":nested_3", "nested_33" => "nested_33"},
                      %{"nested_4" => true}
                    ]
                  },
                  %{
                    "group" => "pleroma",
                    "key" => "key4",
-                   "value" => [%{"endpoint" => "https://example.com"}, %{"nested_5" => "upload"}]
+                   "value" => %{"endpoint" => "https://example.com", ":nested_5" => ":upload"}
                  },
                  %{
                    "group" => "idna",
@@ -1482,23 +1480,23 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
       assert Application.get_env(:pleroma, :key1) == "value1"
 
-      assert Application.get_env(:pleroma, :key2) == [
+      assert Application.get_env(:pleroma, :key2) == %{
                nested_1: "nested_value1",
                nested_2: [
-                 [nested_22: "nested_value222"],
-                 [nested_33: [nested_44: "nested_444"]]
+                 %{nested_22: "nested_value222"},
+                 %{nested_33: %{nested_44: "nested_444"}}
                ]
-             ]
+             }
 
       assert Application.get_env(:pleroma, :key3) == [
-               [nested_3: :nested_3, nested_33: "nested_33"],
-               [nested_4: true]
+               %{"nested_3" => :nested_3, "nested_33" => "nested_33"},
+               %{"nested_4" => true}
              ]
 
-      assert Application.get_env(:pleroma, :key4) == [
-               endpoint: "https://example.com",
+      assert Application.get_env(:pleroma, :key4) == %{
+               "endpoint" => "https://example.com",
                nested_5: :upload
-             ]
+             }
 
       assert Application.get_env(:idna, :key5) == {"string", Pleroma.Captcha.NotReal, []}
     end
@@ -1536,11 +1534,11 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
             %{
               "group" => "pleroma",
               "key" => "Pleroma.Captcha.NotReal",
-              "value" => %{
-                "enabled" => ":false",
-                "method" => "Pleroma.Captcha.Kocaptcha",
-                "seconds_valid" => "i:60"
-              }
+              "value" => [
+                %{"tuple" => [":enabled", false]},
+                %{"tuple" => [":method", "Pleroma.Captcha.Kocaptcha"]},
+                %{"tuple" => [":seconds_valid", 60]}
+              ]
             }
           ]
         })
@@ -1551,9 +1549,9 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                    "group" => "pleroma",
                    "key" => "Pleroma.Captcha.NotReal",
                    "value" => [
-                     %{"enabled" => false},
-                     %{"method" => "Pleroma.Captcha.Kocaptcha"},
-                     %{"seconds_valid" => 60}
+                     %{"tuple" => [":enabled", false]},
+                     %{"tuple" => [":method", "Pleroma.Captcha.Kocaptcha"]},
+                     %{"tuple" => [":seconds_valid", 60]}
                    ]
                  }
                ]
@@ -1569,51 +1567,57 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
               "key" => "Pleroma.Web.Endpoint.NotReal",
               "value" => [
                 %{
-                  "http" => %{
-                    "dispatch" => [
+                  "tuple" => [
+                    ":http",
+                    [
                       %{
                         "tuple" => [
-                          ":_",
+                          ":dispatch",
                           [
                             %{
                               "tuple" => [
-                                "/api/v1/streaming",
-                                "Pleroma.Web.MastodonAPI.WebsocketHandler",
-                                []
-                              ]
-                            },
-                            %{
-                              "tuple" => [
-                                "/websocket",
-                                "Phoenix.Endpoint.CowboyWebSocket",
-                                %{
-                                  "tuple" => [
-                                    "Phoenix.Transports.WebSocket",
-                                    %{
-                                      "tuple" => [
-                                        "Pleroma.Web.Endpoint",
-                                        "Pleroma.Web.UserSocket",
-                                        []
-                                      ]
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            %{
-                              "tuple" => [
                                 ":_",
-                                "Phoenix.Endpoint.Cowboy2Handler",
-                                %{
-                                  "tuple" => ["Pleroma.Web.Endpoint", []]
-                                }
+                                [
+                                  %{
+                                    "tuple" => [
+                                      "/api/v1/streaming",
+                                      "Pleroma.Web.MastodonAPI.WebsocketHandler",
+                                      []
+                                    ]
+                                  },
+                                  %{
+                                    "tuple" => [
+                                      "/websocket",
+                                      "Phoenix.Endpoint.CowboyWebSocket",
+                                      %{
+                                        "tuple" => [
+                                          "Phoenix.Transports.WebSocket",
+                                          %{
+                                            "tuple" => [
+                                              "Pleroma.Web.Endpoint",
+                                              "Pleroma.Web.UserSocket",
+                                              []
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  %{
+                                    "tuple" => [
+                                      ":_",
+                                      "Phoenix.Endpoint.Cowboy2Handler",
+                                      %{"tuple" => ["Pleroma.Web.Endpoint", []]}
+                                    ]
+                                  }
+                                ]
                               ]
                             }
                           ]
                         ]
                       }
                     ]
-                  }
+                  ]
                 }
               ]
             }
@@ -1627,41 +1631,57 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                    "key" => "Pleroma.Web.Endpoint.NotReal",
                    "value" => [
                      %{
-                       "http" => %{
-                         "dispatch" => %{
-                           "_" => [
-                             %{
-                               "tuple" => [
-                                 "/api/v1/streaming",
-                                 "Pleroma.Web.MastodonAPI.WebsocketHandler",
-                                 []
-                               ]
-                             },
-                             %{
-                               "tuple" => [
-                                 "/websocket",
-                                 "Phoenix.Endpoint.CowboyWebSocket",
+                       "tuple" => [
+                         ":http",
+                         [
+                           %{
+                             "tuple" => [
+                               ":dispatch",
+                               [
                                  %{
-                                   "Elixir.Phoenix.Transports.WebSocket" => %{
-                                     "tuple" => [
-                                       "Pleroma.Web.Endpoint",
-                                       "Pleroma.Web.UserSocket",
-                                       []
+                                   "tuple" => [
+                                     ":_",
+                                     [
+                                       %{
+                                         "tuple" => [
+                                           "/api/v1/streaming",
+                                           "Pleroma.Web.MastodonAPI.WebsocketHandler",
+                                           []
+                                         ]
+                                       },
+                                       %{
+                                         "tuple" => [
+                                           "/websocket",
+                                           "Phoenix.Endpoint.CowboyWebSocket",
+                                           %{
+                                             "tuple" => [
+                                               "Phoenix.Transports.WebSocket",
+                                               %{
+                                                 "tuple" => [
+                                                   "Pleroma.Web.Endpoint",
+                                                   "Pleroma.Web.UserSocket",
+                                                   []
+                                                 ]
+                                               }
+                                             ]
+                                           }
+                                         ]
+                                       },
+                                       %{
+                                         "tuple" => [
+                                           ":_",
+                                           "Phoenix.Endpoint.Cowboy2Handler",
+                                           %{"tuple" => ["Pleroma.Web.Endpoint", []]}
+                                         ]
+                                       }
                                      ]
-                                   }
+                                   ]
                                  }
                                ]
-                             },
-                             %{
-                               "tuple" => [
-                                 "_",
-                                 "Phoenix.Endpoint.Cowboy2Handler",
-                                 %{"Elixir.Pleroma.Web.Endpoint" => []}
-                               ]
-                             }
-                           ]
-                         }
-                       }
+                             ]
+                           }
+                         ]
+                       ]
                      }
                    ]
                  }
@@ -1676,25 +1696,26 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
             %{
               "group" => "pleroma",
               "key" => "key1",
-              "value" => %{
-                "key2" => "some_val",
-                "key3" => %{
-                  "map" => %{
-                    "max_options" => "i:20",
-                    "max_option_chars" => "i:200",
-                    "min_expiration" => "i:0",
-                    "max_expiration" => "i:31536000",
-                    "nested" => %{
-                      "map" => %{
-                        "max_options" => "i:20",
-                        "max_option_chars" => "i:200",
-                        "min_expiration" => "i:0",
-                        "max_expiration" => "i:31536000"
+              "value" => [
+                %{"tuple" => [":key2", "some_val"]},
+                %{
+                  "tuple" => [
+                    ":key3",
+                    %{
+                      ":max_options" => 20,
+                      ":max_option_chars" => 200,
+                      ":min_expiration" => 0,
+                      ":max_expiration" => 31_536_000,
+                      "nested" => %{
+                        ":max_options" => 20,
+                        ":max_option_chars" => 200,
+                        ":min_expiration" => 0,
+                        ":max_expiration" => 31_536_000
                       }
                     }
-                  }
+                  ]
                 }
-              }
+              ]
             }
           ]
         })
@@ -1706,20 +1727,23 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                      "group" => "pleroma",
                      "key" => "key1",
                      "value" => [
-                       %{"key2" => "some_val"},
+                       %{"tuple" => [":key2", "some_val"]},
                        %{
-                         "key3" => %{
-                           "max_expiration" => 31_536_000,
-                           "max_option_chars" => 200,
-                           "max_options" => 20,
-                           "min_expiration" => 0,
-                           "nested" => %{
-                             "max_expiration" => 31_536_000,
-                             "max_option_chars" => 200,
-                             "max_options" => 20,
-                             "min_expiration" => 0
+                         "tuple" => [
+                           ":key3",
+                           %{
+                             ":max_expiration" => 31_536_000,
+                             ":max_option_chars" => 200,
+                             ":max_options" => 20,
+                             ":min_expiration" => 0,
+                             "nested" => %{
+                               ":max_expiration" => 31_536_000,
+                               ":max_option_chars" => 200,
+                               ":max_options" => 20,
+                               ":min_expiration" => 0
+                             }
                            }
-                         }
+                         ]
                        }
                      ]
                    }
@@ -1734,9 +1758,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
             %{
               "group" => "pleroma",
               "key" => "key1",
-              "value" => %{
-                "map" => %{"key" => "some_val"}
-              }
+              "value" => %{"key" => "some_val"}
             }
           ]
         })
