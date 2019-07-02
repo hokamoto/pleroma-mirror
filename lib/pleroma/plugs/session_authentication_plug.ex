@@ -10,8 +10,8 @@ defmodule Pleroma.Plugs.SessionAuthenticationPlug do
   end
 
   def call(conn, _) do
-    IO.inspect({:session, get_session(conn, :user_id)})
-    IO.inspect({:assigns, conn.assigns})
+    # IO.inspect({:session, get_session(conn, :user_id)})
+    # IO.inspect({:assigns, conn.assigns})
 
     with saved_user_id <- get_session(conn, :user_id),
          %{auth_user: %{id: ^saved_user_id}} <- conn.assigns do
