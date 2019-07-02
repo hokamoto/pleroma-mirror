@@ -38,7 +38,14 @@ defmodule Pleroma.User.Search do
       end)
 
     results
+    |> filter_block_users(for_user)
   end
+
+  defp filter_block_users(accounts, %User{} = user) do
+    Enum.filter(accounts, &(!User.blocks?(user, &1)))
+  end
+
+  defp filter_block_users(accounts, _), do: accounts
 
   defp search_query(query_string, for_user, following) do
     for_user
