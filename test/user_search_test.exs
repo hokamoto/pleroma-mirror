@@ -200,12 +200,21 @@ defmodule Pleroma.UserSearchTest do
       user = insert(:user, %{nickname: "Bill"})
 
       [blocked_user | users] = Enum.map(0..3, &insert(:user, %{nickname: "john#{&1}"}))
+
+      blocked_user2 =
+        insert(
+          :user,
+          %{nickname: "john awful", ap_id: "https://awful-and-rude-instance.com/user/bully"}
+        )
+
+      User.block_domain(user, "awful-and-rude-instance.com")
       User.block(user, blocked_user)
 
       account_ids = User.search("john", for_user: refresh_record(user)) |> collect_ids
 
       assert account_ids == collect_ids(users)
       refute Enum.member?(account_ids, blocked_user.id)
+      refute Enum.member?(account_ids, blocked_user2.id)
       assert length(account_ids) == 3
     end
   end
