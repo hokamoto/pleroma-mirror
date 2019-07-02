@@ -83,6 +83,8 @@ defmodule Pleroma.Web.AdminAPI.Config do
     for {k, v} <- entity, into: %{}, do: {do_convert(k), do_convert(v)}
   end
 
+  defp do_convert({:dispatch, [entity]}), do: %{"tuple" => [":dispatch", [inspect(entity)]]}
+
   defp do_convert(entity) when is_tuple(entity),
     do: %{"tuple" => do_convert(Tuple.to_list(entity))}
 
@@ -109,8 +111,14 @@ defmodule Pleroma.Web.AdminAPI.Config do
 
   defp do_transform(%Regex{} = entity) when is_map(entity), do: entity
 
-  defp do_transform(%{"tuple" => values}) do
-    Enum.reduce(values, {}, fn val, acc -> Tuple.append(acc, do_transform(val)) end)
+  defp do_transform(%{"tuple" => [":dispatch", [entity]]}) do
+    cleaned_string = String.replace(entity, ~r/[^\w|^{:,[|^,|^[|^\]^}|^\/|^\.|^"]^\s/, "")
+    {dispatch_settings, []} = Code.eval_string(cleaned_string, [], requires: [], macros: [])
+    {:dispatch, [dispatch_settings]}
+  end
+
+  defp do_transform(%{"tuple" => entity}) do
+    Enum.reduce(entity, {}, fn val, acc -> Tuple.append(acc, do_transform(val)) end)
   end
 
   defp do_transform(entity) when is_map(entity) do
