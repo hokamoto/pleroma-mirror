@@ -215,7 +215,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
             %{}
 
           {:ok, sid} ->
-            %{sid: sid, jid: "#{user.nickname}@#{Pleroma.Web.Endpoint.host()}"}
+            %{sid: to_string(sid), jid: "#{user.nickname}@#{Pleroma.Web.Endpoint.host()}"}
         end
 
       conn

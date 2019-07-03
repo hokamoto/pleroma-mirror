@@ -43,8 +43,8 @@ defmodule Pleroma.Web.MongooseIM.MongooseIMController do
 
   def prebind(conn, _params) do
     response =
-      case conn.assigns do
-        %{xmpp: %{jid: jid, sid: sid}} ->
+      case get_session(conn, :xmpp) do
+        %{jid: jid, sid: sid} ->
           rid = System.unique_integer([:monotonic, :positive])
           %{jid: jid, sid: sid, rid: rid}
 

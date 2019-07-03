@@ -38,7 +38,8 @@ defmodule Pleroma.XMPP do
         xmpp:version="1.0"/>
     """
 
-    xmpp_host = "p.devs.live"
+    # xmpp_host = "p.devs.live"
+    xmpp_host = host
     %Tesla.Env{body: body} = Tesla.post!("https://" <> xmpp_host <> "/http-bind", req_body)
     sid = xpath(body, ~x"//body/@sid")
     rid2 = System.unique_integer([:monotonic, :positive])
