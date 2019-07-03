@@ -1000,6 +1000,51 @@ defmodule Pleroma.User do
     )
   end
 
+  @spec perform(atom()) :: :ok
+  def perform(:sync_follow_counters) do
+    {:ok, _pid} = Agent.start_link(fn -> %{} end, name: :domain_errors)
+    # TODO: make it confirurable (suggest to set this setting rather low for small instances)
+    limit = 500
+    sync_follow_counters(limit: limit)
+  end
+
+  @spec sync_follow_counters(keyword()) :: :ok
+  def sync_follow_counters(opts \\ []) do
+    users = Repo.all(build_external_query(opts))
+
+    if length(users) > 0 do
+      errors = Agent.get(:domain_errors, fn state -> state end)
+      {last, updated_errors} = User.Synchronization.call(users, errors)
+      Agent.update(:domain_errors, fn _state -> updated_errors end)
+      sync_follow_counters(max_id: last.id, limit: opts[:limit])
+    else
+      Agent.stop(:domain_errors)
+    end
+  end
+
+  @spec build_external_query(keyword()) :: [User.t()]
+  def build_external_query(opts \\ []) do
+    query =
+      User.Query.build(%{
+        external: true,
+        active: true,
+        order_by: :id,
+        select: [:id, :follower_address]
+      })
+
+    query =
+      if opts[:max_id],
+        do: where(query, [u], u.id > ^opts[:max_id]),
+        else: query
+
+    query =
+      if opts[:limit],
+        do: limit(query, ^opts[:limit]),
+        else: query
+
+    Repo.all(query)
+  end
+
   def blocks_import(%User{} = blocker, blocked_identifiers) when is_list(blocked_identifiers),
     do:
       PleromaJobQueue.enqueue(:background, __MODULE__, [

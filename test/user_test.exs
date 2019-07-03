@@ -1183,4 +1183,31 @@ defmodule Pleroma.UserTest do
       assert user_two.ap_id in ap_ids
     end
   end
+
+  describe "sync followers count" do
+    setup do
+      user1 = insert(:user, local: false)
+      user2 = insert(:user, local: false)
+      insert(:user, local: true)
+      insert(:user, local: false, info: %{deactivated: true})
+      {:ok, user1: user1, user2: user2}
+    end
+
+    test "build_external_query/1 external active users with limit", %{user1: user1, user2: user2} do
+      [fdb_user1] = User.build_external_query(limit: 1)
+
+      assert fdb_user1.follower_address == user1.follower_address
+      assert fdb_user1.id == user1.id
+
+      [fdb_user2] = User.build_external_query(max_id: fdb_user1.id, limit: 1)
+
+      assert fdb_user2.follower_address == user2.follower_address
+      assert fdb_user2.id == user2.id
+
+      assert User.build_external_query(max_id: fdb_user2.id, limit: 1) == []
+    end
+
+    test "sync_follow_counters/0" do
+    end
+  end
 end
