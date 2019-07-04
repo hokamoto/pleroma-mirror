@@ -63507,6 +63507,7 @@ _converse.api = {
      * @param {boolean} [reconnecting]
      */
     async login(jid, password, reconnecting) {
+	console.log("async login called. jid: ", jid, "p: ", password, "r: ", reconnecting);
       if (_converse.api.connection.isType('bosh')) {
         if (reconnecting && _converse.prebind_url) {
           return _converse.startNewBOSHSession();
