@@ -25,18 +25,22 @@
       if (request.status >= 200 && request.status < 400) {
         console.log("Got JID data: ", request.responseText)
         var data = JSON.parse(request.responseText);
-        converse.initialize({
-          debug: true,
-          authentication: 'prebind',
-          prebind_url: 'https://p.devs.live/prebind',
-          keepalive: true,
-          jid: data.jid,
-          auto_away: 300,
-          auto_reconnect: true,
-          bosh_service_url: 'https://p.devs.live/http-bind/',
-          message_archiving: 'always',
-          view_mode: 'overlayed'
-        });
+        if (data) {
+          converse.initialize({
+            debug: true,
+            authentication: 'prebind',
+            prebind_url: 'https://p.devs.live/xmpp/prebind',
+            keepalive: true,
+            jid: data.jid,
+            auto_away: 300,
+            auto_reconnect: true,
+            bosh_service_url: 'https://p.devs.live/http-bind/',
+            message_archiving: 'always',
+            view_mode: 'overlayed'
+          });
+        } else {
+          console.log("Couldn't get JID, skipping XMPP connection")
+        }
       } else {
         console.error("Unexpected response, can't get JID", request)
       }
