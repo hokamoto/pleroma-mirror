@@ -665,6 +665,10 @@ const OrderedListView = Backbone.OrderedListView = Backbone.Overview.extend({
    // The `sortEvent` attribute specifies the event which should cause the
    // ordered list to be sorted.
    sortEvent: 'change',
+   // If false, we debounce sorting and inserting the new item
+   // (for improved performance when a large amount of items get added all at once)
+   // Otherwise we immediately sort the items and insert the new item.
+   sortImmediatelyOnAdd: false,
    // The `listSelector` is the selector used to query for the DOM list
    // element which contains the ordered items.
    listSelector: '.ordered-items',
@@ -679,14 +683,21 @@ const OrderedListView = Backbone.OrderedListView = Backbone.Overview.extend({
    subviewIndex: 'id',
 
    initialize () {
-      this.sortEventually = Object(lodash__WEBPACK_IMPORTED_MODULE_0__["debounce"])(this.sortAndPositionAllItems.bind(this), 250);
-
+      this.sortEventually = Object(lodash__WEBPACK_IMPORTED_MODULE_0__["debounce"])(() => this.sortAndPositionAllItems(), 100);
       this.items = Object(lodash__WEBPACK_IMPORTED_MODULE_0__["get"])(this, this.listItems);
-      this.items.on('add', this.sortAndPositionAllItems, this);
       this.items.on('remove', this.removeView, this);
       this.items.on('reset', this.removeAll, this);
+
+      this.items.on('add', (a, b) => {
+         if (this.sortImmediatelyOnAdd) {
+            this.sortAndPositionAllItems();
+         } else {
+            this.sortEventually();
+         }
+      });
+
       if (this.sortEvent) {
-            this.items.on(this.sortEvent, this.sortEventually, this);
+         this.items.on(this.sortEvent, this.sortEventually, this);
       }
    },
 
@@ -48174,22 +48185,22 @@ const u = utils;
 const AvatarMixin = {
   renderAvatar(el) {
     el = el || this.el;
-    const canvas_el = el.querySelector('canvas');
+    const avatar_el = el.querySelector('canvas.avatar, svg.avatar');
 
-    if (_.isNull(canvas_el)) {
+    if (_.isNull(avatar_el)) {
       return;
     }
 
     if (this.model.vcard) {
       const data = {
-        'classes': canvas_el.getAttribute('class'),
-        'width': canvas_el.width,
-        'height': canvas_el.height
+        'classes': avatar_el.getAttribute('class'),
+        'width': avatar_el.getAttribute('width'),
+        'height': avatar_el.getAttribute('height')
       };
       const image_type = this.model.vcard.get('image_type'),
             image = this.model.vcard.get('image');
       data['image'] = "data:" + image_type + ";base64," + image;
-      canvas_el.outerHTML = templates_avatar_svg__WEBPACK_IMPORTED_MODULE_4___default()(data);
+      avatar_el.outerHTML = templates_avatar_svg__WEBPACK_IMPORTED_MODULE_4___default()(data);
     }
   }
 
@@ -49214,12 +49225,6 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_8__["default"].plugins
        * @param { _converse.Message } message - The message object
        */
       async showMessage(message) {
-        if (!_converse_headless_utils_emoji__WEBPACK_IMPORTED_MODULE_24__["default"].isNewMessage(message) && _converse_headless_utils_emoji__WEBPACK_IMPORTED_MODULE_24__["default"].isEmptyMessage(message)) {
-          // Handle archived or delayed messages without any message
-          // text to show.
-          return message.destroy();
-        }
-
         const view = this.add(message.get('id'), new _converse.MessageView({
           'model': message
         }));
@@ -49247,6 +49252,10 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_8__["default"].plugins
         } else {
           this.scrollDown();
         }
+
+        if (message.get('correcting')) {
+          this.insertIntoTextArea(message.get('message'), true, true);
+        }
       },
 
       /**
@@ -49263,11 +49272,12 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_8__["default"].plugins
           return;
         }
 
-        await this.showMessage(message);
-
-        if (message.get('correcting')) {
-          this.insertIntoTextArea(message.get('message'), true, true);
+        if (!_converse_headless_utils_emoji__WEBPACK_IMPORTED_MODULE_24__["default"].isNewMessage(message) && _converse_headless_utils_emoji__WEBPACK_IMPORTED_MODULE_24__["default"].isEmptyMessage(message)) {
+          // Ignore archived or delayed messages without any text to show.
+          return message.destroy();
         }
+
+        await this.showMessage(message);
         /**
          * Triggered once a message has been added to a chatbox.
          * @event _converse#messageAdded
@@ -49276,7 +49286,6 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_8__["default"].plugins
          * @property { _converse.ChatBox | _converse.ChatRoom } chatbox - The chat model
          * @example _converse.api.listen.on('messageAdded', data => { ... });
          */
-
 
         _converse.api.trigger('messageAdded', {
           'message': message,
@@ -49329,7 +49338,7 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_8__["default"].plugins
       async onFormSubmitted(ev) {
         ev.preventDefault();
         const textarea = this.el.querySelector('.chat-textarea');
-        const message = textarea.value;
+        const message = textarea.value.trim();
 
         if (_converse.message_limit && message.length > _converse.message_limit) {
           return;
@@ -49399,6 +49408,16 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_8__["default"].plugins
       },
 
       onPaste(ev) {
+        if (ev.clipboardData.files.length !== 0) {
+          ev.preventDefault(); // Workaround for quirk in at least Firefox 60.7 ESR:
+          // It seems that pasted files disappear from the event payload after
+          // the event has finished, which apparently happens during async
+          // processing in sendFiles(). So we copy the array here.
+
+          this.model.sendFiles(Array.from(ev.clipboardData.files));
+          return;
+        }
+
         this.updateCharCounter(ev.clipboardData.getData('text/plain'));
       },
 
@@ -49423,7 +49442,7 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_8__["default"].plugins
           return;
         }
 
-        if (!ev.shiftKey && !ev.altKey) {
+        if (!ev.shiftKey && !ev.altKey && !ev.metaKey) {
           if (ev.keyCode === _converse.keycodes.FORWARD_SLASH) {
             // Forward slash is used to run commands. Nothing to do here.
             return;
@@ -49557,8 +49576,12 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_8__["default"].plugins
       },
 
       inputChanged(ev) {
-        ev.target.style.height = 'auto';
-        ev.target.style.height = ev.target.scrollHeight + 'px';
+        const height = ev.target.scrollHeight + 'px';
+
+        if (ev.target.style.height != height) {
+          ev.target.style.height = 'auto';
+          ev.target.style.height = height;
+        }
       },
 
       clearMessages(ev) {
@@ -51933,7 +51956,7 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_3__["default"].plugins
 
           _converse.chatboxviews.trimChats(this);
         } else {
-          this.minimize();
+          this.model.minimize();
         }
       },
 
@@ -51985,13 +52008,7 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_3__["default"].plugins
       },
 
       initialize() {
-        this.model.on('change:minimized', function (item) {
-          if (item.get('minimized')) {
-            this.hide();
-          } else {
-            this.maximize();
-          }
-        }, this);
+        this.model.on('change:minimized', this.onMinimizedChanged, this);
 
         const result = this.__super__.initialize.apply(this, arguments);
 
@@ -52058,12 +52075,14 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_3__["default"].plugins
     Object.assign(_converse.ChatBox.prototype, minimizableChatBox);
     const minimizableChatBoxView = {
       /**
-       * Maximizes a minimized chat box.
+       * Handler which gets called when a {@link _converse#ChatBox} has it's
+       * `minimized` property set to false.
+       *
        * Will trigger {@link _converse#chatBoxMaximized}
+       * @private
        * @returns {_converse.ChatBoxView|_converse.ChatRoomView}
        */
-      maximize() {
-        // Restores a minimized chat box
+      onMaximized() {
         const _converse = this.__super__._converse;
         this.insertIntoDOM();
 
@@ -52071,6 +52090,7 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_3__["default"].plugins
           this.model.clearUnreadMsgCounter();
         }
 
+        this.setChatState(_converse.INACTIVE);
         this.show();
         /**
          * Triggered when a previously minimized chat gets maximized
@@ -52085,11 +52105,14 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_3__["default"].plugins
       },
 
       /**
-       * Minimizes a chat box.
+       * Handler which gets called when a {@link _converse#ChatBox} has it's
+       * `minimized` property set to true.
+       *
        * Will trigger {@link _converse#chatBoxMinimized}
+       * @private
        * @returns {_converse.ChatBoxView|_converse.ChatRoomView}
        */
-      minimize(ev) {
+      onMinimized(ev) {
         const _converse = this.__super__._converse;
 
         if (ev && ev.preventDefault) {
@@ -52107,7 +52130,7 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_3__["default"].plugins
           });
         }
 
-        this.setChatState(_converse.INACTIVE).model.minimize();
+        this.setChatState(_converse.INACTIVE);
         this.hide();
         /**
          * Triggered when a previously maximized chat gets Minimized
@@ -52121,11 +52144,20 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_3__["default"].plugins
         return this;
       },
 
+      /**
+       * Minimizes a chat box.
+       * @returns {_converse.ChatBoxView|_converse.ChatRoomView}
+       */
+      minimize(ev) {
+        this.model.minimize();
+        return this;
+      },
+
       onMinimizedChanged(item) {
         if (item.get('minimized')) {
-          this.minimize();
+          this.onMinimized();
         } else {
-          this.maximize();
+          this.onMaximized();
         }
       }
 
@@ -53820,7 +53852,7 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_5__["default"].plugins
               }
 
               this.showHelpMessages([`<strong>${__("You can run the following commands")}</strong>`]);
-              this.showHelpMessages([`<strong>/admin</strong>: ${__("Change user's affiliation to admin")}`, `<strong>/ban</strong>: ${__('Ban user from groupchat')}`, `<strong>/clear</strong>: ${__('Clear the chat area')}`, `<strong>/deop</strong>: ${__('Change user role to participant')}`, `<strong>/destroy</strong>: ${__('Remove this groupchat')}`, `<strong>/help</strong>: ${__('Show this menu')}`, `<strong>/kick</strong>: ${__('Kick user from groupchat')}`, `<strong>/me</strong>: ${__('Write in 3rd person')}`, `<strong>/member</strong>: ${__('Grant membership to a user')}`, `<strong>/mute</strong>: ${__("Remove user's ability to post messages")}`, `<strong>/nick</strong>: ${__('Change your nickname')}`, `<strong>/op</strong>: ${__('Grant moderator role to user')}`, `<strong>/owner</strong>: ${__('Grant ownership of this groupchat')}`, `<strong>/register</strong>: ${__("Register your nickname")}`, `<strong>/revoke</strong>: ${__("Revoke user's membership")}`, `<strong>/subject</strong>: ${__('Set groupchat subject')}`, `<strong>/topic</strong>: ${__('Set groupchat subject (alias for /subject)')}`, `<strong>/voice</strong>: ${__('Allow muted user to post messages')}`].filter(line => disabled_commands.every(c => !line.startsWith(c + '<', 9))).filter(line => allowed_commands.some(c => line.startsWith(c + '<', 9))));
+              this.showHelpMessages([`<strong>/admin</strong>: ${__("Change user's affiliation to admin")}`, `<strong>/ban</strong>: ${__('Ban user by changing their affiliation to outcast')}`, `<strong>/clear</strong>: ${__('Clear the chat area')}`, `<strong>/deop</strong>: ${__('Change user role to participant')}`, `<strong>/destroy</strong>: ${__('Remove this groupchat')}`, `<strong>/help</strong>: ${__('Show this menu')}`, `<strong>/kick</strong>: ${__('Kick user from groupchat')}`, `<strong>/me</strong>: ${__('Write in 3rd person')}`, `<strong>/member</strong>: ${__('Grant membership to a user')}`, `<strong>/mute</strong>: ${__("Remove user's ability to post messages")}`, `<strong>/nick</strong>: ${__('Change your nickname')}`, `<strong>/op</strong>: ${__('Grant moderator role to user')}`, `<strong>/owner</strong>: ${__('Grant ownership of this groupchat')}`, `<strong>/register</strong>: ${__("Register your nickname")}`, `<strong>/revoke</strong>: ${__("Revoke the user's current affiliation")}`, `<strong>/subject</strong>: ${__('Set groupchat subject')}`, `<strong>/topic</strong>: ${__('Set groupchat subject (alias for /subject)')}`, `<strong>/voice</strong>: ${__('Allow muted user to post messages')}`].filter(line => disabled_commands.every(c => !line.startsWith(c + '<', 9))).filter(line => allowed_commands.some(c => line.startsWith(c + '<', 9))));
               break;
             }
 
@@ -54143,26 +54175,30 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_5__["default"].plugins
       },
 
       /**
-       * Working backwards, get the first join/leave notification
-       * from the same user, on the same day and BEFORE any chat
-       * messages were received.
+       * Working backwards, get today's most recent join/leave notification
+       * from the same user (if any exists) after the most recent chat message.
        * @private
        * @method _converse.ChatRoomView#getPreviousJoinOrLeaveNotification
        * @param {HTMLElement} el
        * @param {string} nick
        */
       getPreviousJoinOrLeaveNotification(el, nick) {
-        while (!_.isNil(el)) {
-          const data = _.get(el, 'dataset', {});
+        const today = new Date().toISOString().split('T')[0];
 
-          if (!_.includes(_.get(el, 'classList', []), 'chat-info')) {
+        while (el !== null) {
+          if (!el.classList.contains('chat-info')) {
+            return;
+          } // Check whether el is still from today.
+          // We don't use `Dayjs.same` here, since it's about 4 times slower.
+
+
+          const date = el.getAttribute('data-isodate');
+
+          if (date && date.split('T')[0] !== today) {
             return;
           }
 
-          if (!dayjs(el.getAttribute('data-isodate')).isSame(new Date(), "day")) {
-            el = el.previousElementSibling;
-            continue;
-          }
+          const data = _.get(el, 'dataset', {});
 
           if (data.join === nick || data.leave === nick || data.leavejoin === nick || data.joinleave === nick) {
             return el;
@@ -58487,7 +58523,7 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_7__["default"].plugins
 
         const input_el = this.el.querySelector('input[name="name"]');
         input_el.addEventListener('input', _.debounce(() => {
-          xhr.open("GET", `${_converse.xhr_user_search_url}q=${input_el.value}`, true);
+          xhr.open("GET", `${_converse.xhr_user_search_url}q=${encodeURIComponent(input_el.value)}`, true);
           xhr.send();
         }, 300));
         this.name_auto_complete.on('suggestion-box-selectcomplete', ev => {
@@ -58556,7 +58592,7 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_7__["default"].plugins
 
         if (!jid && _converse.xhr_user_search_url && _.isString(_converse.xhr_user_search_url)) {
           const input_el = this.el.querySelector('input[name="name"]');
-          this.xhr.open("GET", `${_converse.xhr_user_search_url}q=${input_el.value}`, true);
+          this.xhr.open("GET", `${_converse.xhr_user_search_url}q=${encodeURIComponent(input_el.value)}`, true);
           this.xhr.send();
           return;
         }
@@ -58935,6 +58971,7 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_7__["default"].plugins
       events: {
         "click a.group-toggle": "toggle"
       },
+      sortImmediatelyOnAdd: true,
       ItemView: _converse.RosterContactView,
       listItems: 'model.contacts',
       listSelector: '.roster-group-contacts',
@@ -58952,7 +58989,7 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_7__["default"].plugins
         // assigned to their various groups.
 
 
-        _converse.rosterview.on('rosterContactsFetchedAndProcessed', this.sortAndPositionAllItems.bind(this));
+        _converse.rosterview.on('rosterContactsFetchedAndProcessed', () => this.sortAndPositionAllItems());
       },
 
       render() {
@@ -58992,8 +59029,7 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_7__["default"].plugins
          */
         let shown = 0;
         const all_contact_views = this.getAll();
-
-        _.each(this.model.contacts.models, contact => {
+        this.model.contacts.forEach(contact => {
           const contact_view = this.get(contact.get('id'));
 
           if (_.includes(contacts, contact)) {
@@ -59143,6 +59179,7 @@ _converse_headless_converse_core__WEBPACK_IMPORTED_MODULE_7__["default"].plugins
       sortEvent: null,
       // Groups are immutable, so they don't get re-sorted
       subviewIndex: 'name',
+      sortImmediatelyOnAdd: true,
       events: {
         'click a.controlbox-heading__btn.add-contact': 'showAddContactModal',
         'click a.controlbox-heading__btn.sync-contacts': 'syncContacts'
@@ -60891,6 +60928,8 @@ _converse_core__WEBPACK_IMPORTED_MODULE_3__["default"].plugins.add('converse-cha
           attrs = Object.assign(attrs, {
             'older_versions': older_versions
           });
+          delete attrs['id']; // Delete id, otherwise a new cache entry gets created
+
           message.save(attrs);
         }
 
@@ -61325,7 +61364,11 @@ _converse_core__WEBPACK_IMPORTED_MODULE_3__["default"].plugins.add('converse-cha
         if (type === 'error') {
           return this.getErrorMessage(stanza);
         } else {
-          return _.propertyOf(stanza.querySelector('body'))('textContent');
+          const body = stanza.querySelector('body');
+
+          if (body) {
+            return body.textContent.trim();
+          }
         }
       },
 
@@ -61745,7 +61788,7 @@ _converse_core__WEBPACK_IMPORTED_MODULE_3__["default"].plugins.add('converse-cha
        * @namespace _converse.api.chats
        * @memberOf _converse.api
        */
-      'chats': {
+      chats: {
         /**
          * @method _converse.api.chats.create
          * @param {string|string[]} jid|jids An jid or array of jids
@@ -62401,7 +62444,7 @@ _converse.initConnection = function () {
 };
 
 async function initUserSession(jid) {
-  const bare_jid = Strophe.getBareJidFromJid(jid);
+  const bare_jid = Strophe.getBareJidFromJid(jid).toLowerCase();
   const id = `converse.session-${bare_jid}`;
 
   if (!_converse.session || _converse.session.get('id') !== id) {
@@ -62413,6 +62456,10 @@ async function initUserSession(jid) {
       'success': r,
       'error': r
     }));
+
+    if (_converse.session.get('active')) {
+      _converse.session.clear();
+    }
     /**
      * Triggered once the user's session has been initialized. The session is a
      * cache which stores information about the user's current session.
@@ -62420,17 +62467,23 @@ async function initUserSession(jid) {
      * @memberOf _converse
      */
 
+
     _converse.api.trigger('userSessionInitialized');
   }
 }
 
 async function setUserJID(jid) {
+  await initUserSession(jid);
+  jid = _converse.session.get('jid') || jid;
+
   if (!Strophe.getResourceFromJid(jid)) {
     jid = jid.toLowerCase() + _converse.generateResource();
-  }
+  } // Set JID on the connection object so that when we call
+  // `connection.bind` the new resource is found by Strophe.js
+  // and sent to the XMPP server.
 
-  jid = jid.toLowerCase();
-  await initUserSession(jid);
+
+  _converse.connection.jid = jid;
   _converse.jid = jid;
   _converse.bare_jid = Strophe.getBareJidFromJid(jid);
   _converse.resource = Strophe.getResourceFromJid(jid);
@@ -62440,7 +62493,8 @@ async function setUserJID(jid) {
     'jid': jid,
     'bare_jid': _converse.bare_jid,
     'resource': _converse.resource,
-    'domain': _converse.domain
+    'domain': _converse.domain,
+    'active': true
   });
   /**
    * Triggered whenever the user's JID has been updated
@@ -62449,6 +62503,8 @@ async function setUserJID(jid) {
 
 
   _converse.api.trigger('setUserJID');
+
+  return jid;
 }
 
 async function onConnected(reconnecting) {
@@ -62751,6 +62807,11 @@ _converse.initialize = async function (settings, callback) {
       'passive': true
     };
     window.addEventListener(_converse.unloadevent, _converse.onUserActivity, options);
+    window.addEventListener(_converse.unloadevent, () => {
+      if (_converse.session) {
+        _converse.session.save('active', false);
+      }
+    });
     _converse.everySecondTrigger = window.setInterval(_converse.onEverySecond, 1000);
   };
 
@@ -63454,23 +63515,16 @@ _converse.api = {
         }
       }
 
-      let credentials;
-
-      if (jid && password) {
-        credentials = {
-          jid,
-          password
-        };
-      } else if (_converse_headless_utils_core__WEBPACK_IMPORTED_MODULE_13__["default"].isValidJID(_converse.jid) && _converse.password) {
-        credentials = {
-          jid: _converse.jid,
-          password: _converse.password
-        };
+      if (jid || _converse.jid) {
+        // Reassign because we might have gained a resource
+        jid = await setUserJID(jid || _converse.jid);
       }
 
-      if (credentials && credentials.jid) {
-        await setUserJID(jid || _converse.jid);
-      }
+      password = password || _converse.password;
+      const credentials = jid && password ? {
+        jid,
+        password
+      } : null;
 
       _converse.attemptNonPreboundSession(credentials, reconnecting);
     },
@@ -64005,7 +64059,7 @@ _converse_core__WEBPACK_IMPORTED_MODULE_1__["default"].plugins.add('converse-dis
        */
       idAttribute: 'jid',
 
-      initialize() {
+      initialize(attrs, options) {
         this.waitUntilFeaturesDiscovered = utils.getResolveablePromise();
         this.dataforms = new Backbone.Collection();
         this.dataforms.browserStorage = new backbone_browserStorage__WEBPACK_IMPORTED_MODULE_0___default.a.session(`converse.dataforms-${this.get('jid')}`);
@@ -64017,7 +64071,7 @@ _converse_core__WEBPACK_IMPORTED_MODULE_1__["default"].plugins.add('converse-dis
         this.fields.on('add', this.onFieldAdded, this);
         this.identities = new Backbone.Collection();
         this.identities.browserStorage = new backbone_browserStorage__WEBPACK_IMPORTED_MODULE_0___default.a.session(`converse.identities-${this.get('jid')}`);
-        this.fetchFeatures();
+        this.fetchFeatures(options);
         this.items = new _converse.DiscoEntities();
         this.items.browserStorage = new backbone_browserStorage__WEBPACK_IMPORTED_MODULE_0___default.a.session(`converse.disco-items-${this.get('jid')}`);
         this.items.fetch();
@@ -64081,8 +64135,8 @@ _converse_core__WEBPACK_IMPORTED_MODULE_1__["default"].plugins.add('converse-dis
         _converse.api.trigger('discoExtensionFieldDiscovered', field);
       },
 
-      fetchFeatures() {
-        if (this.features.browserStorage.records.length === 0) {
+      fetchFeatures(options) {
+        if (options.ignore_cache || this.features.browserStorage.records.length === 0) {
           this.queryInfo();
         } else {
           this.features.fetch({
@@ -64583,7 +64637,7 @@ _converse_core__WEBPACK_IMPORTED_MODULE_1__["default"].plugins.add('converse-dis
          */
         entities: {
           /**
-           * Get the the corresponding `DiscoEntity` instance.
+           * Get the corresponding `DiscoEntity` instance.
            *
            * @method _converse.api.disco.entities.get
            * @param {string} jid The Jabber ID of the entity
@@ -64604,9 +64658,28 @@ _converse_core__WEBPACK_IMPORTED_MODULE_1__["default"].plugins.add('converse-dis
               return entity;
             }
 
+            return _converse.api.disco.entities.create(jid);
+          },
+
+          /**
+           * Create a new disco entity. It's identity and features
+           * will automatically be fetched from cache or from the
+           * XMPP server.
+           *
+           * Fetching from cache can be disabled by passing in
+           * `ignore_cache: true` in the options parameter.
+           *
+           * @method _converse.api.disco.entities.create
+           * @param {string} jid The Jabber ID of the entity
+           * @param {object} [options] Additional options
+           * @param {boolean} [options.ignore_cache]
+           *     If true, fetch all features from the XMPP server instead of restoring them from cache
+           * @example _converse.api.disco.entities.create(jid, {'ignore_cache': true});
+           */
+          create(jid, options) {
             return _converse.disco_entities.create({
               'jid': jid
-            });
+            }, options);
           }
 
         },
@@ -64689,16 +64762,25 @@ _converse_core__WEBPACK_IMPORTED_MODULE_1__["default"].plugins.add('converse-dis
           }
 
           await _converse.api.waitUntil('discoInitialized');
-          const entity = await _converse.api.disco.entities.get(jid, true);
-          entity.features.reset();
-          entity.fields.reset();
-          entity.identities.reset();
+          let entity = await _converse.api.disco.entities.get(jid);
 
-          if (!entity.waitUntilFeaturesDiscovered.isPending) {
-            entity.waitUntilFeaturesDiscovered = utils.getResolveablePromise();
+          if (entity) {
+            entity.features.reset();
+            entity.fields.reset();
+            entity.identities.reset();
+
+            if (!entity.waitUntilFeaturesDiscovered.isPending) {
+              entity.waitUntilFeaturesDiscovered = utils.getResolveablePromise();
+            }
+
+            entity.queryInfo();
+          } else {
+            // Create it if it doesn't exist
+            entity = await _converse.api.disco.entities.create(jid, {
+              'ignore_cache': true
+            });
           }
 
-          entity.queryInfo();
           return entity.waitUntilFeaturesDiscovered;
         },
 
@@ -65684,7 +65766,7 @@ _converse_core__WEBPACK_IMPORTED_MODULE_4__["default"].plugins.add('converse-muc
         if (conn_status !== _converse_core__WEBPACK_IMPORTED_MODULE_4__["default"].ROOMSTATUS.ENTERED) {
           // We're not restoring a room from cache, so let's clear
           // the cache (which might be stale).
-          this.clearOccupants();
+          this.removeNonMembers();
           await this.refreshRoomFeatures();
           this.clearMessages(); // XXX: This should be conditional
 
@@ -65697,7 +65779,7 @@ _converse_core__WEBPACK_IMPORTED_MODULE_4__["default"].plugins.add('converse-muc
           }
 
           this.join();
-        } else {
+        } else if (!(await this.rejoinIfNecessary())) {
           this.features.fetch();
           this.fetchMessages();
         }
@@ -65713,15 +65795,11 @@ _converse_core__WEBPACK_IMPORTED_MODULE_4__["default"].plugins.add('converse-muc
         }
       },
 
-      clearOccupants() {
-        try {
-          this.occupants.reset();
-        } catch (e) {
-          this.occupants.trigger('reset');
+      removeNonMembers() {
+        const non_members = this.occupants.filter(o => !o.isMember());
 
-          _converse.log(e, Strophe.LogLevel.ERROR);
-        } finally {
-          this.occupants.browserStorage._clear();
+        if (non_members.length) {
+          this.occupants.remove(non_members);
         }
       },
 
@@ -66858,7 +66936,7 @@ _converse_core__WEBPACK_IMPORTED_MODULE_4__["default"].plugins.add('converse-muc
         try {
           result = await _converse.api.sendIQ(ping);
         } catch (e) {
-          const sel = `error[type="cancel"] not-acceptable[xmlns="${Strophe.NS.STANZAS}"]`;
+          const sel = `error not-acceptable[xmlns="${Strophe.NS.STANZAS}"]`;
 
           if (_.isElement(e) && sizzle(sel, e).length) {
             return false;
@@ -67414,13 +67492,13 @@ _converse_core__WEBPACK_IMPORTED_MODULE_4__["default"].plugins.add('converse-muc
         const jid = Strophe.getBareJidFromJid(data.jid);
 
         if (jid !== null) {
-          return this.where({
+          return this.findWhere({
             'jid': jid
-          }).pop();
+          });
         } else {
-          return this.where({
+          return this.findWhere({
             'nick': data.nick
-          }).pop();
+          });
         }
       }
 
@@ -67582,9 +67660,9 @@ _converse_core__WEBPACK_IMPORTED_MODULE_4__["default"].plugins.add('converse-muc
       window.addEventListener(_converse.unloadevent, () => {
         const using_websocket = _converse.api.connection.isType('websocket');
 
-        if (using_websocket && !_converse.enable_smacks) {
-          // For non-SMACKS websocket connections, we disconnect all
-          // chatrooms when the page unloads.
+        if (using_websocket && (!_converse.enable_smacks || !_converse.session.get('smacks_stream_id'))) {
+          // For non-SMACKS websocket connections, or non-resumeable
+          // connections, we disconnect all chatrooms when the page unloads.
           // See issue #1111
           disconnectChatRooms();
         }
@@ -69479,7 +69557,17 @@ _converse_core__WEBPACK_IMPORTED_MODULE_0__["default"].plugins.add('converse-sma
       return true;
     }
 
-    function clearSessionData() {
+    function initSessionData() {
+      _converse.session.save({
+        'smacks_enabled': _converse.session.get('smacks_enabled') || false,
+        'num_stanzas_handled': _converse.session.get('num_stanzas_handled') || 0,
+        'num_stanzas_handled_by_server': _converse.session.get('num_stanzas_handled_by_server') || 0,
+        'num_stanzas_since_last_ack': _converse.session.get('num_stanzas_since_last_ack') || 0,
+        'unacked_stanzas': _converse.session.get('unacked_stanzas') || []
+      });
+    }
+
+    function resetSessionData() {
       _converse.session.save({
         'smacks_enabled': false,
         'num_stanzas_handled': 0,
@@ -69518,7 +69606,7 @@ _converse_core__WEBPACK_IMPORTED_MODULE_0__["default"].plugins.add('converse-sma
         _converse.log(el.outerHTML, Strophe.LogLevel.ERROR);
       }
 
-      clearSessionData();
+      resetSessionData();
       return true;
     }
 
@@ -69622,7 +69710,7 @@ _converse_core__WEBPACK_IMPORTED_MODULE_0__["default"].plugins.add('converse-sma
       if ((_converse.api.connection.isType('websocket') || _converse.isTestEnv()) && _converse.session.get('smacks_stream_id')) {
         await sendResumeStanza();
       } else {
-        clearSessionData();
+        resetSessionData();
       }
     }
 
@@ -69640,7 +69728,7 @@ _converse_core__WEBPACK_IMPORTED_MODULE_0__["default"].plugins.add('converse-sma
       if (u.isTagEqual(stanza, 'iq') || u.isTagEqual(stanza, 'presence') || u.isTagEqual(stanza, 'message')) {
         const stanza_string = Strophe.serialize(stanza);
 
-        _converse.session.save('unacked_stanzas', _converse.session.get('unacked_stanzas').concat([stanza_string]));
+        _converse.session.save('unacked_stanzas', (_converse.session.get('unacked_stanzas') || []).concat([stanza_string]));
 
         const max_unacked = _converse.smacks_max_unacked_stanzas;
 
@@ -69658,6 +69746,8 @@ _converse_core__WEBPACK_IMPORTED_MODULE_0__["default"].plugins.add('converse-sma
         }
       }
     }
+
+    _converse.api.listen.on('userSessionInitialized', initSessionData);
 
     _converse.api.listen.on('beforeResourceBinding', enableStreamManagement);
 
@@ -96364,7 +96454,7 @@ _headless_utils_core__WEBPACK_IMPORTED_MODULE_16__["default"].getLastChildElemen
 };
 
 _headless_utils_core__WEBPACK_IMPORTED_MODULE_16__["default"].hasClass = function (className, el) {
-  return Array.from(el.classList).includes(className);
+  return el.classList.contains(className);
 };
 
 _headless_utils_core__WEBPACK_IMPORTED_MODULE_16__["default"].addClass = function (className, el) {
