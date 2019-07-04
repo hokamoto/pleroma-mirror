@@ -719,10 +719,11 @@ defmodule Pleroma.Web.Router do
     get("/user_exists", MongooseIMController, :user_exists)
     get("/check_password", MongooseIMController, :check_password)
 
-    scope "/prebind" do
+    scope "/xmpp/" do
       pipe_through([:conversejs_auth])
 
-      get("/", MongooseIMController, :prebind)
+      get("/prebind", MongooseIMController, :prebind)
+      get("/jid", MongooseIMController, :jid)
     end
   end
 
