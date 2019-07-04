@@ -116,6 +116,7 @@ defmodule Pleroma.Factory do
   def note_activity_factory(attrs \\ %{}) do
     user = attrs[:user] || insert(:user)
     note = attrs[:note] || insert(:note, user: user)
+    attrs = Map.drop(attrs, [:user, :note])
 
     data = %{
       "id" => Pleroma.Web.ActivityPub.Utils.generate_activity_id(),
@@ -132,6 +133,7 @@ defmodule Pleroma.Factory do
       actor: data["actor"],
       recipients: data["to"]
     }
+    |> Map.merge(attrs)
   end
 
   def article_activity_factory do
