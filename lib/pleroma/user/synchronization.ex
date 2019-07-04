@@ -22,7 +22,7 @@ defmodule Pleroma.User.Synchronization do
   end
 
   defp fetch_counters(user, errors, opts) do
-    host = URI.parse(user.ap_id).host
+    %{host: host} = URI.parse(user.ap_id)
 
     info = %{}
     {following, errors} = fetch_counter(user.ap_id <> "/following", host, errors, opts)
