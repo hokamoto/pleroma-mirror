@@ -20,10 +20,13 @@
   <div id=app></div>
   <script type="text/javascript">
     var request = new XMLHttpRequest();
+    var jid = null;
+
     request.open('GET', '/xmpp/jid', true);
 
     request.onload = function () {
       if (request.status >= 200 && request.status < 400) {
+        console.log("Got JID data: ", request.responseText)
         var data = JSON.parse(request.responseText);
         jid = data.jid
       } else {
