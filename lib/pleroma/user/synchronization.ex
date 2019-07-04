@@ -1,46 +1,60 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.User.Synchronization do
   alias Pleroma.HTTP
   alias Pleroma.User
 
-  @spec call([User.t()], map()) :: {User.t(), map()}
-  def call(users, errors) do
-    do_call(users, errors)
+  @spec call([User.t()], map(), keyword()) :: {User.t(), map()}
+  def call(users, errors, opts \\ []) do
+    do_call(users, errors, opts)
   end
 
-  defp do_call([user | []], errors) do
-    updated = fetch_counters(user, errors)
+  defp do_call([user | []], errors, opts) do
+    updated = fetch_counters(user, errors, opts)
     {user, updated}
   end
 
-  defp do_call([user | others], errors) do
-    updated = fetch_counters(user, errors)
-    do_call(others, updated)
+  defp do_call([user | others], errors, opts) do
+    updated = fetch_counters(user, errors, opts)
+    do_call(others, updated, opts)
   end
 
-  defp fetch_counters(user, errors) do
-    uri = URI.parse(user.follower_address)
+  defp fetch_counters(user, errors, opts) do
+    host = URI.parse(user.ap_id).host
 
-    with true <- available_domain?(uri.host, errors),
+    info = %{}
+    {following, errors} = fetch_counter(user.ap_id <> "/following", host, errors, opts)
+    info = if following, do: Map.put(info, :following_count, following), else: info
+
+    {followers, errors} = fetch_counter(user.ap_id <> "/followers", host, errors, opts)
+    info = if followers, do: Map.put(info, :follower_count, followers), else: info
+
+    User.set_info_cache(user, info)
+    errors
+  end
+
+  defp available_domain?(domain, errors, opts) do
+    max_retries = Keyword.get(opts, :max_retries, 3)
+    not (Map.has_key?(errors, domain) && errors[domain] >= max_retries)
+  end
+
+  defp fetch_counter(url, host, errors, opts) do
+    with true <- available_domain?(host, errors, opts),
          {:ok, %{body: body, status: code}} when code in 200..299 <-
            HTTP.get(
-             user.follower_address,
+             url,
              [{:Accept, "application/activity+json"}]
            ),
          {:ok, data} <- Jason.decode(body) do
-      IO.inspect(data["totalItems"])
+      {data["totalItems"], errors}
     else
       false ->
-        errors
+        {nil, errors}
 
-      e ->
-        IO.inspect(e)
-        e = Map.update(errors, uri.host, 1, &(&1 + 1))
-        IO.inspect(e)
-        e
+      _ ->
+        {nil, Map.update(errors, host, 1, &(&1 + 1))}
     end
-  end
-
-  defp available_domain?(domain, errors) do
-    not (Map.has_key?(errors, domain) && errors[domain] >= 3)
   end
 end

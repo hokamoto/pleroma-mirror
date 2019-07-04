@@ -107,15 +107,25 @@ defmodule Pleroma.User do
   def ap_followers(%User{follower_address: fa}) when is_binary(fa), do: fa
   def ap_followers(%User{} = user), do: "#{ap_id(user)}/followers"
 
-  def user_info(%User{} = user) do
+  def user_info(%User{} = user, args \\ %{}) do
+    following_count =
+      if args[:following_count], do: args[:following_count], else: following_count(user)
+
+    follower_count =
+      if args[:follower_count], do: args[:follower_count], else: user.info.follower_count
+
     %{
-      following_count: following_count(user),
       note_count: user.info.note_count,
-      follower_count: user.info.follower_count,
       locked: user.info.locked,
       confirmation_pending: user.info.confirmation_pending,
       default_scope: user.info.default_scope
     }
+    |> Map.put(:following_count, following_count)
+    |> Map.put(:follower_count, follower_count)
+  end
+
+  def set_info_cache(user, args) do
+    Cachex.put(:user_cache, "user_info:#{user.id}", user_info(user, args))
   end
 
   def restrict_deactivated(query) do
@@ -1000,36 +1010,41 @@ defmodule Pleroma.User do
     )
   end
 
-  @spec perform(atom()) :: :ok
+  @spec sync_follow_counter() :: :ok
+  def sync_follow_counter,
+    do: PleromaJobQueue.enqueue(:background, __MODULE__, [:sync_follow_counters])
+
+  @spec perform(:sync_follow_counters) :: :ok
   def perform(:sync_follow_counters) do
     {:ok, _pid} = Agent.start_link(fn -> %{} end, name: :domain_errors)
-    # TODO: make it confirurable (suggest to set this setting rather low for small instances)
-    limit = 500
-    sync_follow_counters(limit: limit)
+    config = Pleroma.Config.get([:instance, :external_user_synchronization])
+
+    :ok = sync_follow_counters(config)
+    Agent.stop(:domain_errors)
   end
 
   @spec sync_follow_counters(keyword()) :: :ok
   def sync_follow_counters(opts \\ []) do
-    users = Repo.all(build_external_query(opts))
+    users = external_users(opts)
 
     if length(users) > 0 do
       errors = Agent.get(:domain_errors, fn state -> state end)
-      {last, updated_errors} = User.Synchronization.call(users, errors)
+      {last, updated_errors} = User.Synchronization.call(users, errors, opts)
       Agent.update(:domain_errors, fn _state -> updated_errors end)
       sync_follow_counters(max_id: last.id, limit: opts[:limit])
     else
-      Agent.stop(:domain_errors)
+      :ok
     end
   end
 
-  @spec build_external_query(keyword()) :: [User.t()]
-  def build_external_query(opts \\ []) do
+  @spec external_users(keyword()) :: [User.t()]
+  def external_users(opts \\ []) do
     query =
       User.Query.build(%{
         external: true,
         active: true,
         order_by: :id,
-        select: [:id, :follower_address]
+        select: [:id, :ap_id, :info]
       })
 
     query =

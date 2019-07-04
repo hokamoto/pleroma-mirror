@@ -1,7 +1,0 @@
-{
-  "@context": "https://www.w3.org/ns/activitystreams",
-  "id": "https://mastodon.social/users/masto_closed/followers",
-  "type": "OrderedCollection",
-  "totalItems": 437,
-  "first": "https://octodon.social/users/masto_closed/followers?page=1"
-}
