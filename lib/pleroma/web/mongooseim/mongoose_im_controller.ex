@@ -56,8 +56,6 @@ defmodule Pleroma.Web.MongooseIM.MongooseIMController do
   end
 
   def jid(conn, _params) do
-    end
-
     response =
       case get_session(conn, :xmpp) do
         %{jid: jid} ->
