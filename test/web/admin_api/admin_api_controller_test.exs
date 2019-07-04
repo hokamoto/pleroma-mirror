@@ -1537,7 +1537,9 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
               "value" => [
                 %{"tuple" => [":enabled", false]},
                 %{"tuple" => [":method", "Pleroma.Captcha.Kocaptcha"]},
-                %{"tuple" => [":seconds_valid", 60]}
+                %{"tuple" => [":seconds_valid", 60]},
+                %{"tuple" => [":path", ""]},
+                %{"tuple" => [":key1", nil]}
               ]
             }
           ]
@@ -1551,7 +1553,9 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                    "value" => [
                      %{"tuple" => [":enabled", false]},
                      %{"tuple" => [":method", "Pleroma.Captcha.Kocaptcha"]},
-                     %{"tuple" => [":seconds_valid", 60]}
+                     %{"tuple" => [":seconds_valid", 60]},
+                     %{"tuple" => [":path", ""]},
+                     %{"tuple" => [":key1", nil]}
                    ]
                  }
                ]

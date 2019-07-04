@@ -88,7 +88,8 @@ defmodule Pleroma.Web.AdminAPI.Config do
   defp do_convert(entity) when is_tuple(entity),
     do: %{"tuple" => do_convert(Tuple.to_list(entity))}
 
-  defp do_convert(entity) when is_boolean(entity) or is_number(entity), do: entity
+  defp do_convert(entity) when is_boolean(entity) or is_number(entity) or is_nil(entity),
+    do: entity
 
   defp do_convert(entity) when is_atom(entity) do
     string = to_string(entity)
@@ -135,8 +136,6 @@ defmodule Pleroma.Web.AdminAPI.Config do
   end
 
   defp do_transform(entity), do: entity
-
-  defp do_transform_string(value) when byte_size(value) == 0, do: nil
 
   defp do_transform_string("~r/" <> pattern) do
     pattern = String.trim_trailing(pattern, "/")

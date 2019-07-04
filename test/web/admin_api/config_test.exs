@@ -331,6 +331,8 @@ defmodule Pleroma.Web.AdminAPI.ConfigTest do
         Config.transform([
           %{"tuple" => [":level", ":warn"]},
           %{"tuple" => [":meta", [":all"]]},
+          %{"tuple" => [":path", ""]},
+          %{"tuple" => [":val", nil]},
           %{"tuple" => [":webhook_url", "https://hooks.slack.com/services/YOUR-KEY-HERE"]}
         ])
 
@@ -338,12 +340,16 @@ defmodule Pleroma.Web.AdminAPI.ConfigTest do
                :erlang.term_to_binary(
                  level: :warn,
                  meta: [:all],
+                 path: "",
+                 val: nil,
                  webhook_url: "https://hooks.slack.com/services/YOUR-KEY-HERE"
                )
 
       assert Config.from_binary(binary) == [
                level: :warn,
                meta: [:all],
+               path: "",
+               val: nil,
                webhook_url: "https://hooks.slack.com/services/YOUR-KEY-HERE"
              ]
     end
