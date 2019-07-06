@@ -1408,6 +1408,11 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
           configs: [
             %{group: "pleroma", key: "key1", value: "value1"},
             %{
+              group: "ueberauth",
+              key: "Ueberauth.Strategy.Twitter.OAuth",
+              value: [%{"tuple" => [":consumer_secret", "aaaa"]}]
+            },
+            %{
               group: "pleroma",
               key: "key2",
               value: %{
@@ -1445,6 +1450,11 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                    "group" => "pleroma",
                    "key" => "key1",
                    "value" => "value1"
+                 },
+                 %{
+                   "group" => "ueberauth",
+                   "key" => "Ueberauth.Strategy.Twitter.OAuth",
+                   "value" => [%{"tuple" => [":consumer_secret", "aaaa"]}]
                  },
                  %{
                    "group" => "pleroma",
@@ -1505,11 +1515,22 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       config1 = insert(:config, key: "keyaa1")
       config2 = insert(:config, key: "keyaa2")
 
+      insert(:config,
+        group: "ueberauth",
+        key: "Ueberauth.Strategy.Microsoft.OAuth",
+        value: :erlang.term_to_binary([])
+      )
+
       conn =
         post(conn, "/api/pleroma/admin/config", %{
           configs: [
             %{group: config1.group, key: config1.key, value: "another_value"},
-            %{group: config2.group, key: config2.key, delete: "true"}
+            %{group: config2.group, key: config2.key, delete: "true"},
+            %{
+              group: "ueberauth",
+              key: "Ueberauth.Strategy.Microsoft.OAuth",
+              delete: "true"
+            }
           ]
         })
 

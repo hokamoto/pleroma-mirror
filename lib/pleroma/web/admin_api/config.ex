@@ -142,7 +142,7 @@ defmodule Pleroma.Web.AdminAPI.Config do
     ~r/#{pattern}/
   end
 
-  defp do_transform_string(":" <> atom), do: String.to_existing_atom(atom)
+  defp do_transform_string(":" <> atom), do: String.to_atom(atom)
 
   defp do_transform_string(value) do
     if String.starts_with?(value, "Pleroma") or String.starts_with?(value, "Phoenix"),
