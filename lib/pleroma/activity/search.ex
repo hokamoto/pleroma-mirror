@@ -11,8 +11,11 @@ defmodule Pleroma.Activity.Search do
 
   import Ecto.Query
 
-  def search(user, search_query) do
+  def search(user, search_query, options \\ []) do
     index_type = if Pleroma.Config.get([:database, :rum_enabled]), do: :rum, else: :gin
+    limit = Enum.min([Keyword.get(options, :limit), 40])
+    offset = Keyword.get(options, :offset, 0)
+    author = Keyword.get(options, :author)
 
     Activity
     |> Activity.with_preloaded_object()
@@ -20,15 +23,24 @@ defmodule Pleroma.Activity.Search do
     |> restrict_public()
     |> query_with(index_type, search_query)
     |> maybe_restrict_local(user)
+    |> maybe_restrict_author(author)
+    |> paginate(limit, offset)
     |> Repo.all()
     |> maybe_fetch(user, search_query)
   end
 
+  def maybe_restrict_author(query, %User{} = author) do
+    from([a, o] in query,
+      where: a.actor == ^author.ap_id
+    )
+  end
+
+  def maybe_restrict_author(query, _), do: query
+
   defp restrict_public(q) do
     from([a, o] in q,
       where: fragment("?->>'type' = 'Create'", a.data),
-      where: "https://www.w3.org/ns/activitystreams#Public" in a.recipients,
-      limit: 40
+      where: "https://www.w3.org/ns/activitystreams#Public" in a.recipients
     )
   end
 
@@ -77,5 +89,9 @@ defmodule Pleroma.Activity.Search do
     else
       _ -> activities
     end
+  end
+
+  defp paginate(query, limit, offset) do
+    from(q in query, limit: ^limit, offset: ^offset)
   end
 end
