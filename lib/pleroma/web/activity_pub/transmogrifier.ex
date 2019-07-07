@@ -635,6 +635,21 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     end
   end
 
+  def handle_incoming(%{
+        "type" => "Delete",
+        "object" => %{"type" => "Person", "id" => object_id},
+        "actor" => actor_id
+      }) do
+    with %User{ap_id: ^actor_id} = actor <- User.get_cached_by_ap_id(object_id),
+         {:ok, user} = Repo.delete(actor) do
+      {:ok, user}
+    else
+      _ ->
+        Logger.error("Could not delete user #{object_id}")
+        :error
+    end
+  end
+
   # TODO: We presently assume that any actor on the same origin domain as the object being
   # deleted has the rights to delete that object.  A better way to validate whether or not
   # the object should be deleted is to refetch the object URI, which should return either

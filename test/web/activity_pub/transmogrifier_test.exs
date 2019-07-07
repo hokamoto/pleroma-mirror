@@ -552,6 +552,37 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       assert Activity.get_by_id(activity.id)
     end
 
+    test "it works for incoming user deletes" do
+      %{ap_id: ap_id} = insert(:user)
+      object = %{"type" => "Person", "id" => ap_id}
+
+      data =
+        File.read!("test/fixtures/mastodon-delete.json")
+        |> Poison.decode!()
+        |> Map.put("object", object)
+        |> Map.put("actor", ap_id)
+
+      {:ok, _} = Transmogrifier.handle_incoming(data)
+
+      refute User.get_by_ap_id(ap_id)
+    end
+
+    test "it fails for incoming user deletes with spoofed origin" do
+      %{ap_id: ap_id} = insert(:user)
+      object = %{"type" => "Person", "id" => ap_id}
+
+      data =
+        File.read!("test/fixtures/mastodon-delete.json")
+        |> Poison.decode!()
+        |> Map.put("object", object)
+
+      assert capture_log(fn ->
+               :error = Transmogrifier.handle_incoming(data)
+             end) =~ "[error] Could not delete user #{ap_id}"
+
+      assert User.get_by_ap_id(ap_id)
+    end
+
     test "it works for incoming unannounces with an existing notice" do
       user = insert(:user)
       {:ok, activity} = CommonAPI.post(user, %{"status" => "hey"})
