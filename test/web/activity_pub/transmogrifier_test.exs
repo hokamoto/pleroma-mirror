@@ -553,14 +553,11 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
     end
 
     test "it works for incoming user deletes" do
-      %{ap_id: ap_id} = insert(:user)
-      object = %{"type" => "Person", "id" => ap_id}
+      %{ap_id: ap_id} = insert(:user, ap_id: "http://mastodon.example.org/users/gargron")
 
       data =
-        File.read!("test/fixtures/mastodon-delete.json")
+        File.read!("test/fixtures/mastodon-delete-user.json")
         |> Poison.decode!()
-        |> Map.put("object", object)
-        |> Map.put("actor", ap_id)
 
       {:ok, _} = Transmogrifier.handle_incoming(data)
 
@@ -568,13 +565,12 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
     end
 
     test "it fails for incoming user deletes with spoofed origin" do
-      %{ap_id: ap_id} = insert(:user)
-      object = %{"type" => "Person", "id" => ap_id}
+      %{ap_id: ap_id} = insert(:user, ap_id: "http://mastodon.example.org/users/gargron")
 
       data =
-        File.read!("test/fixtures/mastodon-delete.json")
+        File.read!("test/fixtures/mastodon-delete-user.json")
         |> Poison.decode!()
-        |> Map.put("object", object)
+        |> Map.put("actor", "http://foo.example.org/users/gargron")
 
       assert capture_log(fn ->
                :error = Transmogrifier.handle_incoming(data)
