@@ -927,6 +927,8 @@ defmodule Pleroma.User do
 
   @spec perform(atom(), User.t()) :: {:ok, User.t()}
   def perform(:delete, %User{} = user) do
+    {:ok, _user} = ActivityPub.delete(user)
+
     # Remove all relationships
     {:ok, followers} = User.get_followers(user)
 
@@ -943,16 +945,8 @@ defmodule Pleroma.User do
     end)
 
     delete_user_activities(user)
-
-    with {:ok, _} <- ActivityPub.delete(user),
-         {:ok, _} <- Repo.delete(user),
-         {:ok, true} <- invalidate_cache(user) do
-      {:ok, user}
-    else
-      _ ->
-        Logger.error("Could not delete user #{user.ap_id}")
-        :error
-    end
+    invalidate_cache(user)
+    Repo.delete(user)
   end
 
   @spec perform(atom(), User.t()) :: {:ok, User.t()}
