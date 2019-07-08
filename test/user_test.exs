@@ -926,14 +926,17 @@ defmodule Pleroma.UserTest do
     refute Activity.get_by_id(activity.id)
   end
 
-  test ".delete deactivates a user, all follow relationships and all activities" do
-    user = insert(:user)
+  test ".delete deletes a user, all follow relationships and all activities" do
+    {:ok, user} = insert(:user) |> User.set_cache()
     follower = insert(:user)
 
     {:ok, follower} = User.follow(follower, user)
 
-    {:ok, activity} = CommonAPI.post(user, %{"status" => "2hu"})
-    {:ok, activity_two} = CommonAPI.post(follower, %{"status" => "3hu"})
+    object = insert(:note, user: user)
+    activity = insert(:note_activity, user: user, note: object)
+
+    object_two = insert(:note, user: follower)
+    activity_two = insert(:note_activity, user: follower, note: object_two)
 
     {:ok, like, _} = CommonAPI.favorite(activity_two.id, user)
     {:ok, like_two, _} = CommonAPI.favorite(activity.id, follower)
@@ -945,6 +948,7 @@ defmodule Pleroma.UserTest do
 
     refute User.following?(follower, user)
     refute User.get_by_id(user.id)
+    assert {:ok, nil} == Cachex.get(:user_cache, "ap_id:#{user.ap_id}")
 
     user_activities =
       user.ap_id

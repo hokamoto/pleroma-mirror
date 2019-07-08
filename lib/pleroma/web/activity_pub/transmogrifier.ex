@@ -641,7 +641,8 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
         "actor" => actor_id
       }) do
     with %User{ap_id: ^actor_id} = actor <- User.get_cached_by_ap_id(object_id),
-         {:ok, user} = Repo.delete(actor) do
+         {:ok, true} <- User.invalidate_cache(actor),
+         {:ok, user} <- Repo.delete(actor) do
       {:ok, user}
     else
       _ ->

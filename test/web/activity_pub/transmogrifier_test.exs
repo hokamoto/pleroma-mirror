@@ -561,7 +561,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
 
       {:ok, _} = Transmogrifier.handle_incoming(data)
 
-      refute User.get_by_ap_id(ap_id)
+      refute User.get_cached_by_ap_id(ap_id)
     end
 
     test "it fails for incoming user deletes with spoofed origin" do
@@ -576,7 +576,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
                :error = Transmogrifier.handle_incoming(data)
              end) =~ "[error] Could not delete user #{ap_id}"
 
-      assert User.get_by_ap_id(ap_id)
+      assert User.get_cached_by_ap_id(ap_id)
     end
 
     test "it works for incoming unannounces with an existing notice" do

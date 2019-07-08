@@ -944,6 +944,8 @@ defmodule Pleroma.User do
 
     delete_user_activities(user)
 
+    invalidate_cache(user)
+
     {:ok, _user} = Repo.delete(user)
   end
 
