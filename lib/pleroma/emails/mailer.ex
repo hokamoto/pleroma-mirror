@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Emails.Mailer do
-
-  use Swoosh.Mailer, otp_app: :pleroma,
-    perform_deliveries: &Pleroma.Emails.Mailer.is_enabled/0
+  use Swoosh.Mailer,
+    otp_app: :pleroma,
+    perform_deliveries: &__MODULE__.enabled?/0
 
   def deliver_async(email, config \\ []) do
     PleromaJobQueue.enqueue(:mailer, __MODULE__, [:deliver_async, email, config])
@@ -13,7 +13,7 @@ defmodule Pleroma.Emails.Mailer do
 
   def perform(:deliver_async, email, config), do: deliver(email, config)
 
-  def is_enabled do
+  def enabled? do
     Pleroma.Config.get([:instance, :mailer])
   end
 end

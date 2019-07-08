@@ -29,7 +29,9 @@ defmodule Pleroma.Emails.UserEmailTest do
     assert email.from == {config[:name], config[:notify_email]}
     assert email.subject == "Invitation to Pleroma"
     assert email.to == [{"Jonh", "test@test.com"}]
-    assert email.html_body =~ Router.Helpers.redirect_url(Endpoint, :registration_page, token.token)
+
+    assert email.html_body =~
+             Router.Helpers.redirect_url(Endpoint, :registration_page, token.token)
   end
 
   test "build account confirmation email" do
@@ -40,6 +42,7 @@ defmodule Pleroma.Emails.UserEmailTest do
     assert email.to == [{user.name, user.email}]
     assert email.subject == "#{config[:name]} account confirmation"
 
-    assert email.html_body =~ Router.Helpers.confirm_email_url(Endpoint, :confirm_email, user.id, "conf-token")
+    assert email.html_body =~
+             Router.Helpers.confirm_email_url(Endpoint, :confirm_email, user.id, "conf-token")
   end
 end

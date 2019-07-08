@@ -15,7 +15,6 @@ defmodule Pleroma.Emails.MailerTest do
     to: [{"Test User", "user1@example.com"}]
   }
 
-
   setup do
     value = Pleroma.Config.get([:instance, :mailer])
     on_exit(fn -> Pleroma.Config.put([:instance, :mailer], value) end)
@@ -25,6 +24,7 @@ defmodule Pleroma.Emails.MailerTest do
   test "not send email when mailer is disabled" do
     Pleroma.Config.put([:instance, :mailer], false)
     Mailer.deliver(@email)
+
     refute_email_sent(
       from: {"Pleroma", "noreply@example.com"},
       to: [{"Test User", "user1@example.com"}],
@@ -35,6 +35,7 @@ defmodule Pleroma.Emails.MailerTest do
 
   test "send email" do
     Mailer.deliver(@email)
+
     assert_email_sent(
       from: {"Pleroma", "noreply@example.com"},
       to: [{"Test User", "user1@example.com"}],
@@ -45,6 +46,7 @@ defmodule Pleroma.Emails.MailerTest do
 
   test "perform" do
     Mailer.perform(:deliver_async, @email, [])
+
     assert_email_sent(
       from: {"Pleroma", "noreply@example.com"},
       to: [{"Test User", "user1@example.com"}],
