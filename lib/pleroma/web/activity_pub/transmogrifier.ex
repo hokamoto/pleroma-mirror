@@ -635,29 +635,13 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     end
   end
 
-  def handle_incoming(%{
-        "type" => "Delete",
-        "object" => %{"type" => "Person", "id" => object_id},
-        "actor" => actor_id
-      }) do
-    with %User{ap_id: ^actor_id} = actor <- User.get_cached_by_ap_id(object_id),
-         {:ok, true} <- User.invalidate_cache(actor),
-         {:ok, user} <- Repo.delete(actor) do
-      {:ok, user}
-    else
-      _ ->
-        Logger.error("Could not delete user #{object_id}")
-        :error
-    end
-  end
-
   # TODO: We presently assume that any actor on the same origin domain as the object being
   # deleted has the rights to delete that object.  A better way to validate whether or not
   # the object should be deleted is to refetch the object URI, which should return either
   # an error or a tombstone.  This would allow us to verify that a deletion actually took
   # place.
   def handle_incoming(
-        %{"type" => "Delete", "object" => object_id, "actor" => _actor, "id" => _id} = data,
+        %{"type" => "Delete", "object" => object_id, "actor" => actor, "id" => _id} = data,
         _options
       ) do
     object_id = Utils.get_ap_id(object_id)
@@ -669,7 +653,18 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
          {:ok, activity} <- ActivityPub.delete(object, false) do
       {:ok, activity}
     else
-      _e -> :error
+      nil ->
+        case User.get_cached_by_ap_id(object_id) do
+          %User{ap_id: ^actor} = user ->
+            User.invalidate_cache(user)
+            Repo.delete(user)
+
+          nil ->
+            :error
+        end
+
+      _e ->
+        :error
     end
   end
 

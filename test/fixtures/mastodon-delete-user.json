@@ -2,11 +2,11 @@
   "type": "Delete",
   "object": {
     "type": "Person",
-    "id": "http://mastodon.example.org/users/gargron",
-    "atomUri": "http://mastodon.example.org/users/gargron"
+    "id": "http://mastodon.example.org/users/admin",
+    "atomUri": "http://mastodon.example.org/users/admin"
   },
-  "id": "http://mastodon.example.org/users/gargron#delete",
-  "actor": "http://mastodon.example.org/users/gargron",
+  "id": "http://mastodon.example.org/users/admin#delete",
+  "actor": "http://mastodon.example.org/users/admin",
   "@context": [
     {
       "toot": "http://joinmastodon.org/ns#",
