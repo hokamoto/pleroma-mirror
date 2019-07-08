@@ -944,9 +944,15 @@ defmodule Pleroma.User do
 
     delete_user_activities(user)
 
-    invalidate_cache(user)
-
-    {:ok, _user} = Repo.delete(user)
+    with {:ok, _} <- ActivityPub.delete(user),
+         {:ok, _} <- Repo.delete(user),
+         {:ok, true} <- invalidate_cache(user) do
+      {:ok, user}
+    else
+      _ ->
+        Logger.error("Could not delete user #{user.ap_id}")
+        :error
+    end
   end
 
   @spec perform(atom(), User.t()) :: {:ok, User.t()}
