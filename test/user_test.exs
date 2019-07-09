@@ -973,6 +973,10 @@ defmodule Pleroma.UserTest do
                    Pleroma.Web.ActivityPub.Publisher,
                    [:passthrough],
                    [] do
+      config_path = [:instance, :federating]
+      initial_setting = Pleroma.Config.get(config_path)
+      Pleroma.Config.put(config_path, true)
+
       {:ok, follower} = User.get_or_fetch_by_ap_id("http://mastodon.example.org/users/admin")
       {:ok, _} = User.follow(follower, user)
 
@@ -983,6 +987,8 @@ defmodule Pleroma.UserTest do
                  inbox: "http://mastodon.example.org/inbox"
                })
              )
+
+      Pleroma.Config.put(config_path, initial_setting)
     end
   end
 

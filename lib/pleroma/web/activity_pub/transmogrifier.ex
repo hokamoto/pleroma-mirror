@@ -656,6 +656,18 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
       nil ->
         case User.get_cached_by_ap_id(object_id) do
           %User{ap_id: ^actor} = user ->
+            {:ok, followers} = User.get_followers(user)
+
+            Enum.each(followers, fn follower ->
+              User.unfollow(follower, user)
+            end)
+
+            {:ok, friends} = User.get_friends(user)
+
+            Enum.each(friends, fn followed ->
+              User.unfollow(user, followed)
+            end)
+
             User.invalidate_cache(user)
             Repo.delete(user)
 
