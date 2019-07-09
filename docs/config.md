@@ -41,6 +41,7 @@ This filter replaces the filename (not the path) of an upload. For complete obfu
 ## Pleroma.Emails.Mailer
 * `adapter`: one of the mail adapters listed in [Swoosh readme](https://github.com/swoosh/swoosh#adapters), or `Swoosh.Adapters.Local` for in-memory mailbox.
 * `api_key` / `password` and / or other adapter-specific settings, per the above documentation.
+* `enabled`: Allows enable/disable send  emails. Default: `false`.
 
 An example for Sendgrid adapter:
 
@@ -124,7 +125,6 @@ config :pleroma, Pleroma.Emails.Mailer,
 * `skip_thread_containment`: Skip filter out broken threads. The default is `false`.
 * `limit_to_local_content`: Limit unauthenticated users to search for local statutes and users only. Possible values: `:unauthenticated`, `:all` and `false`. The default is `:unauthenticated`.
 * `dynamic_configuration`: Allow transferring configuration to DB with the subsequent customization from Admin api.
-* `mailer`: Allow disable send all emails. Default: `true`.
 
 
 ## :logger

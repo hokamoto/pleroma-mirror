@@ -15,7 +15,7 @@ defmodule Pleroma.Emails.Mailer do
   @mailer_config [otp: :pleroma]
 
   @spec enabled?() :: boolean()
-  def enabled?, do: Pleroma.Config.get([:instance, :mailer])
+  def enabled?, do: Pleroma.Config.get([__MODULE__, :enabled])
 
   @doc "add email to queue"
   def deliver_async(email, config \\ []) do
