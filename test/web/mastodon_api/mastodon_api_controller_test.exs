@@ -2105,25 +2105,56 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     assert %{"error" => "Record not found"} = json_response(conn_res, 404)
   end
 
-  test "muting / unmuting a user", %{conn: conn} do
-    user = insert(:user)
-    other_user = insert(:user)
+  describe "mute/unmute" do
+    test "with notifications", %{conn: conn} do
+      user = insert(:user)
+      other_user = insert(:user)
 
-    conn =
-      conn
-      |> assign(:user, user)
-      |> post("/api/v1/accounts/#{other_user.id}/mute")
+      conn =
+        conn
+        |> assign(:user, user)
+        |> post("/api/v1/accounts/#{other_user.id}/mute")
 
-    assert %{"id" => _id, "muting" => true} = json_response(conn, 200)
+      response = json_response(conn, 200)
 
-    user = User.get_cached_by_id(user.id)
+      assert %{"id" => _id, "muting" => true} = response
+      assert %{"muting_notifications" => true} = response
+      user = User.get_cached_by_id(user.id)
 
-    conn =
-      build_conn()
-      |> assign(:user, user)
-      |> post("/api/v1/accounts/#{other_user.id}/unmute")
+      conn =
+        build_conn()
+        |> assign(:user, user)
+        |> post("/api/v1/accounts/#{other_user.id}/unmute")
 
-    assert %{"id" => _id, "muting" => false} = json_response(conn, 200)
+      response = json_response(conn, 200)
+      assert %{"id" => _id, "muting" => false} = response
+      assert %{"muting_notifications" => false} = response
+    end
+
+    test "without notifications", %{conn: conn} do
+      user = insert(:user)
+      other_user = insert(:user)
+
+      conn =
+        conn
+        |> assign(:user, user)
+        |> post("/api/v1/accounts/#{other_user.id}/mute", %{"notifications" => "false"})
+
+      response = json_response(conn, 200)
+
+      assert %{"id" => _id, "muting" => true} = response
+      assert %{"muting_notifications" => false} = response
+      user = User.get_cached_by_id(user.id)
+
+      conn =
+        build_conn()
+        |> assign(:user, user)
+        |> post("/api/v1/accounts/#{other_user.id}/unmute")
+
+      response = json_response(conn, 200)
+      assert %{"id" => _id, "muting" => false} = response
+      assert %{"muting_notifications" => false} = response
+    end
   end
 
   test "subscribing / unsubscribing to a user", %{conn: conn} do
