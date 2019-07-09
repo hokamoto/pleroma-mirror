@@ -218,6 +218,7 @@ config :pleroma, :instance,
   },
   registrations_open: true,
   federating: true,
+  federation_incoming_replies_max_depth: 100,
   federation_reachability_timeout_days: 7,
   federation_publisher_modules: [
     Pleroma.Web.ActivityPub.Publisher,
@@ -365,7 +366,11 @@ config :pleroma, :gopher,
   port: 9999
 
 config :pleroma, Pleroma.Web.Metadata,
-  providers: [Pleroma.Web.Metadata.Providers.RelMe],
+  providers: [
+    Pleroma.Web.Metadata.Providers.OpenGraph,
+    Pleroma.Web.Metadata.Providers.TwitterCard,
+    Pleroma.Web.Metadata.Providers.RelMe
+  ],
   unfurl_nsfw: false
 
 config :pleroma, :suggestions,
