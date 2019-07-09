@@ -34,7 +34,7 @@ defmodule Pleroma.Web.CommonAPITest do
     user = insert(:user)
     {:ok, activity} = CommonAPI.post(user, %{"status" => "#2hu #2HU"})
 
-    object = Object.normalize(activity.data["object"])
+    object = Object.normalize(activity)
 
     assert object.data["tag"] == ["2hu"]
   end
@@ -87,7 +87,7 @@ defmodule Pleroma.Web.CommonAPITest do
           "content_type" => "text/html"
         })
 
-      object = Object.normalize(activity.data["object"])
+      object = Object.normalize(activity)
 
       assert object.data["content"] == "<p><b>2hu</b></p>alert('xss')"
     end
@@ -103,7 +103,7 @@ defmodule Pleroma.Web.CommonAPITest do
           "content_type" => "text/markdown"
         })
 
-      object = Object.normalize(activity.data["object"])
+      object = Object.normalize(activity)
 
       assert object.data["content"] == "<p><b>2hu</b></p>alert('xss')"
     end
@@ -121,7 +121,7 @@ defmodule Pleroma.Web.CommonAPITest do
                })
 
       Enum.each(["public", "private", "unlisted"], fn visibility ->
-        assert {:error, {:private_to_public, _}} =
+        assert {:error, "The message visibility must be direct"} =
                  CommonAPI.post(user, %{
                    "status" => "suya..",
                    "visibility" => visibility,
@@ -186,6 +186,11 @@ defmodule Pleroma.Web.CommonAPITest do
       user = refresh_record(user)
 
       assert %User{info: %{pinned_activities: [^id]}} = user
+    end
+
+    test "unlisted statuses can be pinned", %{user: user} do
+      {:ok, activity} = CommonAPI.post(user, %{"status" => "HI!!!", "visibility" => "unlisted"})
+      assert {:ok, ^activity} = CommonAPI.pin(activity.id, user)
     end
 
     test "only self-authored can be pinned", %{activity: activity} do

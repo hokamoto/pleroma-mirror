@@ -4,7 +4,7 @@ defmodule Pleroma.Mixfile do
   def project do
     [
       app: :pleroma,
-      version: version("0.9.0"),
+      version: version("1.0.0"),
       elixir: "~> 1.7",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
@@ -37,7 +37,7 @@ defmodule Pleroma.Mixfile do
         pleroma: [
           include_executables_for: [:unix],
           applications: [ex_syslogger: :load, syslog: :load],
-          steps: [:assemble, &copy_files/1]
+          steps: [:assemble, &copy_files/1, &copy_nginx_config/1]
         ]
       ]
     ]
@@ -45,6 +45,15 @@ defmodule Pleroma.Mixfile do
 
   def copy_files(%{path: target_path} = release) do
     File.cp_r!("./rel/files", target_path)
+    release
+  end
+
+  def copy_nginx_config(%{path: target_path} = release) do
+    File.cp!(
+      "./installation/pleroma.nginx",
+      Path.join([target_path, "installation", "pleroma.nginx"])
+    )
+
     release
   end
 
@@ -100,7 +109,6 @@ defmodule Pleroma.Mixfile do
       {:phoenix_html, "~> 2.10"},
       {:calendar, "~> 0.17.4"},
       {:cachex, "~> 3.0.2"},
-      {:httpoison, "~> 1.2.0"},
       {:poison, "~> 3.0", override: true},
       {:tesla, "~> 1.2"},
       {:jason, "~> 1.0"},
@@ -142,7 +150,8 @@ defmodule Pleroma.Mixfile do
       {:esshd, "~> 0.1.0", runtime: Application.get_env(:esshd, :enabled, false)},
       {:ex_rated, "~> 1.3"},
       {:plug_static_index_html, "~> 1.0.0"},
-      {:excoveralls, "~> 0.11.1", only: :test}
+      {:excoveralls, "~> 0.11.1", only: :test},
+      {:mox, "~> 0.5", only: :test}
     ] ++ oauth_deps()
   end
 
@@ -165,10 +174,14 @@ defmodule Pleroma.Mixfile do
   # Builds a version string made of:
   # * the application version
   # * a pre-release if ahead of the tag: the describe string (-count-commithash)
-  # * build info:
+  # * branch name
+  # * build metadata:
   #   * a build name if `PLEROMA_BUILD_NAME` or `:pleroma, :build_name` is defined
   #   * the mix environment if different than prod
   defp version(version) do
+    identifier_filter = ~r/[^0-9a-z\-]+/i
+
+    # Pre-release version, denoted from patch version with a hyphen
     {git_tag, git_pre_release} =
       with {tag, 0} <-
              System.cmd("git", ["describe", "--tags", "--abbrev=0"], stderr_to_stdout: true),
@@ -189,6 +202,19 @@ defmodule Pleroma.Mixfile do
       )
     end
 
+    # Branch name as pre-release version component, denoted with a dot
+    branch_name =
+      with {branch_name, 0} <- System.cmd("git", ["rev-parse", "--abbrev-ref", "HEAD"]),
+           branch_name <- System.get_env("PLEROMA_BUILD_BRANCH") || branch_name,
+           true <- branch_name != "master" do
+        branch_name =
+          branch_name
+          |> String.trim()
+          |> String.replace(identifier_filter, "-")
+
+        "." <> branch_name
+      end
+
     build_name =
       cond do
         name = Application.get_env(:pleroma, :build_name) -> name
@@ -197,28 +223,26 @@ defmodule Pleroma.Mixfile do
       end
 
     env_name = if Mix.env() != :prod, do: to_string(Mix.env())
+    env_override = System.get_env("PLEROMA_BUILD_ENV")
 
-    build =
-      [build_name, env_name]
-      |> Enum.filter(fn string -> string && string != "" end)
-      |> Enum.join("-")
-      |> (fn
-            "" -> nil
-            string -> "+" <> string
-          end).()
-
-    branch_name =
-      with {branch_name, 0} <- System.cmd("git", ["rev-parse", "--abbrev-ref", "HEAD"]),
-           branch_name <- System.get_env("PLEROMA_BUILD_BRANCH") || branch_name,
-           true <- branch_name != "master" do
-        branch_name =
-          String.trim(branch_name)
-          |> String.replace(~r/[^0-9a-z\-\.]+/i, "-")
-
-        "-" <> branch_name
+    env_name =
+      case env_override do
+        nil -> env_name
+        env_override when env_override in ["", "prod"] -> nil
+        env_override -> env_override
       end
 
-    [version, git_pre_release, branch_name, build]
+    # Build metadata, denoted with a plus sign
+    build_metadata =
+      [build_name, env_name]
+      |> Enum.filter(fn string -> string && string != "" end)
+      |> Enum.join(".")
+      |> (fn
+            "" -> nil
+            string -> "+" <> String.replace(string, identifier_filter, "-")
+          end).()
+
+    [version, git_pre_release, branch_name, build_metadata]
     |> Enum.filter(fn string -> string && string != "" end)
     |> Enum.join()
   end

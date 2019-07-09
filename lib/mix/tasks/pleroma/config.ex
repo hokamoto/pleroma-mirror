@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Pleroma.Config do
       |> Enum.reject(fn {k, _v} -> k in [Pleroma.Repo, :env] end)
       |> Enum.each(fn {k, v} ->
         key = to_string(k) |> String.replace("Elixir.", "")
-        {:ok, _} = Config.update_or_create(%{key: key, value: v})
+        {:ok, _} = Config.update_or_create(%{group: "pleroma", key: key, value: v})
         Mix.shell().info("#{key} is migrated.")
       end)
 
@@ -36,8 +36,10 @@ defmodule Mix.Tasks.Pleroma.Config do
     end
   end
 
-  def run(["migrate_from_db", env]) do
+  def run(["migrate_from_db", env, delete?]) do
     start_pleroma()
+
+    delete? = if delete? == "true", do: true, else: false
 
     if Pleroma.Config.get([:instance, :dynamic_configuration]) do
       config_path = "config/#{env}.exported_from_db.secret.exs"
@@ -47,15 +49,23 @@ defmodule Mix.Tasks.Pleroma.Config do
 
       Repo.all(Config)
       |> Enum.each(fn config ->
-        mark = if String.starts_with?(config.key, "Pleroma."), do: ",", else: ":"
+        mark =
+          if String.starts_with?(config.key, "Pleroma.") or
+               String.starts_with?(config.key, "Ueberauth"),
+             do: ",",
+             else: ":"
 
         IO.write(
           file,
-          "config :pleroma, #{config.key}#{mark} #{inspect(Config.from_binary(config.value))}\r\n"
+          "config :#{config.group}, #{config.key}#{mark} #{
+            inspect(Config.from_binary(config.value))
+          }\r\n"
         )
 
-        {:ok, _} = Repo.delete(config)
-        Mix.shell().info("#{config.key} deleted from DB.")
+        if delete? do
+          {:ok, _} = Repo.delete(config)
+          Mix.shell().info("#{config.key} deleted from DB.")
+        end
       end)
 
       File.close(file)

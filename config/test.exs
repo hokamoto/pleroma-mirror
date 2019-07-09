@@ -28,7 +28,8 @@ config :pleroma, Pleroma.Emails.Mailer, adapter: Swoosh.Adapters.Test
 config :pleroma, :instance,
   email: "admin@example.com",
   notify_email: "noreply@example.com",
-  skip_thread_containment: false
+  skip_thread_containment: false,
+  federating: false
 
 # Configure your database
 config :pleroma, Pleroma.Repo,
@@ -43,7 +44,11 @@ config :pleroma, Pleroma.Repo,
 config :pbkdf2_elixir, rounds: 1
 
 config :tesla, adapter: Tesla.Mock
-config :pleroma, :rich_media, enabled: false
+
+config :pleroma, :rich_media,
+  enabled: false,
+  ignore_hosts: [],
+  ignore_tld: ["local", "localdomain", "lan"]
 
 config :web_push_encryption, :vapid_details,
   subject: "mailto:administrator@example.com",
@@ -69,6 +74,8 @@ config :pleroma, :http, send_user_agent: false
 rum_enabled = System.get_env("RUM_ENABLED") == "true"
 config :pleroma, :database, rum_enabled: rum_enabled
 IO.puts("RUM enabled: #{rum_enabled}")
+
+config :pleroma, Pleroma.ReverseProxy.Client, Pleroma.ReverseProxy.ClientMock
 
 try do
   import_config "test.secret.exs"

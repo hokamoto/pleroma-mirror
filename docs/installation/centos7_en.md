@@ -318,7 +318,7 @@ You can find example configurations for them in the `installation` directory of 
 * [Small Pleroma-FE customizations](small_customizations.html)
 * [Updating your instance](updating.html)
 
-## Support & Questions
+## Questions
 
 For support or questions please ask in the chatroom, available via IRC at `#pleroma` on [Freenode](https://freenode.net/) and via [Matrix on `#freenode_#pleroma:matrix.org`](https://matrix.heldscal.la/#/room/#freenode_#pleroma:matrix.org).
 

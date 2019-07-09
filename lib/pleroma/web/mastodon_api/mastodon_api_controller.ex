@@ -167,6 +167,69 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     end
   end
 
+  def update_avatar(%{assigns: %{user: user}} = conn, %{"img" => ""}) do
+    change = Changeset.change(user, %{avatar: nil})
+    {:ok, user} = User.update_and_set_cache(change)
+    CommonAPI.update(user)
+
+    json(conn, %{url: nil})
+  end
+
+  def update_avatar(%{assigns: %{user: user}} = conn, params) do
+    {:ok, object} = ActivityPub.upload(params, type: :avatar)
+    change = Changeset.change(user, %{avatar: object.data})
+    {:ok, user} = User.update_and_set_cache(change)
+    CommonAPI.update(user)
+    %{"url" => [%{"href" => href} | _]} = object.data
+
+    json(conn, %{url: href})
+  end
+
+  def update_banner(%{assigns: %{user: user}} = conn, %{"banner" => ""}) do
+    with new_info <- %{"banner" => %{}},
+         info_cng <- User.Info.profile_update(user.info, new_info),
+         changeset <- Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_cng),
+         {:ok, user} <- User.update_and_set_cache(changeset) do
+      CommonAPI.update(user)
+
+      json(conn, %{url: nil})
+    end
+  end
+
+  def update_banner(%{assigns: %{user: user}} = conn, params) do
+    with {:ok, object} <- ActivityPub.upload(%{"img" => params["banner"]}, type: :banner),
+         new_info <- %{"banner" => object.data},
+         info_cng <- User.Info.profile_update(user.info, new_info),
+         changeset <- Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_cng),
+         {:ok, user} <- User.update_and_set_cache(changeset) do
+      CommonAPI.update(user)
+      %{"url" => [%{"href" => href} | _]} = object.data
+
+      json(conn, %{url: href})
+    end
+  end
+
+  def update_background(%{assigns: %{user: user}} = conn, %{"img" => ""}) do
+    with new_info <- %{"background" => %{}},
+         info_cng <- User.Info.profile_update(user.info, new_info),
+         changeset <- Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_cng),
+         {:ok, _user} <- User.update_and_set_cache(changeset) do
+      json(conn, %{url: nil})
+    end
+  end
+
+  def update_background(%{assigns: %{user: user}} = conn, params) do
+    with {:ok, object} <- ActivityPub.upload(params, type: :background),
+         new_info <- %{"background" => object.data},
+         info_cng <- User.Info.profile_update(user.info, new_info),
+         changeset <- Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_cng),
+         {:ok, _user} <- User.update_and_set_cache(changeset) do
+      %{"url" => [%{"href" => href} | _]} = object.data
+
+      json(conn, %{url: href})
+    end
+  end
+
   def verify_credentials(%{assigns: %{user: user}} = conn, _) do
     chat_token = Phoenix.Token.sign(conn, "user socket", user.id)
 
@@ -356,6 +419,10 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def user_statuses(%{assigns: %{user: reading_user}} = conn, params) do
     with %User{} = user <- User.get_cached_by_id(params["id"]) do
+      params =
+        params
+        |> Map.put("tag", params["tagged"])
+
       activities = ActivityPub.fetch_user_activities(user, reading_user, params)
 
       conn
@@ -561,38 +628,18 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     else
       params = Map.drop(params, ["scheduled_at"])
 
-      case get_cached_status_or_post(conn, params) do
-        {:ignore, message} ->
-          conn
-          |> put_status(422)
-          |> json(%{error: message})
-
+      case CommonAPI.post(user, params) do
         {:error, message} ->
           conn
-          |> put_status(422)
+          |> put_status(:unprocessable_entity)
           |> json(%{error: message})
 
-        {_, activity} ->
+        {:ok, activity} ->
           conn
           |> put_view(StatusView)
           |> try_render("status.json", %{activity: activity, for: user, as: :activity})
       end
     end
-  end
-
-  defp get_cached_status_or_post(%{assigns: %{user: user}} = conn, params) do
-    idempotency_key =
-      case get_req_header(conn, "idempotency-key") do
-        [key] -> key
-        _ -> Ecto.UUID.generate()
-      end
-
-    Cachex.fetch(:idempotency_cache, idempotency_key, fn _ ->
-      case CommonAPI.post(user, params) do
-        {:ok, activity} -> activity
-        {:error, message} -> {:ignore, message}
-      end
-    end)
   end
 
   def delete_status(%{assigns: %{user: user}} = conn, %{"id" => id}) do
@@ -844,7 +891,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
       conn
       |> put_view(AccountView)
-      |> render(AccountView, "accounts.json", %{for: user, users: users, as: :user})
+      |> render("accounts.json", %{for: user, users: users, as: :user})
     else
       _ -> json(conn, [])
     end

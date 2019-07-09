@@ -920,42 +920,44 @@ defmodule Pleroma.UserTest do
 
     {:ok, activity} = CommonAPI.post(user, %{"status" => "2hu"})
 
-    Ecto.Adapters.SQL.Sandbox.unboxed_run(Repo, fn ->
-      {:ok, _} = User.delete_user_activities(user)
-      # TODO: Remove favorites, repeats, delete activities.
-      refute Activity.get_by_id(activity.id)
-    end)
+    {:ok, _} = User.delete_user_activities(user)
+
+    # TODO: Remove favorites, repeats, delete activities.
+    refute Activity.get_by_id(activity.id)
   end
 
-  test ".delete deactivates a user, all follow relationships and all create activities" do
+  test ".delete deactivates a user, all follow relationships and all activities" do
     user = insert(:user)
-    followed = insert(:user)
     follower = insert(:user)
 
-    {:ok, user} = User.follow(user, followed)
     {:ok, follower} = User.follow(follower, user)
 
     {:ok, activity} = CommonAPI.post(user, %{"status" => "2hu"})
     {:ok, activity_two} = CommonAPI.post(follower, %{"status" => "3hu"})
 
-    {:ok, _, _} = CommonAPI.favorite(activity_two.id, user)
-    {:ok, _, _} = CommonAPI.favorite(activity.id, follower)
-    {:ok, _, _} = CommonAPI.repeat(activity.id, follower)
+    {:ok, like, _} = CommonAPI.favorite(activity_two.id, user)
+    {:ok, like_two, _} = CommonAPI.favorite(activity.id, follower)
+    {:ok, repeat, _} = CommonAPI.repeat(activity_two.id, user)
 
     {:ok, _} = User.delete(user)
 
-    followed = User.get_cached_by_id(followed.id)
     follower = User.get_cached_by_id(follower.id)
-    user = User.get_cached_by_id(user.id)
 
-    assert user.info.deactivated
+    refute User.following?(follower, user)
+    refute User.get_by_id(user.id)
 
-    refute User.following?(user, followed)
-    refute User.following?(followed, follower)
+    user_activities =
+      user.ap_id
+      |> Activity.query_by_actor()
+      |> Repo.all()
+      |> Enum.map(fn act -> act.data["type"] end)
 
-    # TODO: Remove favorites, repeats, delete activities.
+    assert Enum.all?(user_activities, fn act -> act in ~w(Delete Undo) end)
 
     refute Activity.get_by_id(activity.id)
+    refute Activity.get_by_id(like.id)
+    refute Activity.get_by_id(like_two.id)
+    refute Activity.get_by_id(repeat.id)
   end
 
   test "get_public_key_for_ap_id fetches a user that's not in the db" do
@@ -1007,189 +1009,6 @@ defmodule Pleroma.UserTest do
       {:ok, cached_user} = Cachex.get(:user_cache, "nickname:#{user.ap_id}")
 
       assert cached_user != user
-    end
-  end
-
-  describe "User.search" do
-    test "accepts limit parameter" do
-      Enum.each(0..4, &insert(:user, %{nickname: "john#{&1}"}))
-      assert length(User.search("john", limit: 3)) == 3
-      assert length(User.search("john")) == 5
-    end
-
-    test "accepts offset parameter" do
-      Enum.each(0..4, &insert(:user, %{nickname: "john#{&1}"}))
-      assert length(User.search("john", limit: 3)) == 3
-      assert length(User.search("john", limit: 3, offset: 3)) == 2
-    end
-
-    test "finds a user by full or partial nickname" do
-      user = insert(:user, %{nickname: "john"})
-
-      Enum.each(["john", "jo", "j"], fn query ->
-        assert user ==
-                 User.search(query)
-                 |> List.first()
-                 |> Map.put(:search_rank, nil)
-                 |> Map.put(:search_type, nil)
-      end)
-    end
-
-    test "finds a user by full or partial name" do
-      user = insert(:user, %{name: "John Doe"})
-
-      Enum.each(["John Doe", "JOHN", "doe", "j d", "j", "d"], fn query ->
-        assert user ==
-                 User.search(query)
-                 |> List.first()
-                 |> Map.put(:search_rank, nil)
-                 |> Map.put(:search_type, nil)
-      end)
-    end
-
-    test "finds users, preferring nickname matches over name matches" do
-      u1 = insert(:user, %{name: "lain", nickname: "nick1"})
-      u2 = insert(:user, %{nickname: "lain", name: "nick1"})
-
-      assert [u2.id, u1.id] == Enum.map(User.search("lain"), & &1.id)
-    end
-
-    test "finds users, considering density of matched tokens" do
-      u1 = insert(:user, %{name: "Bar Bar plus Word Word"})
-      u2 = insert(:user, %{name: "Word Word Bar Bar Bar"})
-
-      assert [u2.id, u1.id] == Enum.map(User.search("bar word"), & &1.id)
-    end
-
-    test "finds users, ranking by similarity" do
-      u1 = insert(:user, %{name: "lain"})
-      _u2 = insert(:user, %{name: "ean"})
-      u3 = insert(:user, %{name: "ebn", nickname: "lain@mastodon.social"})
-      u4 = insert(:user, %{nickname: "lain@pleroma.soykaf.com"})
-
-      assert [u4.id, u3.id, u1.id] == Enum.map(User.search("lain@ple", for_user: u1), & &1.id)
-    end
-
-    test "finds users, handling misspelled requests" do
-      u1 = insert(:user, %{name: "lain"})
-
-      assert [u1.id] == Enum.map(User.search("laiin"), & &1.id)
-    end
-
-    test "finds users, boosting ranks of friends and followers" do
-      u1 = insert(:user)
-      u2 = insert(:user, %{name: "Doe"})
-      follower = insert(:user, %{name: "Doe"})
-      friend = insert(:user, %{name: "Doe"})
-
-      {:ok, follower} = User.follow(follower, u1)
-      {:ok, u1} = User.follow(u1, friend)
-
-      assert [friend.id, follower.id, u2.id] --
-               Enum.map(User.search("doe", resolve: false, for_user: u1), & &1.id) == []
-    end
-
-    test "finds followers of user by partial name" do
-      u1 = insert(:user)
-      u2 = insert(:user, %{name: "Jimi"})
-      follower_jimi = insert(:user, %{name: "Jimi Hendrix"})
-      follower_lizz = insert(:user, %{name: "Lizz Wright"})
-      friend = insert(:user, %{name: "Jimi"})
-
-      {:ok, follower_jimi} = User.follow(follower_jimi, u1)
-      {:ok, _follower_lizz} = User.follow(follower_lizz, u2)
-      {:ok, u1} = User.follow(u1, friend)
-
-      assert Enum.map(User.search("jimi", following: true, for_user: u1), & &1.id) == [
-               follower_jimi.id
-             ]
-
-      assert User.search("lizz", following: true, for_user: u1) == []
-    end
-
-    test "find local and remote users for authenticated users" do
-      u1 = insert(:user, %{name: "lain"})
-      u2 = insert(:user, %{name: "ebn", nickname: "lain@mastodon.social", local: false})
-      u3 = insert(:user, %{nickname: "lain@pleroma.soykaf.com", local: false})
-
-      results =
-        "lain"
-        |> User.search(for_user: u1)
-        |> Enum.map(& &1.id)
-        |> Enum.sort()
-
-      assert [u1.id, u2.id, u3.id] == results
-    end
-
-    test "find only local users for unauthenticated users" do
-      %{id: id} = insert(:user, %{name: "lain"})
-      insert(:user, %{name: "ebn", nickname: "lain@mastodon.social", local: false})
-      insert(:user, %{nickname: "lain@pleroma.soykaf.com", local: false})
-
-      assert [%{id: ^id}] = User.search("lain")
-    end
-
-    test "find only local users for authenticated users when `limit_to_local_content` is `:all`" do
-      Pleroma.Config.put([:instance, :limit_to_local_content], :all)
-
-      %{id: id} = insert(:user, %{name: "lain"})
-      insert(:user, %{name: "ebn", nickname: "lain@mastodon.social", local: false})
-      insert(:user, %{nickname: "lain@pleroma.soykaf.com", local: false})
-
-      assert [%{id: ^id}] = User.search("lain")
-
-      Pleroma.Config.put([:instance, :limit_to_local_content], :unauthenticated)
-    end
-
-    test "find all users for unauthenticated users when `limit_to_local_content` is `false`" do
-      Pleroma.Config.put([:instance, :limit_to_local_content], false)
-
-      u1 = insert(:user, %{name: "lain"})
-      u2 = insert(:user, %{name: "ebn", nickname: "lain@mastodon.social", local: false})
-      u3 = insert(:user, %{nickname: "lain@pleroma.soykaf.com", local: false})
-
-      results =
-        "lain"
-        |> User.search()
-        |> Enum.map(& &1.id)
-        |> Enum.sort()
-
-      assert [u1.id, u2.id, u3.id] == results
-
-      Pleroma.Config.put([:instance, :limit_to_local_content], :unauthenticated)
-    end
-
-    test "finds a user whose name is nil" do
-      _user = insert(:user, %{name: "notamatch", nickname: "testuser@pleroma.amplifie.red"})
-      user_two = insert(:user, %{name: nil, nickname: "lain@pleroma.soykaf.com"})
-
-      assert user_two ==
-               User.search("lain@pleroma.soykaf.com")
-               |> List.first()
-               |> Map.put(:search_rank, nil)
-               |> Map.put(:search_type, nil)
-    end
-
-    test "does not yield false-positive matches" do
-      insert(:user, %{name: "John Doe"})
-
-      Enum.each(["mary", "a", ""], fn query ->
-        assert [] == User.search(query)
-      end)
-    end
-
-    test "works with URIs" do
-      user = insert(:user)
-
-      results =
-        User.search("http://mastodon.example.org/users/admin", resolve: true, for_user: user)
-
-      result = results |> List.first()
-
-      user = User.get_cached_by_ap_id("http://mastodon.example.org/users/admin")
-
-      assert length(results) == 1
-      assert user == result |> Map.put(:search_rank, nil) |> Map.put(:search_type, nil)
     end
   end
 
@@ -1362,6 +1181,123 @@ defmodule Pleroma.UserTest do
       assert length(ap_ids) == 2
       assert user.ap_id in ap_ids
       assert user_two.ap_id in ap_ids
+    end
+  end
+
+  describe "sync followers count" do
+    setup do
+      user1 = insert(:user, local: false, ap_id: "http://localhost:4001/users/masto_closed")
+      user2 = insert(:user, local: false, ap_id: "http://localhost:4001/users/fuser2")
+      insert(:user, local: true)
+      insert(:user, local: false, info: %{deactivated: true})
+      {:ok, user1: user1, user2: user2}
+    end
+
+    test "external_users/1 external active users with limit", %{user1: user1, user2: user2} do
+      [fdb_user1] = User.external_users(limit: 1)
+
+      assert fdb_user1.ap_id
+      assert fdb_user1.ap_id == user1.ap_id
+      assert fdb_user1.id == user1.id
+
+      [fdb_user2] = User.external_users(max_id: fdb_user1.id, limit: 1)
+
+      assert fdb_user2.ap_id
+      assert fdb_user2.ap_id == user2.ap_id
+      assert fdb_user2.id == user2.id
+
+      assert User.external_users(max_id: fdb_user2.id, limit: 1) == []
+    end
+
+    test "sync_follow_counters/1", %{user1: user1, user2: user2} do
+      {:ok, _pid} = Agent.start_link(fn -> %{} end, name: :domain_errors)
+
+      :ok = User.sync_follow_counters()
+
+      %{follower_count: followers, following_count: following} = User.get_cached_user_info(user1)
+      assert followers == 437
+      assert following == 152
+
+      %{follower_count: followers, following_count: following} = User.get_cached_user_info(user2)
+
+      assert followers == 527
+      assert following == 267
+
+      Agent.stop(:domain_errors)
+    end
+
+    test "sync_follow_counters/1 in separate batches", %{user1: user1, user2: user2} do
+      {:ok, _pid} = Agent.start_link(fn -> %{} end, name: :domain_errors)
+
+      :ok = User.sync_follow_counters(limit: 1)
+
+      %{follower_count: followers, following_count: following} = User.get_cached_user_info(user1)
+      assert followers == 437
+      assert following == 152
+
+      %{follower_count: followers, following_count: following} = User.get_cached_user_info(user2)
+
+      assert followers == 527
+      assert following == 267
+
+      Agent.stop(:domain_errors)
+    end
+
+    test "perform/1 with :sync_follow_counters", %{user1: user1, user2: user2} do
+      :ok = User.perform(:sync_follow_counters)
+      %{follower_count: followers, following_count: following} = User.get_cached_user_info(user1)
+      assert followers == 437
+      assert following == 152
+
+      %{follower_count: followers, following_count: following} = User.get_cached_user_info(user2)
+
+      assert followers == 527
+      assert following == 267
+    end
+  end
+
+  describe "set_info_cache/2" do
+    setup do
+      user = insert(:user)
+      {:ok, user: user}
+    end
+
+    test "update from args", %{user: user} do
+      User.set_info_cache(user, %{following_count: 15, follower_count: 18})
+
+      %{follower_count: followers, following_count: following} = User.get_cached_user_info(user)
+      assert followers == 18
+      assert following == 15
+    end
+
+    test "without args", %{user: user} do
+      User.set_info_cache(user, %{})
+
+      %{follower_count: followers, following_count: following} = User.get_cached_user_info(user)
+      assert followers == 0
+      assert following == 0
+    end
+  end
+
+  describe "user_info/2" do
+    setup do
+      user = insert(:user)
+      {:ok, user: user}
+    end
+
+    test "update from args", %{user: user} do
+      %{follower_count: followers, following_count: following} =
+        User.user_info(user, %{following_count: 15, follower_count: 18})
+
+      assert followers == 18
+      assert following == 15
+    end
+
+    test "without args", %{user: user} do
+      %{follower_count: followers, following_count: following} = User.user_info(user)
+
+      assert followers == 0
+      assert following == 0
     end
   end
 end
