@@ -1,7 +1,6 @@
 defmodule Mix.PleromaTest do
   use ExUnit.Case, async: true
   import Mix.Pleroma
-  # import ExUnit.CaptureIO
 
   setup_all do
     Mix.shell(Mix.Shell.Process)
