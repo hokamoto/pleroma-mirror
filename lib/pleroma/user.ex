@@ -865,7 +865,7 @@ defmodule Pleroma.User do
   def mutes?(nil, _), do: false
   def mutes?(user, %{ap_id: ap_id}), do: Enum.member?(user.info.mutes, ap_id)
 
-  @spec muted_notifications?(User.t() | nil, User.t()) :: boolean()
+  @spec muted_notifications?(User.t() | nil, User.t() | map()) :: boolean()
   def muted_notifications?(nil, _), do: false
 
   def muted_notifications?(user, %{ap_id: ap_id}),

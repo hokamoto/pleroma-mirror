@@ -93,6 +93,17 @@ defmodule Pleroma.NotificationTest do
       refute Notification.create_notification(activity, muter)
     end
 
+    test "notification created if user is muted without notifications" do
+      muter = insert(:user)
+      muted = insert(:user)
+
+      {:ok, muter} = User.mute(muter, muted, false)
+
+      {:ok, activity} = CommonAPI.post(muted, %{"status" => "Hi @#{muter.nickname}"})
+
+      assert Notification.create_notification(activity, muter)
+    end
+
     test "it doesn't create a notification for an activity from a muted thread" do
       muter = insert(:user)
       other_user = insert(:user)

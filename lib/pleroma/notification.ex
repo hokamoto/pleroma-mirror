@@ -179,6 +179,7 @@ defmodule Pleroma.Notification do
 
   def get_notified_from_activity(_, _local_only), do: []
 
+  @spec skip?(Activity.t(), User.t()) :: boolean()
   def skip?(activity, user) do
     [
       :self,
@@ -193,6 +194,7 @@ defmodule Pleroma.Notification do
     |> Enum.any?(&skip?(&1, activity, user))
   end
 
+  @spec skip?(atom(), Activity.t(), User.t()) :: boolean()
   def skip?(:self, activity, user) do
     activity.data["actor"] == user.ap_id
   end
@@ -205,7 +207,8 @@ defmodule Pleroma.Notification do
   def skip?(:muted, activity, user) do
     actor = activity.data["actor"]
 
-    User.mutes?(user, %{ap_id: actor}) or CommonAPI.thread_muted?(user, activity)
+    (User.mutes?(user, %{ap_id: actor}) and User.muted_notifications?(user, %{ap_id: actor})) or
+      CommonAPI.thread_muted?(user, activity)
   end
 
   def skip?(
