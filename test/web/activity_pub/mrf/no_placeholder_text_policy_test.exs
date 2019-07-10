@@ -4,19 +4,20 @@
 
 defmodule Pleroma.Web.ActivityPub.MRF.NoPlaceholderTextPolicyTest do
   use Pleroma.DataCase
-  use ExUnitProperties
   alias Pleroma.Web.ActivityPub.MRF.NoPlaceholderTextPolicy
 
-  property "filter/3 it clears content object" do
-    check all content <- StreamData.member_of([".", "<p>.</p>"]) do
-      message = %{
-        "type" => "Create",
-        "object" => %{"content" => content, "attachment" => "image"}
-      }
+  test "it clears content object" do
+    message = %{
+      "type" => "Create",
+      "object" => %{"content" => ".", "attachment" => "image"}
+    }
 
-      assert {:ok, res} = NoPlaceholderTextPolicy.filter(message)
-      assert res["object"]["content"] == ""
-    end
+    assert {:ok, res} = NoPlaceholderTextPolicy.filter(message)
+    assert res["object"]["content"] == ""
+
+    message = put_in(message, ["object", "content"], "<p>.</p>")
+    assert {:ok, res} = NoPlaceholderTextPolicy.filter(message)
+    assert res["object"]["content"] == ""
   end
 
   @messages [
@@ -27,10 +28,10 @@ defmodule Pleroma.Web.ActivityPub.MRF.NoPlaceholderTextPolicyTest do
     %{"type" => "Create", "object" => %{"content" => "."}},
     %{"type" => "Create", "object" => %{"content" => "<p>.</p>"}}
   ]
-  property "filter/3 it skip filter" do
-    check all message <- StreamData.member_of(@messages) do
+  test "it skips filter" do
+    Enum.each(@messages, fn message ->
       assert {:ok, res} = NoPlaceholderTextPolicy.filter(message)
       assert res == message
-    end
+    end)
   end
 end

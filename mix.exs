@@ -151,7 +151,6 @@ defmodule Pleroma.Mixfile do
       {:ex_rated, "~> 1.3"},
       {:plug_static_index_html, "~> 1.0.0"},
       {:excoveralls, "~> 0.11.1", only: :test},
-      {:stream_data, "~> 0.4.3", only: :test},
       {:mox, "~> 0.5", only: :test}
     ] ++ oauth_deps()
   end
