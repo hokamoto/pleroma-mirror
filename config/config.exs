@@ -218,6 +218,7 @@ config :pleroma, :instance,
   },
   registrations_open: true,
   federating: true,
+  federation_incoming_replies_max_depth: 100,
   federation_reachability_timeout_days: 7,
   federation_publisher_modules: [
     Pleroma.Web.ActivityPub.Publisher,
@@ -249,6 +250,13 @@ config :pleroma, :instance,
   skip_thread_containment: true,
   limit_to_local_content: :unauthenticated,
   dynamic_configuration: false,
+  external_user_synchronization: [
+    enabled: false,
+    # every 2 hours
+    interval: 60 * 60 * 2,
+    max_retries: 3,
+    limit: 500
+  ],
   multi_factor_authentication: [
     totp: [
       # digits 6 or 8
@@ -369,7 +377,11 @@ config :pleroma, :gopher,
   port: 9999
 
 config :pleroma, Pleroma.Web.Metadata,
-  providers: [Pleroma.Web.Metadata.Providers.RelMe],
+  providers: [
+    Pleroma.Web.Metadata.Providers.OpenGraph,
+    Pleroma.Web.Metadata.Providers.TwitterCard,
+    Pleroma.Web.Metadata.Providers.RelMe
+  ],
   unfurl_nsfw: false
 
 config :pleroma, :suggestions,
