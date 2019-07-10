@@ -42,6 +42,7 @@ defmodule Pleroma.Notification do
         a.actor
       )
     )
+    |> where([n, a], a.actor not in ^user.info.muted_notifications)
     |> join(:inner, [n], activity in assoc(n, :activity))
     |> join(:left, [n, a], object in Object,
       on:
