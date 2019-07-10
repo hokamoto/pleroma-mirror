@@ -5,7 +5,7 @@
 defmodule Pleroma.Activity.Search do
   alias Pleroma.Activity
   alias Pleroma.Object.Fetcher
-  alias Pleroma.Repo
+  alias Pleroma.Pagination
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.Visibility
 
@@ -24,8 +24,7 @@ defmodule Pleroma.Activity.Search do
     |> query_with(index_type, search_query)
     |> maybe_restrict_local(user)
     |> maybe_restrict_author(author)
-    |> paginate(limit, offset)
-    |> Repo.all()
+    |> Pagination.fetch_paginated(%{"offset" => offset, "limit" => limit}, :offset)
     |> maybe_fetch(user, search_query)
   end
 
@@ -89,9 +88,5 @@ defmodule Pleroma.Activity.Search do
     else
       _ -> activities
     end
-  end
-
-  defp paginate(query, limit, offset) do
-    from(q in query, limit: ^limit, offset: ^offset)
   end
 end

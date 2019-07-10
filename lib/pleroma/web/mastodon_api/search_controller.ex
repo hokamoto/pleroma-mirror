@@ -7,6 +7,7 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
 
   alias Pleroma.Activity
   alias Pleroma.Plugs.RateLimiter
+  alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web
   alias Pleroma.Web.ControllerHelper
@@ -28,16 +29,28 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
 
   defp do_search(version, %{assigns: %{user: user}} = conn, %{"q" => query} = params) do
     options = search_options(params, user)
+    timeout = Keyword.get(Repo.config(), :timeout, 15_000)
+    default_values = %{"statuses" => [], "accounts" => [], "hashtags" => []}
 
     result =
-      %{"statuses" => [], "accounts" => [], "hashtags" => []}
-      |> Enum.reduce(%{}, fn {resource_type, default_value}, acc ->
-        if params["type"] == nil or params["type"] == resource_type do
-          result = resource_search(version, resource_type, query, options)
-          Map.put(acc, resource_type, result)
+      default_values
+      |> Enum.map(fn {resource, default_value} ->
+        if params["type"] == nil or params["type"] == resource do
+          {resource, fn -> resource_search(version, resource, query, options) end}
         else
-          Map.put(acc, resource_type, default_value)
+          {resource, fn -> default_value end}
         end
+      end)
+      |> Task.async_stream(fn {resource, f} -> {resource, with_fallback(f)} end,
+        timeout: timeout,
+        on_timeout: :kill_task
+      )
+      |> Enum.reduce(default_values, fn
+        {:ok, {resource, result}}, acc ->
+          Map.put(acc, resource, result)
+
+        _error, acc ->
+          acc
       end)
 
     json(conn, result)
