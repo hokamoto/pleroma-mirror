@@ -6,7 +6,7 @@ defmodule Pleroma.Emails.Mailer do
   @moduledoc """
   Defines the Pleroma mailer.
 
-  The module contains functions to delivery email use Swoosh.Mailer.
+  The module contains functions to delivery email using Swoosh.Mailer.
   """
 
   alias Swoosh.DeliveryError
