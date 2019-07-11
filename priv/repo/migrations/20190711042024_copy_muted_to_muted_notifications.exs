@@ -5,6 +5,7 @@ defmodule Pleroma.Repo.Migrations.CopyMutedToMutedNotifications do
   def change do
     query =
       User.Query.build(%{
+        local: true,
         active: true,
         order_by: :id
       })
