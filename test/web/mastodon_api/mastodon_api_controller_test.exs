@@ -2159,8 +2159,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
       response = json_response(conn, 200)
 
-      assert %{"id" => _id, "muting" => true} = response
-      assert %{"muting_notifications" => true} = response
+      assert %{"id" => _id, "muting" => true, "muting_notifications" => true} = response
       user = User.get_cached_by_id(user.id)
 
       conn =
@@ -2169,8 +2168,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
         |> post("/api/v1/accounts/#{other_user.id}/unmute")
 
       response = json_response(conn, 200)
-      assert %{"id" => _id, "muting" => false} = response
-      assert %{"muting_notifications" => false} = response
+      assert %{"id" => _id, "muting" => false, "muting_notifications" => false} = response
     end
 
     test "without notifications", %{conn: conn} do
@@ -2184,8 +2182,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
       response = json_response(conn, 200)
 
-      assert %{"id" => _id, "muting" => true} = response
-      assert %{"muting_notifications" => false} = response
+      assert %{"id" => _id, "muting" => true, "muting_notifications" => false} = response
       user = User.get_cached_by_id(user.id)
 
       conn =
@@ -2194,8 +2191,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
         |> post("/api/v1/accounts/#{other_user.id}/unmute")
 
       response = json_response(conn, 200)
-      assert %{"id" => _id, "muting" => false} = response
-      assert %{"muting_notifications" => false} = response
+      assert %{"id" => _id, "muting" => false, "muting_notifications" => false} = response
     end
   end
 
