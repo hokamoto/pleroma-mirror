@@ -2,6 +2,8 @@
 # Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
+Pleroma.Cluster.spawn_default_cluster()
+
 ExUnit.start()
 Ecto.Adapters.SQL.Sandbox.mode(Pleroma.Repo, :manual)
 Mox.defmock(Pleroma.ReverseProxy.ClientMock, for: Pleroma.ReverseProxy.Client)
