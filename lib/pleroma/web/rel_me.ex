@@ -4,11 +4,12 @@
 
 defmodule Pleroma.Web.RelMe do
   @hackney_options [
-    pool: :media,
-    recv_timeout: 2_000,
-    max_body: 2_000_000,
-    with_body: true
-  ]
+                     pool: :media,
+                     recv_timeout: 2_000,
+                     max_body: 2_000_000,
+                     with_body: true
+                   ]
+                   |> Keyword.merge(Pleroma.Config.get([:http, :adapter]))
 
   if Pleroma.Config.get(:env) == :test do
     def parse(url) when is_binary(url), do: parse_url(url)

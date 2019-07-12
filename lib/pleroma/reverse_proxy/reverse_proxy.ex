@@ -95,7 +95,7 @@ defmodule Pleroma.ReverseProxy do
   def call(conn = %{method: method}, url, opts) when method in @methods do
     hackney_opts =
       @default_hackney_options
-      |> Keyword.merge(Keyword.get(opts, :http, []))
+      |> Keyword.merge(Pleroma.Config.get([:http, :adapter]))
       |> HTTP.process_request_options()
 
     req_headers = build_req_headers(conn.req_headers, opts)

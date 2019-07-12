@@ -12,9 +12,10 @@ defmodule Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy do
   require Logger
 
   @hackney_options [
-    pool: :media,
-    recv_timeout: 10_000
-  ]
+                     pool: :media,
+                     recv_timeout: 10_000
+                   ]
+                   |> Keyword.merge(Pleroma.Config.get([:http, :adapter]))
 
   def perform(:prefetch, url) do
     Logger.info("Prefetching #{inspect(url)}")
