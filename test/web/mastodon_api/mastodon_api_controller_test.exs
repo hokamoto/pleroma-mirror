@@ -23,6 +23,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
   import Pleroma.Factory
   import ExUnit.CaptureLog
   import Tesla.Mock
+  import Swoosh.TestAssertions
 
   @image "data:image/gif;base64,R0lGODlhEAAQAMQAAORHHOVSKudfOulrSOp3WOyDZu6QdvCchPGolfO0o/XBs/fNwfjZ0frl3/zy7////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAkAABAALAAAAAAQABAAAAVVICSOZGlCQAosJ6mu7fiyZeKqNKToQGDsM8hBADgUXoGAiqhSvp5QAnQKGIgUhwFUYLCVDFCrKUE1lBavAViFIDlTImbKC5Gm2hB0SlBCBMQiB0UjIQA7"
 
@@ -3805,6 +3806,70 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
         |> json_response(:ok)
 
       assert Enum.empty?(response)
+    end
+  end
+
+  describe "POST /auth/password, with valid parameters" do
+    setup %{conn: conn} do
+      rate_limit = Pleroma.Config.get([:rate_limit, :password_reset])
+      Pleroma.Config.put([:rate_limit, :password_reset], {1000, 10})
+
+      on_exit(fn ->
+        Pleroma.Config.put([:rate_limit, :password_reset], rate_limit)
+      end)
+
+      user = insert(:user)
+      conn = post(conn, "/auth/password?email=#{user.email}")
+      %{conn: conn, user: user}
+    end
+
+    test "it returns 204", %{conn: conn} do
+      assert json_response(conn, :no_content)
+    end
+
+    test "it creates a PasswordResetToken record for user", %{user: user} do
+      token_record = Repo.get_by(Pleroma.PasswordResetToken, user_id: user.id)
+      assert token_record
+    end
+
+    test "it sends an email to user", %{user: user} do
+      token_record = Repo.get_by(Pleroma.PasswordResetToken, user_id: user.id)
+
+      email = Pleroma.Emails.UserEmail.password_reset_email(user, token_record.token)
+      notify_email = Pleroma.Config.get([:instance, :notify_email])
+      instance_name = Pleroma.Config.get([:instance, :name])
+
+      assert_email_sent(
+        from: {instance_name, notify_email},
+        to: {user.name, user.email},
+        html_body: email.html_body
+      )
+    end
+  end
+
+  describe "POST /auth/password, with invalid parameters" do
+    setup do
+      user = insert(:user)
+
+      rate_limit = Pleroma.Config.get([:rate_limit, :password_reset])
+      Pleroma.Config.put([:rate_limit, :password_reset], {1000, 10})
+
+      on_exit(fn ->
+        Pleroma.Config.put([:rate_limit, :password_reset], rate_limit)
+      end)
+
+      {:ok, user: user}
+    end
+
+    test "it returns 400 when user is not found", %{conn: conn, user: user} do
+      conn = post(conn, "/auth/password?email=nonexisting_#{user.email}")
+      assert json_response(conn, :bad_request)
+    end
+
+    test "it returns r00 when user is not local", %{conn: conn, user: user} do
+      {:ok, user} = Repo.update(Changeset.change(user, local: false))
+      conn = post(conn, "/auth/password?email=#{user.email}")
+      assert json_response(conn, :bad_request)
     end
   end
 end

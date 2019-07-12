@@ -65,6 +65,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   plug(RateLimiter, :statuses_actions when action in @rate_limited_status_actions)
   plug(RateLimiter, :app_account_creation when action == :account_register)
   plug(RateLimiter, :search when action in [:search, :search2, :account_search])
+  plug(Pleroma.Plugs.RateLimiter, :password_reset when action == :password_reset)
 
   @local_mastodon_name "Mastodon-Local"
 
@@ -1805,6 +1806,21 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
       conn
       |> json(participation_view)
+    end
+  end
+
+  def password_reset(conn, params) do
+    nickname_or_email = params["email"] || params["nickname"]
+
+    with {:ok, _} <- TwitterAPI.password_reset(nickname_or_email) do
+      conn
+      |> put_status(:no_content)
+      |> json("")
+    else
+      {:error, errors} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(Jason.encode!(errors))
     end
   end
 

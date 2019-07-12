@@ -1084,6 +1084,13 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
 
   describe "POST /api/account/password_reset, with valid parameters" do
     setup %{conn: conn} do
+      rate_limit = Pleroma.Config.get([:rate_limit, :password_reset])
+      Pleroma.Config.put([:rate_limit, :password_reset], {1000, 10})
+
+      on_exit(fn ->
+        Pleroma.Config.put([:rate_limit, :password_reset], rate_limit)
+      end)
+
       user = insert(:user)
       conn = post(conn, "/api/account/password_reset?email=#{user.email}")
       %{conn: conn, user: user}
@@ -1114,17 +1121,28 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
   end
 
   describe "POST /api/account/password_reset, with invalid parameters" do
-    setup [:valid_user]
+    setup do
+      rate_limit = Pleroma.Config.get([:rate_limit, :password_reset])
+      Pleroma.Config.put([:rate_limit, :password_reset], {1000, 10})
 
-    test "it returns 500 when user is not found", %{conn: conn, user: user} do
-      conn = post(conn, "/api/account/password_reset?email=nonexisting_#{user.email}")
-      assert json_response(conn, :internal_server_error)
+      on_exit(fn ->
+        Pleroma.Config.put([:rate_limit, :password_reset], rate_limit)
+      end)
+
+      :ok
     end
 
-    test "it returns 500 when user is not local", %{conn: conn, user: user} do
+    setup [:valid_user]
+
+    test "it returns 400 when user is not found", %{conn: conn, user: user} do
+      conn = post(conn, "/api/account/password_reset?email=nonexisting_#{user.email}")
+      assert json_response(conn, :bad_request)
+    end
+
+    test "it returns 400 when user is not local", %{conn: conn, user: user} do
       {:ok, user} = Repo.update(Changeset.change(user, local: false))
       conn = post(conn, "/api/account/password_reset?email=#{user.email}")
-      assert json_response(conn, :internal_server_error)
+      assert json_response(conn, :bad_request)
     end
   end
 
