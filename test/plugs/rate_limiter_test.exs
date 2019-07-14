@@ -16,7 +16,7 @@ defmodule Pleroma.Plugs.RateLimiterTest do
     limiter_name = :test_init
     Pleroma.Config.put([:rate_limit, limiter_name], {1, 1})
 
-    assert limiter_name []} == RateLimiter.init(limiter_name)
+    assert {limiter_name, {1, 1}, []} == RateLimiter.init(limiter_name)
     assert nil == RateLimiter.init(:foo)
   end
 

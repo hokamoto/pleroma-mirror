@@ -3811,13 +3811,6 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
   describe "POST /auth/password, with valid parameters" do
     setup %{conn: conn} do
-      rate_limit = Pleroma.Config.get([:rate_limit, :password_reset])
-      Pleroma.Config.put([:rate_limit, :password_reset], {1000, 10})
-
-      on_exit(fn ->
-        Pleroma.Config.put([:rate_limit, :password_reset], rate_limit)
-      end)
-
       user = insert(:user)
       conn = post(conn, "/auth/password?email=#{user.email}")
       %{conn: conn, user: user}
@@ -3850,14 +3843,6 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
   describe "POST /auth/password, with invalid parameters" do
     setup do
       user = insert(:user)
-
-      rate_limit = Pleroma.Config.get([:rate_limit, :password_reset])
-      Pleroma.Config.put([:rate_limit, :password_reset], {1000, 10})
-
-      on_exit(fn ->
-        Pleroma.Config.put([:rate_limit, :password_reset], rate_limit)
-      end)
-
       {:ok, user: user}
     end
 

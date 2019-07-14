@@ -1084,13 +1084,6 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
 
   describe "POST /api/account/password_reset, with valid parameters" do
     setup %{conn: conn} do
-      rate_limit = Pleroma.Config.get([:rate_limit, :password_reset])
-      Pleroma.Config.put([:rate_limit, :password_reset], {1000, 10})
-
-      on_exit(fn ->
-        Pleroma.Config.put([:rate_limit, :password_reset], rate_limit)
-      end)
-
       user = insert(:user)
       conn = post(conn, "/api/account/password_reset?email=#{user.email}")
       %{conn: conn, user: user}
@@ -1121,17 +1114,6 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
   end
 
   describe "POST /api/account/password_reset, with invalid parameters" do
-    setup do
-      rate_limit = Pleroma.Config.get([:rate_limit, :password_reset])
-      Pleroma.Config.put([:rate_limit, :password_reset], {1000, 10})
-
-      on_exit(fn ->
-        Pleroma.Config.put([:rate_limit, :password_reset], rate_limit)
-      end)
-
-      :ok
-    end
-
     setup [:valid_user]
 
     test "it returns 400 when user is not found", %{conn: conn, user: user} do
@@ -1143,25 +1125,6 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
       {:ok, user} = Repo.update(Changeset.change(user, local: false))
       conn = post(conn, "/api/account/password_reset?email=#{user.email}")
       assert json_response(conn, :bad_request)
-    end
-  end
-
-  describe "POST /api/account/password_reset with rate limit" do
-    setup do
-      rate_limit = Pleroma.Config.get([:rate_limit, :password_reset])
-      Pleroma.Config.put([:rate_limit, :password_reset], {1000, 1})
-
-      on_exit(fn ->
-        Pleroma.Config.put([:rate_limit, :password_reset], rate_limit)
-      end)
-
-      :ok
-    end
-
-    test "it returns 429 when limit exceeded" do
-      post(build_conn(), "/api/account/password_reset?email=nonexisting@mail.com")
-      conn = post(build_conn(), "/api/account/password_reset?email=nonexisting@mail.com")
-      assert json_response(conn, :too_many_requests) == %{"error" => "Throttled"}
     end
   end
 
