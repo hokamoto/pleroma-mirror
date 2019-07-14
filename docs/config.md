@@ -41,6 +41,7 @@ This filter replaces the filename (not the path) of an upload. For complete obfu
 ## Pleroma.Emails.Mailer
 * `adapter`: one of the mail adapters listed in [Swoosh readme](https://github.com/swoosh/swoosh#adapters), or `Swoosh.Adapters.Local` for in-memory mailbox.
 * `api_key` / `password` and / or other adapter-specific settings, per the above documentation.
+* `enabled`: Allows enable/disable send  emails. Default: `false`.
 
 An example for Sendgrid adapter:
 
@@ -87,6 +88,7 @@ config :pleroma, Pleroma.Emails.Mailer,
 * `invites_enabled`: Enable user invitations for admins (depends on `registrations_open: false`).
 * `account_activation_required`: Require users to confirm their emails before signing in.
 * `federating`: Enable federation with other instances
+* `federation_incoming_replies_max_depth`: Max. depth of reply-to activities fetching on incoming federation, to prevent out-of-memory situations while fetching very long threads. If set to `nil`, threads of any depth will be fetched. Lower this value if you experience out-of-memory crashes.
 * `federation_reachability_timeout_days`: Timeout (in days) of each external federation target being unreachable prior to pausing federating to it.
 * `allow_relay`: Enable Pleroma’s Relay, which makes it possible to follow a whole instance
 * `rewrite_policy`: Message Rewrite Policy, either one or a list. Here are the ones available by default:
@@ -104,6 +106,7 @@ config :pleroma, Pleroma.Emails.Mailer,
 * `managed_config`: Whenether the config for pleroma-fe is configured in this config or in ``static/config.json``
 * `allowed_post_formats`: MIME-type list of formats allowed to be posted (transformed into HTML)
 * `mrf_transparency`: Make the content of your Message Rewrite Facility settings public (via nodeinfo).
+* `mrf_transparency_exclusions`: Exclude specific instance names from MRF transparency.  The use of the exclusions feature will be disclosed in nodeinfo as a boolean value.
 * `scope_copy`: Copy the scope (private/unlisted/public) in replies to posts by default.
 * `subject_line_behavior`: Allows changing the default behaviour of subject lines in replies. Valid values:
   * "email": Copy and preprend re:, as in email.
@@ -124,6 +127,8 @@ config :pleroma, Pleroma.Emails.Mailer,
 * `skip_thread_containment`: Skip filter out broken threads. The default is `false`.
 * `limit_to_local_content`: Limit unauthenticated users to search for local statutes and users only. Possible values: `:unauthenticated`, `:all` and `false`. The default is `:unauthenticated`.
 * `dynamic_configuration`: Allow transferring configuration to DB with the subsequent customization from Admin api.
+* `external_user_synchronization`: Enabling following/followers counters synchronization for external users.
+
 
 
 ## :logger
@@ -420,6 +425,7 @@ This config contains two queues: `federator_incoming` and `federator_outgoing`. 
 * `enabled`: if enabled the instance will parse metadata from attached links to generate link previews
 * `ignore_hosts`: list of hosts which will be ignored by the metadata parser. For example `["accounts.google.com", "xss.website"]`, defaults to `[]`.
 * `ignore_tld`: list TLDs (top-level domains) which will ignore for parse metadata. default is ["local", "localdomain", "lan"]
+* `parsers`: list of Rich Media parsers
 
 ## :fetch_initial_posts
 * `enabled`: if enabled, when a new user is federated with, fetch some of their latest posts
@@ -636,3 +642,10 @@ A keyword list of rate limiters where a key is a limiter name and value is the l
 It is also possible to have different limits for unauthenticated and authenticated users: the keyword value must be a list of two tuples where the first one is a config for unauthenticated users and the second one is for authenticated.
 
 See [`Pleroma.Plugs.RateLimiter`](Pleroma.Plugs.RateLimiter.html) documentation for examples.
+
+Supported rate limiters:
+
+* `:search` for the search requests (account & status search etc.)
+* `:app_account_creation` for registering user accounts from the same IP address
+* `:statuses_actions` for create / delete / fav / unfav / reblog / unreblog actions on any statuses
+* `:status_id_action` for fav / unfav or reblog / unreblog actions on the same status by the same user

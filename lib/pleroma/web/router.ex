@@ -356,6 +356,10 @@ defmodule Pleroma.Web.Router do
       put("/filters/:id", MastodonAPIController, :update_filter)
       delete("/filters/:id", MastodonAPIController, :delete_filter)
 
+      patch("/pleroma/accounts/update_avatar", MastodonAPIController, :update_avatar)
+      patch("/pleroma/accounts/update_banner", MastodonAPIController, :update_banner)
+      patch("/pleroma/accounts/update_background", MastodonAPIController, :update_background)
+
       get("/pleroma/mascot", MastodonAPIController, :get_mascot)
       put("/pleroma/mascot", MastodonAPIController, :set_mascot)
 
@@ -619,8 +623,6 @@ defmodule Pleroma.Web.Router do
     # XXX: not really ostatus
     pipe_through(:ostatus)
 
-    get("/users/:nickname/followers", ActivityPubController, :followers)
-    get("/users/:nickname/following", ActivityPubController, :following)
     get("/users/:nickname/outbox", ActivityPubController, :outbox)
     get("/objects/:uuid/likes", ActivityPubController, :object_likes)
   end
@@ -659,6 +661,12 @@ defmodule Pleroma.Web.Router do
     scope [] do
       pipe_through(:oauth_write)
       post("/users/:nickname/outbox", ActivityPubController, :update_outbox)
+    end
+
+    scope [] do
+      pipe_through(:oauth_read_or_public)
+      get("/users/:nickname/followers", ActivityPubController, :followers)
+      get("/users/:nickname/following", ActivityPubController, :following)
     end
   end
 
@@ -739,6 +747,7 @@ end
 
 defmodule Fallback.RedirectController do
   use Pleroma.Web, :controller
+  require Logger
   alias Pleroma.User
   alias Pleroma.Web.Metadata
 
@@ -765,7 +774,20 @@ defmodule Fallback.RedirectController do
 
   def redirector_with_meta(conn, params) do
     {:ok, index_content} = File.read(index_file_path())
-    tags = Metadata.build_tags(params)
+
+    tags =
+      try do
+        Metadata.build_tags(params)
+      rescue
+        e ->
+          Logger.error(
+            "Metadata rendering for #{conn.request_path} failed.\n" <>
+              Exception.format(:error, e, __STACKTRACE__)
+          )
+
+          ""
+      end
+
     response = String.replace(index_content, "<!--server-generated-meta-->", tags)
 
     conn

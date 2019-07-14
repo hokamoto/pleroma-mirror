@@ -31,7 +31,7 @@ defmodule Pleroma.Web.MongooseIM.MongooseIMController do
     else
       false ->
         conn
-        |> put_status(403)
+        |> put_status(:forbidden)
         |> json(false)
 
       _ ->

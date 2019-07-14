@@ -11,12 +11,13 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Transmogrifier
+  alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.OStatus
   alias Pleroma.Web.Websub.WebsubClientSubscription
 
+  import Mock
   import Pleroma.Factory
   import ExUnit.CaptureLog
-  alias Pleroma.Web.CommonAPI
 
   setup_all do
     Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
@@ -30,7 +31,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       data =
         File.read!("test/fixtures/mastodon-post-activity.json")
         |> Poison.decode!()
-        |> Map.put("object", activity.data["object"])
+        |> Map.put("object", Object.normalize(activity).data)
 
       {:ok, returned_activity} = Transmogrifier.handle_incoming(data)
 
@@ -46,12 +47,9 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
         data["object"]
         |> Map.put("inReplyTo", "https://shitposter.club/notice/2827873")
 
-      data =
-        data
-        |> Map.put("object", object)
-
+      data = Map.put(data, "object", object)
       {:ok, returned_activity} = Transmogrifier.handle_incoming(data)
-      returned_object = Object.normalize(returned_activity.data["object"])
+      returned_object = Object.normalize(returned_activity, false)
 
       assert activity =
                Activity.get_create_by_object_ap_id(
@@ -59,6 +57,32 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
                )
 
       assert returned_object.data["inReplyToAtomUri"] == "https://shitposter.club/notice/2827873"
+    end
+
+    test "it does not fetch replied-to activities beyond max_replies_depth" do
+      data =
+        File.read!("test/fixtures/mastodon-post-activity.json")
+        |> Poison.decode!()
+
+      object =
+        data["object"]
+        |> Map.put("inReplyTo", "https://shitposter.club/notice/2827873")
+
+      data = Map.put(data, "object", object)
+
+      with_mock Pleroma.Web.Federator,
+        allowed_incoming_reply_depth?: fn _ -> false end do
+        {:ok, returned_activity} = Transmogrifier.handle_incoming(data)
+
+        returned_object = Object.normalize(returned_activity, false)
+
+        refute Activity.get_create_by_object_ap_id(
+                 "tag:shitposter.club,2017-05-05:noticeId=2827873:objectType=comment"
+               )
+
+        assert returned_object.data["inReplyToAtomUri"] ==
+                 "https://shitposter.club/notice/2827873"
+      end
     end
 
     test "it does not crash if the object in inReplyTo can't be fetched" do
@@ -99,25 +123,27 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
 
       assert data["actor"] == "http://mastodon.example.org/users/admin"
 
-      object = Object.normalize(data["object"]).data
-      assert object["id"] == "http://mastodon.example.org/users/admin/statuses/99512778738411822"
+      object_data = Object.normalize(data["object"]).data
 
-      assert object["to"] == ["https://www.w3.org/ns/activitystreams#Public"]
+      assert object_data["id"] ==
+               "http://mastodon.example.org/users/admin/statuses/99512778738411822"
 
-      assert object["cc"] == [
+      assert object_data["to"] == ["https://www.w3.org/ns/activitystreams#Public"]
+
+      assert object_data["cc"] == [
                "http://mastodon.example.org/users/admin/followers",
                "http://localtesting.pleroma.lol/users/lain"
              ]
 
-      assert object["actor"] == "http://mastodon.example.org/users/admin"
-      assert object["attributedTo"] == "http://mastodon.example.org/users/admin"
+      assert object_data["actor"] == "http://mastodon.example.org/users/admin"
+      assert object_data["attributedTo"] == "http://mastodon.example.org/users/admin"
 
-      assert object["context"] ==
+      assert object_data["context"] ==
                "tag:mastodon.example.org,2018-02-12:objectId=20:objectType=Conversation"
 
-      assert object["sensitive"] == true
+      assert object_data["sensitive"] == true
 
-      user = User.get_cached_by_ap_id(object["actor"])
+      user = User.get_cached_by_ap_id(object_data["actor"])
 
       assert user.info.note_count == 1
     end
@@ -527,6 +553,30 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       assert Activity.get_by_id(activity.id)
     end
 
+    test "it works for incoming user deletes" do
+      %{ap_id: ap_id} = insert(:user, ap_id: "http://mastodon.example.org/users/admin")
+
+      data =
+        File.read!("test/fixtures/mastodon-delete-user.json")
+        |> Poison.decode!()
+
+      {:ok, _} = Transmogrifier.handle_incoming(data)
+
+      refute User.get_cached_by_ap_id(ap_id)
+    end
+
+    test "it fails for incoming user deletes with spoofed origin" do
+      %{ap_id: ap_id} = insert(:user)
+
+      data =
+        File.read!("test/fixtures/mastodon-delete-user.json")
+        |> Poison.decode!()
+        |> Map.put("actor", ap_id)
+
+      assert :error == Transmogrifier.handle_incoming(data)
+      assert User.get_cached_by_ap_id(ap_id)
+    end
+
     test "it works for incoming unannounces with an existing notice" do
       user = insert(:user)
       {:ok, activity} = CommonAPI.post(user, %{"status" => "hey"})
@@ -548,10 +598,11 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       {:ok, %Activity{data: data, local: false}} = Transmogrifier.handle_incoming(data)
 
       assert data["type"] == "Undo"
-      assert data["object"]["type"] == "Announce"
-      assert data["object"]["object"] == activity.data["object"]
+      assert object_data = data["object"]
+      assert object_data["type"] == "Announce"
+      assert object_data["object"] == activity.data["object"]
 
-      assert data["object"]["id"] ==
+      assert object_data["id"] ==
                "http://mastodon.example.org/users/admin/statuses/99542391527669785/activity"
     end
 
@@ -861,7 +912,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       other_user = insert(:user)
 
       {:ok, activity} = CommonAPI.post(user, %{"status" => "test post"})
-      object = Object.normalize(activity.data["object"])
+      object = Object.normalize(activity)
 
       message = %{
         "@context" => "https://www.w3.org/ns/activitystreams",
@@ -1070,6 +1121,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       assert user.info.ap_enabled
       assert user.info.note_count == 1
       assert user.follower_address == "https://niu.moe/users/rye/followers"
+      assert user.following_address == "https://niu.moe/users/rye/following"
 
       user = User.get_cached_by_id(user.id)
       assert user.info.note_count == 1
@@ -1306,5 +1358,33 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       refute recipient.follower_address in fixed_object["cc"]
       refute recipient.follower_address in fixed_object["to"]
     end
+  end
+
+  test "update_following_followers_counters/1" do
+    user1 =
+      insert(:user,
+        local: false,
+        follower_address: "http://localhost:4001/users/masto_closed/followers",
+        following_address: "http://localhost:4001/users/masto_closed/following"
+      )
+
+    user2 =
+      insert(:user,
+        local: false,
+        follower_address: "http://localhost:4001/users/fuser2/followers",
+        following_address: "http://localhost:4001/users/fuser2/following"
+      )
+
+    Transmogrifier.update_following_followers_counters(user1)
+    Transmogrifier.update_following_followers_counters(user2)
+
+    %{follower_count: followers, following_count: following} = User.get_cached_user_info(user1)
+    assert followers == 437
+    assert following == 152
+
+    %{follower_count: followers, following_count: following} = User.get_cached_user_info(user2)
+
+    assert followers == 527
+    assert following == 267
   end
 end

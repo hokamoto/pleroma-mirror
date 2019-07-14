@@ -61,7 +61,7 @@ defmodule Pleroma.ReverseProxy do
   * `http`: options for [hackney](https://github.com/benoitc/hackney).
 
   """
-  @default_hackney_options []
+  @default_hackney_options [pool: :media]
 
   @inline_content_types [
     "image/gif",
@@ -94,7 +94,8 @@ defmodule Pleroma.ReverseProxy do
 
   def call(conn = %{method: method}, url, opts) when method in @methods do
     hackney_opts =
-      @default_hackney_options
+      Pleroma.HTTP.Connection.hackney_options([])
+      |> Keyword.merge(@default_hackney_options)
       |> Keyword.merge(Keyword.get(opts, :http, []))
       |> HTTP.process_request_options()
 
@@ -146,7 +147,7 @@ defmodule Pleroma.ReverseProxy do
     Logger.debug("#{__MODULE__} #{method} #{url} #{inspect(headers)}")
     method = method |> String.downcase() |> String.to_existing_atom()
 
-    case hackney().request(method, url, headers, "", hackney_opts) do
+    case client().request(method, url, headers, "", hackney_opts) do
       {:ok, code, headers, client} when code in @valid_resp_codes ->
         {:ok, code, downcase_headers(headers), client}
 
@@ -173,7 +174,7 @@ defmodule Pleroma.ReverseProxy do
         halt(conn)
 
       {:error, :closed, conn} ->
-        :hackney.close(client)
+        client().close(client)
         halt(conn)
 
       {:error, error, conn} ->
@@ -181,7 +182,7 @@ defmodule Pleroma.ReverseProxy do
           "#{__MODULE__} request to #{url} failed while reading/chunking: #{inspect(error)}"
         )
 
-        :hackney.close(client)
+        client().close(client)
         halt(conn)
     end
   end
@@ -196,7 +197,7 @@ defmodule Pleroma.ReverseProxy do
              duration,
              Keyword.get(opts, :max_read_duration, @max_read_duration)
            ),
-         {:ok, data} <- hackney().stream_body(client),
+         {:ok, data} <- client().stream_body(client),
          {:ok, duration} <- increase_read_duration(duration),
          sent_so_far = sent_so_far + byte_size(data),
          :ok <- body_size_constraint(sent_so_far, Keyword.get(opts, :max_body_size)),
@@ -378,5 +379,5 @@ defmodule Pleroma.ReverseProxy do
     {:ok, :no_duration_limit, :no_duration_limit}
   end
 
-  defp hackney, do: Pleroma.Config.get(:hackney, :hackney)
+  defp client, do: Pleroma.ReverseProxy.Client
 end

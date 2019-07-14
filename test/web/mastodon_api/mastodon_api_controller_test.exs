@@ -24,6 +24,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
   import ExUnit.CaptureLog
   import Tesla.Mock
 
+  @image "data:image/gif;base64,R0lGODlhEAAQAMQAAORHHOVSKudfOulrSOp3WOyDZu6QdvCchPGolfO0o/XBs/fNwfjZ0frl3/zy7////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAkAABAALAAAAAAQABAAAAVVICSOZGlCQAosJ6mu7fiyZeKqNKToQGDsM8hBADgUXoGAiqhSvp5QAnQKGIgUhwFUYLCVDFCrKUE1lBavAViFIDlTImbKC5Gm2hB0SlBCBMQiB0UjIQA7"
+
   setup do
     mock(fn env -> apply(HttpRequestMock, :request, [env]) end)
     :ok
@@ -582,6 +584,101 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     }
 
     assert expected == json_response(conn, 200)
+  end
+
+  test "user avatar can be set", %{conn: conn} do
+    user = insert(:user)
+    avatar_image = File.read!("test/fixtures/avatar_data_uri")
+
+    conn =
+      conn
+      |> assign(:user, user)
+      |> patch("/api/v1/pleroma/accounts/update_avatar", %{img: avatar_image})
+
+    user = refresh_record(user)
+
+    assert %{
+             "name" => _,
+             "type" => _,
+             "url" => [
+               %{
+                 "href" => _,
+                 "mediaType" => _,
+                 "type" => _
+               }
+             ]
+           } = user.avatar
+
+    assert %{"url" => _} = json_response(conn, 200)
+  end
+
+  test "user avatar can be reset", %{conn: conn} do
+    user = insert(:user)
+
+    conn =
+      conn
+      |> assign(:user, user)
+      |> patch("/api/v1/pleroma/accounts/update_avatar", %{img: ""})
+
+    user = User.get_cached_by_id(user.id)
+
+    assert user.avatar == nil
+
+    assert %{"url" => nil} = json_response(conn, 200)
+  end
+
+  test "can set profile banner", %{conn: conn} do
+    user = insert(:user)
+
+    conn =
+      conn
+      |> assign(:user, user)
+      |> patch("/api/v1/pleroma/accounts/update_banner", %{"banner" => @image})
+
+    user = refresh_record(user)
+    assert user.info.banner["type"] == "Image"
+
+    assert %{"url" => _} = json_response(conn, 200)
+  end
+
+  test "can reset profile banner", %{conn: conn} do
+    user = insert(:user)
+
+    conn =
+      conn
+      |> assign(:user, user)
+      |> patch("/api/v1/pleroma/accounts/update_banner", %{"banner" => ""})
+
+    user = refresh_record(user)
+    assert user.info.banner == %{}
+
+    assert %{"url" => nil} = json_response(conn, 200)
+  end
+
+  test "background image can be set", %{conn: conn} do
+    user = insert(:user)
+
+    conn =
+      conn
+      |> assign(:user, user)
+      |> patch("/api/v1/pleroma/accounts/update_background", %{"img" => @image})
+
+    user = refresh_record(user)
+    assert user.info.background["type"] == "Image"
+    assert %{"url" => _} = json_response(conn, 200)
+  end
+
+  test "background image can be reset", %{conn: conn} do
+    user = insert(:user)
+
+    conn =
+      conn
+      |> assign(:user, user)
+      |> patch("/api/v1/pleroma/accounts/update_background", %{"img" => ""})
+
+    user = refresh_record(user)
+    assert user.info.background == %{}
+    assert %{"url" => nil} = json_response(conn, 200)
   end
 
   test "creates an oauth app", %{conn: conn} do
@@ -1176,6 +1273,71 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
       result = json_response(conn_res, 200)
       assert [%{"id" => ^notification4_id}, %{"id" => ^notification3_id}] = result
+    end
+
+    test "doesn't see notifications after muting user with notifications", %{conn: conn} do
+      user = insert(:user)
+      user2 = insert(:user)
+
+      {:ok, _, _, _} = CommonAPI.follow(user, user2)
+      {:ok, _} = CommonAPI.post(user2, %{"status" => "hey @#{user.nickname}"})
+
+      conn = assign(conn, :user, user)
+
+      conn = get(conn, "/api/v1/notifications")
+
+      assert length(json_response(conn, 200)) == 1
+
+      {:ok, user} = User.mute(user, user2)
+
+      conn = assign(build_conn(), :user, user)
+      conn = get(conn, "/api/v1/notifications")
+
+      assert json_response(conn, 200) == []
+    end
+
+    test "see notifications after muting user without notifications", %{conn: conn} do
+      user = insert(:user)
+      user2 = insert(:user)
+
+      {:ok, _, _, _} = CommonAPI.follow(user, user2)
+      {:ok, _} = CommonAPI.post(user2, %{"status" => "hey @#{user.nickname}"})
+
+      conn = assign(conn, :user, user)
+
+      conn = get(conn, "/api/v1/notifications")
+
+      assert length(json_response(conn, 200)) == 1
+
+      {:ok, user} = User.mute(user, user2, false)
+
+      conn = assign(build_conn(), :user, user)
+      conn = get(conn, "/api/v1/notifications")
+
+      assert length(json_response(conn, 200)) == 1
+    end
+
+    test "see notifications after muting user with notifications and with_muted parameter", %{
+      conn: conn
+    } do
+      user = insert(:user)
+      user2 = insert(:user)
+
+      {:ok, _, _, _} = CommonAPI.follow(user, user2)
+      {:ok, _} = CommonAPI.post(user2, %{"status" => "hey @#{user.nickname}"})
+
+      conn = assign(conn, :user, user)
+
+      conn = get(conn, "/api/v1/notifications")
+
+      assert length(json_response(conn, 200)) == 1
+
+      {:ok, user} = User.mute(user, user2)
+
+      conn = assign(build_conn(), :user, user)
+      conn = get(conn, "/api/v1/notifications", %{"with_muted" => "true"})
+
+      assert length(json_response(conn, 200)) == 1
     end
   end
 
@@ -2008,25 +2170,52 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     assert %{"error" => "Record not found"} = json_response(conn_res, 404)
   end
 
-  test "muting / unmuting a user", %{conn: conn} do
-    user = insert(:user)
-    other_user = insert(:user)
+  describe "mute/unmute" do
+    test "with notifications", %{conn: conn} do
+      user = insert(:user)
+      other_user = insert(:user)
 
-    conn =
-      conn
-      |> assign(:user, user)
-      |> post("/api/v1/accounts/#{other_user.id}/mute")
+      conn =
+        conn
+        |> assign(:user, user)
+        |> post("/api/v1/accounts/#{other_user.id}/mute")
 
-    assert %{"id" => _id, "muting" => true} = json_response(conn, 200)
+      response = json_response(conn, 200)
 
-    user = User.get_cached_by_id(user.id)
+      assert %{"id" => _id, "muting" => true, "muting_notifications" => true} = response
+      user = User.get_cached_by_id(user.id)
 
-    conn =
-      build_conn()
-      |> assign(:user, user)
-      |> post("/api/v1/accounts/#{other_user.id}/unmute")
+      conn =
+        build_conn()
+        |> assign(:user, user)
+        |> post("/api/v1/accounts/#{other_user.id}/unmute")
 
-    assert %{"id" => _id, "muting" => false} = json_response(conn, 200)
+      response = json_response(conn, 200)
+      assert %{"id" => _id, "muting" => false, "muting_notifications" => false} = response
+    end
+
+    test "without notifications", %{conn: conn} do
+      user = insert(:user)
+      other_user = insert(:user)
+
+      conn =
+        conn
+        |> assign(:user, user)
+        |> post("/api/v1/accounts/#{other_user.id}/mute", %{"notifications" => "false"})
+
+      response = json_response(conn, 200)
+
+      assert %{"id" => _id, "muting" => true, "muting_notifications" => false} = response
+      user = User.get_cached_by_id(user.id)
+
+      conn =
+        build_conn()
+        |> assign(:user, user)
+        |> post("/api/v1/accounts/#{other_user.id}/unmute")
+
+      response = json_response(conn, 200)
+      assert %{"id" => _id, "muting" => false, "muting_notifications" => false} = response
+    end
   end
 
   test "subscribing / unsubscribing to a user", %{conn: conn} do
@@ -2861,6 +3050,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       assert Map.has_key?(emoji, "static_url")
       assert Map.has_key?(emoji, "tags")
       assert is_list(emoji["tags"])
+      assert Map.has_key?(emoji, "category")
       assert Map.has_key?(emoji, "url")
       assert Map.has_key?(emoji, "visible_in_picker")
     end
