@@ -1316,6 +1316,29 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
       assert length(json_response(conn, 200)) == 1
     end
+
+    test "see notifications after muting user with notifications and with_muted parameter", %{
+      conn: conn
+    } do
+      user = insert(:user)
+      user2 = insert(:user)
+
+      {:ok, _, _, _} = CommonAPI.follow(user, user2)
+      {:ok, _} = CommonAPI.post(user2, %{"status" => "hey @#{user.nickname}"})
+
+      conn = assign(conn, :user, user)
+
+      conn = get(conn, "/api/v1/notifications")
+
+      assert length(json_response(conn, 200)) == 1
+
+      {:ok, user} = User.mute(user, user2)
+
+      conn = assign(build_conn(), :user, user)
+      conn = get(conn, "/api/v1/notifications", %{"with_muted" => "true"})
+
+      assert length(json_response(conn, 200)) == 1
+    end
   end
 
   describe "reblogging" do
