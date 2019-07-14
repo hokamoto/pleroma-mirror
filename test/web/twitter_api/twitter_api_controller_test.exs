@@ -1146,6 +1146,25 @@ defmodule Pleroma.Web.TwitterAPI.ControllerTest do
     end
   end
 
+  describe "POST /api/account/password_reset with rate limit" do
+    setup do
+      rate_limit = Pleroma.Config.get([:rate_limit, :password_reset])
+      Pleroma.Config.put([:rate_limit, :password_reset], {1000, 1})
+
+      on_exit(fn ->
+        Pleroma.Config.put([:rate_limit, :password_reset], rate_limit)
+      end)
+
+      :ok
+    end
+
+    test "it returns 429 when limit exceeded" do
+      post(build_conn(), "/api/account/password_reset?email=nonexisting@mail.com")
+      conn = post(build_conn(), "/api/account/password_reset?email=nonexisting@mail.com")
+      assert json_response(conn, :too_many_requests) == %{"error" => "Throttled"}
+    end
+  end
+
   describe "GET /api/account/confirm_email/:id/:token" do
     setup do
       user = insert(:user)
