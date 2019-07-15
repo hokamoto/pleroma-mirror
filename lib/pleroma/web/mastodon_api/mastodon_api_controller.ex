@@ -693,11 +693,6 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       conn
       |> put_view(StatusView)
       |> try_render("status.json", %{activity: activity, for: user, as: :activity})
-    else
-      {:error, reason} ->
-        conn
-        |> put_status(:bad_request)
-        |> json(%{"error" => reason})
     end
   end
 
@@ -738,11 +733,6 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       conn
       |> put_view(StatusView)
       |> try_render("status.json", %{activity: activity, for: user, as: :activity})
-    else
-      {:error, reason} ->
-        conn
-        |> put_resp_content_type("application/json")
-        |> send_resp(:bad_request, Jason.encode!(%{"error" => reason}))
     end
   end
 
@@ -1649,6 +1639,12 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def errors(conn, {:error, :not_found}) do
     render_error(conn, :not_found, "Record not found")
+  end
+
+  def errors(conn, {:error, error_message}) do
+    conn
+    |> put_status(:bad_request)
+    |> json(%{error: error_message})
   end
 
   def errors(conn, _) do
