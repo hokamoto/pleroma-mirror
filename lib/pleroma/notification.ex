@@ -202,7 +202,9 @@ defmodule Pleroma.Notification do
       :follows,
       :non_followers,
       :non_follows,
-      :recently_followed
+      :recently_followed,
+      :recently_liked,
+      :recently_repeated
     ]
     |> Enum.any?(&skip?(&1, activity, user))
   end
@@ -251,10 +253,35 @@ defmodule Pleroma.Notification do
   def skip?(:recently_followed, %{data: %{"type" => "Follow"}} = activity, user) do
     actor = activity.data["actor"]
 
-    Notification.for_user(user)
+    user
+    |> for_user()
     |> Enum.any?(fn
       %{activity: %{data: %{"type" => "Follow", "actor" => ^actor}}} -> true
       _ -> false
+    end)
+  end
+
+  def skip?(
+        :recently_liked,
+        %{data: %{"type" => "Like", "actor" => actor, "object" => object}},
+        user
+      ) do
+    user
+    |> for_user()
+    |> Enum.any?(fn %{activity: %{data: data}} ->
+      data["type"] == "Like" and data["actor"] == actor and data["object"] == object
+    end)
+  end
+
+  def skip?(
+        :recently_repeated,
+        %{data: %{"type" => "Announce", "actor" => actor, "object" => object}},
+        user
+      ) do
+    user
+    |> for_user()
+    |> Enum.any?(fn %{activity: %{data: data}} ->
+      data["type"] == "Announce" and data["actor"] == actor and data["object"] == object
     end)
   end
 

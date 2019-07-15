@@ -170,12 +170,21 @@ defmodule Pleroma.NotificationTest do
     test "it doesn't create a notification for like-unlike-like chains" do
       user = insert(:user)
       liked_user = insert(:user)
-      {:ok, status} = TwitterAPI.create_status(liked_user, %{"status" => "Yui is best yuru"})
-      {:ok, fav_status} = TwitterAPI.fav(user, status.id)
-      Notification.create_notification(fav_status, liked_user)
-      TwitterAPI.unfav(user, status.id)
-      {:ok, dupe} = TwitterAPI.fav(user, status.id)
-      refute Notification.create_notification(dupe, liked_user)
+      {:ok, status} = CommonAPI.post(liked_user, %{"status" => "Yui is best yuru"})
+
+      {:ok, _, _} = CommonAPI.favorite(status.id, user)
+      user_notifications = Notification.for_user(liked_user)
+      assert length(user_notifications) == 1
+
+      {:ok, _, _, _} = CommonAPI.unfavorite(status.id, user)
+      user_notifications = Notification.for_user(liked_user)
+      assert Enum.empty?(user_notifications)
+
+      {:ok, _, _} = CommonAPI.favorite(status.id, user)
+
+      # FIXME: Should still be empty
+      user_notifications = Notification.for_user(liked_user)
+      assert Enum.empty?(user_notifications)
     end
 
     test "it doesn't create a notification for repeat-unrepeat-repeat chains" do
@@ -183,15 +192,23 @@ defmodule Pleroma.NotificationTest do
       retweeted_user = insert(:user)
 
       {:ok, status} =
-        TwitterAPI.create_status(retweeted_user, %{
+        CommonAPI.post(retweeted_user, %{
           "status" => "Send dupe notifications to the shadow realm"
         })
 
-      {:ok, retweeted_activity} = TwitterAPI.repeat(user, status.id)
-      Notification.create_notification(retweeted_activity, retweeted_user)
-      TwitterAPI.unrepeat(user, status.id)
-      {:ok, dupe} = TwitterAPI.repeat(user, status.id)
-      refute Notification.create_notification(dupe, retweeted_user)
+      {:ok, _, _} = CommonAPI.repeat(status.id, user)
+      user_notifications = Notification.for_user(retweeted_user)
+      assert length(user_notifications) == 1
+
+      CommonAPI.unrepeat(status.id, user)
+      user_notifications = Notification.for_user(retweeted_user)
+      assert Enum.empty?(user_notifications)
+
+      {:ok, _, _} = CommonAPI.repeat(status.id, user)
+
+      # FIXME: Should still be empty
+      user_notifications = Notification.for_user(retweeted_user)
+      assert Enum.empty?(user_notifications)
     end
 
     test "it doesn't create duplicate notifications for follow+subscribed users" do
