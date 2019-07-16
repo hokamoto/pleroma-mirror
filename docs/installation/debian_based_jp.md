@@ -256,7 +256,6 @@ nginx[1431]: nginx: [emerg] Unknown curve name "X25519:prime256v1:secp384r1:secp
 
 ## カスタマイズとメンテナンス
 
-* <s>Admin tasks</s>
 * [Backup your instance](backup.html)
 * [Configuration tips](general-tips-for-customizing-pleroma-fe.html)
 * [Hardening your instance](hardening.html)

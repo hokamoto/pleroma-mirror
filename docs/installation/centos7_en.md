@@ -310,7 +310,6 @@ You can find example configurations for them in the `installation` directory of 
 
 ## Further reading
 
-* <s>Admin tasks</s>
 * [Backup your instance](backup.html)
 * [Configuration tips](general-tips-for-customizing-pleroma-fe.html)
 * [Hardening your instance](hardening.html)
