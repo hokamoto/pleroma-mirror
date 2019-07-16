@@ -1817,10 +1817,11 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
       |> put_status(:no_content)
       |> json("")
     else
-      {:error, errors} ->
-        conn
-        |> put_status(:bad_request)
-        |> json(Jason.encode!(errors))
+      {:error, "unknown user"} ->
+        put_status(conn, :not_found)
+
+      {:error, _} ->
+        put_status(conn, :bad_request)
     end
   end
 

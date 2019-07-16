@@ -439,7 +439,11 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
     with {:ok, _} <- TwitterAPI.password_reset(nickname_or_email) do
       json_response(conn, :no_content, "")
     else
-      {:error, errors} -> json_reply(conn, :bad_request, Jason.encode!(errors))
+      {:error, "unknown user"} ->
+        put_status(conn, :not_found)
+
+      {:error, _} ->
+        put_status(conn, :bad_request)
     end
   end
 
