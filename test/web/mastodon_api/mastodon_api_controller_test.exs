@@ -3851,7 +3851,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       assert json_response(conn, :bad_request)
     end
 
-    test "it returns r00 when user is not local", %{conn: conn, user: user} do
+    test "it returns 400 when user is not local", %{conn: conn, user: user} do
       {:ok, user} = Repo.update(Changeset.change(user, local: false))
       conn = post(conn, "/auth/password?email=#{user.email}")
       assert json_response(conn, :bad_request)
