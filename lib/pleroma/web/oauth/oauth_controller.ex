@@ -92,7 +92,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
       redirect(conn, external: url)
     else
       conn
-      |> put_flash(:error, "Unlisted redirect_uri.")
+      |> put_flash(:error, dgettext("errors", "Unlisted redirect_uri."))
       |> redirect(external: redirect_uri(conn, redirect_uri))
     end
   end
@@ -131,7 +131,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
       redirect(conn, external: url)
     else
       conn
-      |> put_flash(:error, "Unlisted redirect_uri.")
+      |> put_flash(:error, dgettext("errors", "Unlisted redirect_uri."))
       |> redirect(external: redirect_uri(conn, redirect_uri))
     end
   end
@@ -145,7 +145,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     # Per https://github.com/tootsuite/mastodon/blob/
     #   51e154f5e87968d6bb115e053689767ab33e80cd/app/controllers/api/base_controller.rb#L39
     conn
-    |> put_flash(:error, "This action is outside the authorized scopes")
+    |> put_flash(:error, dgettext("errors", "This action is outside the authorized scopes"))
     |> put_status(:unauthorized)
     |> authorize(params)
   end
@@ -158,7 +158,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     # Per https://github.com/tootsuite/mastodon/blob/
     #   51e154f5e87968d6bb115e053689767ab33e80cd/app/controllers/api/base_controller.rb#L76
     conn
-    |> put_flash(:error, "Your login is missing a confirmed e-mail address")
+    |> put_flash(:error, dgettext("errors", "Your login is missing a confirmed e-mail address"))
     |> put_status(:forbidden)
     |> authorize(params)
   end
@@ -195,9 +195,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
       json(conn, Token.Response.build(user, token, response_attrs))
     else
-      _error ->
-        put_status(conn, 400)
-        |> json(%{error: "Invalid credentials"})
+      _error -> render_invalid_credentials_error(conn)
     end
   end
 
@@ -282,9 +280,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   end
 
   defp handle_token_exchange_error(%Plug.Conn{} = conn, _error) do
-    conn
-    |> put_status(400)
-    |> json(%{error: "Invalid credentials"})
+    render_error(conn, :bad_request, "Invalid credentials")
   end
 
   def token_revoke(%Plug.Conn{} = conn, %{"token" => _token} = params) do
@@ -302,9 +298,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
   # Response for bad request
   defp bad_request(%Plug.Conn{} = conn, _) do
-    conn
-    |> put_status(500)
-    |> json(%{error: "Bad request"})
+    render_error(conn, :internal_server_error, "Bad request")
   end
 
   @doc "Prepares OAuth request to provider for Ueberauth"
@@ -335,9 +329,11 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   def request(%Plug.Conn{} = conn, params) do
     message =
       if params["provider"] do
-        "Unsupported OAuth provider: #{params["provider"]}."
+        dgettext("errors", "Unsupported OAuth provider: %{provider}.",
+          provider: params["provider"]
+        )
       else
-        "Bad OAuth request."
+        dgettext("errors", "Bad OAuth request.")
       end
 
     conn
@@ -351,7 +347,10 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     message = Enum.join(messages, "; ")
 
     conn
-    |> put_flash(:error, "Failed to authenticate: #{message}.")
+    |> put_flash(
+      :error,
+      dgettext("errors", "Failed to authenticate: %{message}.", message: message)
+    )
     |> redirect(external: redirect_uri(conn, params["redirect_uri"]))
   end
 
@@ -381,7 +380,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
         Logger.debug(inspect(["OAUTH_ERROR", error, conn.assigns]))
 
         conn
-        |> put_flash(:error, "Failed to set up user account.")
+        |> put_flash(:error, dgettext("errors", "Failed to set up user account."))
         |> redirect(external: redirect_uri(conn, params["redirect_uri"]))
     end
   end
@@ -505,5 +504,9 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     app.redirect_uris
     |> String.split()
     |> Enum.at(0)
+  end
+
+  defp render_invalid_credentials_error(conn) do
+    render_error(conn, :bad_request, "Invalid credentials")
   end
 end

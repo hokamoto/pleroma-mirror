@@ -19,6 +19,8 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   import Pleroma.Web.ActivityPub.Visibility, only: [get_visibility: 1]
 
   # TODO: Add cached version.
+  defp get_replied_to_activities([]), do: %{}
+
   defp get_replied_to_activities(activities) do
     activities
     |> Enum.map(fn
@@ -147,8 +149,14 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     tags = object.data["tag"] || []
     sensitive = object.data["sensitive"] || Enum.member?(tags, "nsfw")
 
+    tag_mentions =
+      tags
+      |> Enum.filter(fn tag -> is_map(tag) and tag["type"] == "Mention" end)
+      |> Enum.map(fn tag -> tag["href"] end)
+
     mentions =
-      activity.recipients
+      (object.data["to"] ++ tag_mentions)
+      |> Enum.uniq()
       |> Enum.map(fn ap_id -> User.get_cached_by_ap_id(ap_id) end)
       |> Enum.filter(& &1)
       |> Enum.map(fn user -> AccountView.render("mention.json", %{user: user}) end)
@@ -374,7 +382,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       %{
         # Mastodon uses separate ids for polls, but an object can't have
         # more than one poll embedded so object id is fine
-        id: object.id,
+        id: to_string(object.id),
         expires_at: Utils.to_masto_date(end_time),
         expired: expired,
         multiple: multiple,

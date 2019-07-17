@@ -1,6 +1,9 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.ReverseProxyTest do
   use Pleroma.Web.ConnCase, async: true
-  import ExUnit.CaptureLog
   import ExUnit.CaptureLog
   import Mox
   alias Pleroma.ReverseProxy

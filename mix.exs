@@ -14,7 +14,7 @@ defmodule Pleroma.Mixfile do
       aliases: aliases(),
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
-
+      preferred_cli_env: ["coveralls.html": :test],
       # Docs
       name: "Pleroma",
       homepage_url: "https://pleroma.social/",
@@ -95,6 +95,7 @@ defmodule Pleroma.Mixfile do
   defp deps do
     [
       {:phoenix, "~> 1.4.8"},
+      {:tzdata, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:phoenix_pubsub, "~> 1.1"},
       {:phoenix_ecto, "~> 4.0"},
@@ -125,7 +126,7 @@ defmodule Pleroma.Mixfile do
       {:cors_plug, "~> 1.5"},
       {:ex_doc, "~> 0.20.2", only: :dev, runtime: false},
       {:web_push_encryption, "~> 0.2.1"},
-      {:swoosh, "~> 0.20"},
+      {:swoosh, "~> 0.23.2"},
       {:gen_smtp, "~> 0.13"},
       {:websocket_client, git: "https://github.com/jeremyong/websocket_client.git", only: :test},
       {:floki, "~> 0.20.0"},
