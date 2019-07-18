@@ -5,7 +5,7 @@ defmodule Pleroma.Repo.Migrations.AddForeignKeyActivitiesActorReferencesUsersApi
     execute "DELETE FROM activities WHERE activities.actor not in (SELECT ap_id FROM users)"
 
     alter table :activities do
-      modify :actor, references(:users, type: :varchar, column: :ap_id, on_delete: :delete_all)
+      modify :actor, references(:users, type: :varchar, column: :ap_id, on_delete: :delete_all, on_update: :update_all)
     end
   end
 end
