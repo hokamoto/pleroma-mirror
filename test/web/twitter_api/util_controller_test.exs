@@ -10,6 +10,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   import Pleroma.Factory
+  import Mock
 
   setup do
     Tesla.Mock.mock(fn env -> apply(HttpRequestMock, :request, [env]) end)
@@ -233,12 +234,10 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
 
   describe "GET /api/pleroma/healthcheck" do
     setup do
-      config_pool_size = Pleroma.Config.get([Repo, :pool_size])
       config_healthcheck = Pleroma.Config.get([:instance, :healthcheck])
 
       on_exit(fn ->
         Pleroma.Config.put([:instance, :healthcheck], config_healthcheck)
-        Pleroma.Config.put([Repo, :pool_size], config_pool_size)
       end)
 
       :ok
@@ -258,36 +257,41 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
     test "returns 200 when healthcheck enabled and all ok", %{conn: conn} do
       Pleroma.Config.put([:instance, :healthcheck], true)
 
-      response =
-        conn
-        |> get("/api/pleroma/healthcheck")
-        |> json_response(200)
+      with_mock Pleroma.Healthcheck,
+        system_info: fn -> %Pleroma.Healthcheck{healthy: true} end do
+        response =
+          conn
+          |> get("/api/pleroma/healthcheck")
+          |> json_response(200)
 
-      assert %{
-               "active" => _,
-               "healthy" => true,
-               "idle" => _,
-               "memory_used" => _,
-               "pool_size" => _
-             } = response
+        assert %{
+                 "active" => _,
+                 "healthy" => true,
+                 "idle" => _,
+                 "memory_used" => _,
+                 "pool_size" => _
+               } = response
+      end
     end
 
     test "returns 503 when healthcheck enabled and  health is false", %{conn: conn} do
       Pleroma.Config.put([:instance, :healthcheck], true)
-      Pleroma.Config.put([Repo, :pool_size], 1)
 
-      response =
-        conn
-        |> get("/api/pleroma/healthcheck")
-        |> json_response(503)
+      with_mock Pleroma.Healthcheck,
+        system_info: fn -> %Pleroma.Healthcheck{healthy: false} end do
+        response =
+          conn
+          |> get("/api/pleroma/healthcheck")
+          |> json_response(503)
 
-      assert %{
-               "active" => _,
-               "healthy" => false,
-               "idle" => _,
-               "memory_used" => _,
-               "pool_size" => _
-             } = response
+        assert %{
+                 "active" => _,
+                 "healthy" => false,
+                 "idle" => _,
+                 "memory_used" => _,
+                 "pool_size" => _
+               } = response
+      end
     end
   end
 
