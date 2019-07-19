@@ -231,10 +231,64 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
     end
   end
 
-  test "GET /api/pleroma/healthcheck", %{conn: conn} do
-    conn = get(conn, "/api/pleroma/healthcheck")
+  describe "GET /api/pleroma/healthcheck" do
+    setup do
+      config_pool_size = Pleroma.Config.get([Repo, :pool_size])
+      config_healthcheck = Pleroma.Config.get([:instance, :healthcheck])
 
-    assert conn.status in [200, 503]
+      on_exit(fn ->
+        Pleroma.Config.put([:instance, :healthcheck], config_healthcheck)
+        Pleroma.Config.put([Repo, :pool_size], config_pool_size)
+      end)
+
+      :ok
+    end
+
+    test "returns 503 when healthcheck disabled", %{conn: conn} do
+      Pleroma.Config.put([:instance, :healthcheck], false)
+
+      response =
+        conn
+        |> get("/api/pleroma/healthcheck")
+        |> json_response(503)
+
+      assert response == %{}
+    end
+
+    test "returns 200 when healthcheck enabled and all ok", %{conn: conn} do
+      Pleroma.Config.put([:instance, :healthcheck], true)
+
+      response =
+        conn
+        |> get("/api/pleroma/healthcheck")
+        |> json_response(200)
+
+      assert %{
+               "active" => _,
+               "healthy" => true,
+               "idle" => _,
+               "memory_used" => _,
+               "pool_size" => _
+             } = response
+    end
+
+    test "returns 503 when healthcheck enabled and  health is false", %{conn: conn} do
+      Pleroma.Config.put([:instance, :healthcheck], true)
+      Pleroma.Config.put([Repo, :pool_size], 1)
+
+      response =
+        conn
+        |> get("/api/pleroma/healthcheck")
+        |> json_response(503)
+
+      assert %{
+               "active" => _,
+               "healthy" => false,
+               "idle" => _,
+               "memory_used" => _,
+               "pool_size" => _
+             } = response
+    end
   end
 
   describe "POST /api/pleroma/disable_account" do
