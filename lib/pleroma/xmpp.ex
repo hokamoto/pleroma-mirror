@@ -21,14 +21,26 @@ defmodule Pleroma.XMPP do
   @spec prebind(String.t(), String.t()) :: {:ok, String.t()} | {:error, String.t()}
   def prebind(username, password) do
     host = Pleroma.Web.Endpoint.host()
-    jid = username <> "@" <> host
-    rid = System.unique_integer([:monotonic, :positive])
 
+    params = %{
+      host: host,
+      xmpp_host: Application.get_env(:pleroma, :xmpp, [])[:host] || host,
+      jid: username <> "@" <> host,
+      username: username,
+      password: password
+    }
+
+    params
+    |> init_session()
+    |> auth_session()
+  end
+
+  defp init_session(%{host: host, xmpp_host: xmpp_host} = params) do
     req_body = """
       <body
         content="text/xml; charset=utf-8"
         hold="1"
-        rid="#{rid}"
+        rid="#{rid()}"
         to="#{host}"
         ver="1.6"
         wait="60"
@@ -38,19 +50,25 @@ defmodule Pleroma.XMPP do
         xmpp:version="1.0"/>
     """
 
-    # xmpp_host = "p.devs.live"
-    xmpp_host = host
-    %Tesla.Env{body: body} = Tesla.post!("https://" <> xmpp_host <> "/http-bind", req_body)
+    %Tesla.Env{body: body} = Tesla.post!(xmpp_host <> "/http-bind", req_body)
     sid = xpath(body, ~x"//body/@sid")
-    rid2 = System.unique_integer([:monotonic, :positive])
+    Map.put(params, :sid, sid)
+  end
 
+  defp auth_session(%{
+         sid: sid,
+         jid: jid,
+         xmpp_host: xmpp_host,
+         username: username,
+         password: password
+       }) do
     auth_string =
       <<jid::binary, 0::8, username::binary, 0::8, password::binary>>
       |> Base.encode64()
 
-    req_body2 = """
+    req_body = """
       <body
-        rid="#{rid2}"
+        rid="#{rid()}"
         sid="#{sid}"
         xmlns="http://jabber.org/protocol/httpbind">
         <auth mechanism="PLAIN" xmlns="urn:ietf:params:xml:ns:xmpp-sasl">
@@ -59,9 +77,9 @@ defmodule Pleroma.XMPP do
       </body>
     """
 
-    %Tesla.Env{body: body2} = Tesla.post!("https://" <> xmpp_host <> "/http-bind", req_body2)
+    %Tesla.Env{body: body} = Tesla.post!(xmpp_host <> "/http-bind", req_body)
 
-    case xpath(body2, ~x"//success") do
+    case xpath(body, ~x"//success") do
       nil ->
         {:error, "Invalid Username or Password"}
 
@@ -69,4 +87,6 @@ defmodule Pleroma.XMPP do
         {:ok, sid}
     end
   end
+
+  defp rid, do: System.unique_integer([:monotonic, :positive])
 end

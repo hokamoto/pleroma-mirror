@@ -29,24 +29,24 @@
           converse.initialize({
             debug: true,
             authentication: 'prebind',
-            prebind_url: 'https://p.devs.live/xmpp/prebind',
+            prebind_url: data.prebind_url,
             keepalive: true,
             jid: data.jid,
             auto_away: 300,
             auto_reconnect: true,
-            bosh_service_url: 'https://p.devs.live/http-bind/',
+            bosh_service_url: data.http_bind_url,
             message_archiving: 'always',
             view_mode: 'overlayed'
           });
         } else {
-          console.log("Couldn't get JID, skipping XMPP connection")
+          console.log("Couldn't get data to connect to XMPP")
         }
       } else {
-        console.error("Unexpected response, can't get JID", request)
+        console.error("Unexpected response, can't get data to connect to XMPP", request)
       }
     };
     request.onerror = function () {
-      console.error("Connection error, can't get JID")
+      console.error("Connection error, can't get data to connect to XMPP")
     };
     request.send();
   </script>
