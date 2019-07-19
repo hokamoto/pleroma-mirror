@@ -182,6 +182,24 @@ defmodule Mix.Tasks.Pleroma.Instance do
           Pleroma.Config.get([:instance, :static_dir])
         )
 
+      xmpp_enabled? =
+        get_option(
+          options,
+          :xmpp_enabled,
+          "Do you want to integrate your existing XMPP server with the Pleroma instance?",
+          "n"
+        ) === "y"
+
+      xmpp_host =
+        with true <- xmpp_enabled? do
+          get_option(
+            options,
+            :xmpp_host,
+            "What is your XMPP server host?",
+            "127.0.0.1"
+          )
+        end
+
       secret = :crypto.strong_rand_bytes(64) |> Base.encode64() |> binary_part(0, 64)
       signing_salt = :crypto.strong_rand_bytes(8) |> Base.encode64() |> binary_part(0, 8)
       {web_push_public_key, web_push_private_key} = :crypto.generate_key(:ecdh, :prime256v1)
@@ -208,7 +226,9 @@ defmodule Mix.Tasks.Pleroma.Instance do
           uploads_dir: uploads_dir,
           rum_enabled: rum_enabled,
           listen_ip: listen_ip,
-          listen_port: listen_port
+          listen_port: listen_port,
+          xmpp_enabled?: xmpp_enabled?,
+          xmpp_host: xmpp_host
         )
 
       result_psql =

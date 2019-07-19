@@ -531,8 +531,6 @@ config :pleroma, :rate_limit,
   statuses_actions: {10_000, 15},
   status_id_action: {60_000, 3}
 
-config :pleroma, :xmpp, host: "https://p.devs.live"
-
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"

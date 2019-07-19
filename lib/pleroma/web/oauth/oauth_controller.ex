@@ -206,12 +206,13 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          {:ok, auth} <- Authorization.create_authorization(app, user, scopes),
          {:ok, token} <- Token.exchange_token(app, auth) do
       xmpp_data =
-        case Pleroma.XMPP.prebind(params["username"], params["password"]) do
-          {:error, _e} ->
+        with true <- Application.get_env(:pleroma, :xmpp, [])[:enabled],
+             # add check if the user is local one
+             {:ok, sid} <- Pleroma.XMPP.prebind(params["username"], params["password"]) do
+          %{sid: to_string(sid), jid: "#{user.nickname}@#{Pleroma.Web.Endpoint.host()}"}
+        else
+          _ ->
             %{}
-
-          {:ok, sid} ->
-            %{sid: to_string(sid), jid: "#{user.nickname}@#{Pleroma.Web.Endpoint.host()}"}
         end
 
       conn
