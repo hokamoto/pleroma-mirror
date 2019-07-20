@@ -59,7 +59,11 @@ defmodule Pleroma.Web.MongooseIM.MongooseIMController do
     response =
       case get_session(conn, :xmpp) do
         %{jid: jid} ->
-          %{jid: jid}
+          %{
+            jid: jid,
+            prebind_url: "https://p.devs.live/prebind",
+            http_bind_url: "https://xmpp.devs.live/http-bind"
+          }
 
         _ ->
           false

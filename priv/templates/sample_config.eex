@@ -51,7 +51,7 @@ config :pleroma, Pleroma.Uploaders.Local, uploads: "<%= uploads_dir %>"
 #   sts: true
 
 config :pleroma, :xmpp,
-  enabled: <%= xmpp_enabled? %><%= if xmpp_enabled? do %>",
+  enabled: <%= xmpp_enabled? %><%= if xmpp_enabled? do %>,
   host: "<%= xmpp_host %>"<% end %>
 
 # Configure S3 support if desired.
