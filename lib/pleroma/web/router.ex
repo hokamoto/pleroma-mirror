@@ -128,8 +128,8 @@ defmodule Pleroma.Web.Router do
     plug(:accepts, ["html"])
 
     plug(:put_secure_browser_headers, %{
-      "content-security-policy" => ""
-      # "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' 'unsafe-eval'"
+      "content-security-policy" =>
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' 'unsafe-eval'"
     })
   end
 
