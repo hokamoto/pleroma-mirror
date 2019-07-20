@@ -55,14 +55,14 @@ defmodule Pleroma.Web.MongooseIM.MongooseIMController do
     json(conn, response)
   end
 
-  def jid(conn, _params) do
+  def conndata(conn, %{"jid" => jid} = _params) do
     response =
       case get_session(conn, :xmpp) do
-        %{jid: jid} ->
+        %{jid: ^jid} ->
           %{
             jid: jid,
             prebind_url:
-              Pleroma.Web.Router.Helpers.mongoose_im_url(Pleroma.Web.Endpoint, :prebind),
+              Pleroma.Web.Router.Helpers.mongoose_im_url(Pleroma.Web.Endpoint, :prebind, jid),
             http_bind_url: Application.get_env(:pleroma, :xmpp, [])[:host] <> "/http-bind"
           }
 

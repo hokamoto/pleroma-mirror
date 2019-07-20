@@ -742,8 +742,8 @@ defmodule Pleroma.Web.Router do
     scope "/xmpp/" do
       pipe_through([:conversejs_auth])
 
-      get("/prebind", MongooseIMController, :prebind)
-      get("/jid", MongooseIMController, :jid)
+      get("/prebind/:jid", MongooseIMController, :prebind)
+      get("/conndata", MongooseIMController, :conndata)
     end
   end
 
