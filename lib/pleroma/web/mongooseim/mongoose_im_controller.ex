@@ -61,7 +61,7 @@ defmodule Pleroma.Web.MongooseIM.MongooseIMController do
         %{jid: jid} ->
           %{
             jid: jid,
-            prebind_url: "https://p.devs.live/prebind",
+            prebind_url: "https://p.devs.live/xmpp/prebind",
             http_bind_url: "https://xmpp.devs.live/http-bind"
           }
 
