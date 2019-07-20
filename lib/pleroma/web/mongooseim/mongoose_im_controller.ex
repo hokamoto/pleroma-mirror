@@ -41,10 +41,10 @@ defmodule Pleroma.Web.MongooseIM.MongooseIMController do
     end
   end
 
-  def prebind(conn, _params) do
+  def prebind(conn, %{"jid" => jid} = _params) do
     response =
       case get_session(conn, :xmpp) do
-        %{jid: jid, sid: sid} ->
+        %{jid: ^jid, sid: sid} ->
           rid = System.unique_integer([:monotonic, :positive])
           %{jid: jid, sid: sid, rid: rid}
 
@@ -55,10 +55,10 @@ defmodule Pleroma.Web.MongooseIM.MongooseIMController do
     json(conn, response)
   end
 
-  def conndata(conn, %{"jid" => jid} = _params) do
+  def conndata(conn, _params) do
     response =
       case get_session(conn, :xmpp) do
-        %{jid: ^jid} ->
+        %{jid: jid} ->
           %{
             jid: jid,
             prebind_url:
