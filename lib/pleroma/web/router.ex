@@ -643,7 +643,6 @@ defmodule Pleroma.Web.Router do
   end
 
   pipeline :conversejs_auth do
-    plug(:accepts, ["json"])
     plug(:fetch_session)
     plug(Pleroma.Plugs.SessionAuthenticationNocheckPlug)
     plug(Pleroma.Plugs.UserEnabledPlug)
