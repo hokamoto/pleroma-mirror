@@ -60,7 +60,9 @@ defmodule Mix.Tasks.Pleroma.Instance do
           uploads_dir: :string,
           static_dir: :string,
           listen_ip: :string,
-          listen_port: :string
+          listen_port: :string,
+          xmpp_enabled: :string,
+          xmpp_host: :string
         ],
         aliases: [
           o: :output,
@@ -196,7 +198,7 @@ defmodule Mix.Tasks.Pleroma.Instance do
             options,
             :xmpp_host,
             "What is your XMPP server host?",
-            "127.0.0.1"
+            "https://localhost"
           )
         end
 

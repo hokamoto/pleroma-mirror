@@ -28,8 +28,8 @@ defmodule Pleroma.Plugs.HTTPSecurityPlug do
       {"x-frame-options", "DENY"},
       {"x-content-type-options", "nosniff"},
       {"referrer-policy", referrer_policy},
-      {"x-download-options", "noopen"}
-      # {"content-security-policy", csp_string() <> ";"}
+      {"x-download-options", "noopen"},
+      {"content-security-policy", csp_string() <> ";"}
     ]
 
     if report_uri do
@@ -47,7 +47,7 @@ defmodule Pleroma.Plugs.HTTPSecurityPlug do
     end
   end
 
-  def csp_string do
+  defp csp_string do
     scheme = Config.get([Pleroma.Web.Endpoint, :url])[:scheme]
     static_url = Pleroma.Web.Endpoint.static_url()
     websocket_url = Pleroma.Web.Endpoint.websocket_url()
