@@ -3784,7 +3784,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
         |> get("/api/v1/statuses/#{activity.id}/favourited_by")
         |> json_response(:ok)
 
-      assert [] = response
+      assert Enum.empty?(response)
     end
   end
 
