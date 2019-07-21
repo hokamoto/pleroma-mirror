@@ -120,7 +120,8 @@ defmodule Pleroma.Web.Streamer do
     |> Map.get("#{topic}:#{item.user_id}", [])
     |> Enum.each(fn socket ->
       with %User{} = user <- User.get_cached_by_ap_id(socket.assigns[:user].ap_id),
-           true <- should_send?(user, item) do
+           true <- should_send?(user, item),
+           false <- CommonAPI.thread_muted?(user, item.activity) do
         send(
           socket.transport_pid,
           {:text, represent_notification(socket.assigns[:user], item)}
@@ -237,8 +238,7 @@ defmodule Pleroma.Web.Streamer do
     with parent when not is_nil(parent) <- Object.normalize(item),
          true <- Enum.all?([blocks, mutes, reblog_mutes], &(item.actor not in &1)),
          true <- Enum.all?([blocks, mutes], &(parent.data["actor"] not in &1)),
-         true <- thread_containment(item, user),
-         false <- CommonAPI.thread_muted?(user, item) do
+         true <- thread_containment(item, user) do
       true
     else
       _ -> false
