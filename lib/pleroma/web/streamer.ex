@@ -13,8 +13,8 @@ defmodule Pleroma.Web.Streamer do
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Visibility
-  alias Pleroma.Web.MastodonAPI.NotificationView
   alias Pleroma.Web.CommonAPI
+  alias Pleroma.Web.MastodonAPI.NotificationView
 
   @keepalive_interval :timer.seconds(30)
 
