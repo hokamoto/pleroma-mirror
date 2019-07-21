@@ -14,6 +14,7 @@ defmodule Pleroma.Web.Streamer do
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.MastodonAPI.NotificationView
+  alias Pleroma.Web.CommonAPI
 
   @keepalive_interval :timer.seconds(30)
 
@@ -236,7 +237,8 @@ defmodule Pleroma.Web.Streamer do
     with parent when not is_nil(parent) <- Object.normalize(item),
          true <- Enum.all?([blocks, mutes, reblog_mutes], &(item.actor not in &1)),
          true <- Enum.all?([blocks, mutes], &(parent.data["actor"] not in &1)),
-         true <- thread_containment(item, user) do
+         true <- thread_containment(item, user),
+         [] <- CommonAPI.thread_muted?(user, item) do
       true
     else
       _ -> false
