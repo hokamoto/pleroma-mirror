@@ -7,6 +7,7 @@ defmodule Pleroma.Activity do
 
   alias Pleroma.Activity
   alias Pleroma.Bookmark
+  alias Pleroma.FederationFailure
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Repo
@@ -42,6 +43,7 @@ defmodule Pleroma.Activity do
     # This is a fake relation, do not use outside of with_preloaded_bookmark/get_bookmark
     has_one(:bookmark, Bookmark)
     has_many(:notifications, Notification, on_delete: :delete_all)
+    has_many(:federation_failures, FederationFailure, on_delete: :delete_all)
 
     # Attention: this is a fake relation, don't try to preload it blindly and expect it to work!
     # The foreign key is embedded in a jsonb field.

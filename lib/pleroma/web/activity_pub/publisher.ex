@@ -145,7 +145,11 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
         json: json,
         actor: actor,
         id: activity.data["id"],
-        unreachable_since: unreachable_since
+        unreachable_since: unreachable_since,
+        job: %{
+          activity_id: activity.id,
+          recipient: inbox
+        }
       })
     end)
   end
@@ -180,7 +184,11 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
           json: json,
           actor: actor,
           id: activity.data["id"],
-          unreachable_since: unreachable_since
+          unreachable_since: unreachable_since,
+          job: %{
+            activity_id: activity.id,
+            recipient: inbox
+          }
         }
       )
     end)

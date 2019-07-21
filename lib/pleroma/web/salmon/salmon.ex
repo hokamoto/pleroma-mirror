@@ -216,11 +216,16 @@ defmodule Pleroma.Web.Salmon do
       |> Enum.filter(&(&1.info.salmon in reachable_urls))
       |> Enum.each(fn remote_user ->
         Logger.debug(fn -> "Sending Salmon to #{remote_user.ap_id}" end)
+        salmon_url = remote_user.info.salmon
 
         Publisher.enqueue_one(__MODULE__, %{
           recipient: remote_user,
           feed: feed,
-          unreachable_since: reachable_urls_metadata[remote_user.info.salmon]
+          unreachable_since: reachable_urls_metadata[salmon_url],
+          job: %{
+            activity_id: activity.id,
+            recipient: salmon_url
+          }
         })
       end)
     end

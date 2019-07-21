@@ -5,6 +5,8 @@
 defmodule Pleroma.Web.Federator.RetryQueue do
   use GenServer
 
+  alias Pleroma.FederationFailure
+
   require Logger
 
   def init(args) do
@@ -38,6 +40,15 @@ defmodule Pleroma.Web.Federator.RetryQueue do
   end
 
   def enqueue(data, transport, retries \\ 0) do
+    if job_params = job_params(data, transport) do
+      job_params
+      # Note: `params` must be JSON-serializable (it's not for Salmon, see salmon_test.exs)
+      # |> Map.put(:data, data)
+      |> Map.put(:data, %{})
+      |> Map.put(:retries_count, retries + 1)
+      |> FederationFailure.create_or_rewrite_with()
+    end
+
     GenServer.cast(__MODULE__, {:maybe_enqueue, data, transport, retries + 1})
   end
 
@@ -137,6 +148,7 @@ defmodule Pleroma.Web.Federator.RetryQueue do
   def worker({:send, data, transport, retries}) do
     case transport.publish_one(data) do
       {:ok, _} ->
+        if job_params = job_params(data, transport), do: FederationFailure.delete_by(job_params)
         GenServer.cast(__MODULE__, :inc_delivered)
         :delivered
 
@@ -192,6 +204,7 @@ defmodule Pleroma.Web.Federator.RetryQueue do
   def handle_info({:send, data, transport, retries}, %{delivered: delivery_count} = state) do
     case transport.publish_one(data) do
       {:ok, _} ->
+        if job_params = job_params(data, transport), do: FederationFailure.delete_by(job_params)
         {:noreply, %{state | delivered: delivery_count + 1}}
 
       {:error, _reason} ->
@@ -236,4 +249,10 @@ defmodule Pleroma.Web.Federator.RetryQueue do
   defp maybe_kickoff_timer do
     GenServer.cast(__MODULE__, :kickoff_timer)
   end
+
+  defp job_params(%{job: job_data}, transport) do
+    Map.put(job_data, :transport, to_string(transport))
+  end
+
+  defp job_params(_, _), do: nil
 end

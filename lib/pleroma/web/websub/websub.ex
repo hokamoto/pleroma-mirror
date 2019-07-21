@@ -97,7 +97,11 @@ defmodule Pleroma.Web.Websub do
         topic: topic,
         callback: sub.callback,
         secret: sub.secret,
-        unreachable_since: reachable_callbacks_metadata[sub.callback]
+        unreachable_since: reachable_callbacks_metadata[sub.callback],
+        job: %{
+          activity_id: activity.id,
+          recipient: sub.callback
+        }
       }
 
       Publisher.enqueue_one(__MODULE__, data)

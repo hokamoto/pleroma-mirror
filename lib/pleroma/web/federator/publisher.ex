@@ -5,6 +5,7 @@
 defmodule Pleroma.Web.Federator.Publisher do
   alias Pleroma.Activity
   alias Pleroma.Config
+  alias Pleroma.FederationFailure
   alias Pleroma.User
   alias Pleroma.Web.Federator.RetryQueue
 
@@ -30,17 +31,32 @@ defmodule Pleroma.Web.Federator.Publisher do
   Enqueue publishing a single activity.
   """
   @spec enqueue_one(module(), Map.t()) :: :ok
-  def enqueue_one(module, %{} = params),
-    do: PleromaJobQueue.enqueue(:federator_outgoing, __MODULE__, [:publish_one, module, params])
+  def enqueue_one(transport, %{job: %{activity_id: _, recipient: _}} = params) do
+    PleromaJobQueue.enqueue(:federator_outgoing, __MODULE__, [:publish_one, transport, params])
+  end
 
   @spec perform(atom(), module(), any()) :: {:ok, any()} | {:error, any()}
-  def perform(:publish_one, module, params) do
-    case apply(module, :publish_one, [params]) do
+  def perform(
+        :publish_one,
+        transport,
+        %{job: %{activity_id: _, recipient: _}} = params
+      ) do
+    federation_failure_id_data = Map.put(params[:job], :transport, to_string(transport))
+
+    case apply(transport, :publish_one, [params]) do
       {:ok, _} ->
+        FederationFailure.delete_by(federation_failure_id_data)
         :ok
 
       {:error, _e} ->
-        RetryQueue.enqueue(params, module)
+        federation_failure_id_data
+        # Note: `params` must be JSON-serializable (it's not for Salmon, see salmon_test.exs)
+        # |> Map.put(:data, params)
+        |> Map.put(:data, %{})
+        |> Map.put(:retries_count, 0)
+        |> FederationFailure.create_or_rewrite_with()
+
+        RetryQueue.enqueue(params, transport)
     end
   end
 
