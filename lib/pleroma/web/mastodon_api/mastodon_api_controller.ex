@@ -883,9 +883,10 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     with %Activity{data: %{"object" => object}} <- Activity.get_by_id(id),
          %Object{data: %{"likes" => likes}} <- Object.normalize(object) do
       q = from(u in User, where: u.ap_id in ^likes)
+
       users =
-         Repo.all(q)
-         |> Enum.filter(&(not User.blocks?(user, &1)))
+        Repo.all(q)
+        |> Enum.filter(&(not User.blocks?(user, &1)))
 
       conn
       |> put_view(AccountView)
@@ -899,6 +900,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
     with %Activity{data: %{"object" => object}} <- Activity.get_by_id(id),
          %Object{data: %{"announcements" => announces}} <- Object.normalize(object) do
       q = from(u in User, where: u.ap_id in ^announces)
+
       users =
         Repo.all(q)
         |> Enum.filter(&(not User.blocks?(user, &1)))

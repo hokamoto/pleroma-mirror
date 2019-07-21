@@ -3769,18 +3769,22 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       assert Enum.empty?(response)
     end
 
-    test "does not return users who have favorited the status but are blocked", %{conn: %{assigns: %{user: user}} = conn, activity: activity} do
-        other_user = insert(:user)
-        {:ok, user} = User.block(user, other_user)
-        
-        {:ok, _, _} = CommonAPI.favorite(activity.id, other_user)
-        response = 
-            conn
-            |> assign(:user, user)
-            |> get("/api/v1/statuses/#{activity.id}/favourited_by")
-            |> json_response(:ok)
+    test "does not return users who have favorited the status but are blocked", %{
+      conn: %{assigns: %{user: user}} = conn,
+      activity: activity
+    } do
+      other_user = insert(:user)
+      {:ok, user} = User.block(user, other_user)
 
-        assert [] = response
+      {:ok, _, _} = CommonAPI.favorite(activity.id, other_user)
+
+      response =
+        conn
+        |> assign(:user, user)
+        |> get("/api/v1/statuses/#{activity.id}/favourited_by")
+        |> json_response(:ok)
+
+      assert [] = response
     end
   end
 
@@ -3822,20 +3826,23 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
       assert Enum.empty?(response)
     end
 
-    test "does not return users who have reblogged the status but are blocked", %{conn: %{assigns: %{user: user}} = conn, activity: activity} do
-        other_user = insert(:user)
-        {:ok, user} = User.block(user, other_user)
+    test "does not return users who have reblogged the status but are blocked", %{
+      conn: %{assigns: %{user: user}} = conn,
+      activity: activity
+    } do
+      other_user = insert(:user)
+      {:ok, user} = User.block(user, other_user)
 
-        {:ok, _, _} = CommonAPI.repeat(activity.id, other_user)
-        response =
-            conn
-            |> assign(:user, user)
-            |> get("/api/v1/statuses/#{activity.id}/reblogged_by")
-            |> json_response(:ok)
+      {:ok, _, _} = CommonAPI.repeat(activity.id, other_user)
 
-        assert Enum.empty?(response)
+      response =
+        conn
+        |> assign(:user, user)
+        |> get("/api/v1/statuses/#{activity.id}/reblogged_by")
+        |> json_response(:ok)
+
+      assert Enum.empty?(response)
     end
-
   end
 
   describe "POST /auth/password, with valid parameters" do
