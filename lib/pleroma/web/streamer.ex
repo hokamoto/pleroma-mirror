@@ -238,7 +238,7 @@ defmodule Pleroma.Web.Streamer do
          true <- Enum.all?([blocks, mutes, reblog_mutes], &(item.actor not in &1)),
          true <- Enum.all?([blocks, mutes], &(parent.data["actor"] not in &1)),
          true <- thread_containment(item, user),
-         [] <- CommonAPI.thread_muted?(user, item) do
+         false <- CommonAPI.thread_muted?(user, item) do
       true
     else
       _ -> false
