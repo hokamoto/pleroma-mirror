@@ -42,9 +42,6 @@ defmodule Pleroma.Web.Federator.RetryQueue do
   def enqueue(data, transport, retries \\ 0) do
     if job_params = job_params(data, transport) do
       job_params
-      # Note: `params` must be JSON-serializable (it's not for Salmon, see salmon_test.exs)
-      # |> Map.put(:data, data)
-      |> Map.put(:data, %{})
       |> Map.put(:retries_count, retries + 1)
       |> FederationFailure.create_or_rewrite_with()
     end

@@ -6,7 +6,6 @@ defmodule Pleroma.Repo.Migrations.CreateFederationFailures do
       add(:activity_id, references(:activities, type: :uuid, on_delete: :delete_all))
       add(:recipient, :string, null: false)
       add(:transport, :string, null: false)
-      add(:data, :map)
       add(:retries_count, :integer, default: 0)
 
       timestamps()

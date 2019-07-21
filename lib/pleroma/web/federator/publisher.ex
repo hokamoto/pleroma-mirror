@@ -50,9 +50,6 @@ defmodule Pleroma.Web.Federator.Publisher do
 
       {:error, _e} ->
         federation_failure_id_data
-        # Note: `params` must be JSON-serializable (it's not for Salmon, see salmon_test.exs)
-        # |> Map.put(:data, params)
-        |> Map.put(:data, %{})
         |> Map.put(:retries_count, 0)
         |> FederationFailure.create_or_rewrite_with()
 

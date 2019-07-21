@@ -18,7 +18,6 @@ defmodule Pleroma.FederationFailure do
   schema "federation_failures" do
     field(:recipient, :string)
     field(:transport, :string)
-    field(:data, :map)
     field(:retries_count, :integer, default: 0)
 
     belongs_to(:activity, Activity, type: FlakeId)
@@ -28,8 +27,8 @@ defmodule Pleroma.FederationFailure do
 
   def changeset(federation_failure, params \\ %{}) do
     federation_failure
-    |> cast(params, [:activity_id, :recipient, :transport, :data, :retries_count])
-    |> validate_required([:activity_id, :recipient, :transport, :data])
+    |> cast(params, [:activity_id, :recipient, :transport, :retries_count])
+    |> validate_required([:activity_id, :recipient, :transport])
     |> foreign_key_constraint(:activity_id)
     |> unique_constraint(:activity_id,
       name: :federation_failures_activity_id_recipient_transport_index
