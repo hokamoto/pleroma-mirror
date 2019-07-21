@@ -119,11 +119,11 @@ defmodule Pleroma.Web.Streamer do
     |> Map.get("#{topic}:#{item.user_id}", [])
     |> Enum.each(fn socket ->
       with %User{} = user <- User.get_cached_by_ap_id(socket.assigns[:user].ap_id),
-        true <- should_send?(user, item) do
-          send(
-            socket.transport_pid,
-            {:text, represent_notification(socket.assigns[:user], item)}
-          )
+           true <- should_send?(user, item) do
+        send(
+          socket.transport_pid,
+          {:text, represent_notification(socket.assigns[:user], item)}
+        )
       end
     end)
 
@@ -234,12 +234,12 @@ defmodule Pleroma.Web.Streamer do
     reblog_mutes = user.info.muted_reblogs || []
 
     with parent when not is_nil(parent) <- Object.normalize(item),
-             true <- Enum.all?([blocks, mutes, reblog_mutes], &(item.actor not in &1)),
-             true <- Enum.all?([blocks, mutes], &(parent.data["actor"] not in &1)),
-             true <- thread_containment(item, user) do
-        true
+         true <- Enum.all?([blocks, mutes, reblog_mutes], &(item.actor not in &1)),
+         true <- Enum.all?([blocks, mutes], &(parent.data["actor"] not in &1)),
+         true <- thread_containment(item, user) do
+      true
     else
-        _ -> false
+      _ -> false
     end
   end
 
@@ -252,6 +252,7 @@ defmodule Pleroma.Web.Streamer do
       # Get the current user so we have up-to-date blocks etc.
       if socket.assigns[:user] do
         user = User.get_cached_by_ap_id(socket.assigns[:user].ap_id)
+
         if should_send?(user, item) do
           send(socket.transport_pid, {:text, represent_update(item, user)})
         end
