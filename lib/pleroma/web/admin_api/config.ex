@@ -84,12 +84,15 @@ defmodule Pleroma.Web.AdminAPI.Config do
   end
 
   defp do_convert({:dispatch, [entity]}), do: %{"tuple" => [":dispatch", [inspect(entity)]]}
+  defp do_convert({:partial_chain, entity}), do: %{"tuple" => [":partial_chain", inspect(entity)]}
 
   defp do_convert(entity) when is_tuple(entity),
     do: %{"tuple" => do_convert(Tuple.to_list(entity))}
 
   defp do_convert(entity) when is_boolean(entity) or is_number(entity) or is_nil(entity),
     do: entity
+
+  defp do_convert(entity) when is_function(entity), do: Macro.to_string(quote do: entity)
 
   defp do_convert(entity) when is_atom(entity) do
     string = to_string(entity)
@@ -113,9 +116,13 @@ defmodule Pleroma.Web.AdminAPI.Config do
   defp do_transform(%Regex{} = entity) when is_map(entity), do: entity
 
   defp do_transform(%{"tuple" => [":dispatch", [entity]]}) do
-    cleaned_string = String.replace(entity, ~r/[^\w|^{:,[|^,|^[|^\]^}|^\/|^\.|^"]^\s/, "")
-    {dispatch_settings, []} = Code.eval_string(cleaned_string, [], requires: [], macros: [])
+    {dispatch_settings, []} = do_eval(entity)
     {:dispatch, [dispatch_settings]}
+  end
+
+  defp do_transform(%{"tuple" => [":partial_chain", entity]}) do
+    {partial_chain, []} = do_eval(entity)
+    {:partial_chain, partial_chain}
   end
 
   defp do_transform(%{"tuple" => entity}) do
@@ -148,5 +155,10 @@ defmodule Pleroma.Web.AdminAPI.Config do
     if String.starts_with?(value, "Pleroma") or String.starts_with?(value, "Phoenix"),
       do: String.to_existing_atom("Elixir." <> value),
       else: value
+  end
+
+  defp do_eval(entity) do
+    cleaned_string = String.replace(entity, ~r/[^\w|^{:,[|^,|^[|^\]^}|^\/|^\.|^"]^\s/, "")
+    Code.eval_string(cleaned_string, [], requires: [], macros: [])
   end
 end
