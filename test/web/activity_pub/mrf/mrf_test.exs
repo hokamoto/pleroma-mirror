@@ -21,7 +21,7 @@ defmodule Pleroma.Web.ActivityPub.MRFTest do
       refute MRF.subdomain_match?(regexes, "example.com")
     end
 
-    test "wildcards domains with one subdomain" do
+    test "wildcard domains with one subdomain" do
       regexes = MRF.subdomains_regex(["*.unsafe.tld"])
 
       assert regexes == [~r/^(.*\.)*unsafe.tld$/]
@@ -32,7 +32,7 @@ defmodule Pleroma.Web.ActivityPub.MRFTest do
       refute MRF.subdomain_match?(regexes, "unsafe.tldanother")
     end
 
-    test "wildcarrds domains with two subdomains" do
+    test "wildcard domains with two subdomains" do
       regexes = MRF.subdomains_regex(["*.unsafe.tld"])
 
       assert regexes == [~r/^(.*\.)*unsafe.tld$/]
