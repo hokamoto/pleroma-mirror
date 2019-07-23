@@ -92,8 +92,6 @@ defmodule Pleroma.Web.AdminAPI.Config do
   defp do_convert(entity) when is_boolean(entity) or is_number(entity) or is_nil(entity),
     do: entity
 
-  defp do_convert(entity) when is_function(entity), do: Macro.to_string(quote do: entity)
-
   defp do_convert(entity) when is_atom(entity) do
     string = to_string(entity)
 
