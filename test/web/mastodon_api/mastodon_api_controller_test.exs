@@ -3768,6 +3768,24 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
 
       assert Enum.empty?(response)
     end
+
+    test "does not return users who have favorited the status but are blocked", %{
+      conn: %{assigns: %{user: user}} = conn,
+      activity: activity
+    } do
+      other_user = insert(:user)
+      {:ok, user} = User.block(user, other_user)
+
+      {:ok, _, _} = CommonAPI.favorite(activity.id, other_user)
+
+      response =
+        conn
+        |> assign(:user, user)
+        |> get("/api/v1/statuses/#{activity.id}/favourited_by")
+        |> json_response(:ok)
+
+      assert Enum.empty?(response)
+    end
   end
 
   describe "GET /api/v1/statuses/:id/reblogged_by" do
@@ -3802,6 +3820,24 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     } do
       response =
         conn
+        |> get("/api/v1/statuses/#{activity.id}/reblogged_by")
+        |> json_response(:ok)
+
+      assert Enum.empty?(response)
+    end
+
+    test "does not return users who have reblogged the status but are blocked", %{
+      conn: %{assigns: %{user: user}} = conn,
+      activity: activity
+    } do
+      other_user = insert(:user)
+      {:ok, user} = User.block(user, other_user)
+
+      {:ok, _, _} = CommonAPI.repeat(activity.id, other_user)
+
+      response =
+        conn
+        |> assign(:user, user)
         |> get("/api/v1/statuses/#{activity.id}/reblogged_by")
         |> json_response(:ok)
 
@@ -3849,14 +3885,14 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
     test "it returns 404 when user is not found", %{conn: conn, user: user} do
       conn = post(conn, "/auth/password?email=nonexisting_#{user.email}")
       assert conn.status == 404
-      refute conn.resp_body
+      assert conn.resp_body == ""
     end
 
     test "it returns 400 when user is not local", %{conn: conn, user: user} do
       {:ok, user} = Repo.update(Changeset.change(user, local: false))
       conn = post(conn, "/auth/password?email=#{user.email}")
       assert conn.status == 400
-      refute conn.resp_body
+      assert conn.resp_body == ""
     end
   end
 end

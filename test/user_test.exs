@@ -824,6 +824,48 @@ defmodule Pleroma.UserTest do
       assert User.blocks?(user, collateral_user)
     end
 
+    test "does not block domain with same end" do
+      user = insert(:user)
+
+      collateral_user =
+        insert(:user, %{ap_id: "https://another-awful-and-rude-instance.com/user/bully"})
+
+      {:ok, user} = User.block_domain(user, "awful-and-rude-instance.com")
+
+      refute User.blocks?(user, collateral_user)
+    end
+
+    test "does not block domain with same end if wildcard added" do
+      user = insert(:user)
+
+      collateral_user =
+        insert(:user, %{ap_id: "https://another-awful-and-rude-instance.com/user/bully"})
+
+      {:ok, user} = User.block_domain(user, "*.awful-and-rude-instance.com")
+
+      refute User.blocks?(user, collateral_user)
+    end
+
+    test "blocks domain with wildcard for subdomain" do
+      user = insert(:user)
+
+      user_from_subdomain =
+        insert(:user, %{ap_id: "https://subdomain.awful-and-rude-instance.com/user/bully"})
+
+      user_with_two_subdomains =
+        insert(:user, %{
+          ap_id: "https://subdomain.second_subdomain.awful-and-rude-instance.com/user/bully"
+        })
+
+      user_domain = insert(:user, %{ap_id: "https://awful-and-rude-instance.com/user/bully"})
+
+      {:ok, user} = User.block_domain(user, "*.awful-and-rude-instance.com")
+
+      assert User.blocks?(user, user_from_subdomain)
+      assert User.blocks?(user, user_with_two_subdomains)
+      assert User.blocks?(user, user_domain)
+    end
+
     test "unblocks domains" do
       user = insert(:user)
       collateral_user = insert(:user, %{ap_id: "https://awful-and-rude-instance.com/user/bully"})
@@ -1308,6 +1350,23 @@ defmodule Pleroma.UserTest do
 
       assert followers == 0
       assert following == 0
+    end
+  end
+
+  describe "is_internal_user?/1" do
+    test "non-internal user returns false" do
+      user = insert(:user)
+      refute User.is_internal_user?(user)
+    end
+
+    test "user with no nickname returns true" do
+      user = insert(:user, %{nickname: nil})
+      assert User.is_internal_user?(user)
+    end
+
+    test "user with internal-prefixed nickname returns true" do
+      user = insert(:user, %{nickname: "internal.test"})
+      assert User.is_internal_user?(user)
     end
   end
 end

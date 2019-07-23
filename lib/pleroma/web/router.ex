@@ -596,7 +596,7 @@ defmodule Pleroma.Web.Router do
     end
   end
 
-  pipeline :ap_relay do
+  pipeline :ap_service_actor do
     plug(:accepts, ["activity+json", "json"])
   end
 
@@ -627,6 +627,7 @@ defmodule Pleroma.Web.Router do
   pipeline :activitypub do
     plug(:accepts, ["activity+json", "json"])
     plug(Pleroma.Web.Plugs.HTTPSignaturePlug)
+    plug(Pleroma.Web.Plugs.MappedSignatureToIdentityPlug)
   end
 
   scope "/", Pleroma.Web.ActivityPub do
@@ -672,15 +673,24 @@ defmodule Pleroma.Web.Router do
     end
   end
 
-  scope "/relay", Pleroma.Web.ActivityPub do
-    pipe_through(:ap_relay)
-    get("/", ActivityPubController, :relay)
-  end
-
   scope "/", Pleroma.Web.ActivityPub do
     pipe_through(:activitypub)
     post("/inbox", ActivityPubController, :inbox)
     post("/users/:nickname/inbox", ActivityPubController, :inbox)
+  end
+
+  scope "/relay", Pleroma.Web.ActivityPub do
+    pipe_through(:ap_service_actor)
+
+    get("/", ActivityPubController, :relay)
+    post("/inbox", ActivityPubController, :inbox)
+  end
+
+  scope "/internal/fetch", Pleroma.Web.ActivityPub do
+    pipe_through(:ap_service_actor)
+
+    get("/", ActivityPubController, :internal_fetch)
+    post("/inbox", ActivityPubController, :inbox)
   end
 
   scope "/.well-known", Pleroma.Web do

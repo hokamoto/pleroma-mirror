@@ -316,7 +316,8 @@ config :pleroma, :activitypub,
   accept_blocks: true,
   unfollow_blocked: true,
   outgoing_blocks: true,
-  follow_handshake_timeout: 500
+  follow_handshake_timeout: 500,
+  sign_object_fetches: true
 
 config :pleroma, :user, deny_follow_blocked: true
 
@@ -355,7 +356,8 @@ config :pleroma, :rich_media,
     Pleroma.Web.RichMedia.Parsers.TwitterCard,
     Pleroma.Web.RichMedia.Parsers.OGP,
     Pleroma.Web.RichMedia.Parsers.OEmbed
-  ]
+  ],
+  ttl_setters: [Pleroma.Web.RichMedia.Parser.TTL.AwsSignedUrl]
 
 config :pleroma, :media_proxy,
   enabled: false,

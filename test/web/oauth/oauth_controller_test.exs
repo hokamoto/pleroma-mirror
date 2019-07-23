@@ -5,11 +5,9 @@
 defmodule Pleroma.Web.OAuth.OAuthControllerTest do
   use Pleroma.Web.ConnCase
   import Pleroma.Factory
-  import Mock
 
   alias Pleroma.MFA
   alias Pleroma.MFA.TOTP
-  alias Pleroma.Registration
   alias Pleroma.Repo
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.OAuthController
@@ -110,28 +108,26 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
         "state" => ""
       }
 
-      with_mock Pleroma.Web.Auth.Authenticator,
-        get_registration: fn _ -> {:ok, registration} end do
-        conn =
-          get(
-            conn,
-            "/oauth/twitter/callback",
-            %{
-              "oauth_token" => "G-5a3AAAAAAAwMH9AAABaektfSM",
-              "oauth_verifier" => "QZl8vUqNvXMTKpdmUnGejJxuHG75WWWs",
-              "provider" => "twitter",
-              "state" => Poison.encode!(state_params)
-            }
-          )
+      conn =
+        conn
+        |> assign(:ueberauth_auth, %{provider: registration.provider, uid: registration.uid})
+        |> get(
+          "/oauth/twitter/callback",
+          %{
+            "oauth_token" => "G-5a3AAAAAAAwMH9AAABaektfSM",
+            "oauth_verifier" => "QZl8vUqNvXMTKpdmUnGejJxuHG75WWWs",
+            "provider" => "twitter",
+            "state" => Poison.encode!(state_params)
+          }
+        )
 
-        assert response = html_response(conn, 302)
-        assert redirected_to(conn) =~ ~r/#{redirect_uri}\?code=.+/
-      end
+      assert response = html_response(conn, 302)
+      assert redirected_to(conn) =~ ~r/#{redirect_uri}\?code=.+/
     end
 
     test "with user-unbound registration, GET /oauth/<provider>/callback renders registration_details page",
          %{app: app, conn: conn} do
-      registration = insert(:registration, user: nil)
+      user = insert(:user)
 
       state_params = %{
         "scope" => "read write",
@@ -140,26 +136,28 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
         "state" => "a_state"
       }
 
-      with_mock Pleroma.Web.Auth.Authenticator,
-        get_registration: fn _ -> {:ok, registration} end do
-        conn =
-          get(
-            conn,
-            "/oauth/twitter/callback",
-            %{
-              "oauth_token" => "G-5a3AAAAAAAwMH9AAABaektfSM",
-              "oauth_verifier" => "QZl8vUqNvXMTKpdmUnGejJxuHG75WWWs",
-              "provider" => "twitter",
-              "state" => Poison.encode!(state_params)
-            }
-          )
+      conn =
+        conn
+        |> assign(:ueberauth_auth, %{
+          provider: "twitter",
+          uid: "171799000",
+          info: %{nickname: user.nickname, email: user.email, name: user.name, description: nil}
+        })
+        |> get(
+          "/oauth/twitter/callback",
+          %{
+            "oauth_token" => "G-5a3AAAAAAAwMH9AAABaektfSM",
+            "oauth_verifier" => "QZl8vUqNvXMTKpdmUnGejJxuHG75WWWs",
+            "provider" => "twitter",
+            "state" => Poison.encode!(state_params)
+          }
+        )
 
-        assert response = html_response(conn, 200)
-        assert response =~ ~r/name="op" type="submit" value="register"/
-        assert response =~ ~r/name="op" type="submit" value="connect"/
-        assert response =~ Registration.email(registration)
-        assert response =~ Registration.nickname(registration)
-      end
+      assert response = html_response(conn, 200)
+      assert response =~ ~r/name="op" type="submit" value="register"/
+      assert response =~ ~r/name="op" type="submit" value="connect"/
+      assert response =~ user.email
+      assert response =~ user.nickname
     end
 
     test "on authentication error, GET /oauth/<provider>/callback redirects to `redirect_uri`", %{
