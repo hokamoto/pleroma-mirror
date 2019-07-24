@@ -5,8 +5,8 @@
 defmodule Pleroma.Web.MediaProxyTest do
   use ExUnit.Case
   import Pleroma.Web.MediaProxy
-  alias Pleroma.Web.MediaProxy.MediaProxyController
   alias Pleroma.Upload
+  alias Pleroma.Web.MediaProxy.MediaProxyController
 
   setup do
     enabled = Pleroma.Config.get([:media_proxy, :enabled])
