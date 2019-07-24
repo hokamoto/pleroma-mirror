@@ -173,11 +173,20 @@ defmodule Pleroma.Web.MediaProxyTest do
     end
 
     test "does not change whitelisted urls" do
+      media_url = "https://mycdn.akamai.com"
+      Pleroma.Config.put([:media_proxy, :whitelist], ["mycdn.akamai.com"])
+      Pleroma.Config.put([:media_proxy, :base_url], "https://cache.pleroma.social")
+
+      url = "#{media_url}/static/logo.png"
+      encoded = url(url)
+
+      assert String.starts_with?(encoded, media_url)
+    end
+
+    test "ensure Pleroma.Upload base_url is always whitelisted" do
       upload_config = Pleroma.Config.get([Pleroma.Upload])
       media_url = "https://media.pleroma.social"
       Pleroma.Config.put([Pleroma.Upload, :base_url], media_url)
-      Pleroma.Config.put([:media_proxy, :whitelist], ["media.pleroma.social"])
-      Pleroma.Config.put([:media_proxy, :base_url], "https://cache.pleroma.social")
 
       url = "#{media_url}/static/logo.png"
       encoded = url(url)
@@ -185,7 +194,7 @@ defmodule Pleroma.Web.MediaProxyTest do
       assert String.starts_with?(encoded, media_url)
 
       Pleroma.Config.put([Pleroma.Upload], upload_config)
-    end
+     end
   end
 
   describe "when disabled" do
