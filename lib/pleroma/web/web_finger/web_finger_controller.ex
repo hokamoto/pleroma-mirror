@@ -10,9 +10,6 @@ defmodule Pleroma.Web.WebFinger.WebFingerController do
   plug(Pleroma.Plugs.SetFormatPlug)
   plug(Pleroma.Web.FederatingPlug)
 
-  @xml_formats ["xml", "xrd+xml"]
-  @json_formats ["json", "jrd+json"]
-
   def host_meta(conn, _params) do
     xml = WebFinger.host_meta()
 
@@ -22,7 +19,7 @@ defmodule Pleroma.Web.WebFinger.WebFingerController do
   end
 
   def webfinger(%{assigns: %{format: format}} = conn, %{"resource" => resource})
-      when format in @xml_formats do
+      when format in ["xml", "xrd+xml"] do
     with {:ok, response} <- WebFinger.webfinger(resource, "XML") do
       conn
       |> put_resp_content_type("application/xrd+xml")
@@ -33,7 +30,7 @@ defmodule Pleroma.Web.WebFinger.WebFingerController do
   end
 
   def webfinger(%{assigns: %{format: format}} = conn, %{"resource" => resource})
-      when format in @json_formats do
+      when format in ["json", "jrd+json"] do
     with {:ok, response} <- WebFinger.webfinger(resource, "JSON") do
       json(conn, response)
     else
