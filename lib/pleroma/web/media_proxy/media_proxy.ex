@@ -33,7 +33,6 @@ defmodule Pleroma.Web.MediaProxy do
         else
           []
         end
-    IO.inspect(whitelist)
 
     Enum.any?(whitelist, fn pattern ->
       String.equivalent?(domain, pattern)

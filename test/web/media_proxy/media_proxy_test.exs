@@ -194,7 +194,7 @@ defmodule Pleroma.Web.MediaProxyTest do
       assert String.starts_with?(encoded, media_url)
 
       Pleroma.Config.put([Pleroma.Upload], upload_config)
-     end
+    end
   end
 
   describe "when disabled" do
