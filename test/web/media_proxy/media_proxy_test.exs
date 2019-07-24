@@ -5,7 +5,6 @@
 defmodule Pleroma.Web.MediaProxyTest do
   use ExUnit.Case
   import Pleroma.Web.MediaProxy
-  alias Pleroma.Upload
   alias Pleroma.Web.MediaProxy.MediaProxyController
 
   setup do

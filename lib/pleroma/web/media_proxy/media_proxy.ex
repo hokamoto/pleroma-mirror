@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Web.MediaProxy do
   alias Pleroma.Config
+  alias Pleroma.Upload
   alias Pleroma.Web
 
   @base64_opts [padding: false]
