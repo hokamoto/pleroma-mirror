@@ -22,10 +22,17 @@ defmodule Pleroma.XMPP do
   def prebind(username, password) do
     host = Pleroma.Web.Endpoint.host()
 
+    xmpp_host =
+      :pleroma
+      |> Application.get_env(:xmpp, [])
+      |> Keyword.get(:host, host)
+
+    jid = username <> "@" <> host
+
     params = %{
       host: host,
-      xmpp_host: Application.get_env(:pleroma, :xmpp, [])[:host] || host,
-      jid: username <> "@" <> host,
+      xmpp_host: xmpp_host,
+      jid: jid,
       username: username,
       password: password
     }
