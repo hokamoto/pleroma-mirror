@@ -29,7 +29,7 @@ defmodule Pleroma.Web.MediaProxy do
     whitelist =
       Config.get([:media_proxy, :whitelist]) ++
         if !is_nil(Config.get([Upload, :base_url])) do
-          URI.parse(Config.get([Upload, :base_url])).host
+          [URI.parse(Config.get([Upload, :base_url])).host]
         else
           []
         end
