@@ -586,8 +586,19 @@ defmodule Pleroma.User do
   @spec get_followers_query(User.t()) :: Ecto.Query.t()
   def get_followers_query(user), do: get_followers_query(user, nil)
 
+  @spec get_followers(User.t(), pos_integer()) :: {:ok, list(User.t())}
   def get_followers(user, page \\ nil) do
     q = get_followers_query(user, page)
+
+    {:ok, Repo.all(q)}
+  end
+
+  @spec get_external_followers(User.t(), pos_integer()) :: {:ok, list(User.t())}
+  def get_external_followers(user, page \\ nil) do
+    q =
+      user
+      |> get_followers_query(page)
+      |> User.Query.build(%{external: true})
 
     {:ok, Repo.all(q)}
   end
@@ -881,6 +892,8 @@ defmodule Pleroma.User do
     Enum.member?(blocks, ap_id) ||
       Pleroma.Web.ActivityPub.MRF.subdomain_match?(domain_blocks, host)
   end
+
+  def blocks?(nil, _), do: false
 
   def subscribed_to?(user, %{ap_id: ap_id}) do
     with %User{} = target <- get_cached_by_ap_id(ap_id) do
