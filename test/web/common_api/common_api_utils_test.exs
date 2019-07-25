@@ -150,6 +150,23 @@ defmodule Pleroma.Web.CommonAPI.UtilsTest do
       assert output == expected
     end
 
+    test "works for broken text/bbcode" do
+      text = "foo [ bar"
+      {output, [], []} = Utils.format_input(text, "text/bbcode")
+      assert output == text
+
+      user = insert(:user)
+      text_with_mention = "@#{user.nickname} hey [ dude"
+
+      expected =
+        "<span class='h-card'><a data-user='#{user.id}' class='u-url mention' href='#{user.ap_id}'>@<span>#{
+          user.nickname
+        }</span></a></span> hey [ dude"
+
+      {output, _, _} = Utils.format_input(text_with_mention, "text/bbcode")
+      assert output == expected
+    end
+
     test "works for text/markdown with mentions" do
       {:ok, user} =
         UserBuilder.insert(%{nickname: "user__test", ap_id: "http://foo.com/user__test"})
