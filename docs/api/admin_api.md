@@ -575,6 +575,27 @@ Note: Available `:permission_group` is currently moderator and admin. 404 is ret
     - 404 Not Found `"Not found"`
   - On success: 200 OK `{}`
 
+
+## `/api/pleroma/admin/config_to_db`
+### Run mix task pleroma.config migrate_to_db
+- Method `GET`
+- Params: none
+- Response:
+
+```json
+{}
+```
+
+## `/api/pleroma/admin/config_from_db`
+### Run mix task pleroma.config migrate_from_db
+- Method `GET`
+- Params: none
+- Response:
+
+```json
+{}
+```
+
 ## `/api/pleroma/admin/config`
 ### List config settings
 List config settings only works with `:pleroma => :instance => :dynamic_configuration` setting to `true`.
