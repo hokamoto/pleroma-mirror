@@ -8,8 +8,6 @@ defmodule Pleroma.Web.MongooseIM.MongooseIMController do
   alias Pleroma.Repo
   alias Pleroma.User
 
-  require Logger
-
   def user_exists(conn, %{"user" => username}) do
     with %User{} <- Repo.get_by(User, nickname: username, local: true) do
       conn
@@ -63,7 +61,7 @@ defmodule Pleroma.Web.MongooseIM.MongooseIMController do
             jid: jid,
             prebind_url:
               Pleroma.Web.Router.Helpers.mongoose_im_url(Pleroma.Web.Endpoint, :prebind, jid),
-            http_bind_url: Application.get_env(:pleroma, :xmpp, [])[:host] <> "/http-bind"
+            http_bind_url: Pleroma.Config.get([:xmpp, :host]) <> "/http-bind"
           }
 
         _ ->

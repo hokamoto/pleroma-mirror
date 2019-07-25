@@ -43,19 +43,19 @@ defmodule Pleroma.Plugs.OAuthPlug do
           |> assign(:token, token_record)
           |> assign(:user, user)
         else
-          _e ->
+          _ ->
             # token found, but maybe only with app
             with {:ok, app, token_record} <- fetch_app_and_token(token) do
               conn
               |> assign(:token, token_record)
               |> assign(:app, app)
             else
-              _e ->
+              _ ->
                 conn
             end
         end
 
-      _e ->
+      _ ->
         conn
     end
   end
