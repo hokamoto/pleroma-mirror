@@ -27,13 +27,15 @@ defmodule Pleroma.Web.MediaProxy do
   defp whitelisted?(url) do
     %{host: domain} = URI.parse(url)
 
-    whitelist =
-      Config.get([:media_proxy, :whitelist]) ++
-        if !is_nil(Config.get([Upload, :base_url])) do
-          [URI.parse(Config.get([Upload, :base_url])).host]
-        else
-          []
-        end
+    mediaproxy_whitelist = Config.get([:media_proxy, :whitelist])
+
+    if !is_nil(Config.get([Upload, :base_url])) do
+      upload_base_url_domain = [URI.parse(Config.get([Upload, :base_url])).host]
+    else
+      upload_base_url_domain = []
+    end
+
+    whitelist = mediaproxy_whitelist ++ upload_base_url_domain
 
     Enum.any?(whitelist, fn pattern ->
       String.equivalent?(domain, pattern)
