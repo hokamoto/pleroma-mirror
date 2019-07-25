@@ -276,16 +276,16 @@ defmodule Pleroma.Web.CommonAPI.Utils do
     text
     |> String.replace(~r/\r/, "")
     |> Formatter.html_escape("text/plain")
-    |> (fn text ->
+    |> Formatter.linkify(options)
+    |> (fn {text, mentions, tags} ->
           case BBCode.to_html(text) do
             {:ok, html} ->
-              html
+              {html, mentions, tags}
 
             {:error, _} ->
-              text
+              {text, mentions, tags}
           end
         end).()
-    |> Formatter.linkify(options)
   end
 
   @doc """

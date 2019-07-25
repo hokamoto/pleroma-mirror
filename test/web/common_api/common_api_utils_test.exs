@@ -167,6 +167,15 @@ defmodule Pleroma.Web.CommonAPI.UtilsTest do
       assert output == expected
     end
 
+    test "works for URL at the end of the line when text/bbcode is selected" do
+      text = "https://google.com/\n"
+      expected = "<a href=\"https://google.com/\">https://google.com/</a><br>\n"
+
+      {output, _, _} = Utils.format_input(text, "text/bbcode")
+
+      assert output == expected
+    end
+
     test "works for text/markdown with mentions" do
       {:ok, user} =
         UserBuilder.insert(%{nickname: "user__test", ap_id: "http://foo.com/user__test"})
