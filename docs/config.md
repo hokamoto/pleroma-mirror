@@ -656,3 +656,10 @@ Supported rate limiters:
 * `:relation_id_action` for actions on relation with a specific user (follow, unfollow)
 * `:statuses_actions` for create / delete / fav / unfav / reblog / unreblog actions on any statuses
 * `:status_id_action` for fav / unfav or reblog / unreblog actions on the same status by the same user
+
+## :xmpp
+
+Config for XMPP integration (i.e. chat window). Requires XMPP server with BOSH support.
+
+* `enabled` enables XMPP integration. When enabled, an authenticated XMPP session is created upon user login
+* `host` XMPP server host

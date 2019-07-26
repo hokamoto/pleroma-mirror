@@ -57,6 +57,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - ActivityPub: Add an internal service actor for fetching ActivityPub objects.
 - ActivityPub: Optional signing of ActivityPub object fetches.
 - Admin API: Endpoint for fetching latest user's statuses
+- Support for XMPP integration
 
 ### Changed
 - Configuration: Filter.AnonymizeFilename added ability to retain file extension with custom text

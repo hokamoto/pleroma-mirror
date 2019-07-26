@@ -188,7 +188,7 @@ defmodule Mix.Tasks.Pleroma.Instance do
         get_option(
           options,
           :xmpp_enabled,
-          "Do you want to integrate your existing XMPP server with the Pleroma instance?",
+          "Do you want to integrate your existing XMPP server with the Pleroma instance? (requires BOSH on the XMPP server)",
           "n"
         ) === "y"
 
