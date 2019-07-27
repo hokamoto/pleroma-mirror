@@ -1054,6 +1054,10 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
   describe "XMPP integration" do
     setup do
+      xmpp_config = Application.get_env(:pleroma, :xmpp)
+      Application.put_env(:pleroma, :xmpp, enabled: true, host: "http://xmpp.tld")
+      on_exit(fn -> Application.put_env(:pleroma, :xmpp, xmpp_config) end)
+
       password = "testpassword"
       local_user = insert(:user, password_hash: Comeonin.Pbkdf2.hashpwsalt(password), local: true)
 
@@ -1082,7 +1086,6 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       conn: conn,
       local_user_params: params
     } do
-      Application.put_env(:pleroma, :xmpp, enabled: true, host: "http://xmpp.tld")
       sid = "TestSessionID"
 
       with_mock Pleroma.XMPP,
@@ -1096,8 +1099,6 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
     end
 
     test "Does not authenticate remote users", %{conn: conn, remote_user_params: params} do
-      Application.put_env(:pleroma, :xmpp, enabled: true, host: "http://xmpp.tld")
-
       conn = post(conn, "/oauth/token", params)
 
       xmpp = get_session(conn, :xmpp)

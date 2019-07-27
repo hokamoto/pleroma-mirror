@@ -82,6 +82,8 @@ IO.puts("RUM enabled: #{rum_enabled}")
 
 config :pleroma, Pleroma.ReverseProxy.Client, Pleroma.ReverseProxy.ClientMock
 
+config :pleroma, :xmpp, enabled: false
+
 try do
   import_config "test.secret.exs"
 rescue
