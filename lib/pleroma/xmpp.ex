@@ -91,7 +91,7 @@ defmodule Pleroma.XMPP do
         {:error, "Invalid Username or Password"}
 
       _ ->
-        {:ok, sid}
+        {:ok, to_string(sid)}
     end
   end
 
