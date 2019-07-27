@@ -6,6 +6,21 @@ defmodule Pleroma.Web.MongooseIMController do
   use Pleroma.Web.ConnCase
   import Pleroma.Factory
 
+  setup %{conn: conn} do
+    session_opts = [
+      store: :cookie,
+      key: "_test",
+      signing_salt: "cooldude"
+    ]
+
+    conn =
+      conn
+      |> Plug.Session.call(Plug.Session.init(session_opts))
+      |> fetch_session()
+
+    %{conn: conn}
+  end
+
   test "/user_exists", %{conn: conn} do
     _user = insert(:user, nickname: "lain")
     _remote_user = insert(:user, nickname: "alice", local: false)
@@ -55,5 +70,73 @@ defmodule Pleroma.Web.MongooseIMController do
       |> json_response(404)
 
     assert res == false
+  end
+
+  describe "/conndata" do
+    test "When xmpp key is set in session", %{conn: conn} do
+      jid = "test@localhost"
+      conn = put_session(conn, :xmpp, %{jid: jid})
+
+      response =
+        conn
+        |> get(mongoose_im_path(conn, :conndata))
+        |> json_response(200)
+
+      assert response["jid"] == jid
+      assert response["http_bind_url"] == "/http-bind"
+      assert response["prebind_url"] == mongoose_im_url(Pleroma.Web.Endpoint, :prebind, jid)
+    end
+
+    test "When xmpp key is not set in session", %{conn: conn} do
+      response =
+        conn
+        |> get(mongoose_im_path(conn, :conndata))
+        |> json_response(200)
+
+      assert response == false
+    end
+  end
+
+  describe "/prebind" do
+    test "When xmpp key is set in session and jid param matches one in session", %{conn: conn} do
+      jid = "test@localhost"
+      sid = "TestSessionID"
+      conn = put_session(conn, :xmpp, %{jid: jid, sid: sid})
+
+      response =
+        conn
+        |> get(mongoose_im_path(conn, :prebind, jid))
+        |> json_response(200)
+
+      assert response["jid"] == jid
+      assert response["sid"] == sid
+      assert is_integer(response["rid"])
+    end
+
+    test "When xmpp key is set in session but jid param does not match one in session", %{
+      conn: conn
+    } do
+      jid = "test@localhost"
+      sid = "TestSessionID"
+      conn = put_session(conn, :xmpp, %{jid: jid, sid: sid})
+
+      response =
+        conn
+        |> get(mongoose_im_path(conn, :prebind, jid <> jid))
+        |> json_response(200)
+
+      assert response == false
+    end
+
+    test "When xmpp key is not set in session", %{conn: conn} do
+      jid = "test@localhost"
+
+      response =
+        conn
+        |> get(mongoose_im_path(conn, :prebind, jid))
+        |> json_response(200)
+
+      assert response == false
+    end
   end
 end

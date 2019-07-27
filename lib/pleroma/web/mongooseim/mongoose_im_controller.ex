@@ -61,7 +61,7 @@ defmodule Pleroma.Web.MongooseIM.MongooseIMController do
             jid: jid,
             prebind_url:
               Pleroma.Web.Router.Helpers.mongoose_im_url(Pleroma.Web.Endpoint, :prebind, jid),
-            http_bind_url: Pleroma.Config.get([:xmpp, :host]) <> "/http-bind"
+            http_bind_url: Pleroma.Config.get([:xmpp, :host], "") <> "/http-bind"
           }
 
         _ ->
