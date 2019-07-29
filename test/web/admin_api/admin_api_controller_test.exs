@@ -1939,14 +1939,14 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
     test "transfer settings to DB and to file", %{conn: conn, admin: admin} do
       assert Pleroma.Repo.all(Pleroma.Web.AdminAPI.Config) == []
-      conn = get(conn, "/api/pleroma/admin/config_to_db")
+      conn = get(conn, "/api/pleroma/admin/config/migrate_to_db")
       assert json_response(conn, 200) == %{}
       assert Pleroma.Repo.all(Pleroma.Web.AdminAPI.Config) > 0
 
       conn =
         build_conn()
         |> assign(:user, admin)
-        |> get("/api/pleroma/admin/config_from_db")
+        |> get("/api/pleroma/admin/config/migrate_from_db")
 
       assert json_response(conn, 200) == %{}
       assert Pleroma.Repo.all(Pleroma.Web.AdminAPI.Config) == []
