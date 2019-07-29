@@ -154,21 +154,11 @@ defmodule Pleroma.Web.Router do
     post("/users/follow", AdminAPIController, :user_follow)
     post("/users/unfollow", AdminAPIController, :user_unfollow)
 
-    # TODO: to be removed at version 1.0
-    delete("/user", AdminAPIController, :user_delete)
-    post("/user", AdminAPIController, :user_create)
-
     delete("/users", AdminAPIController, :user_delete)
     post("/users", AdminAPIController, :user_create)
     patch("/users/:nickname/toggle_activation", AdminAPIController, :user_toggle_activation)
     put("/users/tag", AdminAPIController, :tag_users)
     delete("/users/tag", AdminAPIController, :untag_users)
-
-    # TODO: to be removed at version 1.0
-    get("/permission_group/:nickname", AdminAPIController, :right_get)
-    get("/permission_group/:nickname/:permission_group", AdminAPIController, :right_get)
-    post("/permission_group/:nickname/:permission_group", AdminAPIController, :right_add)
-    delete("/permission_group/:nickname/:permission_group", AdminAPIController, :right_delete)
 
     get("/users/:nickname/permission_group", AdminAPIController, :right_get)
     get("/users/:nickname/permission_group/:permission_group", AdminAPIController, :right_get)
@@ -190,13 +180,11 @@ defmodule Pleroma.Web.Router do
     post("/users/revoke_invite", AdminAPIController, :revoke_invite)
     post("/users/email_invite", AdminAPIController, :email_invite)
 
-    # TODO: to be removed at version 1.0
-    get("/password_reset", AdminAPIController, :get_password_reset)
-
     get("/users/:nickname/password_reset", AdminAPIController, :get_password_reset)
 
     get("/users", AdminAPIController, :list_users)
     get("/users/:nickname", AdminAPIController, :user_show)
+    get("/users/:nickname/statuses", AdminAPIController, :list_user_statuses)
 
     get("/reports", AdminAPIController, :list_reports)
     get("/reports/:id", AdminAPIController, :report_show)
@@ -423,6 +411,12 @@ defmodule Pleroma.Web.Router do
     get("/trends", MastodonAPIController, :empty_array)
 
     get("/accounts/search", SearchController, :account_search)
+
+    post(
+      "/pleroma/accounts/confirmation_resend",
+      MastodonAPIController,
+      :account_confirmation_resend
+    )
 
     scope [] do
       pipe_through(:oauth_read_or_public)
@@ -739,70 +733,5 @@ defmodule Pleroma.Web.Router do
     get("/*path", RedirectController, :redirector)
 
     options("/*path", RedirectController, :empty)
-  end
-end
-
-defmodule Fallback.RedirectController do
-  use Pleroma.Web, :controller
-  require Logger
-  alias Pleroma.User
-  alias Pleroma.Web.Metadata
-
-  def api_not_implemented(conn, _params) do
-    conn
-    |> put_status(404)
-    |> json(%{error: "Not implemented"})
-  end
-
-  def redirector(conn, _params, code \\ 200) do
-    conn
-    |> put_resp_content_type("text/html")
-    |> send_file(code, index_file_path())
-  end
-
-  def redirector_with_meta(conn, %{"maybe_nickname_or_id" => maybe_nickname_or_id} = params) do
-    with %User{} = user <- User.get_cached_by_nickname_or_id(maybe_nickname_or_id) do
-      redirector_with_meta(conn, %{user: user})
-    else
-      nil ->
-        redirector(conn, params)
-    end
-  end
-
-  def redirector_with_meta(conn, params) do
-    {:ok, index_content} = File.read(index_file_path())
-
-    tags =
-      try do
-        Metadata.build_tags(params)
-      rescue
-        e ->
-          Logger.error(
-            "Metadata rendering for #{conn.request_path} failed.\n" <>
-              Exception.format(:error, e, __STACKTRACE__)
-          )
-
-          ""
-      end
-
-    response = String.replace(index_content, "<!--server-generated-meta-->", tags)
-
-    conn
-    |> put_resp_content_type("text/html")
-    |> send_resp(200, response)
-  end
-
-  def index_file_path do
-    Pleroma.Plugs.InstanceStatic.file_path("index.html")
-  end
-
-  def registration_page(conn, params) do
-    redirector(conn, params)
-  end
-
-  def empty(conn, _params) do
-    conn
-    |> put_status(204)
-    |> text("")
   end
 end

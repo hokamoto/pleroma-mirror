@@ -824,6 +824,48 @@ defmodule Pleroma.UserTest do
       assert User.blocks?(user, collateral_user)
     end
 
+    test "does not block domain with same end" do
+      user = insert(:user)
+
+      collateral_user =
+        insert(:user, %{ap_id: "https://another-awful-and-rude-instance.com/user/bully"})
+
+      {:ok, user} = User.block_domain(user, "awful-and-rude-instance.com")
+
+      refute User.blocks?(user, collateral_user)
+    end
+
+    test "does not block domain with same end if wildcard added" do
+      user = insert(:user)
+
+      collateral_user =
+        insert(:user, %{ap_id: "https://another-awful-and-rude-instance.com/user/bully"})
+
+      {:ok, user} = User.block_domain(user, "*.awful-and-rude-instance.com")
+
+      refute User.blocks?(user, collateral_user)
+    end
+
+    test "blocks domain with wildcard for subdomain" do
+      user = insert(:user)
+
+      user_from_subdomain =
+        insert(:user, %{ap_id: "https://subdomain.awful-and-rude-instance.com/user/bully"})
+
+      user_with_two_subdomains =
+        insert(:user, %{
+          ap_id: "https://subdomain.second_subdomain.awful-and-rude-instance.com/user/bully"
+        })
+
+      user_domain = insert(:user, %{ap_id: "https://awful-and-rude-instance.com/user/bully"})
+
+      {:ok, user} = User.block_domain(user, "*.awful-and-rude-instance.com")
+
+      assert User.blocks?(user, user_from_subdomain)
+      assert User.blocks?(user, user_with_two_subdomains)
+      assert User.blocks?(user, user_domain)
+    end
+
     test "unblocks domains" do
       user = insert(:user)
       collateral_user = insert(:user, %{ap_id: "https://awful-and-rude-instance.com/user/bully"})
@@ -1325,6 +1367,30 @@ defmodule Pleroma.UserTest do
     test "user with internal-prefixed nickname returns true" do
       user = insert(:user, %{nickname: "internal.test"})
       assert User.is_internal_user?(user)
+    end
+  end
+
+  describe "update_and_set_cache/1" do
+    test "returns error when user is stale instead Ecto.StaleEntryError" do
+      user = insert(:user)
+
+      changeset = Ecto.Changeset.change(user, bio: "test")
+
+      Repo.delete(user)
+
+      assert {:error, %Ecto.Changeset{errors: [id: {"is stale", [stale: true]}], valid?: false}} =
+               User.update_and_set_cache(changeset)
+    end
+
+    test "performs update cache if user updated" do
+      user = insert(:user)
+      assert {:ok, nil} = Cachex.get(:user_cache, "ap_id:#{user.ap_id}")
+
+      changeset = Ecto.Changeset.change(user, bio: "test-bio")
+
+      assert {:ok, %User{bio: "test-bio"} = user} = User.update_and_set_cache(changeset)
+      assert {:ok, user} = Cachex.get(:user_cache, "ap_id:#{user.ap_id}")
+      assert %User{bio: "test-bio"} = User.get_cached_by_ap_id(user.ap_id)
     end
   end
 end
