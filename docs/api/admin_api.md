@@ -576,7 +576,7 @@ Note: Available `:permission_group` is currently moderator and admin. 404 is ret
   - On success: 200 OK `{}`
 
 
-## `/api/pleroma/admin/config_to_db`
+## `/api/pleroma/admin/config/migrate_to_db`
 ### Run mix task pleroma.config migrate_to_db
 Copy settings on key `:pleroma` to DB.
 - Method `GET`
@@ -587,7 +587,7 @@ Copy settings on key `:pleroma` to DB.
 {}
 ```
 
-## `/api/pleroma/admin/config_from_db`
+## `/api/pleroma/admin/config/migrate_from_db`
 ### Run mix task pleroma.config migrate_from_db
 Copy all settings from DB to `config/prod.exported_from_db.secret.exs` with deletion from DB.
 - Method `GET`
