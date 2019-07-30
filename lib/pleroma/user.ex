@@ -1036,6 +1036,9 @@ defmodule Pleroma.User do
           err ->
             Logger.debug("blocks_import failed for #{blocked_identifier} with: #{inspect(err)}")
             err
+
+          {:error, _} ->
+            Logger.debug("blocks_import failed for #{blocked_identifier}")
         end
       end
     )
