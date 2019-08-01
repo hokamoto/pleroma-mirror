@@ -196,6 +196,8 @@ defmodule Pleroma.Web.Router do
 
     get("/config", AdminAPIController, :config_show)
     post("/config", AdminAPIController, :config_update)
+    get("/config/migrate_to_db", AdminAPIController, :migrate_to_db)
+    get("/config/migrate_from_db", AdminAPIController, :migrate_from_db)
   end
 
   scope "/", Pleroma.Web.TwitterAPI do
@@ -411,6 +413,12 @@ defmodule Pleroma.Web.Router do
     get("/trends", MastodonAPIController, :empty_array)
 
     get("/accounts/search", SearchController, :account_search)
+
+    post(
+      "/pleroma/accounts/confirmation_resend",
+      MastodonAPIController,
+      :account_confirmation_resend
+    )
 
     scope [] do
       pipe_through(:oauth_read_or_public)
@@ -699,7 +707,7 @@ defmodule Pleroma.Web.Router do
     post("/auth/password", MastodonAPIController, :password_reset)
 
     scope [] do
-      pipe_through(:oauth_read_or_public)
+      pipe_through(:oauth_read)
       get("/web/*path", MastodonAPIController, :index)
     end
   end
