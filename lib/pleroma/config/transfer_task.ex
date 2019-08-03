@@ -24,7 +24,6 @@ defmodule Pleroma.Config.TransferTask do
       |> Enum.reject(&(&1 in [:pleroma, :ok]))
       |> Enum.each(fn app ->
         Application.stop(app)
-        :ok = Application.unload(app)
         :ok = Application.start(app)
       end)
     end
