@@ -10,32 +10,40 @@ defmodule Pleroma.Web.ActivityPub.MRF.BlockPolicy do
 
   @behaviour Pleroma.Web.ActivityPub.MRF
 
+  defp is_block_or_unblock(message) do
+    case message do
+      %{"type" => "Block", "object" => object} -> 
+        {true, "blocked", object}
+      %{"type" => "Undo", "object" => %{"type" => "Block", "object" => object}} -> 
+        {true, "unblocked", object}
+      _ ->
+        {false, :nil, :nil}
+    end
+  end
+
+  defp is_remote_or_displaying_local?(actor) do
+    case actor do
+      %User{local: false} -> true
+      _ -> Pleroma.Config.get([:mrf_blockpolicy, :display_local])
+    end
+  end
+
   @impl true
   def filter(message) do
-    type = message["type"]
-
-    if type == "Block" or (type == "Undo" and message["object"]["type"] == "Block") do
-      recipient = User.get_cached_by_ap_id(hd(message["to"]))
-
-      if recipient.local do
-        actor = User.get_cached_by_ap_id(message["actor"])
-        # default: do not show blocks from local users
-        display_local = Pleroma.Config.get([:mrf_blockpolicy, :display_local])
-        # ignore notifications from blocked users to stop spam
-        if !User.blocks_ap_id?(recipient, actor) and (!actor.local or display_local) do
-          bot_user = Pleroma.Config.get([:mrf_blockpolicy, :user])
-          term = if type == "Block", do: "blocked", else: "unblocked"
-
-          _reply =
-            CommonAPI.post(User.get_by_nickname(bot_user), %{
-              "status" =>
-                "@" <> recipient.nickname <> " you are now " <> term <> " by " <> actor.nickname,
-              "visibility" => "direct"
-            })
-        end
-      end
+    with {true, action, object} <- is_block_or_unblock(message),
+      %User{} = actor <- User.get_cached_by_ap_id(message["actor"]),
+      %User{} = recipient <- User.get_cached_by_ap_id(object),
+      true <- recipient.local,
+      true <- is_remote_or_displaying_local?(actor),
+      false <- User.blocks_ap_id?(recipient, actor) do
+        bot_user = Pleroma.Config.get([:mrf_blockpolicy, :user])
+        _reply =
+          CommonAPI.post(User.get_by_nickname(bot_user), %{
+            "status" =>
+              "@" <> recipient.nickname <> " you are now " <> action <> " by " <> actor.nickname,
+            "visibility" => "direct"
+          })
     end
-
     {:ok, message}
   end
 end
