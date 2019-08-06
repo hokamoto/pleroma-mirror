@@ -15,7 +15,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.BlockPolicy do
     type = message["type"]
 
     if type == "Block" or (type == "Undo" and message["object"]["type"] == "Block") do
-      recipient = User.get_cached_by_ap_id(message["object"])
+      recipient = User.get_cached_by_ap_id(hd(message["to"]))
 
       if recipient.local do
         actor = User.get_cached_by_ap_id(message["actor"])
