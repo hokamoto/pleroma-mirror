@@ -11,14 +11,14 @@ defmodule Pleroma.Web.ActivityPub.MRF.BlockPolicy do
   @behaviour Pleroma.Web.ActivityPub.MRF
 
   @impl true
-  def filter(object) do
-    type = object["type"]
+  def filter(message) do
+    type = message["type"]
 
-    if type == "Block" or (type == "Undo" and object["object"]["type"] == "Block") do
-      recipient = User.get_cached_by_ap_id(hd(object["to"]))
+    if type == "Block" or (type == "Undo" and message["object"]["type"] == "Block") do
+      recipient = User.get_cached_by_ap_id(hd(message["to"]))
 
       if recipient.local do
-        actor = User.get_cached_by_ap_id(object["actor"])
+        actor = User.get_cached_by_ap_id(message["actor"])
         # default: do not show blocks from local users
         display_local = Pleroma.Config.get([:mrf_blockpolicy, :display_local])
         # ignore notifications from blocked users to stop spam
@@ -36,6 +36,6 @@ defmodule Pleroma.Web.ActivityPub.MRF.BlockPolicy do
       end
     end
 
-    {:ok, object}
+    {:ok, message}
   end
 end
