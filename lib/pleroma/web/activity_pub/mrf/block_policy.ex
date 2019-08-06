@@ -12,12 +12,14 @@ defmodule Pleroma.Web.ActivityPub.MRF.BlockPolicy do
 
   defp is_block_or_unblock(message) do
     case message do
-      %{"type" => "Block", "object" => object} -> 
+      %{"type" => "Block", "object" => object} ->
         {true, "blocked", object}
-      %{"type" => "Undo", "object" => %{"type" => "Block", "object" => object}} -> 
+
+      %{"type" => "Undo", "object" => %{"type" => "Block", "object" => object}} ->
         {true, "unblocked", object}
+
       _ ->
-        {false, :nil, :nil}
+        {false, nil, nil}
     end
   end
 
@@ -31,19 +33,21 @@ defmodule Pleroma.Web.ActivityPub.MRF.BlockPolicy do
   @impl true
   def filter(message) do
     with {true, action, object} <- is_block_or_unblock(message),
-      %User{} = actor <- User.get_cached_by_ap_id(message["actor"]),
-      %User{} = recipient <- User.get_cached_by_ap_id(object),
-      true <- recipient.local,
-      true <- is_remote_or_displaying_local?(actor),
-      false <- User.blocks_ap_id?(recipient, actor) do
-        bot_user = Pleroma.Config.get([:mrf_blockpolicy, :user])
-        _reply =
-          CommonAPI.post(User.get_by_nickname(bot_user), %{
-            "status" =>
-              "@" <> recipient.nickname <> " you are now " <> action <> " by " <> actor.nickname,
-            "visibility" => "direct"
-          })
+         %User{} = actor <- User.get_cached_by_ap_id(message["actor"]),
+         %User{} = recipient <- User.get_cached_by_ap_id(object),
+         true <- recipient.local,
+         true <- is_remote_or_displaying_local?(actor),
+         false <- User.blocks_ap_id?(recipient, actor) do
+      bot_user = Pleroma.Config.get([:mrf_blockpolicy, :user])
+
+      _reply =
+        CommonAPI.post(User.get_by_nickname(bot_user), %{
+          "status" =>
+            "@" <> recipient.nickname <> " you are now " <> action <> " by " <> actor.nickname,
+          "visibility" => "direct"
+        })
     end
+
     {:ok, message}
   end
 end
