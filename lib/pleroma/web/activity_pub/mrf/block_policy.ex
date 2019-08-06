@@ -10,25 +10,21 @@ defmodule Pleroma.Web.ActivityPub.MRF.BlockPolicy do
 
   @behaviour Pleroma.Web.ActivityPub.MRF
 
-  defp is_block_or_unblock(message) do
-    case message do
-      %{"type" => "Block", "object" => object} ->
-        {true, "blocked", object}
+  defp is_block_or_unblock(%{"type" => "Block", "object" => object}),
+    do: {true, "blocked", object}
 
-      %{"type" => "Undo", "object" => %{"type" => "Block", "object" => object}} ->
-        {true, "unblocked", object}
+  defp is_block_or_unblock(%{
+         "type" => "Undo",
+         "object" => %{"type" => "Block", "object" => object}
+       }),
+       do: {true, "unblocked", object}
 
-      _ ->
-        {false, nil, nil}
-    end
-  end
+  defp is_block_or_unblock(_), do: {false, nil, nil}
 
-  defp is_remote_or_displaying_local?(actor) do
-    case actor do
-      %User{local: false} -> true
-      _ -> Pleroma.Config.get([:mrf_blockpolicy, :display_local])
-    end
-  end
+  defp is_remote_or_displaying_local?(%User{local: false}), do: true
+
+  defp is_remote_or_displaying_local?(_),
+    do: Pleroma.Config.get([:mrf_blockpolicy, :display_local])
 
   @impl true
   def filter(message) do
