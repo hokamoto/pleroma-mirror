@@ -11,6 +11,7 @@ defmodule Pleroma.Object do
   alias Pleroma.ObjectTombstone
   alias Pleroma.Repo
   alias Pleroma.User
+  alias Pleroma.Web.ActivityPub.Transmogrifier
 
   import Ecto.Query
   import Ecto.Changeset
@@ -125,6 +126,18 @@ defmodule Pleroma.Object do
     object
     |> Object.change(%{data: tombstone})
     |> Repo.update()
+  end
+
+  def maybe_refresh(object) do
+    with {:ok, data} <- Fetcher.fetch_and_contain_remote_object_from_id(object.data["id"]),
+         data <- Transmogrifier.fix_object(data, depth: 1),
+         {:ok, object} <-
+           update_and_set_cache(Object.change(object, %{data: data})) do
+      object
+    else
+      _ ->
+        object
+    end
   end
 
   def delete(%Object{data: %{"id" => id}} = object) do

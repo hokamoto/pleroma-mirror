@@ -530,6 +530,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
 
   def get_poll(%{assigns: %{user: user}} = conn, %{"id" => id}) do
     with %Object{} = object <- Object.get_by_id(id),
+         %Object{} = object <- Object.maybe_refresh(object),
          %Activity{} = activity <- Activity.get_create_by_object_ap_id(object.data["id"]),
          true <- Visibility.visible_for_user?(activity, user) do
       conn
