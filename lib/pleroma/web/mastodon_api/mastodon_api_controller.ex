@@ -79,6 +79,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
   plug(RateLimiter, :search when action in [:search, :search2, :account_search])
   plug(RateLimiter, :password_reset when action == :password_reset)
   plug(RateLimiter, :account_confirmation_resend when action == :account_confirmation_resend)
+  plug(RateLimiter, :follow when action == :follow)
 
   @local_mastodon_name "Mastodon-Local"
 

@@ -12,6 +12,7 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   alias Pleroma.Formatter
   alias Pleroma.Notification
   alias Pleroma.Object
+  alias Pleroma.Plugs.RateLimiter
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
@@ -27,8 +28,11 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
 
   require Logger
 
-  plug(Pleroma.Plugs.RateLimiter, :password_reset when action == :password_reset)
+  plug(RateLimiter, :password_reset when action == :password_reset)
+  plug(RateLimiter, :follow when action == :follow)
+
   plug(:only_if_public_instance when action in [:public_timeline, :public_and_external_timeline])
+
   action_fallback(:errors)
 
   def verify_credentials(%{assigns: %{user: user}} = conn, _params) do

@@ -656,3 +656,4 @@ Supported rate limiters:
 * `:relation_id_action` for actions on relation with a specific user (follow, unfollow)
 * `:statuses_actions` for create / delete / fav / unfav / reblog / unreblog actions on any statuses
 * `:status_id_action` for fav / unfav or reblog / unreblog actions on the same status by the same user
+* `:follow` for follow actions from the same IP address

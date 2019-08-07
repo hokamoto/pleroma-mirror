@@ -535,6 +535,7 @@ config :pleroma, :rate_limit,
   statuses_actions: {10_000, 15},
   status_id_action: {60_000, 3},
   password_reset: {1_800_000, 5},
+  follow: {60_000, 2},
   account_confirmation_resend: {8_640_000, 5}
 
 # Import environment specific config. This must remain at the bottom
