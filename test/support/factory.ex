@@ -119,17 +119,21 @@ defmodule Pleroma.Factory do
   def note_activity_factory(attrs \\ %{}) do
     user = attrs[:user] || insert(:user)
     note = attrs[:note] || insert(:note, user: user)
-    attrs = Map.drop(attrs, [:user, :note])
 
-    data = %{
-      "id" => Pleroma.Web.ActivityPub.Utils.generate_activity_id(),
-      "type" => "Create",
-      "actor" => note.data["actor"],
-      "to" => note.data["to"],
-      "object" => note.data["id"],
-      "published" => DateTime.utc_now() |> DateTime.to_iso8601(),
-      "context" => note.data["context"]
-    }
+    data_attrs = attrs[:data_attrs] || %{}
+    attrs = Map.drop(attrs, [:user, :note, :data_attrs])
+
+    data =
+      %{
+        "id" => Pleroma.Web.ActivityPub.Utils.generate_activity_id(),
+        "type" => "Create",
+        "actor" => note.data["actor"],
+        "to" => note.data["to"],
+        "object" => note.data["id"],
+        "published" => DateTime.utc_now() |> DateTime.to_iso8601(),
+        "context" => note.data["context"]
+      }
+      |> Map.merge(data_attrs)
 
     %Pleroma.Activity{
       data: data,
@@ -179,8 +183,8 @@ defmodule Pleroma.Factory do
     }
   end
 
-  def like_activity_factory do
-    note_activity = insert(:note_activity)
+  def like_activity_factory(attrs \\ %{}) do
+    note_activity = attrs[:note_activity] || insert(:note_activity)
     object = Object.normalize(note_activity)
     user = insert(:user)
 

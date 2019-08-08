@@ -6,11 +6,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
   use Pleroma.DataCase
   alias Pleroma.Activity
   alias Pleroma.Builders.ActivityBuilder
-  alias Pleroma.Instances
   alias Pleroma.Object
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
-  alias Pleroma.Web.ActivityPub.Publisher
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.CommonAPI
 
@@ -679,14 +677,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       assert object.data["likes"] == [user.ap_id]
       assert object.data["like_count"] == 1
 
-      [note_activity] = Activity.get_all_create_by_object_ap_id(object.data["id"])
-      assert note_activity.data["object"]["like_count"] == 1
-
       {:ok, _like_activity, object} = ActivityPub.like(user_two, object)
       assert object.data["like_count"] == 2
-
-      [note_activity] = Activity.get_all_create_by_object_ap_id(object.data["id"])
-      assert note_activity.data["object"]["like_count"] == 2
     end
   end
 
@@ -1083,113 +1075,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
            } = activity
   end
 
-  describe "publish_one/1" do
-    test_with_mock "calls `Instances.set_reachable` on successful federation if `unreachable_since` is not specified",
-                   Instances,
-                   [:passthrough],
-                   [] do
-      actor = insert(:user)
-      inbox = "http://200.site/users/nick1/inbox"
-
-      assert {:ok, _} = Publisher.publish_one(%{inbox: inbox, json: "{}", actor: actor, id: 1})
-
-      assert called(Instances.set_reachable(inbox))
-    end
-
-    test_with_mock "calls `Instances.set_reachable` on successful federation if `unreachable_since` is set",
-                   Instances,
-                   [:passthrough],
-                   [] do
-      actor = insert(:user)
-      inbox = "http://200.site/users/nick1/inbox"
-
-      assert {:ok, _} =
-               Publisher.publish_one(%{
-                 inbox: inbox,
-                 json: "{}",
-                 actor: actor,
-                 id: 1,
-                 unreachable_since: NaiveDateTime.utc_now()
-               })
-
-      assert called(Instances.set_reachable(inbox))
-    end
-
-    test_with_mock "does NOT call `Instances.set_reachable` on successful federation if `unreachable_since` is nil",
-                   Instances,
-                   [:passthrough],
-                   [] do
-      actor = insert(:user)
-      inbox = "http://200.site/users/nick1/inbox"
-
-      assert {:ok, _} =
-               Publisher.publish_one(%{
-                 inbox: inbox,
-                 json: "{}",
-                 actor: actor,
-                 id: 1,
-                 unreachable_since: nil
-               })
-
-      refute called(Instances.set_reachable(inbox))
-    end
-
-    test_with_mock "calls `Instances.set_unreachable` on target inbox on non-2xx HTTP response code",
-                   Instances,
-                   [:passthrough],
-                   [] do
-      actor = insert(:user)
-      inbox = "http://404.site/users/nick1/inbox"
-
-      assert {:error, _} = Publisher.publish_one(%{inbox: inbox, json: "{}", actor: actor, id: 1})
-
-      assert called(Instances.set_unreachable(inbox))
-    end
-
-    test_with_mock "it calls `Instances.set_unreachable` on target inbox on request error of any kind",
-                   Instances,
-                   [:passthrough],
-                   [] do
-      actor = insert(:user)
-      inbox = "http://connrefused.site/users/nick1/inbox"
-
-      assert {:error, _} = Publisher.publish_one(%{inbox: inbox, json: "{}", actor: actor, id: 1})
-
-      assert called(Instances.set_unreachable(inbox))
-    end
-
-    test_with_mock "does NOT call `Instances.set_unreachable` if target is reachable",
-                   Instances,
-                   [:passthrough],
-                   [] do
-      actor = insert(:user)
-      inbox = "http://200.site/users/nick1/inbox"
-
-      assert {:ok, _} = Publisher.publish_one(%{inbox: inbox, json: "{}", actor: actor, id: 1})
-
-      refute called(Instances.set_unreachable(inbox))
-    end
-
-    test_with_mock "does NOT call `Instances.set_unreachable` if target instance has non-nil `unreachable_since`",
-                   Instances,
-                   [:passthrough],
-                   [] do
-      actor = insert(:user)
-      inbox = "http://connrefused.site/users/nick1/inbox"
-
-      assert {:error, _} =
-               Publisher.publish_one(%{
-                 inbox: inbox,
-                 json: "{}",
-                 actor: actor,
-                 id: 1,
-                 unreachable_since: NaiveDateTime.utc_now()
-               })
-
-      refute called(Instances.set_unreachable(inbox))
-    end
-  end
-
   test "fetch_activities/2 returns activities addressed to a list " do
     user = insert(:user)
     member = insert(:user)
@@ -1235,6 +1120,67 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
 
       [result] = ActivityPub.fetch_activities_bounded([], [user.follower_address])
       assert result.id == activity.id
+    end
+  end
+
+  describe "fetch_follow_information_for_user" do
+    test "syncronizes following/followers counters" do
+      user =
+        insert(:user,
+          local: false,
+          follower_address: "http://localhost:4001/users/fuser2/followers",
+          following_address: "http://localhost:4001/users/fuser2/following"
+        )
+
+      {:ok, info} = ActivityPub.fetch_follow_information_for_user(user)
+      assert info.follower_count == 527
+      assert info.following_count == 267
+    end
+
+    test "detects hidden followers" do
+      mock(fn env ->
+        case env.url do
+          "http://localhost:4001/users/masto_closed/followers?page=1" ->
+            %Tesla.Env{status: 403, body: ""}
+
+          _ ->
+            apply(HttpRequestMock, :request, [env])
+        end
+      end)
+
+      user =
+        insert(:user,
+          local: false,
+          follower_address: "http://localhost:4001/users/masto_closed/followers",
+          following_address: "http://localhost:4001/users/masto_closed/following"
+        )
+
+      {:ok, info} = ActivityPub.fetch_follow_information_for_user(user)
+      assert info.hide_followers == true
+      assert info.hide_follows == false
+    end
+
+    test "detects hidden follows" do
+      mock(fn env ->
+        case env.url do
+          "http://localhost:4001/users/masto_closed/following?page=1" ->
+            %Tesla.Env{status: 403, body: ""}
+
+          _ ->
+            apply(HttpRequestMock, :request, [env])
+        end
+      end)
+
+      user =
+        insert(:user,
+          local: false,
+          follower_address: "http://localhost:4001/users/masto_closed/followers",
+          following_address: "http://localhost:4001/users/masto_closed/following"
+        )
+
+      {:ok, info} = ActivityPub.fetch_follow_information_for_user(user)
+      assert info.hide_followers == false
+      assert info.hide_follows == true
     end
   end
 end

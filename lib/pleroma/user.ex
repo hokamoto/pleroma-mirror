@@ -121,7 +121,9 @@ defmodule Pleroma.User do
 
   def user_info(%User{} = user, args \\ %{}) do
     following_count =
-      if args[:following_count], do: args[:following_count], else: following_count(user)
+      if args[:following_count],
+        do: args[:following_count],
+        else: user.info.following_count || following_count(user)
 
     follower_count =
       if args[:follower_count], do: args[:follower_count], else: user.info.follower_count
@@ -233,6 +235,7 @@ defmodule Pleroma.User do
     |> put_password_hash
   end
 
+  @spec reset_password(User.t(), map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def reset_password(%User{id: user_id} = user, data) do
     multi =
       Multi.new()
@@ -337,6 +340,7 @@ defmodule Pleroma.User do
 
   def needs_update?(_), do: true
 
+  @spec maybe_direct_follow(User.t(), User.t()) :: {:ok, User.t()} | {:error, String.t()}
   def maybe_direct_follow(%User{} = follower, %User{local: true, info: %{locked: true}}) do
     {:ok, follower}
   end
@@ -411,6 +415,8 @@ defmodule Pleroma.User do
 
         {1, [follower]} = Repo.update_all(q, [])
 
+        follower = maybe_update_following_count(follower)
+
         {:ok, _} = update_follower_count(followed)
 
         set_cache(follower)
@@ -429,6 +435,8 @@ defmodule Pleroma.User do
         )
 
       {1, [follower]} = Repo.update_all(q, [])
+
+      follower = maybe_update_following_count(follower)
 
       {:ok, followed} = update_follower_count(followed)
 
@@ -478,7 +486,7 @@ defmodule Pleroma.User do
   end
 
   def update_and_set_cache(changeset) do
-    with {:ok, user} <- Repo.update(changeset) do
+    with {:ok, user} <- Repo.update(changeset, stale_error_field: :id) do
       set_cache(user)
     else
       e -> e
@@ -594,8 +602,19 @@ defmodule Pleroma.User do
   @spec get_followers_query(User.t()) :: Ecto.Query.t()
   def get_followers_query(user), do: get_followers_query(user, nil)
 
+  @spec get_followers(User.t(), pos_integer()) :: {:ok, list(User.t())}
   def get_followers(user, page \\ nil) do
     q = get_followers_query(user, page)
+
+    {:ok, Repo.all(q)}
+  end
+
+  @spec get_external_followers(User.t(), pos_integer()) :: {:ok, list(User.t())}
+  def get_external_followers(user, page \\ nil) do
+    q =
+      user
+      |> get_followers_query(page)
+      |> User.Query.build(%{external: true})
 
     {:ok, Repo.all(q)}
   end
@@ -704,31 +723,72 @@ defmodule Pleroma.User do
     |> update_and_set_cache()
   end
 
-  def update_follower_count(%User{} = user) do
-    follower_count_query =
-      User.Query.build(%{followers: user, deactivated: false})
-      |> select([u], %{count: count(u.id)})
+  def maybe_fetch_follow_information(user) do
+    with {:ok, user} <- fetch_follow_information(user) do
+      user
+    else
+      e ->
+        Logger.error("Follower/Following counter update for #{user.ap_id} failed.\n#{inspect(e)}")
 
-    User
-    |> where(id: ^user.id)
-    |> join(:inner, [u], s in subquery(follower_count_query))
-    |> update([u, s],
-      set: [
-        info:
-          fragment(
-            "jsonb_set(?, '{follower_count}', ?::varchar::jsonb, true)",
-            u.info,
-            s.count
-          )
-      ]
-    )
-    |> select([u], u)
-    |> Repo.update_all([])
-    |> case do
-      {1, [user]} -> set_cache(user)
-      _ -> {:error, user}
+        user
     end
   end
+
+  def fetch_follow_information(user) do
+    with {:ok, info} <- ActivityPub.fetch_follow_information_for_user(user) do
+      info_cng = User.Info.follow_information_update(user.info, info)
+
+      changeset =
+        user
+        |> change()
+        |> put_embed(:info, info_cng)
+
+      update_and_set_cache(changeset)
+    else
+      {:error, _} = e -> e
+      e -> {:error, e}
+    end
+  end
+
+  def update_follower_count(%User{} = user) do
+    if user.local or !Pleroma.Config.get([:instance, :external_user_synchronization]) do
+      follower_count_query =
+        User.Query.build(%{followers: user, deactivated: false})
+        |> select([u], %{count: count(u.id)})
+
+      User
+      |> where(id: ^user.id)
+      |> join(:inner, [u], s in subquery(follower_count_query))
+      |> update([u, s],
+        set: [
+          info:
+            fragment(
+              "jsonb_set(?, '{follower_count}', ?::varchar::jsonb, true)",
+              u.info,
+              s.count
+            )
+        ]
+      )
+      |> select([u], u)
+      |> Repo.update_all([])
+      |> case do
+        {1, [user]} -> set_cache(user)
+        _ -> {:error, user}
+      end
+    else
+      {:ok, maybe_fetch_follow_information(user)}
+    end
+  end
+
+  def maybe_update_following_count(%User{local: false} = user) do
+    if Pleroma.Config.get([:instance, :external_user_synchronization]) do
+      {:ok, maybe_fetch_follow_information(user)}
+    else
+      user
+    end
+  end
+
+  def maybe_update_following_count(user), do: user
 
   def remove_duplicated_following(%User{following: following} = user) do
     uniq_following = Enum.uniq(following)
@@ -879,16 +939,25 @@ defmodule Pleroma.User do
   def muted_notifications?(user, %{ap_id: ap_id}),
     do: Enum.member?(user.info.muted_notifications, ap_id)
 
-  def blocks?(%User{info: info} = _user, %{ap_id: ap_id}) do
-    blocks = info.blocks
-
-    domain_blocks = Pleroma.Web.ActivityPub.MRF.subdomains_regex(info.domain_blocks)
-
-    %{host: host} = URI.parse(ap_id)
-
-    Enum.member?(blocks, ap_id) ||
-      Pleroma.Web.ActivityPub.MRF.subdomain_match?(domain_blocks, host)
+  def blocks?(%User{} = user, %User{} = target) do
+    blocks_ap_id?(user, target) || blocks_domain?(user, target)
   end
+
+  def blocks?(nil, _), do: false
+
+  def blocks_ap_id?(%User{} = user, %User{} = target) do
+    Enum.member?(user.info.blocks, target.ap_id)
+  end
+
+  def blocks_ap_id?(_, _), do: false
+
+  def blocks_domain?(%User{} = user, %User{} = target) do
+    domain_blocks = Pleroma.Web.ActivityPub.MRF.subdomains_regex(user.info.domain_blocks)
+    %{host: host} = URI.parse(target.ap_id)
+    Pleroma.Web.ActivityPub.MRF.subdomain_match?(domain_blocks, host)
+  end
+
+  def blocks_domain?(_, _), do: false
 
   def subscribed_to?(user, %{ap_id: ap_id}) do
     with %User{} = target <- get_cached_by_ap_id(ap_id) do

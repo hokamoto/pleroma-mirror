@@ -83,6 +83,25 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     end
   end
 
+  def list_user_statuses(conn, %{"nickname" => nickname} = params) do
+    godmode = params["godmode"] == "true" || params["godmode"] == true
+
+    with %User{} = user <- User.get_cached_by_nickname_or_id(nickname) do
+      {_, page_size} = page_params(params)
+
+      activities =
+        ActivityPub.fetch_user_activities(user, nil, %{
+          "limit" => page_size,
+          "godmode" => godmode
+        })
+
+      conn
+      |> json(StatusView.render("index.json", %{activities: activities, as: :activity}))
+    else
+      _ -> {:error, :not_found}
+    end
+  end
+
   def user_toggle_activation(conn, %{"nickname" => nickname}) do
     user = User.get_cached_by_nickname(nickname)
 
@@ -373,6 +392,16 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     end
   end
 
+  def migrate_to_db(conn, _params) do
+    Mix.Tasks.Pleroma.Config.run(["migrate_to_db"])
+    json(conn, %{})
+  end
+
+  def migrate_from_db(conn, _params) do
+    Mix.Tasks.Pleroma.Config.run(["migrate_from_db", Pleroma.Config.get(:env), "true"])
+    json(conn, %{})
+  end
+
   def config_show(conn, _params) do
     configs = Pleroma.Repo.all(Config)
 
@@ -386,9 +415,9 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
       if Pleroma.Config.get([:instance, :dynamic_configuration]) do
         updated =
           Enum.map(configs, fn
-            %{"group" => group, "key" => key, "delete" => "true"} ->
-              {:ok, _} = Config.delete(%{group: group, key: key})
-              nil
+            %{"group" => group, "key" => key, "delete" => "true"} = params ->
+              {:ok, config} = Config.delete(%{group: group, key: key, subkeys: params["subkeys"]})
+              config
 
             %{"group" => group, "key" => key, "value" => value} ->
               {:ok, config} = Config.update_or_create(%{group: group, key: key, value: value})

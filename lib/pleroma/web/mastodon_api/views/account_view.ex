@@ -28,7 +28,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       id: to_string(user.id),
       acct: user.nickname,
       username: username_from_nickname(user.nickname),
-      url: user.ap_id
+      url: User.profile_url(user)
     }
   end
 
@@ -50,13 +50,13 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       id: to_string(target.id),
       following: User.following?(user, target),
       followed_by: User.following?(target, user),
-      blocking: User.blocks?(user, target),
-      blocked_by: User.blocks?(target, user),
+      blocking: User.blocks_ap_id?(user, target),
+      blocked_by: User.blocks_ap_id?(target, user),
       muting: User.mutes?(user, target),
       muting_notifications: User.muted_notifications?(user, target),
       subscribing: User.subscribed_to?(user, target),
       requested: requested,
-      domain_blocking: false,
+      domain_blocking: User.blocks_domain?(user, target),
       showing_reblogs: User.showing_reblogs?(user, target),
       endorsed: false
     }
@@ -106,7 +106,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       following_count: user_info.following_count,
       statuses_count: user_info.note_count,
       note: bio || "",
-      url: user.ap_id,
+      url: User.profile_url(user),
       avatar: image,
       avatar_static: image,
       header: header,
