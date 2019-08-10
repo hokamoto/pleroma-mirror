@@ -39,12 +39,12 @@ defmodule Pleroma.Uploaders.S3 do
     config = Config.get([__MODULE__])
     bucket = Keyword.get(config, :bucket)
 
-    {:ok, file_data} = File.read(upload.tempfile)
-
     s3_name = strict_encode(upload.path)
 
     op =
-      ExAws.S3.put_object(bucket, s3_name, file_data, [
+      upload.tempfile
+      |> ExAws.S3.Upload.stream_file()
+      |> ExAws.S3.upload(bucket, s3_name, [
         {:acl, :public_read},
         {:content_type, upload.content_type}
       ])

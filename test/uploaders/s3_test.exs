@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Uploaders.S3Test do
   use Pleroma.DataCase
+
   alias Pleroma.Config
   alias Pleroma.Uploaders.S3
 
@@ -63,9 +64,9 @@ defmodule Pleroma.Uploaders.S3Test do
   describe "put_file/1" do
     setup do
       file_upload = %Pleroma.Upload{
-        name: "image.jpg",
+        name: "image-tet.jpg",
         content_type: "image/jpg",
-        path: "test_folder/image.jpg",
+        path: "test_folder/image-tet.jpg",
         tempfile: Path.absname("test/fixtures/image_tmp.jpg")
       }
 
@@ -74,7 +75,7 @@ defmodule Pleroma.Uploaders.S3Test do
 
     test "save file", %{file_upload: file_upload} do
       with_mock ExAws, request: fn _ -> {:ok, :ok} end do
-        assert S3.put_file(file_upload) == {:ok, {:file, "test_folder/image.jpg"}}
+        assert S3.put_file(file_upload) == {:ok, {:file, "test_folder/image-tet.jpg"}}
       end
     end
 
