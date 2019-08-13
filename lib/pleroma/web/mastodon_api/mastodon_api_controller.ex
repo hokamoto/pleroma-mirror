@@ -1696,7 +1696,8 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
           data
           |> Enum.slice(0, limit)
           |> Enum.map(fn x ->
-            Map.put(x, "id", fetch_suggestion_id(x))
+            x
+            |> Map.put("id", fetch_suggestion_id(x))
             |> Map.put("avatar", MediaProxy.url(x["avatar"]))
             |> Map.put("avatar_static", MediaProxy.url(x["avatar_static"]))
           end)
