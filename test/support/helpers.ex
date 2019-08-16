@@ -9,10 +9,7 @@ defmodule Pleroma.Tests.Helpers do
 
   defmacro clear_config(config_path) do
     quote do
-      setup do
-        initial_setting = Pleroma.Config.get(unquote(config_path))
-        on_exit(fn -> Pleroma.Config.put(unquote(config_path), initial_setting) end)
-        :ok
+      clear_config(unquote(config_path)) do
       end
     end
   end
@@ -30,10 +27,7 @@ defmodule Pleroma.Tests.Helpers do
 
   defmacro clear_config_all(config_path) do
     quote do
-      setup_all do
-        initial_setting = Pleroma.Config.get(unquote(config_path))
-        on_exit(fn -> Pleroma.Config.put(unquote(config_path), initial_setting) end)
-        :ok
+      clear_config_all(unquote(config_path)) do
       end
     end
   end
