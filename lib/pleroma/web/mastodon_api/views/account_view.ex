@@ -37,11 +37,11 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   end
 
   def render("relationship.json", %{user: %User{} = user, target: %User{} = target}) do
-    follow_activity = Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(user, target)
+    follow_state = User.get_cached_follow_state(user, target)
 
     requested =
-      if follow_activity && !User.following?(target, user) do
-        follow_activity.data["state"] == "pending"
+      if follow_state && !User.following?(user, target) do
+        follow_state == "pending"
       else
         false
       end
@@ -72,6 +72,13 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     image = User.avatar_url(user) |> MediaProxy.url()
     header = User.banner_url(user) |> MediaProxy.url()
     user_info = User.get_cached_user_info(user)
+
+    following_count =
+      ((!user.info.hide_follows or opts[:for] == user) && user_info.following_count) || 0
+
+    followers_count =
+      ((!user.info.hide_followers or opts[:for] == user) && user_info.follower_count) || 0
+
     bot = (user.info.source_data["type"] || "Person") in ["Application", "Service"]
 
     emojis =
@@ -102,8 +109,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       display_name: display_name,
       locked: user_info.locked,
       created_at: Utils.to_masto_date(user.inserted_at),
-      followers_count: user_info.follower_count,
-      following_count: user_info.following_count,
+      followers_count: followers_count,
+      following_count: following_count,
       statuses_count: user_info.note_count,
       note: bio || "",
       url: User.profile_url(user),
