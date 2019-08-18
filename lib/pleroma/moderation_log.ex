@@ -12,25 +12,30 @@ defmodule Pleroma.ModerationLog do
     timestamps()
   end
 
-  @spec log_user_delete(actor :: User.t(), subject :: User.t()) :: {:ok, User.t()} | {:error, any}
-  def log_user_delete(%User{id: user_id}, %User{id: subject_id}) do
+  @spec insert_log(
+          subject_type :: String.t(),
+          action :: String.t(),
+          actor :: User.t(),
+          subject :: User.t()
+        ) :: {:ok, User.t()} | {:error, any}
+  def insert_log(subject_type, action, %User{id: user_id}, %User{id: subject_id}) do
     Repo.insert(%ModerationLog{
       user_id: user_id,
       data: %{
-        subject_type: "user",
+        subject_type: subject_type,
         subject_id: subject_id,
-        action: "delete"
+        action: action
       }
     })
   end
 
-  @spec log_entry(
+  @spec get_log_entry(
           subject_type :: String.t(),
           action :: String.t(),
           actor :: User.t(),
           subject :: User.t()
         ) :: String.t()
-  def log_entry(
+  def get_log_entry(
         "user",
         action,
         %User{nickname: actor_nickname},

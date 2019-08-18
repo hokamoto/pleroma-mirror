@@ -20,10 +20,10 @@ defmodule Pleroma.ModerationLogTest do
 
     test "logging user deletion by moderator", %{moderator: moderator, subject: subject} do
       {:ok, %{data: %{subject_type: subject_type, action: action}}} =
-        ModerationLog.log_user_delete(moderator, subject)
+        ModerationLog.insert_log("user", "delete", moderator, subject)
 
       log_entry =
-        ModerationLog.log_entry(
+        ModerationLog.get_log_entry(
           subject_type,
           action,
           moderator,
