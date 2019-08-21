@@ -5,6 +5,7 @@
 defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   use Pleroma.Web, :controller
   alias Pleroma.Activity
+  alias Pleroma.ModerationLog
   alias Pleroma.User
   alias Pleroma.UserInviteToken
   alias Pleroma.Web.ActivityPub.ActivityPub
@@ -25,28 +26,54 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
   action_fallback(:errors)
 
-  def user_delete(conn, %{"nickname" => nickname}) do
-    User.get_cached_by_nickname(nickname)
-    |> User.delete()
+  def user_delete(%{assigns: %{user: admin}} = conn, %{"nickname" => nickname}) do
+    user = User.get_cached_by_nickname(nickname)
+    User.delete(user)
+
+    ModerationLog.insert_log(%{
+      actor: admin,
+      subject: user,
+      action: "delete"
+    })
 
     conn
     |> json(nickname)
   end
 
-  def user_follow(conn, %{"follower" => follower_nick, "followed" => followed_nick}) do
+  def user_follow(%{assigns: %{user: admin}} = conn, %{
+        "follower" => follower_nick,
+        "followed" => followed_nick
+      }) do
     with %User{} = follower <- User.get_cached_by_nickname(follower_nick),
          %User{} = followed <- User.get_cached_by_nickname(followed_nick) do
       User.follow(follower, followed)
+
+      ModerationLog.insert_log(%{
+        actor: admin,
+        followed: followed,
+        follower: follower,
+        action: "follow"
+      })
     end
 
     conn
     |> json("ok")
   end
 
-  def user_unfollow(conn, %{"follower" => follower_nick, "followed" => followed_nick}) do
+  def user_unfollow(%{assigns: %{user: admin}} = conn, %{
+        "follower" => follower_nick,
+        "followed" => followed_nick
+      }) do
     with %User{} = follower <- User.get_cached_by_nickname(follower_nick),
          %User{} = followed <- User.get_cached_by_nickname(followed_nick) do
       User.unfollow(follower, followed)
+
+      ModerationLog.insert_log(%{
+        actor: admin,
+        followed: followed,
+        follower: follower,
+        action: "unfollow"
+      })
     end
 
     conn
@@ -54,7 +81,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   end
 
   def user_create(
-        conn,
+        %{assigns: %{user: admin}} = conn,
         %{"nickname" => nickname, "email" => email, "password" => password}
       ) do
     user_data = %{
@@ -68,6 +95,12 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
     changeset = User.register_changeset(%User{}, user_data, need_confirmation: false)
     {:ok, user} = User.register(changeset)
+
+    ModerationLog.insert_log(%{
+      actor: admin,
+      subject: user,
+      action: "create"
+    })
 
     conn
     |> json(user.nickname)
@@ -101,23 +134,47 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     end
   end
 
-  def user_toggle_activation(conn, %{"nickname" => nickname}) do
+  def user_toggle_activation(%{assigns: %{user: admin}} = conn, %{"nickname" => nickname}) do
     user = User.get_cached_by_nickname(nickname)
 
     {:ok, updated_user} = User.deactivate(user, !user.info.deactivated)
+
+    action = if user.info.deactivated, do: "activate", else: "deactivate"
+
+    ModerationLog.insert_log(%{
+      actor: admin,
+      subject: user,
+      action: action
+    })
 
     conn
     |> json(AccountView.render("show.json", %{user: updated_user}))
   end
 
-  def tag_users(conn, %{"nicknames" => nicknames, "tags" => tags}) do
-    with {:ok, _} <- User.tag(nicknames, tags),
-         do: json_response(conn, :no_content, "")
+  def tag_users(%{assigns: %{user: admin}} = conn, %{"nicknames" => nicknames, "tags" => tags}) do
+    with {:ok, _} <- User.tag(nicknames, tags) do
+      ModerationLog.insert_log(%{
+        actor: admin,
+        nicknames: nicknames,
+        tags: tags,
+        action: "tag"
+      })
+
+      json_response(conn, :no_content, "")
+    end
   end
 
-  def untag_users(conn, %{"nicknames" => nicknames, "tags" => tags}) do
-    with {:ok, _} <- User.untag(nicknames, tags),
-         do: json_response(conn, :no_content, "")
+  def untag_users(%{assigns: %{user: admin}} = conn, %{"nicknames" => nicknames, "tags" => tags}) do
+    with {:ok, _} <- User.untag(nicknames, tags) do
+      ModerationLog.insert_log(%{
+        actor: admin,
+        nicknames: nicknames,
+        tags: tags,
+        action: "untag"
+      })
+
+      json_response(conn, :no_content, "")
+    end
   end
 
   def list_users(conn, params) do
@@ -225,11 +282,23 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     render_error(conn, :not_found, "No such permission_group")
   end
 
-  def set_activation_status(conn, %{"nickname" => nickname, "status" => status}) do
+  def set_activation_status(%{assigns: %{user: admin}} = conn, %{
+        "nickname" => nickname,
+        "status" => status
+      }) do
     with {:ok, status} <- Ecto.Type.cast(:boolean, status),
          %User{} = user <- User.get_cached_by_nickname(nickname),
-         {:ok, _} <- User.deactivate(user, !status),
-         do: json_response(conn, :no_content, "")
+         {:ok, _} <- User.deactivate(user, !status) do
+      action = if(user.info.deactivated, do: "activate", else: "deactivate")
+
+      ModerationLog.insert_log(%{
+        actor: admin,
+        subject: user,
+        action: action
+      })
+
+      json_response(conn, :no_content, "")
+    end
   end
 
   def relay_follow(conn, %{"relay_url" => target}) do

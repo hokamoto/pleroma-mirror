@@ -13,25 +13,116 @@ defmodule Pleroma.ModerationLogTest do
     setup do
       admin = insert(:user, info: %{is_admin: true})
       moderator = insert(:user, info: %{is_moderator: true})
-      subject = insert(:user)
+      subject1 = insert(:user)
+      subject2 = insert(:user)
 
-      [admin: admin, moderator: moderator, subject: subject]
+      [admin: admin, moderator: moderator, subject1: subject1, subject2: subject2]
     end
 
-    test "logging user deletion by moderator", %{moderator: moderator, subject: subject} do
-      {:ok, %{data: %{subject_type: subject_type, action: action}}} =
-        ModerationLog.insert_log("user", "delete", moderator, subject)
+    test "logging user deletion by moderator", %{moderator: moderator, subject1: subject1} do
+      {:ok, _} =
+        ModerationLog.insert_log(%{
+          actor: moderator,
+          subject: subject1,
+          action: "delete"
+        })
 
-      log_entry =
-        ModerationLog.get_log_entry(
-          subject_type,
-          action,
-          moderator,
-          subject
-        )
+      log = Repo.one(ModerationLog)
 
-      assert log_entry.message ==
-               "@#{moderator.nickname} performed 'delete' action on user @#{subject.nickname}"
+      assert ModerationLog.get_log_entry_message(log) ==
+               "[#{log.inserted_at}] @#{moderator.nickname} deleted user @#{subject1.nickname}"
+    end
+
+    test "logging user creation by moderator", %{moderator: moderator, subject1: subject1} do
+      {:ok, _} =
+        ModerationLog.insert_log(%{
+          actor: moderator,
+          subject: subject1,
+          action: "create"
+        })
+
+      log = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log) ==
+               "[#{log.inserted_at}] @#{moderator.nickname} created user @#{subject1.nickname}"
+    end
+
+    test "logging user follow by admin", %{admin: admin, subject1: subject1, subject2: subject2} do
+      {:ok, _} =
+        ModerationLog.insert_log(%{
+          actor: admin,
+          followed: subject1,
+          follower: subject2,
+          action: "follow"
+        })
+
+      log = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log) ==
+               "[#{log.inserted_at}] @#{admin.nickname} made @#{subject2.nickname} follow @#{
+                 subject1.nickname
+               }"
+    end
+
+    test "logging user unfollow by admin", %{admin: admin, subject1: subject1, subject2: subject2} do
+      {:ok, _} =
+        ModerationLog.insert_log(%{
+          actor: admin,
+          followed: subject1,
+          follower: subject2,
+          action: "unfollow"
+        })
+
+      log = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log) ==
+               "[#{log.inserted_at}] @#{admin.nickname} made @#{subject2.nickname} unfollow @#{
+                 subject1.nickname
+               }"
+    end
+
+    test "logging user tagged by admin", %{admin: admin, subject1: subject1, subject2: subject2} do
+      {:ok, _} =
+        ModerationLog.insert_log(%{
+          actor: admin,
+          nicknames: [subject1.nickname, subject2.nickname],
+          tags: ["foo", "bar"],
+          action: "tag"
+        })
+
+      log = Repo.one(ModerationLog)
+
+      users =
+        [subject1.nickname, subject2.nickname]
+        |> Enum.map(&"@#{&1}")
+        |> Enum.join(", ")
+
+      tags = ["foo", "bar"] |> Enum.join(", ")
+
+      assert ModerationLog.get_log_entry_message(log) ==
+               "[#{log.inserted_at}] @#{admin.nickname} tagged users: #{users} with #{tags}"
+    end
+
+    test "logging user untagged by admin", %{admin: admin, subject1: subject1, subject2: subject2} do
+      {:ok, _} =
+        ModerationLog.insert_log(%{
+          actor: admin,
+          nicknames: [subject1.nickname, subject2.nickname],
+          tags: ["foo", "bar"],
+          action: "untag"
+        })
+
+      log = Repo.one(ModerationLog)
+
+      users =
+        [subject1.nickname, subject2.nickname]
+        |> Enum.map(&"@#{&1}")
+        |> Enum.join(", ")
+
+      tags = ["foo", "bar"] |> Enum.join(", ")
+
+      assert ModerationLog.get_log_entry_message(log) ==
+               "[#{log.inserted_at}] @#{admin.nickname} removed tags: #{tags} from users: #{users}"
     end
   end
 end

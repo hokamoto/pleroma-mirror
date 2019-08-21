@@ -7,6 +7,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   alias Pleroma.Activity
   alias Pleroma.HTML
+  alias Pleroma.ModerationLog
+  alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.UserInviteToken
   alias Pleroma.Web.CommonAPI
@@ -23,6 +25,14 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         |> assign(:user, admin)
         |> put_req_header("accept", "application/json")
         |> delete("/api/pleroma/admin/users?nickname=#{user.nickname}")
+
+      log_entry = Repo.one(ModerationLog)
+
+      assert log_entry.data["subject"]["nickname"] == user.nickname
+      assert log_entry.data["action"] == "delete"
+
+      assert ModerationLog.get_log_entry_message(log_entry) ==
+               "[#{log_entry.inserted_at}] @#{admin.nickname} deleted user @#{user.nickname}"
 
       assert json_response(conn, 200) == user.nickname
     end
@@ -41,6 +51,11 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         })
 
       assert json_response(conn, 200) == "lain"
+
+      log_entry = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log_entry) ==
+               "[#{log_entry.inserted_at}] @#{admin.nickname} created user @lain"
     end
   end
 
@@ -99,6 +114,13 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       follower = User.get_cached_by_id(follower.id)
 
       assert User.following?(follower, user)
+
+      log_entry = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log_entry) ==
+               "[#{log_entry.inserted_at}] @#{admin.nickname} made @#{follower.nickname} follow @#{
+                 user.nickname
+               }"
     end
   end
 
@@ -122,6 +144,13 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       follower = User.get_cached_by_id(follower.id)
 
       refute User.following?(follower, user)
+
+      log_entry = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log_entry) ==
+               "[#{log_entry.inserted_at}] @#{admin.nickname} made @#{follower.nickname} unfollow @#{
+                 user.nickname
+               }"
     end
   end
 
@@ -142,17 +171,30 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
           }&tags[]=foo&tags[]=bar"
         )
 
-      %{conn: conn, user1: user1, user2: user2, user3: user3}
+      %{conn: conn, admin: admin, user1: user1, user2: user2, user3: user3}
     end
 
     test "it appends specified tags to users with specified nicknames", %{
       conn: conn,
+      admin: admin,
       user1: user1,
       user2: user2
     } do
       assert json_response(conn, :no_content)
       assert User.get_cached_by_id(user1.id).tags == ["x", "foo", "bar"]
       assert User.get_cached_by_id(user2.id).tags == ["y", "foo", "bar"]
+
+      log_entry = Repo.one(ModerationLog)
+
+      users =
+        [user1.nickname, user2.nickname]
+        |> Enum.map(&"@#{&1}")
+        |> Enum.join(", ")
+
+      tags = ["foo", "bar"] |> Enum.join(", ")
+
+      assert ModerationLog.get_log_entry_message(log_entry) ==
+               "[#{log_entry.inserted_at}] @#{admin.nickname} tagged users: #{users} with #{tags}"
     end
 
     test "it does not modify tags of not specified users", %{conn: conn, user3: user3} do
@@ -178,17 +220,32 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
           }&tags[]=x&tags[]=z"
         )
 
-      %{conn: conn, user1: user1, user2: user2, user3: user3}
+      %{conn: conn, admin: admin, user1: user1, user2: user2, user3: user3}
     end
 
     test "it removes specified tags from users with specified nicknames", %{
       conn: conn,
+      admin: admin,
       user1: user1,
       user2: user2
     } do
       assert json_response(conn, :no_content)
       assert User.get_cached_by_id(user1.id).tags == []
       assert User.get_cached_by_id(user2.id).tags == ["y"]
+
+      log_entry = Repo.one(ModerationLog)
+
+      users =
+        [user1.nickname, user2.nickname]
+        |> Enum.map(&"@#{&1}")
+        |> Enum.join(", ")
+
+      tags = ["x", "z"] |> Enum.join(", ")
+
+      assert ModerationLog.get_log_entry_message(log_entry) ==
+               "[#{log_entry.inserted_at}] @#{admin.nickname} removed tags: #{tags} from users: #{
+                 users
+               }"
     end
 
     test "it does not modify tags of not specified users", %{conn: conn, user3: user3} do
@@ -253,10 +310,10 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         |> assign(:user, admin)
         |> put_req_header("accept", "application/json")
 
-      %{conn: conn}
+      %{conn: conn, admin: admin}
     end
 
-    test "deactivates the user", %{conn: conn} do
+    test "deactivates the user", %{conn: conn, admin: admin} do
       user = insert(:user)
 
       conn =
@@ -266,9 +323,14 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       user = User.get_cached_by_id(user.id)
       assert user.info.deactivated == true
       assert json_response(conn, :no_content)
+
+      log_entry = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log_entry) ==
+               "[#{log_entry.inserted_at}] @#{admin.nickname} deactivated user @#{user.nickname}"
     end
 
-    test "activates the user", %{conn: conn} do
+    test "activates the user", %{conn: conn, admin: admin} do
       user = insert(:user, info: %{deactivated: true})
 
       conn =
@@ -278,6 +340,11 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       user = User.get_cached_by_id(user.id)
       assert user.info.deactivated == false
       assert json_response(conn, :no_content)
+
+      log_entry = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log_entry) ==
+               "[#{log_entry.inserted_at}] @#{admin.nickname} activated user @#{user.nickname}"
     end
 
     test "returns 403 when requested by a non-admin", %{conn: conn} do
@@ -884,6 +951,11 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                "avatar" => User.avatar_url(user) |> MediaProxy.url(),
                "display_name" => HTML.strip_tags(user.name || user.nickname)
              }
+
+    log_entry = Repo.one(ModerationLog)
+
+    assert ModerationLog.get_log_entry_message(log_entry) ==
+             "[#{log_entry.inserted_at}] @#{admin.nickname} deactivated user @#{user.nickname}"
   end
 
   describe "GET /api/pleroma/admin/users/invite_token" do
