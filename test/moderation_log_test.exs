@@ -30,7 +30,7 @@ defmodule Pleroma.ModerationLogTest do
           subject
         )
 
-      assert log_entry ==
+      assert log_entry.message ==
                "@#{moderator.nickname} performed 'delete' action on user @#{subject.nickname}"
     end
   end

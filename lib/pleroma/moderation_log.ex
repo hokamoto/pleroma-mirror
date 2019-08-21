@@ -38,9 +38,14 @@ defmodule Pleroma.ModerationLog do
   def get_log_entry(
         "user",
         action,
-        %User{nickname: actor_nickname},
-        %User{nickname: subject_nickname}
+        %User{nickname: actor_nickname} = actor,
+        %User{nickname: subject_nickname} = subject
       ) do
-    "@#{actor_nickname} performed '#{action}' action on user @#{subject_nickname}"
+    %{
+      actor: actor,
+      action: action,
+      subject: subject,
+      message: "@#{actor_nickname} performed '#{action}' action on user @#{subject_nickname}"
+    }
   end
 end
