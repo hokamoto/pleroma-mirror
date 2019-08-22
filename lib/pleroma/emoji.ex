@@ -81,10 +81,11 @@ defmodule Pleroma.Emoji do
 
   defp load do
     emoji_dir_path =
-      Path.join(
-        Pleroma.Config.get!([:instance, :static_dir]),
-        "emoji"
-      )
+      Path.join([
+        :code.priv_dir(:pleroma),
+        "static",
+        "emoji-packs"
+      ])
 
     emoji_groups = Pleroma.Config.get([:emoji, :groups])
 

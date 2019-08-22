@@ -26,7 +26,7 @@ defmodule Mix.Tasks.Pleroma.Emoji do
       mix pleroma.emoji get-packs [OPTION...] PACKS
 
   Fetches, verifies and installs the specified PACKS from the
-  manifest into the `STATIC-DIR/emoji/PACK-NAME`
+  manifest into the `/priv/static/emoji-packs/PACK-NAME`
 
   ### Options
 
@@ -141,8 +141,9 @@ defmodule Mix.Tasks.Pleroma.Emoji do
 
         pack_path =
           Path.join([
-            Pleroma.Config.get!([:instance, :static_dir]),
-            "emoji",
+            :code.priv_dir(:pleroma),
+            "static",
+            "emoji-packs"
             pack_name
           ])
 
