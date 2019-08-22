@@ -194,7 +194,9 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       tags = ["foo", "bar"] |> Enum.join(", ")
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} tagged users: #{users} with #{tags}"
+               "[#{log_entry.inserted_at}] @#{admin.nickname} added tags: #{tags} to users: #{
+                 users
+               }"
     end
 
     test "it does not modify tags of not specified users", %{conn: conn, user3: user3} do
@@ -283,6 +285,11 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       assert json_response(conn, 200) == %{
                "is_admin" => true
              }
+
+      log_entry = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log_entry) ==
+               "[#{log_entry.inserted_at}] @#{admin.nickname} made @#{user.nickname} admin"
     end
 
     test "/:right DELETE, can remove from a permission group" do
@@ -298,6 +305,13 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       assert json_response(conn, 200) == %{
                "is_admin" => false
              }
+
+      log_entry = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log_entry) ==
+               "[#{log_entry.inserted_at}] @#{admin.nickname} revoked admin role from @#{
+                 user.nickname
+               }"
     end
   end
 
@@ -1141,25 +1155,35 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
           "status_ids" => [activity.id]
         })
 
-      %{conn: assign(conn, :user, admin), id: report_id}
+      %{conn: assign(conn, :user, admin), id: report_id, admin: admin}
     end
 
-    test "mark report as resolved", %{conn: conn, id: id} do
+    test "mark report as resolved", %{conn: conn, id: id, admin: admin} do
       response =
         conn
         |> put("/api/pleroma/admin/reports/#{id}", %{"state" => "resolved"})
         |> json_response(:ok)
 
       assert response["state"] == "resolved"
+
+      log_entry = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log_entry) ==
+               "[#{log_entry.inserted_at}] @#{admin.nickname} updated report ##{id} with 'resolved' state"
     end
 
-    test "closes report", %{conn: conn, id: id} do
+    test "closes report", %{conn: conn, id: id, admin: admin} do
       response =
         conn
         |> put("/api/pleroma/admin/reports/#{id}", %{"state" => "closed"})
         |> json_response(:ok)
 
       assert response["state"] == "closed"
+
+      log_entry = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log_entry) ==
+               "[#{log_entry.inserted_at}] @#{admin.nickname} updated report ##{id} with 'closed' state"
     end
 
     test "returns 400 when state is unknown", %{conn: conn, id: id} do
@@ -1290,14 +1314,15 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
   end
 
+  #
   describe "POST /api/pleroma/admin/reports/:id/respond" do
     setup %{conn: conn} do
       admin = insert(:user, info: %{is_admin: true})
 
-      %{conn: assign(conn, :user, admin)}
+      %{conn: assign(conn, :user, admin), admin: admin}
     end
 
-    test "returns created dm", %{conn: conn} do
+    test "returns created dm", %{conn: conn, admin: admin} do
       [reporter, target_user] = insert_pair(:user)
       activity = insert(:note_activity, user: target_user)
 
@@ -1320,6 +1345,13 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       assert reporter.nickname in recipients
       assert response["content"] == "I will check it out"
       assert response["visibility"] == "direct"
+
+      log_entry = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log_entry) ==
+               "[#{log_entry.inserted_at}] @#{admin.nickname} responded with 'I will check it out' to report ##{
+                 response["id"]
+               }"
     end
 
     test "returns 400 when status is missing", %{conn: conn} do
@@ -1343,16 +1375,21 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       admin = insert(:user, info: %{is_admin: true})
       activity = insert(:note_activity)
 
-      %{conn: assign(conn, :user, admin), id: activity.id}
+      %{conn: assign(conn, :user, admin), id: activity.id, admin: admin}
     end
 
-    test "toggle sensitive flag", %{conn: conn, id: id} do
+    test "toggle sensitive flag", %{conn: conn, id: id, admin: admin} do
       response =
         conn
         |> put("/api/pleroma/admin/statuses/#{id}", %{"sensitive" => "true"})
         |> json_response(:ok)
 
       assert response["sensitive"]
+
+      log_entry = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log_entry) ==
+               "[#{log_entry.inserted_at}] @#{admin.nickname} updated status ##{id}, set sensitive: 'true'"
 
       response =
         conn
@@ -1362,13 +1399,18 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       refute response["sensitive"]
     end
 
-    test "change visibility flag", %{conn: conn, id: id} do
+    test "change visibility flag", %{conn: conn, id: id, admin: admin} do
       response =
         conn
         |> put("/api/pleroma/admin/statuses/#{id}", %{"visibility" => "public"})
         |> json_response(:ok)
 
       assert response["visibility"] == "public"
+
+      log_entry = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log_entry) ==
+               "[#{log_entry.inserted_at}] @#{admin.nickname} updated status ##{id}, set visibility: 'public'"
 
       response =
         conn
@@ -1399,15 +1441,20 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       admin = insert(:user, info: %{is_admin: true})
       activity = insert(:note_activity)
 
-      %{conn: assign(conn, :user, admin), id: activity.id}
+      %{conn: assign(conn, :user, admin), id: activity.id, admin: admin}
     end
 
-    test "deletes status", %{conn: conn, id: id} do
+    test "deletes status", %{conn: conn, id: id, admin: admin} do
       conn
       |> delete("/api/pleroma/admin/statuses/#{id}")
       |> json_response(:ok)
 
       refute Activity.get_by_id(id)
+
+      log_entry = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log_entry) ==
+               "[#{log_entry.inserted_at}] @#{admin.nickname} deleted status ##{id}"
     end
 
     test "returns error when status is not exist", %{conn: conn} do

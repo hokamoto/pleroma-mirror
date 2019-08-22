@@ -215,7 +215,10 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     |> Enum.into(%{}, &{&1, true})
   end
 
-  def right_add(conn, %{"permission_group" => permission_group, "nickname" => nickname})
+  def right_add(%{assigns: %{user: admin}} = conn, %{
+        "permission_group" => permission_group,
+        "nickname" => nickname
+      })
       when permission_group in ["moderator", "admin"] do
     user = User.get_cached_by_nickname(nickname)
 
@@ -229,6 +232,13 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
       user
       |> Ecto.Changeset.change()
       |> Ecto.Changeset.put_embed(:info, info_cng)
+
+    ModerationLog.insert_log(%{
+      action: "grant",
+      actor: admin,
+      subject: user,
+      permission: permission_group
+    })
 
     {:ok, _user} = User.update_and_set_cache(cng)
 
@@ -250,7 +260,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   end
 
   def right_delete(
-        %{assigns: %{user: %User{:nickname => admin_nickname}}} = conn,
+        %{assigns: %{user: %User{:nickname => admin_nickname} = admin}} = conn,
         %{
           "permission_group" => permission_group,
           "nickname" => nickname
@@ -273,6 +283,13 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
         |> Ecto.Changeset.put_embed(:info, info_cng)
 
       {:ok, _user} = User.update_and_set_cache(cng)
+
+      ModerationLog.insert_log(%{
+        action: "revoke",
+        actor: admin,
+        subject: user,
+        permission: permission_group
+      })
 
       json(conn, info)
     end
@@ -301,8 +318,14 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     end
   end
 
-  def relay_follow(conn, %{"relay_url" => target}) do
+  def relay_follow(%{assigns: %{user: admin}} = conn, %{"relay_url" => target}) do
     with {:ok, _message} <- Relay.follow(target) do
+      ModerationLog.insert_log(%{
+        action: "relay_follow",
+        actor: admin,
+        target: target
+      })
+
       json(conn, target)
     else
       _ ->
@@ -312,8 +335,14 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     end
   end
 
-  def relay_unfollow(conn, %{"relay_url" => target}) do
+  def relay_unfollow(%{assigns: %{user: admin}} = conn, %{"relay_url" => target}) do
     with {:ok, _message} <- Relay.unfollow(target) do
+      ModerationLog.insert_log(%{
+        action: "relay_unfollow",
+        actor: admin,
+        target: target
+      })
+
       json(conn, target)
     else
       _ ->
@@ -404,8 +433,14 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     end
   end
 
-  def report_update_state(conn, %{"id" => id, "state" => state}) do
+  def report_update_state(%{assigns: %{user: admin}} = conn, %{"id" => id, "state" => state}) do
     with {:ok, report} <- CommonAPI.update_report_state(id, state) do
+      ModerationLog.insert_log(%{
+        action: "report_update",
+        actor: admin,
+        subject: report
+      })
+
       conn
       |> put_view(ReportView)
       |> render("show.json", %{report: report})
@@ -422,6 +457,13 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
       {:ok, activity} = CommonAPI.post(user, params)
 
+      ModerationLog.insert_log(%{
+        action: "report_response",
+        actor: user,
+        subject: activity,
+        text: params["status"]
+      })
+
       conn
       |> put_view(StatusView)
       |> render("status.json", %{activity: activity})
@@ -434,8 +476,18 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     end
   end
 
-  def status_update(conn, %{"id" => id} = params) do
+  def status_update(%{assigns: %{user: admin}} = conn, %{"id" => id} = params) do
     with {:ok, activity} <- CommonAPI.update_activity_scope(id, params) do
+      {:ok, sensitive} = Ecto.Type.cast(:boolean, params["sensitive"])
+
+      ModerationLog.insert_log(%{
+        action: "status_update",
+        actor: admin,
+        subject: activity,
+        sensitive: sensitive,
+        visibility: params["visibility"]
+      })
+
       conn
       |> put_view(StatusView)
       |> render("status.json", %{activity: activity})
@@ -444,6 +496,12 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
   def status_delete(%{assigns: %{user: user}} = conn, %{"id" => id}) do
     with {:ok, %Activity{}} <- CommonAPI.delete(id, user) do
+      ModerationLog.insert_log(%{
+        action: "status_delete",
+        actor: user,
+        subject_id: id
+      })
+
       json(conn, %{})
     end
   end

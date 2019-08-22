@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.ModerationLogTest do
+  alias Pleroma.Activity
   alias Pleroma.ModerationLog
 
   use Pleroma.DataCase
@@ -100,7 +101,7 @@ defmodule Pleroma.ModerationLogTest do
       tags = ["foo", "bar"] |> Enum.join(", ")
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{admin.nickname} tagged users: #{users} with #{tags}"
+               "[#{log.inserted_at}] @#{admin.nickname} added tags: #{tags} to users: #{users}"
     end
 
     test "logging user untagged by admin", %{admin: admin, subject1: subject1, subject2: subject2} do
@@ -123,6 +124,182 @@ defmodule Pleroma.ModerationLogTest do
 
       assert ModerationLog.get_log_entry_message(log) ==
                "[#{log.inserted_at}] @#{admin.nickname} removed tags: #{tags} from users: #{users}"
+    end
+
+    test "logging user grant by moderator", %{moderator: moderator, subject1: subject1} do
+      {:ok, _} =
+        ModerationLog.insert_log(%{
+          actor: moderator,
+          subject: subject1,
+          action: "grant",
+          permission: "moderator"
+        })
+
+      log = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log) ==
+               "[#{log.inserted_at}] @#{moderator.nickname} made @#{subject1.nickname} moderator"
+    end
+
+    test "logging user revoke by moderator", %{moderator: moderator, subject1: subject1} do
+      {:ok, _} =
+        ModerationLog.insert_log(%{
+          actor: moderator,
+          subject: subject1,
+          action: "revoke",
+          permission: "moderator"
+        })
+
+      log = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log) ==
+               "[#{log.inserted_at}] @#{moderator.nickname} revoked moderator role from @#{
+                 subject1.nickname
+               }"
+    end
+
+    test "logging relay follow", %{moderator: moderator} do
+      {:ok, _} =
+        ModerationLog.insert_log(%{
+          actor: moderator,
+          action: "relay_follow",
+          target: "https://example.org/relay"
+        })
+
+      log = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log) ==
+               "[#{log.inserted_at}] @#{moderator.nickname} followed relay: https://example.org/relay"
+    end
+
+    test "logging relay unfollow", %{moderator: moderator} do
+      {:ok, _} =
+        ModerationLog.insert_log(%{
+          actor: moderator,
+          action: "relay_unfollow",
+          target: "https://example.org/relay"
+        })
+
+      log = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log) ==
+               "[#{log.inserted_at}] @#{moderator.nickname} unfollowed relay: https://example.org/relay"
+    end
+
+    test "logging report update", %{moderator: moderator} do
+      report = %Activity{
+        id: "9m9I1F4p8ftrTP6QTI",
+        data: %{
+          "type" => "Flag",
+          "state" => "resolved"
+        }
+      }
+
+      {:ok, _} =
+        ModerationLog.insert_log(%{
+          actor: moderator,
+          action: "report_update",
+          subject: report
+        })
+
+      log = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log) ==
+               "[#{log.inserted_at}] @#{moderator.nickname} updated report ##{report.id} with 'resolved' state"
+    end
+
+    test "logging report response", %{moderator: moderator} do
+      report = %Activity{
+        id: "9m9I1F4p8ftrTP6QTI",
+        data: %{
+          "type" => "Note"
+        }
+      }
+
+      {:ok, _} =
+        ModerationLog.insert_log(%{
+          actor: moderator,
+          action: "report_response",
+          subject: report,
+          text: "look at this"
+        })
+
+      log = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log) ==
+               "[#{log.inserted_at}] @#{moderator.nickname} responded with 'look at this' to report ##{
+                 report.id
+               }"
+    end
+
+    test "logging status sensitivity update", %{moderator: moderator} do
+      note = insert(:note_activity)
+
+      {:ok, _} =
+        ModerationLog.insert_log(%{
+          actor: moderator,
+          action: "status_update",
+          subject: note,
+          sensitive: "true",
+          visibility: nil
+        })
+
+      log = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log) ==
+               "[#{log.inserted_at}] @#{moderator.nickname} updated status ##{note.id}, set sensitive: 'true'"
+    end
+
+    test "logging status visibility update", %{moderator: moderator} do
+      note = insert(:note_activity)
+
+      {:ok, _} =
+        ModerationLog.insert_log(%{
+          actor: moderator,
+          action: "status_update",
+          subject: note,
+          sensitive: nil,
+          visibility: "private"
+        })
+
+      log = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log) ==
+               "[#{log.inserted_at}] @#{moderator.nickname} updated status ##{note.id}, set visibility: 'private'"
+    end
+
+    test "logging status sensitivity & visibility update", %{moderator: moderator} do
+      note = insert(:note_activity)
+
+      {:ok, _} =
+        ModerationLog.insert_log(%{
+          actor: moderator,
+          action: "status_update",
+          subject: note,
+          sensitive: "true",
+          visibility: "private"
+        })
+
+      log = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log) ==
+               "[#{log.inserted_at}] @#{moderator.nickname} updated status ##{note.id}, set sensitive: 'true', visibility: 'private'"
+    end
+
+    test "logging status deletion", %{moderator: moderator} do
+      note = insert(:note_activity)
+
+      {:ok, _} =
+        ModerationLog.insert_log(%{
+          actor: moderator,
+          action: "status_delete",
+          subject_id: note.id
+        })
+
+      log = Repo.one(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(log) ==
+               "[#{log.inserted_at}] @#{moderator.nickname} deleted status ##{note.id}"
     end
   end
 end
