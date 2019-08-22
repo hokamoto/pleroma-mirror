@@ -143,7 +143,7 @@ defmodule Mix.Tasks.Pleroma.Emoji do
           Path.join([
             :code.priv_dir(:pleroma),
             "static",
-            "emoji-packs"
+            "emoji-packs",
             pack_name
           ])
 
