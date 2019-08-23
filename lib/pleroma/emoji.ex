@@ -84,6 +84,7 @@ defmodule Pleroma.Emoji do
       Path.join([
         :code.priv_dir(:pleroma),
         "static",
+        "instance",
         "emoji-packs"
       ])
 
