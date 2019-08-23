@@ -6,10 +6,21 @@ defmodule Pleroma.ModerationLog do
   alias Pleroma.Repo
   alias Pleroma.User
 
+  import Ecto.Query
+
   schema "moderation_log" do
     field(:data, :map)
 
     timestamps()
+  end
+
+  def get_all(page, page_size) do
+    from(q in __MODULE__,
+      order_by: [desc: q.inserted_at],
+      limit: ^page_size,
+      offset: ^((page - 1) * page_size)
+    )
+    |> Repo.all()
   end
 
   def insert_log(%{

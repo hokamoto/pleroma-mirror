@@ -13,6 +13,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   alias Pleroma.Web.AdminAPI.AccountView
   alias Pleroma.Web.AdminAPI.Config
   alias Pleroma.Web.AdminAPI.ConfigView
+  alias Pleroma.Web.AdminAPI.ModerationLogView
   alias Pleroma.Web.AdminAPI.ReportView
   alias Pleroma.Web.AdminAPI.Search
   alias Pleroma.Web.CommonAPI
@@ -504,6 +505,16 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
       json(conn, %{})
     end
+  end
+
+  def list_log(conn, params) do
+    {page, page_size} = page_params(params)
+
+    log = ModerationLog.get_all(page, page_size)
+
+    conn
+    |> put_view(ModerationLogView)
+    |> render("index.json", %{log: log})
   end
 
   def migrate_to_db(conn, _params) do

@@ -2163,6 +2163,108 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       assert json_response(conn, 200) |> length() == 5
     end
   end
+
+  describe "GET /api/pleroma/admin/moderation_log" do
+    setup %{conn: conn} do
+      admin = insert(:user, info: %{is_admin: true})
+
+      %{conn: assign(conn, :user, admin), admin: admin}
+    end
+
+    test "returns the log", %{conn: conn, admin: admin} do
+      Repo.insert(%ModerationLog{
+        data: %{
+          actor: %{
+            "id" => admin.id,
+            "nickname" => admin.nickname,
+            "type" => "user"
+          },
+          action: "relay_follow",
+          target: "https://example.org/relay"
+        },
+        inserted_at: NaiveDateTime.truncate(~N[2017-08-15 15:47:06.597036], :second)
+      })
+
+      Repo.insert(%ModerationLog{
+        data: %{
+          actor: %{
+            "id" => admin.id,
+            "nickname" => admin.nickname,
+            "type" => "user"
+          },
+          action: "relay_unfollow",
+          target: "https://example.org/relay"
+        },
+        inserted_at: NaiveDateTime.truncate(~N[2017-08-16 15:47:06.597036], :second)
+      })
+
+      conn = get(conn, "/api/pleroma/admin/moderation_log")
+
+      response = json_response(conn, 200)
+      [first_entry, second_entry] = response
+
+      assert response |> length() == 2
+      assert first_entry["data"]["action"] == "relay_unfollow"
+
+      assert first_entry["message"] ==
+               "[2017-08-16 15:47:06] @#{admin.nickname} unfollowed relay: https://example.org/relay"
+
+      assert second_entry["data"]["action"] == "relay_follow"
+
+      assert second_entry["message"] ==
+               "[2017-08-15 15:47:06] @#{admin.nickname} followed relay: https://example.org/relay"
+    end
+
+    test "returns the log with pagination", %{conn: conn, admin: admin} do
+      Repo.insert(%ModerationLog{
+        data: %{
+          actor: %{
+            "id" => admin.id,
+            "nickname" => admin.nickname,
+            "type" => "user"
+          },
+          action: "relay_follow",
+          target: "https://example.org/relay"
+        },
+        inserted_at: NaiveDateTime.truncate(~N[2017-08-15 15:47:06.597036], :second)
+      })
+
+      Repo.insert(%ModerationLog{
+        data: %{
+          actor: %{
+            "id" => admin.id,
+            "nickname" => admin.nickname,
+            "type" => "user"
+          },
+          action: "relay_unfollow",
+          target: "https://example.org/relay"
+        },
+        inserted_at: NaiveDateTime.truncate(~N[2017-08-16 15:47:06.597036], :second)
+      })
+
+      conn1 = get(conn, "/api/pleroma/admin/moderation_log?page_size=1&page=1")
+
+      response1 = json_response(conn1, 200)
+      [first_entry] = response1
+
+      assert response1 |> length() == 1
+      assert first_entry["data"]["action"] == "relay_unfollow"
+
+      assert first_entry["message"] ==
+               "[2017-08-16 15:47:06] @#{admin.nickname} unfollowed relay: https://example.org/relay"
+
+      conn2 = get(conn, "/api/pleroma/admin/moderation_log?page_size=1&page=2")
+
+      response2 = json_response(conn2, 200)
+      [second_entry] = response2
+
+      assert response2 |> length() == 1
+      assert second_entry["data"]["action"] == "relay_follow"
+
+      assert second_entry["message"] ==
+               "[2017-08-15 15:47:06] @#{admin.nickname} followed relay: https://example.org/relay"
+    end
+  end
 end
 
 # Needed for testing
