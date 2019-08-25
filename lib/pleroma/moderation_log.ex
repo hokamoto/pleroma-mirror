@@ -103,12 +103,26 @@ defmodule Pleroma.ModerationLog do
 
   @spec insert_log(%{actor: User, subject: User, action: String.t()}) ::
           {:ok, ModerationLog} | {:error, any}
-  def insert_log(%{actor: %User{} = actor, subject: %User{} = subject, action: action}) do
+  def insert_log(%{actor: %User{} = actor, subject: subject, action: action}) do
     Repo.insert(%ModerationLog{
       data: %{
         actor: user_to_map(actor),
         action: action,
         subject: user_to_map(subject)
+      }
+    })
+  end
+
+  @spec insert_log(%{actor: User, subjects: [User], action: String.t()}) ::
+          {:ok, ModerationLog} | {:error, any}
+  def insert_log(%{actor: %User{} = actor, subjects: subjects, action: action}) do
+    subjects = Enum.map(subjects, &user_to_map/1)
+
+    Repo.insert(%ModerationLog{
+      data: %{
+        actor: user_to_map(actor),
+        action: action,
+        subjects: subjects
       }
     })
   end
@@ -225,10 +239,15 @@ defmodule Pleroma.ModerationLog do
         data: %{
           "actor" => %{"nickname" => actor_nickname},
           "action" => "create",
-          "subject" => %{"nickname" => subject_nickname, "type" => "user"}
+          "subjects" => subjects
         }
       }) do
-    "@#{actor_nickname} created user @#{subject_nickname}"
+    nicknames =
+      subjects
+      |> Enum.map(&"@#{&1["nickname"]}")
+      |> Enum.join(", ")
+
+    "@#{actor_nickname} created users: #{nicknames}"
   end
 
   @spec get_log_entry_message(ModerationLog) :: String.t()

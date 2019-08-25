@@ -45,17 +45,136 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         |> assign(:user, admin)
         |> put_req_header("accept", "application/json")
         |> post("/api/pleroma/admin/users", %{
-          "nickname" => "lain",
-          "email" => "lain@example.org",
-          "password" => "test"
+          "users" => [
+            %{
+              "nickname" => "lain",
+              "email" => "lain@example.org",
+              "password" => "test"
+            },
+            %{
+              "nickname" => "lain2",
+              "email" => "lain2@example.org",
+              "password" => "test"
+            }
+          ]
         })
 
-      assert json_response(conn, 200) == "lain"
+      response = json_response(conn, 200) |> Enum.map(&Map.get(&1, "type"))
+      assert response == ["success", "success"]
 
       log_entry = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "@#{admin.nickname} created user @lain"
+               "@#{admin.nickname} created users: @lain2, @lain"
+    end
+
+    test "Cannot create user with exisiting email" do
+      admin = insert(:user, info: %{is_admin: true})
+      user = insert(:user)
+
+      conn =
+        build_conn()
+        |> assign(:user, admin)
+        |> put_req_header("accept", "application/json")
+        |> post("/api/pleroma/admin/users", %{
+          "users" => [
+            %{
+              "nickname" => "lain",
+              "email" => user.email,
+              "password" => "test"
+            }
+          ]
+        })
+
+      assert json_response(conn, 409) == [
+               %{
+                 "code" => 409,
+                 "data" => %{
+                   "email" => user.email,
+                   "nickname" => "lain"
+                 },
+                 "error" => "email has already been taken",
+                 "type" => "error"
+               }
+             ]
+    end
+
+    test "Cannot create user with exisiting nickname" do
+      admin = insert(:user, info: %{is_admin: true})
+      user = insert(:user)
+
+      conn =
+        build_conn()
+        |> assign(:user, admin)
+        |> put_req_header("accept", "application/json")
+        |> post("/api/pleroma/admin/users", %{
+          "users" => [
+            %{
+              "nickname" => user.nickname,
+              "email" => "someuser@plerama.social",
+              "password" => "test"
+            }
+          ]
+        })
+
+      assert json_response(conn, 409) == [
+               %{
+                 "code" => 409,
+                 "data" => %{
+                   "email" => "someuser@plerama.social",
+                   "nickname" => user.nickname
+                 },
+                 "error" => "nickname has already been taken",
+                 "type" => "error"
+               }
+             ]
+    end
+
+    test "Multiple user creation works in transaction" do
+      admin = insert(:user, info: %{is_admin: true})
+      user = insert(:user)
+
+      conn =
+        build_conn()
+        |> assign(:user, admin)
+        |> put_req_header("accept", "application/json")
+        |> post("/api/pleroma/admin/users", %{
+          "users" => [
+            %{
+              "nickname" => "newuser",
+              "email" => "newuser@pleroma.social",
+              "password" => "test"
+            },
+            %{
+              "nickname" => "lain",
+              "email" => user.email,
+              "password" => "test"
+            }
+          ]
+        })
+
+      assert json_response(conn, 409) == [
+               %{
+                 "code" => 409,
+                 "data" => %{
+                   "email" => user.email,
+                   "nickname" => "lain"
+                 },
+                 "error" => "email has already been taken",
+                 "type" => "error"
+               },
+               %{
+                 "code" => 409,
+                 "data" => %{
+                   "email" => "newuser@pleroma.social",
+                   "nickname" => "newuser"
+                 },
+                 "error" => "",
+                 "type" => "error"
+               }
+             ]
+
+      assert User.get_by_nickname("newuser") === nil
     end
   end
 
@@ -365,18 +484,15 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "POST /api/pleroma/admin/email_invite, with valid config" do
     setup do
-      registrations_open = Pleroma.Config.get([:instance, :registrations_open])
-      invites_enabled = Pleroma.Config.get([:instance, :invites_enabled])
-      Pleroma.Config.put([:instance, :registrations_open], false)
-      Pleroma.Config.put([:instance, :invites_enabled], true)
-
-      on_exit(fn ->
-        Pleroma.Config.put([:instance, :registrations_open], registrations_open)
-        Pleroma.Config.put([:instance, :invites_enabled], invites_enabled)
-        :ok
-      end)
-
       [user: insert(:user, info: %{is_admin: true})]
+    end
+
+    clear_config([:instance, :registrations_open]) do
+      Pleroma.Config.put([:instance, :registrations_open], false)
+    end
+
+    clear_config([:instance, :invites_enabled]) do
+      Pleroma.Config.put([:instance, :invites_enabled], true)
     end
 
     test "sends invitation and returns 204", %{conn: conn, user: user} do
@@ -431,17 +547,12 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       [user: insert(:user, info: %{is_admin: true})]
     end
 
+    clear_config([:instance, :registrations_open])
+    clear_config([:instance, :invites_enabled])
+
     test "it returns 500 if `invites_enabled` is not enabled", %{conn: conn, user: user} do
-      registrations_open = Pleroma.Config.get([:instance, :registrations_open])
-      invites_enabled = Pleroma.Config.get([:instance, :invites_enabled])
       Pleroma.Config.put([:instance, :registrations_open], false)
       Pleroma.Config.put([:instance, :invites_enabled], false)
-
-      on_exit(fn ->
-        Pleroma.Config.put([:instance, :registrations_open], registrations_open)
-        Pleroma.Config.put([:instance, :invites_enabled], invites_enabled)
-        :ok
-      end)
 
       conn =
         conn
@@ -452,16 +563,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "it returns 500 if `registrations_open` is enabled", %{conn: conn, user: user} do
-      registrations_open = Pleroma.Config.get([:instance, :registrations_open])
-      invites_enabled = Pleroma.Config.get([:instance, :invites_enabled])
       Pleroma.Config.put([:instance, :registrations_open], true)
       Pleroma.Config.put([:instance, :invites_enabled], true)
-
-      on_exit(fn ->
-        Pleroma.Config.put([:instance, :registrations_open], registrations_open)
-        Pleroma.Config.put([:instance, :invites_enabled], invites_enabled)
-        :ok
-      end)
 
       conn =
         conn
@@ -1511,15 +1614,11 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         :ok = File.rm(temp_file)
       end)
 
-      dynamic = Pleroma.Config.get([:instance, :dynamic_configuration])
-
-      Pleroma.Config.put([:instance, :dynamic_configuration], true)
-
-      on_exit(fn ->
-        Pleroma.Config.put([:instance, :dynamic_configuration], dynamic)
-      end)
-
       %{conn: assign(conn, :user, admin)}
+    end
+
+    clear_config([:instance, :dynamic_configuration]) do
+      Pleroma.Config.put([:instance, :dynamic_configuration], true)
     end
 
     test "create new config setting in db", %{conn: conn} do
@@ -2070,15 +2169,11 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         :ok = File.rm(temp_file)
       end)
 
-      dynamic = Pleroma.Config.get([:instance, :dynamic_configuration])
-
-      Pleroma.Config.put([:instance, :dynamic_configuration], true)
-
-      on_exit(fn ->
-        Pleroma.Config.put([:instance, :dynamic_configuration], dynamic)
-      end)
-
       %{conn: assign(conn, :user, admin), admin: admin}
+    end
+
+    clear_config([:instance, :dynamic_configuration]) do
+      Pleroma.Config.put([:instance, :dynamic_configuration], true)
     end
 
     test "transfer settings to DB and to file", %{conn: conn, admin: admin} do
