@@ -31,7 +31,7 @@ defmodule Pleroma.ModerationLogTest do
       log = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{moderator.nickname} deleted user @#{subject1.nickname}"
+               "@#{moderator.nickname} deleted user @#{subject1.nickname}"
     end
 
     test "logging user creation by moderator", %{moderator: moderator, subject1: subject1} do
@@ -45,7 +45,7 @@ defmodule Pleroma.ModerationLogTest do
       log = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{moderator.nickname} created user @#{subject1.nickname}"
+               "@#{moderator.nickname} created user @#{subject1.nickname}"
     end
 
     test "logging user follow by admin", %{admin: admin, subject1: subject1, subject2: subject2} do
@@ -60,9 +60,7 @@ defmodule Pleroma.ModerationLogTest do
       log = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{admin.nickname} made @#{subject2.nickname} follow @#{
-                 subject1.nickname
-               }"
+               "@#{admin.nickname} made @#{subject2.nickname} follow @#{subject1.nickname}"
     end
 
     test "logging user unfollow by admin", %{admin: admin, subject1: subject1, subject2: subject2} do
@@ -77,9 +75,7 @@ defmodule Pleroma.ModerationLogTest do
       log = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{admin.nickname} made @#{subject2.nickname} unfollow @#{
-                 subject1.nickname
-               }"
+               "@#{admin.nickname} made @#{subject2.nickname} unfollow @#{subject1.nickname}"
     end
 
     test "logging user tagged by admin", %{admin: admin, subject1: subject1, subject2: subject2} do
@@ -101,7 +97,7 @@ defmodule Pleroma.ModerationLogTest do
       tags = ["foo", "bar"] |> Enum.join(", ")
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{admin.nickname} added tags: #{tags} to users: #{users}"
+               "@#{admin.nickname} added tags: #{tags} to users: #{users}"
     end
 
     test "logging user untagged by admin", %{admin: admin, subject1: subject1, subject2: subject2} do
@@ -123,7 +119,7 @@ defmodule Pleroma.ModerationLogTest do
       tags = ["foo", "bar"] |> Enum.join(", ")
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{admin.nickname} removed tags: #{tags} from users: #{users}"
+               "@#{admin.nickname} removed tags: #{tags} from users: #{users}"
     end
 
     test "logging user grant by moderator", %{moderator: moderator, subject1: subject1} do
@@ -138,7 +134,7 @@ defmodule Pleroma.ModerationLogTest do
       log = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{moderator.nickname} made @#{subject1.nickname} moderator"
+               "@#{moderator.nickname} made @#{subject1.nickname} moderator"
     end
 
     test "logging user revoke by moderator", %{moderator: moderator, subject1: subject1} do
@@ -153,9 +149,7 @@ defmodule Pleroma.ModerationLogTest do
       log = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{moderator.nickname} revoked moderator role from @#{
-                 subject1.nickname
-               }"
+               "@#{moderator.nickname} revoked moderator role from @#{subject1.nickname}"
     end
 
     test "logging relay follow", %{moderator: moderator} do
@@ -169,7 +163,7 @@ defmodule Pleroma.ModerationLogTest do
       log = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{moderator.nickname} followed relay: https://example.org/relay"
+               "@#{moderator.nickname} followed relay: https://example.org/relay"
     end
 
     test "logging relay unfollow", %{moderator: moderator} do
@@ -183,7 +177,7 @@ defmodule Pleroma.ModerationLogTest do
       log = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{moderator.nickname} unfollowed relay: https://example.org/relay"
+               "@#{moderator.nickname} unfollowed relay: https://example.org/relay"
     end
 
     test "logging report update", %{moderator: moderator} do
@@ -205,7 +199,7 @@ defmodule Pleroma.ModerationLogTest do
       log = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{moderator.nickname} updated report ##{report.id} with 'resolved' state"
+               "@#{moderator.nickname} updated report ##{report.id} with 'resolved' state"
     end
 
     test "logging report response", %{moderator: moderator} do
@@ -227,9 +221,7 @@ defmodule Pleroma.ModerationLogTest do
       log = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{moderator.nickname} responded with 'look at this' to report ##{
-                 report.id
-               }"
+               "@#{moderator.nickname} responded with 'look at this' to report ##{report.id}"
     end
 
     test "logging status sensitivity update", %{moderator: moderator} do
@@ -247,7 +239,7 @@ defmodule Pleroma.ModerationLogTest do
       log = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{moderator.nickname} updated status ##{note.id}, set sensitive: 'true'"
+               "@#{moderator.nickname} updated status ##{note.id}, set sensitive: 'true'"
     end
 
     test "logging status visibility update", %{moderator: moderator} do
@@ -265,7 +257,7 @@ defmodule Pleroma.ModerationLogTest do
       log = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{moderator.nickname} updated status ##{note.id}, set visibility: 'private'"
+               "@#{moderator.nickname} updated status ##{note.id}, set visibility: 'private'"
     end
 
     test "logging status sensitivity & visibility update", %{moderator: moderator} do
@@ -283,7 +275,7 @@ defmodule Pleroma.ModerationLogTest do
       log = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{moderator.nickname} updated status ##{note.id}, set sensitive: 'true', visibility: 'private'"
+               "@#{moderator.nickname} updated status ##{note.id}, set sensitive: 'true', visibility: 'private'"
     end
 
     test "logging status deletion", %{moderator: moderator} do
@@ -299,7 +291,7 @@ defmodule Pleroma.ModerationLogTest do
       log = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log) ==
-               "[#{log.inserted_at}] @#{moderator.nickname} deleted status ##{note.id}"
+               "@#{moderator.nickname} deleted status ##{note.id}"
     end
   end
 end

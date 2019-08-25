@@ -32,7 +32,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       assert log_entry.data["action"] == "delete"
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} deleted user @#{user.nickname}"
+               "@#{admin.nickname} deleted user @#{user.nickname}"
 
       assert json_response(conn, 200) == user.nickname
     end
@@ -55,7 +55,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       log_entry = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} created user @lain"
+               "@#{admin.nickname} created user @lain"
     end
   end
 
@@ -118,9 +118,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       log_entry = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} made @#{follower.nickname} follow @#{
-                 user.nickname
-               }"
+               "@#{admin.nickname} made @#{follower.nickname} follow @#{user.nickname}"
     end
   end
 
@@ -148,9 +146,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       log_entry = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} made @#{follower.nickname} unfollow @#{
-                 user.nickname
-               }"
+               "@#{admin.nickname} made @#{follower.nickname} unfollow @#{user.nickname}"
     end
   end
 
@@ -194,9 +190,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       tags = ["foo", "bar"] |> Enum.join(", ")
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} added tags: #{tags} to users: #{
-                 users
-               }"
+               "@#{admin.nickname} added tags: #{tags} to users: #{users}"
     end
 
     test "it does not modify tags of not specified users", %{conn: conn, user3: user3} do
@@ -245,9 +239,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       tags = ["x", "z"] |> Enum.join(", ")
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} removed tags: #{tags} from users: #{
-                 users
-               }"
+               "@#{admin.nickname} removed tags: #{tags} from users: #{users}"
     end
 
     test "it does not modify tags of not specified users", %{conn: conn, user3: user3} do
@@ -289,7 +281,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       log_entry = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} made @#{user.nickname} admin"
+               "@#{admin.nickname} made @#{user.nickname} admin"
     end
 
     test "/:right DELETE, can remove from a permission group" do
@@ -309,9 +301,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       log_entry = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} revoked admin role from @#{
-                 user.nickname
-               }"
+               "@#{admin.nickname} revoked admin role from @#{user.nickname}"
     end
   end
 
@@ -341,7 +331,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       log_entry = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} deactivated user @#{user.nickname}"
+               "@#{admin.nickname} deactivated user @#{user.nickname}"
     end
 
     test "activates the user", %{conn: conn, admin: admin} do
@@ -358,7 +348,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       log_entry = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} activated user @#{user.nickname}"
+               "@#{admin.nickname} activated user @#{user.nickname}"
     end
 
     test "returns 403 when requested by a non-admin", %{conn: conn} do
@@ -969,7 +959,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     log_entry = Repo.one(ModerationLog)
 
     assert ModerationLog.get_log_entry_message(log_entry) ==
-             "[#{log_entry.inserted_at}] @#{admin.nickname} deactivated user @#{user.nickname}"
+             "@#{admin.nickname} deactivated user @#{user.nickname}"
   end
 
   describe "GET /api/pleroma/admin/users/invite_token" do
@@ -1169,7 +1159,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       log_entry = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} updated report ##{id} with 'resolved' state"
+               "@#{admin.nickname} updated report ##{id} with 'resolved' state"
     end
 
     test "closes report", %{conn: conn, id: id, admin: admin} do
@@ -1183,7 +1173,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       log_entry = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} updated report ##{id} with 'closed' state"
+               "@#{admin.nickname} updated report ##{id} with 'closed' state"
     end
 
     test "returns 400 when state is unknown", %{conn: conn, id: id} do
@@ -1349,7 +1339,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       log_entry = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} responded with 'I will check it out' to report ##{
+               "@#{admin.nickname} responded with 'I will check it out' to report ##{
                  response["id"]
                }"
     end
@@ -1389,7 +1379,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       log_entry = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} updated status ##{id}, set sensitive: 'true'"
+               "@#{admin.nickname} updated status ##{id}, set sensitive: 'true'"
 
       response =
         conn
@@ -1410,7 +1400,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       log_entry = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} updated status ##{id}, set visibility: 'public'"
+               "@#{admin.nickname} updated status ##{id}, set visibility: 'public'"
 
       response =
         conn
@@ -1454,7 +1444,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       log_entry = Repo.one(ModerationLog)
 
       assert ModerationLog.get_log_entry_message(log_entry) ==
-               "[#{log_entry.inserted_at}] @#{admin.nickname} deleted status ##{id}"
+               "@#{admin.nickname} deleted status ##{id}"
     end
 
     test "returns error when status is not exist", %{conn: conn} do
@@ -2207,12 +2197,12 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       assert first_entry["data"]["action"] == "relay_unfollow"
 
       assert first_entry["message"] ==
-               "[2017-08-16 15:47:06] @#{admin.nickname} unfollowed relay: https://example.org/relay"
+               "@#{admin.nickname} unfollowed relay: https://example.org/relay"
 
       assert second_entry["data"]["action"] == "relay_follow"
 
       assert second_entry["message"] ==
-               "[2017-08-15 15:47:06] @#{admin.nickname} followed relay: https://example.org/relay"
+               "@#{admin.nickname} followed relay: https://example.org/relay"
     end
 
     test "returns the log with pagination", %{conn: conn, admin: admin} do
@@ -2251,7 +2241,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       assert first_entry["data"]["action"] == "relay_unfollow"
 
       assert first_entry["message"] ==
-               "[2017-08-16 15:47:06] @#{admin.nickname} unfollowed relay: https://example.org/relay"
+               "@#{admin.nickname} unfollowed relay: https://example.org/relay"
 
       conn2 = get(conn, "/api/pleroma/admin/moderation_log?page_size=1&page=2")
 
@@ -2262,7 +2252,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       assert second_entry["data"]["action"] == "relay_follow"
 
       assert second_entry["message"] ==
-               "[2017-08-15 15:47:06] @#{admin.nickname} followed relay: https://example.org/relay"
+               "@#{admin.nickname} followed relay: https://example.org/relay"
     end
   end
 end
