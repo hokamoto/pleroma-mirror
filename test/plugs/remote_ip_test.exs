@@ -51,10 +51,16 @@ defmodule Pleroma.Plugs.RemoteIpTest do
   end
 
   test "custom proxies" do
-    Pleroma.Config.put(RemoteIp,
-      enabled: true,
-      proxies: ["173.245.48.0/20"]
-    )
+    Pleroma.Config.put(RemoteIp, enabled: true)
+
+    conn =
+      conn(:get, "/")
+      |> put_req_header("x-forwarded-for", "173.245.48.1, 1.1.1.1, 173.245.48.2")
+      |> RemoteIp.call(nil)
+
+    refute conn.remote_ip == {1, 1, 1, 1}
+
+    Pleroma.Config.put([RemoteIp, :proxies], ["173.245.48.0/20"])
 
     conn =
       conn(:get, "/")
