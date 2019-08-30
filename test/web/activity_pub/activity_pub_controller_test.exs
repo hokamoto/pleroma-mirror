@@ -196,6 +196,28 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
       assert json_response(conn1, :ok) == json_response(conn2, :ok)
       assert Enum.any?(conn2.resp_headers, &(&1 == {"x-cache", "HIT from Pleroma"}))
     end
+
+    test "cached purged after object deletion", %{conn: conn} do
+      note = insert(:note)
+      uuid = String.split(note.data["id"], "/") |> List.last()
+
+      conn1 =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/objects/#{uuid}")
+
+      assert json_response(conn1, :ok)
+      assert Enum.any?(conn1.resp_headers, &(&1 == {"x-cache", "MISS from Pleroma"}))
+
+      Object.delete(note)
+
+      conn2 =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/objects/#{uuid}")
+
+      assert "Not found" == json_response(conn2, :not_found)
+    end
   end
 
   describe "/object/:uuid/likes" do
@@ -305,6 +327,30 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
 
       assert json_response(conn1, :ok) == json_response(conn2, :ok)
       assert Enum.any?(conn2.resp_headers, &(&1 == {"x-cache", "HIT from Pleroma"}))
+    end
+
+    test "cached purged after activity deletion", %{conn: conn} do
+      user = insert(:user)
+      {:ok, activity} = CommonAPI.post(user, %{"status" => "cofe"})
+
+      uuid = String.split(activity.data["id"], "/") |> List.last()
+
+      conn1 =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/activities/#{uuid}")
+
+      assert json_response(conn1, :ok)
+      assert Enum.any?(conn1.resp_headers, &(&1 == {"x-cache", "MISS from Pleroma"}))
+
+      Activity.delete_by_ap_id(activity.object.data["id"])
+
+      conn2 =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/activities/#{uuid}")
+
+      assert "Not found" == json_response(conn2, :not_found)
     end
   end
 
