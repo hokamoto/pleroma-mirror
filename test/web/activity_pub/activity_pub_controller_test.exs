@@ -175,6 +175,27 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
 
       assert json_response(conn, 404)
     end
+
+    test "it caches a response", %{conn: conn} do
+      note = insert(:note)
+      uuid = String.split(note.data["id"], "/") |> List.last()
+
+      conn1 =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/objects/#{uuid}")
+
+      assert json_response(conn1, :ok)
+      assert Enum.any?(conn1.resp_headers, &(&1 == {"x-cache", "MISS from Pleroma"}))
+
+      conn2 =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/objects/#{uuid}")
+
+      assert json_response(conn1, :ok) == json_response(conn2, :ok)
+      assert Enum.any?(conn2.resp_headers, &(&1 == {"x-cache", "HIT from Pleroma"}))
+    end
   end
 
   describe "/object/:uuid/likes" do
@@ -263,6 +284,27 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
         |> get("/activities/#{uuid}")
 
       assert json_response(conn, 404)
+    end
+
+    test "it caches a response", %{conn: conn} do
+      activity = insert(:note_activity)
+      uuid = String.split(activity.data["id"], "/") |> List.last()
+
+      conn1 =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/activities/#{uuid}")
+
+      assert json_response(conn1, :ok)
+      assert Enum.any?(conn1.resp_headers, &(&1 == {"x-cache", "MISS from Pleroma"}))
+
+      conn2 =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/activities/#{uuid}")
+
+      assert json_response(conn1, :ok) == json_response(conn2, :ok)
+      assert Enum.any?(conn2.resp_headers, &(&1 == {"x-cache", "HIT from Pleroma"}))
     end
   end
 
