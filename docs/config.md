@@ -697,5 +697,5 @@ The expiration time for the web responses cache. Values should be in millisecond
 
 Available caches:
 
-* `:activity_pub` - activity pub routes (ecxept question activities). Defaults to `nil` (no expiration)
+* `:activity_pub` - activity pub routes (except question activities). Defaults to `nil` (no expiration)
 * `:activity_pub_question` - activity pub routes (question activities). Defaults to `30_000` (30 seconds)
