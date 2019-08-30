@@ -117,10 +117,10 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     ttl =
       case entity do
         %Object{data: %{"type" => "Question"}} ->
-          Pleroma.Config.get([:web_cache_ttl, :ap_routes_question])
+          Pleroma.Config.get([:web_cache_ttl, :activity_pub_question])
 
         %Object{} ->
-          Pleroma.Config.get([:web_cache_ttl, :ap_routes])
+          Pleroma.Config.get([:web_cache_ttl, :activity_pub])
 
         _ ->
           nil
