@@ -93,7 +93,7 @@ defmodule Pleroma.Web.ActivityPub.UserView do
 
     %{
       "id" => user.ap_id,
-      "type" => "Person",
+      "type" => user.info.actor_type,
       "following" => "#{user.ap_id}/following",
       "followers" => "#{user.ap_id}/followers",
       "inbox" => "#{user.ap_id}/inbox",
@@ -110,7 +110,8 @@ defmodule Pleroma.Web.ActivityPub.UserView do
       },
       "endpoints" => endpoints,
       "attachment" => fields,
-      "tag" => (user.info.source_data["tag"] || []) ++ user_tags
+      "tag" => (user.info.source_data["tag"] || []) ++ user_tags,
+      "discoverable" => user.info.discoverable
     }
     |> Map.merge(maybe_make_image(&User.avatar_url/2, "icon", user))
     |> Map.merge(maybe_make_image(&User.banner_url/2, "image", user))
