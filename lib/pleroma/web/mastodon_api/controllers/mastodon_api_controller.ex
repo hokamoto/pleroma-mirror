@@ -160,6 +160,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIController do
         end)
       end)
       |> add_if_present(params, "default_scope", :default_scope)
+      |> add_if_present(params, "actor_type", :actor_type)
       |> add_if_present(params, "fields", :fields, fn fields ->
         fields = Enum.map(fields, fn f -> Map.update!(f, "value", &AutoLinker.link(&1)) end)
 

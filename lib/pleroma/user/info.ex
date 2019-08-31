@@ -297,7 +297,8 @@ defmodule Pleroma.User.Info do
       :fields,
       :raw_fields,
       :pleroma_settings_store,
-      :discoverable
+      :discoverable,
+      :actor_type
     ])
     |> validate_fields()
   end
