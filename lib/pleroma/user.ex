@@ -1252,6 +1252,7 @@ defmodule Pleroma.User do
 
       e ->
         Logger.error("Failed to fetch by AP, #{inspect(e)}")
+
         case OStatus.make_user(ap_id) do
           {:ok, user} -> {:ok, user}
           _ -> {:error, "Could not fetch by AP id"}
