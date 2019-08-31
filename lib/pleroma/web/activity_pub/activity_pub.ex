@@ -1138,7 +1138,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
          data <- maybe_update_follow_information(data) do
       {:ok, data}
     else
-      e -> Logger.error("Could not decode user at fetch #{ap_id}, #{inspect(e)}")
+      {:error, e} ->
+        Logger.error("Could not decode user at fetch #{ap_id}, #{inspect(e)}")
+        {:error, e}
     end
   end
 
@@ -1149,7 +1151,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       with {:ok, data} <- fetch_and_prepare_user_from_ap_id(ap_id) do
         User.insert_or_update_user(data)
       else
-        e -> {:error, e}
+        {:error, e} -> {:error, e}
       end
     end
   end
