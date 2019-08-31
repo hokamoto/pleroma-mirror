@@ -79,8 +79,11 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     followers_count =
       ((!user.info.hide_followers or opts[:for] == user) && user_info.follower_count) || 0
 
-    bot = (user.info.source_data["type"] || user.info.actor_type || "Person") in
-      ["Application", "Service"]
+    bot =
+      (user.info.source_data["type"] || user.info.actor_type || "Person") in [
+        "Application",
+        "Service"
+      ]
 
     actor_type = user.info.actor_type
 
