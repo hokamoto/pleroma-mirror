@@ -79,7 +79,10 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     followers_count =
       ((!user.info.hide_followers or opts[:for] == user) && user_info.follower_count) || 0
 
-    bot = (user.info.source_data["type"] || "Person") in ["Application", "Service"]
+    bot = (user.info.source_data["type"] || user.info.actor_type || "Person") in
+      ["Application", "Service"]
+
+    actor_type = user.info.actor_type
 
     emojis =
       (user.info.source_data["tag"] || [])
@@ -108,6 +111,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     bio = HTML.filter_tags(user.bio, User.html_filter_policy(opts[:for]))
     relationship = render("relationship.json", %{user: opts[:for], target: user})
 
+    discoverable = user.info.discoverable
+
     %{
       id: to_string(user.id),
       username: username_from_nickname(user.nickname),
@@ -133,6 +138,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         fields: raw_fields,
         pleroma: %{}
       },
+      discoverable: discoverable,
+      actor_type: actor_type,
 
       # Pleroma extension
       pleroma: %{
