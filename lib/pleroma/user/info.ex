@@ -259,7 +259,9 @@ defmodule Pleroma.User.Info do
       :hide_follows,
       :follower_count,
       :fields,
-      :following_count
+      :following_count,
+      :actor_type,
+      :discoverable
     ])
     |> validate_fields(true)
   end
@@ -276,7 +278,9 @@ defmodule Pleroma.User.Info do
       :following_count,
       :hide_follows,
       :fields,
-      :hide_followers
+      :hide_followers,
+      :actor_type,
+      :discoverable
     ])
     |> validate_fields(remote?)
   end

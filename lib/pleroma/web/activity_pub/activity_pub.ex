@@ -1025,6 +1025,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       |> Enum.map(fn fields -> Map.take(fields, ["name", "value"]) end)
 
     locked = data["manuallyApprovesFollowers"] || false
+    actor_type = data["type"] || "Person"
+    discoverable = data["discoverable"] || false
+
     data = Transmogrifier.maybe_fix_user_object(data)
 
     user_data = %{
@@ -1034,7 +1037,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         source_data: data,
         banner: banner,
         fields: fields,
-        locked: locked
+        locked: locked,
+        actor_type: actor_type,
+        discoverable: discoverable
       },
       avatar: avatar,
       name: data["name"],
