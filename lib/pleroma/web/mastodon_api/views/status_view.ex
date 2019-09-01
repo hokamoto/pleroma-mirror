@@ -5,7 +5,12 @@
 defmodule Pleroma.Web.MastodonAPI.StatusView do
   use Pleroma.Web, :view
 
+  require Pleroma.Constants
+
   alias Pleroma.Activity
+  alias Pleroma.ActivityExpiration
+  alias Pleroma.Conversation
+  alias Pleroma.Conversation.Participation
   alias Pleroma.HTML
   alias Pleroma.Object
   alias Pleroma.Repo
@@ -24,19 +29,19 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   defp get_replied_to_activities(activities) do
     activities
     |> Enum.map(fn
-      %{data: %{"type" => "Create", "object" => object}} ->
-        object = Object.normalize(object)
-        object.data["inReplyTo"] != "" && object.data["inReplyTo"]
+      %{data: %{"type" => "Create"}} = activity ->
+        object = Object.normalize(activity)
+        object && object.data["inReplyTo"] != "" && object.data["inReplyTo"]
 
       _ ->
         nil
     end)
     |> Enum.filter(& &1)
-    |> Activity.create_by_object_ap_id()
+    |> Activity.create_by_object_ap_id_with_object()
     |> Repo.all()
     |> Enum.reduce(%{}, fn activity, acc ->
       object = Object.normalize(activity)
-      Map.put(acc, object.data["id"], activity)
+      if object, do: Map.put(acc, object.data["id"], activity), else: acc
     end)
   end
 
@@ -68,12 +73,14 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
   def render("index.json", opts) do
     replied_to_activities = get_replied_to_activities(opts.activities)
+    parallel = unless is_nil(opts[:parallel]), do: opts[:parallel], else: true
 
     opts.activities
     |> safe_render_many(
       StatusView,
       "status.json",
-      Map.put(opts, :replied_to_activities, replied_to_activities)
+      Map.put(opts, :replied_to_activities, replied_to_activities),
+      parallel
     )
   end
 
@@ -88,6 +95,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     reblogged_activity =
       Activity.create_by_object_ap_id(activity_object.data["id"])
       |> Activity.with_preloaded_bookmark(opts[:for])
+      |> Activity.with_set_thread_muted_field(opts[:for])
       |> Repo.one()
 
     reblogged = render("status.json", Map.put(opts, :activity, reblogged_activity))
@@ -142,6 +150,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     object = Object.normalize(activity)
 
     user = get_user(activity.data["actor"])
+    user_follower_address = user.follower_address
 
     like_count = object.data["like_count"] || 0
     announcement_count = object.data["announcement_count"] || 0
@@ -157,7 +166,11 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     mentions =
       (object.data["to"] ++ tag_mentions)
       |> Enum.uniq()
-      |> Enum.map(fn ap_id -> User.get_cached_by_ap_id(ap_id) end)
+      |> Enum.map(fn
+        Pleroma.Constants.as_public() -> nil
+        ^user_follower_address -> nil
+        ap_id -> User.get_cached_by_ap_id(ap_id)
+      end)
       |> Enum.filter(& &1)
       |> Enum.map(fn user -> AccountView.render("mention.json", %{user: user}) end)
 
@@ -165,10 +178,19 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
 
     bookmarked = Activity.get_bookmark(activity, opts[:for]) != nil
 
+    client_posted_this_activity = opts[:for] && user.id == opts[:for].id
+
+    expires_at =
+      with true <- client_posted_this_activity,
+           expiration when not is_nil(expiration) <-
+             ActivityExpiration.get_by_activity_id(activity.id) do
+        expiration.scheduled_at
+      end
+
     thread_muted? =
       case activity.thread_muted? do
         thread_muted? when is_boolean(thread_muted?) -> thread_muted?
-        nil -> CommonAPI.thread_muted?(user, activity)
+        nil -> (opts[:for] && CommonAPI.thread_muted?(opts[:for], activity)) || false
       end
 
     attachment_data = object.data["attachment"] || []
@@ -225,6 +247,19 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         object.data["url"] || object.data["external_url"] || object.data["id"]
       end
 
+    direct_conversation_id =
+      with {_, true} <- {:include_id, opts[:with_direct_conversation_id]},
+           {_, %User{} = for_user} <- {:for_user, opts[:for]},
+           %{data: %{"context" => context}} when is_binary(context) <- activity,
+           %Conversation{} = conversation <- Conversation.get_for_ap_id(context),
+           %Participation{id: participation_id} <-
+             Participation.for_user_and_conversation(for_user, conversation) do
+        participation_id
+      else
+        _e ->
+          nil
+      end
+
     %{
       id: to_string(activity.id),
       uri: object.data["id"],
@@ -262,7 +297,9 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
         conversation_id: get_context_id(activity),
         in_reply_to_account_acct: reply_to_user && reply_to_user.nickname,
         content: %{"text/plain" => content_plaintext},
-        spoiler_text: %{"text/plain" => summary_plaintext}
+        spoiler_text: %{"text/plain" => summary_plaintext},
+        expires_at: expires_at,
+        direct_conversation_id: direct_conversation_id
       }
     }
   end

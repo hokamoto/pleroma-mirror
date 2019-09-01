@@ -46,16 +46,15 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
   """
   def publish_one(%{inbox: inbox, json: json, actor: %User{} = actor, id: id} = params) do
     Logger.info("Federating #{id} to #{inbox}")
-    host = URI.parse(inbox).host
+    %{host: host, path: path} = URI.parse(inbox)
 
     digest = "SHA-256=" <> (:crypto.hash(:sha256, json) |> Base.encode64())
 
-    date =
-      NaiveDateTime.utc_now()
-      |> Timex.format!("{WDshort}, {0D} {Mshort} {YYYY} {h24}:{m}:{s} GMT")
+    date = Pleroma.Signature.signed_date()
 
     signature =
       Pleroma.Signature.sign(actor, %{
+        "(request-target)": "post #{path}",
         host: host,
         "content-length": byte_size(json),
         digest: digest,

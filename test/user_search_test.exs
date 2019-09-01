@@ -194,11 +194,14 @@ defmodule Pleroma.UserSearchTest do
 
       assert length(results) == 1
 
-      assert user ==
-               result
-               |> Map.put(:search_rank, nil)
-               |> Map.put(:search_type, nil)
-               |> Map.put(:multi_factor_authentication_settings, nil)
+      expected =
+        result
+        |> Map.put(:search_rank, nil)
+        |> Map.put(:search_type, nil)
+        |> Map.put(:last_digest_emailed_at, nil)
+        |> Map.put(:multi_factor_authentication_settings, nil)
+
+      assert user == expected
     end
 
     test "excludes a blocked users from search result" do

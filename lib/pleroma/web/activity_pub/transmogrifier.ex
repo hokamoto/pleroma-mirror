@@ -26,6 +26,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   """
   def fix_object(object, options \\ []) do
     object
+    |> strip_internal_fields
     |> fix_actor
     |> fix_url
     |> fix_attachments
@@ -34,7 +35,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> fix_emoji
     |> fix_tag
     |> fix_content_map
-    |> fix_likes
     |> fix_addressing
     |> fix_summary
     |> fix_type(options)
@@ -149,20 +149,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   def fix_actor(%{"attributedTo" => actor} = object) do
     object
     |> Map.put("actor", Containment.get_actor(%{"actor" => actor}))
-  end
-
-  # Check for standardisation
-  # This is what Peertube does
-  # curl -H 'Accept: application/activity+json' $likes | jq .totalItems
-  # Prismo returns only an integer (count) as "likes"
-  def fix_likes(%{"likes" => likes} = object) when not is_map(likes) do
-    object
-    |> Map.put("likes", [])
-    |> Map.put("like_count", 0)
-  end
-
-  def fix_likes(object) do
-    object
   end
 
   def fix_in_reply_to(object, options \\ [])
@@ -347,13 +333,15 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
 
   def fix_type(object, options \\ [])
 
-  def fix_type(%{"inReplyTo" => reply_id} = object, options) when is_binary(reply_id) do
+  def fix_type(%{"inReplyTo" => reply_id, "name" => _} = object, options)
+      when is_binary(reply_id) do
     reply =
-      if Federator.allowed_incoming_reply_depth?(options[:depth]) do
-        Object.normalize(reply_id, true)
+      with true <- Federator.allowed_incoming_reply_depth?(options[:depth]),
+           {:ok, object} <- get_obj_helper(reply_id, options) do
+        object
       end
 
-    if reply && (reply.data["type"] == "Question" and object["name"]) do
+    if reply && reply.data["type"] == "Question" do
       Map.put(object, "type", "Answer")
     else
       object
@@ -476,8 +464,10 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
         %{"type" => "Follow", "object" => followed, "actor" => follower, "id" => id} = data,
         _options
       ) do
-    with %User{local: true} = followed <- User.get_cached_by_ap_id(followed),
-         {:ok, %User{} = follower} <- User.get_or_fetch_by_ap_id(follower),
+    with %User{local: true} = followed <-
+           User.get_cached_by_ap_id(Containment.get_actor(%{"actor" => followed})),
+         {:ok, %User{} = follower} <-
+           User.get_or_fetch_by_ap_id(Containment.get_actor(%{"actor" => follower})),
          {:ok, activity} <- ActivityPub.follow(follower, followed, id, false) do
       with deny_follow_blocked <- Pleroma.Config.get([:user, :deny_follow_blocked]),
            {_, false} <- {:user_blocked, User.blocks?(followed, follower) && deny_follow_blocked},
@@ -610,14 +600,20 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
 
       banner = new_user_data[:info][:banner]
       locked = new_user_data[:info][:locked] || false
+      attachment = get_in(new_user_data, [:info, :source_data, "attachment"]) || []
+
+      fields =
+        attachment
+        |> Enum.filter(fn %{"type" => t} -> t == "PropertyValue" end)
+        |> Enum.map(fn fields -> Map.take(fields, ["name", "value"]) end)
 
       update_data =
         new_user_data
         |> Map.take([:name, :bio, :avatar])
-        |> Map.put(:info, %{banner: banner, locked: locked})
+        |> Map.put(:info, %{banner: banner, locked: locked, fields: fields})
 
       actor
-      |> User.upgrade_changeset(update_data)
+      |> User.upgrade_changeset(update_data, true)
       |> User.update_and_set_cache()
 
       ActivityPub.update(%{
@@ -713,8 +709,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
         } = _data,
         _options
       ) do
-    with true <- Pleroma.Config.get([:activitypub, :accept_blocks]),
-         %User{local: true} = blocked <- User.get_cached_by_ap_id(blocked),
+    with %User{local: true} = blocked <- User.get_cached_by_ap_id(blocked),
          {:ok, %User{} = blocker} <- User.get_or_fetch_by_ap_id(blocker),
          {:ok, activity} <- ActivityPub.unblock(blocker, blocked, id, false) do
       User.unblock(blocker, blocked)
@@ -728,8 +723,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
         %{"type" => "Block", "object" => blocked, "actor" => blocker, "id" => id} = _data,
         _options
       ) do
-    with true <- Pleroma.Config.get([:activitypub, :accept_blocks]),
-         %User{local: true} = blocked = User.get_cached_by_ap_id(blocked),
+    with %User{local: true} = blocked = User.get_cached_by_ap_id(blocked),
          {:ok, %User{} = blocker} = User.get_or_fetch_by_ap_id(blocker),
          {:ok, activity} <- ActivityPub.block(blocker, blocked, id, false) do
       User.unfollow(blocker, blocked)
@@ -784,7 +778,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> add_mention_tags
     |> add_emoji_tags
     |> add_attributed_to
-    |> add_likes
     |> prepare_attachments
     |> set_conversation
     |> set_reply_to_uri
@@ -971,22 +964,6 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> Map.put("attributedTo", attributed_to)
   end
 
-  def add_likes(%{"id" => id, "like_count" => likes} = object) do
-    likes = %{
-      "id" => "#{id}/likes",
-      "first" => "#{id}/likes?page=1",
-      "type" => "OrderedCollection",
-      "totalItems" => likes
-    }
-
-    object
-    |> Map.put("likes", likes)
-  end
-
-  def add_likes(object) do
-    object
-  end
-
   def prepare_attachments(object) do
     attachments =
       (object["attachment"] || [])
@@ -1002,6 +979,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   defp strip_internal_fields(object) do
     object
     |> Map.drop([
+      "likes",
       "like_count",
       "announcements",
       "announcement_count",
