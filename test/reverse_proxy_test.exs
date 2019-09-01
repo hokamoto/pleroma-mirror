@@ -71,9 +71,15 @@ defmodule Pleroma.ReverseProxyTest do
       user_agent_mock("hackney/1.15.1", 0)
 
       assert capture_log(fn ->
-               ReverseProxy.call(conn, "/user-agent", max_body_length: 4)
+               ReverseProxy.call(conn, "/huge-file", max_body_length: 4)
              end) =~
-               "[error] Elixir.Pleroma.ReverseProxy: request to \"/user-agent\" failed: :body_too_large"
+               "[error] Elixir.Pleroma.ReverseProxy: request to \"/huge-file\" failed: :body_too_large"
+
+      assert {:ok, true} == Cachex.get(:failed_proxy_url_cache, "/huge-file")
+
+      assert capture_log(fn ->
+               ReverseProxy.call(conn, "/huge-file", max_body_length: 4)
+             end) == ""
     end
 
     defp stream_mock(invokes, with_close? \\ false) do

@@ -108,7 +108,8 @@ defmodule Pleroma.ReverseProxy do
         opts
       end
 
-    with {:ok, code, headers, client} <- request(method, url, req_headers, hackney_opts),
+    with {:ok, nil} <- Cachex.get(:failed_proxy_url_cache, url),
+         {:ok, code, headers, client} <- request(method, url, req_headers, hackney_opts),
          :ok <-
            header_length_constraint(
              headers,
@@ -116,6 +117,11 @@ defmodule Pleroma.ReverseProxy do
            ) do
       response(conn, client, url, code, headers, opts)
     else
+      {:ok, true} ->
+        conn
+        |> error_or_redirect(url, 500, "Request failed", opts)
+        |> halt()
+
       {:ok, code, headers} ->
         head_response(conn, url, code, headers, opts)
         |> halt()
@@ -134,6 +140,8 @@ defmodule Pleroma.ReverseProxy do
 
       {:error, error} ->
         Logger.error("#{__MODULE__}: request to #{inspect(url)} failed: #{inspect(error)}")
+
+        if error == :body_too_large, do: Cachex.put(:failed_proxy_url_cache, url, true)
 
         conn
         |> error_or_redirect(url, 500, "Request failed", opts)
