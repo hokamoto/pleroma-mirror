@@ -128,6 +128,30 @@ defmodule Pleroma.Plugs.CacheTest do
              |> sent_resp()
   end
 
+  test "take specific query params into account when `query_params` is list" do
+    assert @miss_resp ==
+             conn(:get, "/?a=1&b=2&c=3&foo=bar")
+             |> fetch_query_params()
+             |> Cache.call(%{query_params: ["a", "b", "c"], ttl: nil})
+             |> put_resp_content_type("cofe/hot")
+             |> send_resp(:ok, "cofe")
+             |> sent_resp()
+
+    assert @hit_resp ==
+             conn(:get, "/?bar=foo&c=3&b=2&a=1")
+             |> fetch_query_params()
+             |> Cache.call(%{query_params: ["a", "b", "c"], ttl: nil})
+             |> sent_resp()
+
+    assert @miss_resp ==
+             conn(:get, "/?bar=foo&c=3&b=2&a=2")
+             |> fetch_query_params()
+             |> Cache.call(%{query_params: ["a", "b", "c"], ttl: nil})
+             |> put_resp_content_type("cofe/hot")
+             |> send_resp(:ok, "cofe")
+             |> sent_resp()
+  end
+
   test "ignore not GET requests" do
     expected =
       {200,

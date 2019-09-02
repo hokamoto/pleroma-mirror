@@ -19,7 +19,7 @@ defmodule Pleroma.Plugs.Cache do
   Available options:
 
   - `ttl`:  An expiration time (time-to-live). This value should be in milliseconds or `nil` to disable expiration. Defaults to `nil`.
-  - `query_params`: Take URL query string into account (`true`) or ignore it (`false`). Defaults to `true`.
+  - `query_params`: Take URL query string into account (`true`), ignore it (`false`) or limit to specific params only (list). Defaults to `true`.
 
   Additionally, you can overwrite the TTL inside a controller action by assigning `cache_ttl` to the connection struct:
 
@@ -66,8 +66,21 @@ defmodule Pleroma.Plugs.Cache do
 
   def call(conn, _), do: conn
 
+  # full path including query params
   defp cache_key(conn, %{query_params: true}), do: current_path(conn)
+
+  # request path without query params
   defp cache_key(conn, %{query_params: false}), do: conn.request_path
+
+  # request path with specific query params
+  defp cache_key(conn, %{query_params: query_params}) when is_list(query_params) do
+    query_string =
+      conn.params
+      |> Map.take(query_params)
+      |> URI.encode_query()
+
+    conn.request_path <> "?" <> query_string
+  end
 
   defp cache_resp(conn, opts) do
     register_before_send(conn, fn
