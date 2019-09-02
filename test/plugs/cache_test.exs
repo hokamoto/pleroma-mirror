@@ -170,17 +170,17 @@ defmodule Pleroma.Plugs.CacheTest do
 
   test "ignore non-successful responses" do
     expected =
-      {500,
+      {418,
        [
          {"cache-control", "max-age=0, private, must-revalidate"},
-         {"content-type", "cofe/hot; charset=utf-8"}
-       ], "cofe"}
+         {"content-type", "tea/iced; charset=utf-8"}
+       ], "🥤"}
 
     assert expected ==
-             conn(:get, "/")
+             conn(:get, "/cofe")
              |> Cache.call(%{query_params: true, ttl: nil})
-             |> put_resp_content_type("cofe/hot")
-             |> send_resp(:internal_server_error, "cofe")
+             |> put_resp_content_type("tea/iced")
+             |> send_resp(:im_a_teapot, "🥤")
              |> sent_resp()
   end
 end
