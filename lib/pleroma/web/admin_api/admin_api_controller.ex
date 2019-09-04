@@ -23,21 +23,18 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
   require Logger
 
+  plug(Pleroma.Plugs.ModerationLogPlug)
+
   @users_page_size 50
 
   action_fallback(:errors)
 
-  def user_delete(%{assigns: %{user: admin}} = conn, %{"nickname" => nickname}) do
+  def user_delete(%{assigns: %{user: _admin}} = conn, %{"nickname" => nickname}) do
     user = User.get_cached_by_nickname(nickname)
     User.delete(user)
 
-    ModerationLog.insert_log(%{
-      actor: admin,
-      subject: user,
-      action: "delete"
-    })
-
     conn
+    |> put_private(:moderation_log, %{subject: user, action: "delete"})
     |> json(nickname)
   end
 
