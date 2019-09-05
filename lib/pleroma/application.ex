@@ -21,9 +21,27 @@ defmodule Pleroma.Application do
     named_version() <> "; " <> info
   end
 
+  def start(type, args) do
+    if configured?() do
+      start_pleroma(type, args)
+    else
+      start_pleroma_installer(type, args)
+    end
+  end
+
+  defp configured?, do: File.exists?(config_path())
+
+  defp config_path do
+    if is_nil(System.get_env("RELEASE_NODE")) do
+      "config/#{@env}.secret.exs"
+    else
+      System.get_env("PLEROMA_CONFIG_PATH", "/etc/pleroma/config.exs")
+    end
+  end
+
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
-  def start(_type, _args) do
+  def start_pleroma(_type, _args) do
     Pleroma.Config.DeprecationWarnings.warn()
     setup_instrumenters()
 
@@ -75,7 +93,21 @@ defmodule Pleroma.Application do
     result
   end
 
+  def start_pleroma_installer(_type, _args) do
+    Application.put_env(:pleroma_installer, :embedded, true)
+    Application.put_env(:pleroma_installer, :pleroma_config_path, config_path())
+    Application.start(:pleroma_installer)
+
+    children = []
+    opts = [strategy: :one_for_one, name: Pleroma.Supervisor]
+    Supervisor.start_link(children, opts)
+  end
+
   defp setup_instrumenters do
+    if Application.get_env(:pleroma, :post_install, false) do
+      Application.stop(:pleroma_installer)
+    end
+
     require Prometheus.Registry
 
     if Application.get_env(:prometheus, Pleroma.Repo.Instrumenter) do

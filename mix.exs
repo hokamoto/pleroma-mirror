@@ -64,7 +64,7 @@ defmodule Pleroma.Mixfile do
     [
       mod: {Pleroma.Application, []},
       extra_applications: [:logger, :runtime_tools, :comeonin, :quack],
-      included_applications: [:ex_syslogger]
+      included_applications: [:ex_syslogger, :pleroma_installer]
     ]
   end
 
@@ -156,7 +156,10 @@ defmodule Pleroma.Mixfile do
       {:ex_const, "~> 0.2"},
       {:plug_static_index_html, "~> 1.0.0"},
       {:excoveralls, "~> 0.11.1", only: :test},
-      {:mox, "~> 0.5", only: :test}
+      {:mox, "~> 0.5", only: :test},
+      {:pleroma_installer,
+       git: "https://git.pleroma.social/egor/pleroma_installer.git",
+       ref: "80bd0c58a79ef7e3ec3d83562b59d851c16c13a7"}
     ] ++ oauth_deps()
   end
 
