@@ -406,7 +406,11 @@ defmodule Pleroma.Web.OStatus.OStatusControllerTest do
       assert response["@context"] == [
                "https://www.w3.org/ns/activitystreams",
                "http://localhost:4001/schemas/litepub-0.1.jsonld",
-               %{"@language" => "und"}
+               %{
+                 "@language" => "und",
+                 "discoverable" => "mastodon:discoverable",
+                 "mastodon" => "http://joinmastodon.org/ns#"
+               }
              ]
 
       assert Map.take(response, [
@@ -468,7 +472,11 @@ defmodule Pleroma.Web.OStatus.OStatusControllerTest do
       assert response["@context"] == [
                "https://www.w3.org/ns/activitystreams",
                "http://localhost:4001/schemas/litepub-0.1.jsonld",
-               %{"@language" => "und"}
+               %{
+                 "@language" => "und",
+                 "discoverable" => "mastodon:discoverable",
+                 "mastodon" => "http://joinmastodon.org/ns#"
+               }
              ]
 
       assert Map.take(response, [

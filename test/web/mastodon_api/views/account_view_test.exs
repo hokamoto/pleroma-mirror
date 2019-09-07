@@ -64,6 +64,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       ],
       fields: [],
       bot: false,
+      discoverable: false,
       source: %{
         note: "valid html",
         sensitive: false,
@@ -132,6 +133,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       emojis: [],
       fields: [],
       bot: true,
+      discoverable: false,
       source: %{
         note: user.bio,
         sensitive: false,
@@ -302,6 +304,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       header_static: "http://localhost:4001/images/banner.png",
       emojis: [],
       fields: [],
+      discoverable: false,
       bot: true,
       source: %{
         note: user.bio,
