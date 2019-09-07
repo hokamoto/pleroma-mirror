@@ -16,9 +16,11 @@ defmodule Pleroma.Plugs.ModerationLogPlug do
 
   def moderation_log(
         %Conn{assigns: %{user: user} = _, private: %{moderation_log: log_entry} = _} = conn
-      ) do
+      )
+      when is_map(log_entry) do
     log_entry
     |> Map.put_new(:actor, user)
+    |> Map.put_new(:action, to_string(conn.private[:phoenix_action]))
     |> insert_log()
 
     conn
