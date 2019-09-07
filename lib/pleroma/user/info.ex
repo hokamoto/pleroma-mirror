@@ -51,6 +51,7 @@ defmodule Pleroma.User.Info do
     field(:pleroma_settings_store, :map, default: %{})
     field(:fields, {:array, :map}, default: nil)
     field(:raw_fields, {:array, :map}, default: [])
+    field(:discoverable, :boolean, default: false)
 
     field(:notification_settings, :map,
       default: %{
@@ -257,7 +258,8 @@ defmodule Pleroma.User.Info do
       :hide_follows,
       :follower_count,
       :fields,
-      :following_count
+      :following_count,
+      :discoverable
     ])
     |> validate_fields(true)
   end
@@ -274,7 +276,8 @@ defmodule Pleroma.User.Info do
       :following_count,
       :hide_follows,
       :fields,
-      :hide_followers
+      :hide_followers,
+      :discoverable
     ])
     |> validate_fields(remote?)
   end
@@ -294,7 +297,8 @@ defmodule Pleroma.User.Info do
       :skip_thread_containment,
       :fields,
       :raw_fields,
-      :pleroma_settings_store
+      :pleroma_settings_store,
+      :discoverable
     ])
     |> validate_fields()
   end
