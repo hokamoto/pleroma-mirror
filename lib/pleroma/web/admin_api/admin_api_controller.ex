@@ -29,7 +29,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
   action_fallback(:errors)
 
-  def user_delete(%{assigns: %{user: _admin}} = conn, %{"nickname" => nickname}) do
+  def user_delete(%{assigns: %{user: _}} = conn, %{"nickname" => nickname}) do
     user = User.get_cached_by_nickname(nickname)
     User.delete(user)
 
@@ -74,7 +74,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     |> json("ok")
   end
 
-  def users_create(%{assigns: %{user: _admin}} = conn, %{"users" => users}) do
+  def users_create(%{assigns: %{user: _}} = conn, %{"users" => users}) do
     changesets =
       Enum.map(users, fn %{"nickname" => nickname, "email" => email, "password" => password} ->
         user_data = %{
@@ -152,7 +152,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     end
   end
 
-  def user_toggle_activation(%{assigns: %{user: _admin}} = conn, %{"nickname" => nickname}) do
+  def user_toggle_activation(%{assigns: %{user: _}} = conn, %{"nickname" => nickname}) do
     user = User.get_cached_by_nickname(nickname)
 
     {:ok, updated_user} = User.deactivate(user, !user.info.deactivated)
@@ -218,16 +218,14 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     |> Enum.into(%{}, &{&1, true})
   end
 
-  def right_add(%{assigns: %{user: _admin}} = conn, %{
+  def right_add(%{assigns: %{user: _}} = conn, %{
         "permission_group" => permission_group,
         "nickname" => nickname
       })
       when permission_group in ["moderator", "admin"] do
     user = User.get_cached_by_nickname(nickname)
 
-    info =
-      %{}
-      |> Map.put("is_" <> permission_group, true)
+    info = %{"is_#{permission_group}" => true}
 
     info_cng = User.Info.admin_api_update(user.info, info)
 
