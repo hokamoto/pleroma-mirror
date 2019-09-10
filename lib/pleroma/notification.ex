@@ -13,7 +13,7 @@ defmodule Pleroma.Notification do
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.Push
-  alias Pleroma.Web.Streamer
+  alias PleromaWeb.Streamer
 
   import Ecto.Query
   import Ecto.Changeset

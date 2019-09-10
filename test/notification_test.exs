@@ -11,7 +11,7 @@ defmodule Pleroma.NotificationTest do
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.CommonAPI
-  alias Pleroma.Web.Streamer
+  alias PleromaWeb.Streamer
 
   describe "create_notifications" do
     test "notifies someone when they are directly addressed" do
@@ -69,13 +69,9 @@ defmodule Pleroma.NotificationTest do
 
   describe "create_notification" do
     setup do
-      GenServer.start(Streamer, %{}, name: Streamer)
+      start_supervised(Streamer.supervisor())
 
-      on_exit(fn ->
-        if pid = Process.whereis(Streamer) do
-          Process.exit(pid, :kill)
-        end
-      end)
+      :ok
     end
 
     test "it creates a notification for user and send to the 'user' and the 'user:notification' stream" do

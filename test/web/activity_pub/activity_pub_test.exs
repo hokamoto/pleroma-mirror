@@ -34,12 +34,12 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
         conversation.participations
         |> Repo.preload(:user)
 
-      with_mock Pleroma.Web.Streamer,
+      with_mock PleromaWeb.Streamer,
         stream: fn _, _ -> nil end do
         ActivityPub.stream_out_participations(conversation.participations)
 
         Enum.each(participations, fn participation ->
-          assert called(Pleroma.Web.Streamer.stream("participation", participation))
+          assert called(PleromaWeb.Streamer.stream("participation", participation))
         end)
       end
     end

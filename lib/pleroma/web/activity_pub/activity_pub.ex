@@ -17,6 +17,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   alias Pleroma.Web.ActivityPub.MRF
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.WebFinger
+  alias PleromaWeb.Streamer
 
   import Ecto.Query
   import Pleroma.Web.ActivityPub.Utils
@@ -187,7 +188,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       |> Repo.preload(:user)
 
     Enum.each(participations, fn participation ->
-      Pleroma.Web.Streamer.stream("participation", participation)
+      Streamer.stream("participation", participation)
     end)
   end
 
@@ -212,33 +213,33 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       object = Object.normalize(activity)
       # Do not stream out poll replies
       unless object.data["type"] == "Answer" do
-        Pleroma.Web.Streamer.stream("user", activity)
-        Pleroma.Web.Streamer.stream("list", activity)
+        Streamer.stream("user", activity)
+        Streamer.stream("list", activity)
 
         if get_visibility(activity) == "public" do
-          Pleroma.Web.Streamer.stream("public", activity)
+          Streamer.stream("public", activity)
 
           if activity.local do
-            Pleroma.Web.Streamer.stream("public:local", activity)
+            Streamer.stream("public:local", activity)
           end
 
           if activity.data["type"] in ["Create"] do
             object.data
             |> Map.get("tag", [])
             |> Enum.filter(fn tag -> is_bitstring(tag) end)
-            |> Enum.each(fn tag -> Pleroma.Web.Streamer.stream("hashtag:" <> tag, activity) end)
+            |> Enum.each(fn tag -> Streamer.stream("hashtag:" <> tag, activity) end)
 
             if object.data["attachment"] != [] do
-              Pleroma.Web.Streamer.stream("public:media", activity)
+              Streamer.stream("public:media", activity)
 
               if activity.local do
-                Pleroma.Web.Streamer.stream("public:local:media", activity)
+                Streamer.stream("public:local:media", activity)
               end
             end
           end
         else
           if get_visibility(activity) == "direct",
-            do: Pleroma.Web.Streamer.stream("direct", activity)
+            do: Streamer.stream("direct", activity)
         end
       end
     end

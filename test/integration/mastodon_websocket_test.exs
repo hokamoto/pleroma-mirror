@@ -10,7 +10,7 @@ defmodule Pleroma.Integration.MastodonWebsocketTest do
   alias Pleroma.Integration.WebsocketClient
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.OAuth
-  alias Pleroma.Web.Streamer
+  alias PleromaWeb.Streamer
 
   @path Pleroma.Web.Endpoint.url()
         |> URI.parse()
@@ -19,13 +19,8 @@ defmodule Pleroma.Integration.MastodonWebsocketTest do
         |> URI.to_string()
 
   setup do
-    GenServer.start(Streamer, %{}, name: Streamer)
-
-    on_exit(fn ->
-      if pid = Process.whereis(Streamer) do
-        Process.exit(pid, :kill)
-      end
-    end)
+    start_supervised(Streamer.supervisor())
+    :ok
   end
 
   def start_socket(qs \\ nil, headers \\ []) do

@@ -142,7 +142,7 @@ defmodule Pleroma.Application do
   defp streamer_child(:test), do: []
 
   defp streamer_child(_) do
-    [Pleroma.Web.Streamer]
+    [PleromaWeb.Streamer]
   end
 
   defp oauth_cleanup_child(true),

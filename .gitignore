@@ -42,3 +42,7 @@ erl_crash.dump
 # Code test coverage
 /cover
 /Elixir.*.coverdata
+
+.idea
+pleroma.iml
+

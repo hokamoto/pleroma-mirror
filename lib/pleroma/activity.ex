@@ -157,6 +157,8 @@ defmodule Pleroma.Activity do
     |> Repo.one()
   end
 
+  def get_by_id_with_object(nil), do: nil
+
   def get_by_id_with_object(id) do
     from(activity in Activity,
       where: activity.id == ^id,
