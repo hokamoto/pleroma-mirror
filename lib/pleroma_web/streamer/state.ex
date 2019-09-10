@@ -16,7 +16,7 @@ defmodule PleromaWeb.Streamer.State do
     GenServer.call(__MODULE__, %{action: :remove, socket: socket, topic: topic})
   end
 
-  def get_sockets() do
+  def get_sockets do
     %{sockets: stream_sockets} = GenServer.call(__MODULE__, :get_state)
     stream_sockets
   end

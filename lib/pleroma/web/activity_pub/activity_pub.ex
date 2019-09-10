@@ -209,7 +209,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   def stream_out(%Activity{data: %{"type" => data_type}} = activity)
       when data_type in ["Create", "Announce", "Delete"] do
-
     activity
     |> Topics.get_activity_topics()
     |> Streamer.stream(activity)

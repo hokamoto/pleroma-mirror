@@ -3,15 +3,14 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.Topics do
-
   alias Pleroma.Object
   alias Pleroma.Web.ActivityPub.Visibility
 
   def get_activity_topics(activity) do
     activity
-    |> Object.normalize
+    |> Object.normalize()
     |> generate_topics(activity)
-    |> List.flatten
+    |> List.flatten()
   end
 
   defp generate_topics(%{data: %{type: "Answer"}}, _) do
@@ -66,5 +65,4 @@ defmodule Pleroma.Web.ActivityPub.Topics do
       ["public:media"]
     end
   end
-
 end

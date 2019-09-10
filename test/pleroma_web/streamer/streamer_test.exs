@@ -11,6 +11,7 @@ defmodule PleromaWeb.StreamerTest do
   alias PleromaWeb.Streamer
   import Pleroma.Factory
   alias PleromaWeb.Streamer.StreamerSocket
+  alias PleromaWeb.Streamer.Worker
 
   setup do
     skip_thread_containment = Pleroma.Config.get([:instance, :skip_thread_containment])
@@ -139,7 +140,7 @@ defmodule PleromaWeb.StreamerTest do
       "public" => [fake_socket]
     }
 
-    Streamer.push_to_socket(topics, "public", activity)
+    Streamer.direct_push(topics, "public", activity)
 
     Task.await(task)
 
@@ -167,7 +168,7 @@ defmodule PleromaWeb.StreamerTest do
       "public" => [fake_socket]
     }
 
-    Streamer.push_to_socket(topics, "public", activity)
+    Streamer.direct_push(topics, "public", activity)
 
     Task.await(task)
   end
@@ -190,7 +191,7 @@ defmodule PleromaWeb.StreamerTest do
       task = Task.async(fn -> refute_receive {:text, _}, 1_000 end)
       fake_socket = %StreamerSocket{transport_pid: task.pid, user: user}
       topics = %{"public" => [fake_socket]}
-      Streamer.push_to_socket(topics, "public", activity)
+      Streamer.direct_push(topics, "public", activity)
 
       Task.await(task)
     end
@@ -212,7 +213,7 @@ defmodule PleromaWeb.StreamerTest do
       task = Task.async(fn -> assert_receive {:text, _}, 1_000 end)
       fake_socket = %StreamerSocket{transport_pid: task.pid, user: user}
       topics = %{"public" => [fake_socket]}
-      Streamer.push_to_socket(topics, "public", activity)
+      Streamer.direct_push(topics, "public", activity)
 
       Task.await(task)
     end
@@ -234,7 +235,7 @@ defmodule PleromaWeb.StreamerTest do
       task = Task.async(fn -> assert_receive {:text, _}, 1_000 end)
       fake_socket = %StreamerSocket{transport_pid: task.pid, user: user}
       topics = %{"public" => [fake_socket]}
-      Streamer.push_to_socket(topics, "public", activity)
+      Streamer.direct_push(topics, "public", activity)
 
       Task.await(task)
     end
@@ -261,7 +262,7 @@ defmodule PleromaWeb.StreamerTest do
       "public" => [fake_socket]
     }
 
-    Streamer.push_to_socket(topics, "public", activity)
+    Streamer.direct_push(topics, "public", activity)
 
     Task.await(task)
   end
@@ -296,7 +297,7 @@ defmodule PleromaWeb.StreamerTest do
       "list:#{list.id}" => [fake_socket]
     }
 
-    Streamer.handle_cast(%{action: :stream, topic: "list", item: activity}, topics)
+    Worker.handle_cast(%{action: :stream, topic: "list", item: activity}, topics)
 
     Task.await(task)
   end
@@ -328,7 +329,7 @@ defmodule PleromaWeb.StreamerTest do
       "list:#{list.id}" => [fake_socket]
     }
 
-    Streamer.handle_cast(%{action: :stream, topic: "list", item: activity}, topics)
+    Worker.handle_cast(%{action: :stream, topic: "list", item: activity}, topics)
 
     Task.await(task)
   end
@@ -363,7 +364,7 @@ defmodule PleromaWeb.StreamerTest do
       fake_socket
     )
 
-    Streamer.handle_cast(%{action: :stream, topic: "list", item: activity}, %{})
+    Worker.handle_cast(%{action: :stream, topic: "list", item: activity}, %{})
 
     Task.await(task)
   end
@@ -391,8 +392,30 @@ defmodule PleromaWeb.StreamerTest do
       "public" => [fake_socket]
     }
 
-    Streamer.push_to_socket(topics, "public", announce_activity)
+    Streamer.direct_push(topics, "public", announce_activity)
 
+    Task.await(task)
+  end
+
+  test "it doesn't send posts from muted threads" do
+    user = insert(:user)
+    user2 = insert(:user)
+    {:ok, user2, user, _activity} = CommonAPI.follow(user2, user)
+
+    {:ok, activity} = CommonAPI.post(user, %{"status" => "super hot take"})
+
+    {:ok, activity} = CommonAPI.add_mute(user2, activity)
+
+    task = Task.async(fn -> refute_receive {:text, _}, 4_000 end)
+
+    Process.sleep(4000)
+
+    Streamer.add_socket(
+      "user",
+      %{transport_pid: task.pid, assigns: %{user: user2}}
+    )
+
+    Streamer.stream("user", activity)
     Task.await(task)
   end
 

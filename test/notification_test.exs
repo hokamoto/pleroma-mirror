@@ -9,9 +9,9 @@ defmodule Pleroma.NotificationTest do
 
   alias Pleroma.Notification
   alias Pleroma.User
+  alias PleromaWeb.Streamer
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.CommonAPI
-  alias PleromaWeb.Streamer
 
   describe "create_notifications" do
     test "notifies someone when they are directly addressed" do
