@@ -5,24 +5,20 @@ defmodule PleromaWeb.Streamer.State do
   alias PleromaWeb.Streamer.StreamerSocket
 
   def start_link(_) do
-    GenServer.start_link(__MODULE__, %{sockets: %{}, streams: []}, name: __MODULE__)
+    GenServer.start_link(__MODULE__, %{sockets: %{}}, name: __MODULE__)
   end
 
   def add_socket(topic, socket) do
-    GenServer.call(__MODULE__, %{action: :add, socket: socket, topic: topic})
+    GenServer.call(__MODULE__, {:add, socket, topic})
   end
 
   def remove_socket(topic, socket) do
-    GenServer.call(__MODULE__, %{action: :remove, socket: socket, topic: topic})
+    GenServer.call(__MODULE__, {:remove, socket, topic})
   end
 
   def get_sockets do
     %{sockets: stream_sockets} = GenServer.call(__MODULE__, :get_state)
     stream_sockets
-  end
-
-  def add_stream_item(topic, item) do
-    GenServer.call(__MODULE__, %{action: :add, item: item, topic: topic})
   end
 
   def init(init_arg) do
@@ -33,11 +29,7 @@ defmodule PleromaWeb.Streamer.State do
     {:reply, state, state}
   end
 
-  def handle_call(
-        %{action: :add, topic: topic, socket: socket},
-        _from,
-        %{sockets: sockets} = state
-      ) do
+  def handle_call({:add, socket, topic}, _from, %{sockets: sockets} = state) do
     internal_topic = internal_topic(topic, socket)
     stream_socket = StreamerSocket.from_socket(socket)
 
@@ -52,21 +44,7 @@ defmodule PleromaWeb.Streamer.State do
     {:reply, state, state}
   end
 
-  def handle_call(
-        %{action: :add, topic: topic, item: _item},
-        _from,
-        %{streams: _streams} = state
-      ) do
-    state = Map.put(state, :streams, [])
-    Logger.debug("Got new conn for #{topic}")
-    {:reply, state, state}
-  end
-
-  def handle_call(
-        %{action: :remove, topic: topic, socket: socket},
-        _from,
-        %{sockets: sockets} = state
-      ) do
+  def handle_call({:remove, socket, topic}, _from, %{sockets: sockets} = state) do
     internal_topic = internal_topic(topic, socket)
     stream_socket = PleromaWeb.Streamer.StreamerSocket.from_socket(socket)
 

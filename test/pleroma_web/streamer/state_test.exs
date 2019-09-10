@@ -9,11 +9,7 @@ defmodule PleromaWeb.StateTest do
   alias PleromaWeb.Streamer
   alias PleromaWeb.Streamer.StreamerSocket
 
-  setup do
-    start_supervised(Streamer.supervisor())
-
-    :ok
-  end
+  @moduletag needs_streamer: true
 
   describe "sockets" do
     setup do

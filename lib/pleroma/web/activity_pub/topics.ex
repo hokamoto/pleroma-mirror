@@ -13,7 +13,7 @@ defmodule Pleroma.Web.ActivityPub.Topics do
     |> List.flatten()
   end
 
-  defp generate_topics(%{data: %{type: "Answer"}}, _) do
+  defp generate_topics(%{data: %{"type" => "Answer"}}, _) do
     []
   end
 
@@ -39,7 +39,7 @@ defmodule Pleroma.Web.ActivityPub.Topics do
     end
   end
 
-  defp item_creation_tags(tags, %{data: %{type: "Create"}} = object, activity) do
+  defp item_creation_tags(tags, %{data: %{"type" => "Create"}} = object, activity) do
     tags ++ hashtags_to_topics(object) ++ attachment_topics(object, activity)
   end
 
@@ -47,22 +47,17 @@ defmodule Pleroma.Web.ActivityPub.Topics do
     tags
   end
 
-  defp hashtags_to_topics(obj) do
-    obj.data
-    |> Map.get("tag", [])
+  defp hashtags_to_topics(%{data: %{"tag" => tags}}) do
+    tags
     |> Enum.filter(fn tag -> is_bitstring(tag) end)
     |> Enum.map(fn tag -> "hashtag:" <> tag end)
   end
 
-  defp attachment_topics(%{data: %{"attachment" => []}}, _activity) do
-    []
-  end
+  defp hashtags_to_topics(_), do: []
 
-  defp attachment_topics(_object, activity) do
-    if activity.local do
-      ["public:media", "public:local:media"]
-    else
-      ["public:media"]
-    end
-  end
+  defp attachment_topics(%{data: %{"attachment" => []}}, _act), do: []
+
+  defp attachment_topics(_object, %{local: true}), do: ["public:media", "public:local:media"]
+
+  defp attachment_topics(_object, _act), do: ["public:media"]
 end

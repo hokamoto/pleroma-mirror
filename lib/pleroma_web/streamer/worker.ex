@@ -17,33 +17,33 @@ defmodule PleromaWeb.Streamer.Worker do
   alias PleromaWeb.StreamerView
 
   def start_link(_) do
-    GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
+    GenServer.start_link(__MODULE__, %{}, [])
   end
 
   def init(init_arg) do
     {:ok, init_arg}
   end
 
-  def handle_cast(%{action: :stream, topic: topics, item: item}, state) when is_list(topics) do
+  def handle_call({:stream, topics, item}, _from, state) when is_list(topics) do
     Enum.each(topics, fn t ->
       do_stream(%{topic: t, item: item})
     end)
 
-    {:noreply, state}
+    {:reply, state, state}
   end
 
-  def handle_cast(%{action: :stream, topic: topic, item: items}, state) when is_list(items) do
+  def handle_call({:stream, topic, items}, _from, state) when is_list(items) do
     Enum.each(items, fn i ->
       do_stream(%{topic: topic, item: i})
     end)
 
-    {:noreply, state}
+    {:reply, state, state}
   end
 
-  def handle_cast(%{action: :stream, topic: topic, item: item}, state) do
+  def handle_call({:stream, topic, item}, _from, state) do
     do_stream(%{topic: topic, item: item})
 
-    {:noreply, state}
+    {:reply, state, state}
   end
 
   defp do_stream(%{topic: "direct", item: item}) do
@@ -51,7 +51,7 @@ defmodule PleromaWeb.Streamer.Worker do
       User.get_recipients_from_activity(item)
       |> Enum.map(fn %{id: id} -> "direct:#{id}" end)
 
-    Enum.each(recipient_topics || [], fn user_topic ->
+    Enum.each(recipient_topics, fn user_topic ->
       Logger.debug("Trying to push direct message to #{user_topic}\n\n")
       push_to_socket(State.get_sockets(), user_topic, item)
     end)
@@ -84,7 +84,7 @@ defmodule PleromaWeb.Streamer.Worker do
       recipient_lists
       |> Enum.map(fn %{id: id} -> "list:#{id}" end)
 
-    Enum.each(recipient_topics || [], fn list_topic ->
+    Enum.each(recipient_topics, fn list_topic ->
       Logger.debug("Trying to push message to #{list_topic}\n\n")
       push_to_socket(State.get_sockets(), list_topic, item)
     end)
@@ -118,10 +118,6 @@ defmodule PleromaWeb.Streamer.Worker do
     Logger.debug("Trying to push to #{topic}")
     Logger.debug("Pushing item to #{topic}")
     push_to_socket(State.get_sockets(), topic, item)
-  end
-
-  defp do_stream(m) do
-    Logger.info("Unknown: #{inspect(m)}")
   end
 
   defp should_send?(%User{} = user, %Activity{} = item) do

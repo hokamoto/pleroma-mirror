@@ -8,8 +8,8 @@ defmodule PleromaWeb.StreamerView do
   alias Pleroma.Activity
   alias Pleroma.Conversation.Participation
   alias Pleroma.Notification
-  alias Pleroma.Web.MastodonAPI.NotificationView
   alias Pleroma.User
+  alias Pleroma.Web.MastodonAPI.NotificationView
 
   def render("update.json", %Activity{} = activity, %User{} = user) do
     %{
@@ -63,5 +63,4 @@ defmodule PleromaWeb.StreamerView do
     }
     |> Jason.encode!()
   end
-
 end

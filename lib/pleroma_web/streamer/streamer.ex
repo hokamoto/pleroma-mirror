@@ -3,14 +3,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule PleromaWeb.Streamer do
-  use GenServer
-
   alias PleromaWeb.Streamer.State
-  alias PleromaWeb.Streamer.Worker
 
-  def start_link(_) do
-    GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
-  end
+  @timeout 60_000
+  @mix_env Mix.env()
 
   def add_socket(topic, socket) do
     State.add_socket(topic, socket)
@@ -24,17 +20,35 @@ defmodule PleromaWeb.Streamer do
     State.get_sockets()
   end
 
-  def direct_push(topics, topic, activity) do
-    Worker.push_to_socket(topics, topic, activity)
-  end
-
   def stream(topics, items) do
-    GenServer.cast(Worker, %{action: :stream, topic: topics, item: items})
+    if should_send?() do
+      Task.async(fn ->
+        :poolboy.transaction(
+          :streamer_worker,
+          fn pid -> GenServer.call(pid, {:stream, topics, items}) end,
+          @timeout
+        )
+      end)
+    end
   end
 
   def supervisor, do: PleromaWeb.Streamer.Supervisor
 
-  def init(args) do
-    {:ok, args}
+  defp should_send? do
+    handle_should_send(@mix_env)
+  end
+
+  defp handle_should_send(:test) do
+    case Process.whereis(:streamer_worker) do
+      nil ->
+        false
+
+      pid ->
+        Process.alive?(pid)
+    end
+  end
+
+  defp handle_should_send(_) do
+    true
   end
 end

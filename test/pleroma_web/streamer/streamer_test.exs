@@ -13,17 +13,8 @@ defmodule PleromaWeb.StreamerTest do
   alias PleromaWeb.Streamer.StreamerSocket
   alias PleromaWeb.Streamer.Worker
 
-  setup do
-    skip_thread_containment = Pleroma.Config.get([:instance, :skip_thread_containment])
-
-    on_exit(fn ->
-      Pleroma.Config.put([:instance, :skip_thread_containment], skip_thread_containment)
-    end)
-
-    start_supervised(Streamer.supervisor())
-
-    :ok
-  end
+  @moduletag needs_streamer: true
+  clear_config_all([:instance, :skip_thread_containment])
 
   describe "user streams" do
     setup do
@@ -140,7 +131,7 @@ defmodule PleromaWeb.StreamerTest do
       "public" => [fake_socket]
     }
 
-    Streamer.direct_push(topics, "public", activity)
+    Worker.push_to_socket(topics, "public", activity)
 
     Task.await(task)
 
@@ -168,7 +159,7 @@ defmodule PleromaWeb.StreamerTest do
       "public" => [fake_socket]
     }
 
-    Streamer.direct_push(topics, "public", activity)
+    Worker.push_to_socket(topics, "public", activity)
 
     Task.await(task)
   end
@@ -191,7 +182,7 @@ defmodule PleromaWeb.StreamerTest do
       task = Task.async(fn -> refute_receive {:text, _}, 1_000 end)
       fake_socket = %StreamerSocket{transport_pid: task.pid, user: user}
       topics = %{"public" => [fake_socket]}
-      Streamer.direct_push(topics, "public", activity)
+      Worker.push_to_socket(topics, "public", activity)
 
       Task.await(task)
     end
@@ -213,7 +204,7 @@ defmodule PleromaWeb.StreamerTest do
       task = Task.async(fn -> assert_receive {:text, _}, 1_000 end)
       fake_socket = %StreamerSocket{transport_pid: task.pid, user: user}
       topics = %{"public" => [fake_socket]}
-      Streamer.direct_push(topics, "public", activity)
+      Worker.push_to_socket(topics, "public", activity)
 
       Task.await(task)
     end
@@ -235,7 +226,7 @@ defmodule PleromaWeb.StreamerTest do
       task = Task.async(fn -> assert_receive {:text, _}, 1_000 end)
       fake_socket = %StreamerSocket{transport_pid: task.pid, user: user}
       topics = %{"public" => [fake_socket]}
-      Streamer.direct_push(topics, "public", activity)
+      Worker.push_to_socket(topics, "public", activity)
 
       Task.await(task)
     end
@@ -262,7 +253,7 @@ defmodule PleromaWeb.StreamerTest do
       "public" => [fake_socket]
     }
 
-    Streamer.direct_push(topics, "public", activity)
+    Worker.push_to_socket(topics, "public", activity)
 
     Task.await(task)
   end
@@ -297,7 +288,7 @@ defmodule PleromaWeb.StreamerTest do
       "list:#{list.id}" => [fake_socket]
     }
 
-    Worker.handle_cast(%{action: :stream, topic: "list", item: activity}, topics)
+    Worker.handle_call({:stream, "list", activity}, self(), topics)
 
     Task.await(task)
   end
@@ -329,7 +320,7 @@ defmodule PleromaWeb.StreamerTest do
       "list:#{list.id}" => [fake_socket]
     }
 
-    Worker.handle_cast(%{action: :stream, topic: "list", item: activity}, topics)
+    Worker.handle_call({:stream, "list", activity}, self(), topics)
 
     Task.await(task)
   end
@@ -364,7 +355,7 @@ defmodule PleromaWeb.StreamerTest do
       fake_socket
     )
 
-    Worker.handle_cast(%{action: :stream, topic: "list", item: activity}, %{})
+    Worker.handle_call({:stream, "list", activity}, self(), %{})
 
     Task.await(task)
   end
@@ -392,7 +383,7 @@ defmodule PleromaWeb.StreamerTest do
       "public" => [fake_socket]
     }
 
-    Streamer.direct_push(topics, "public", announce_activity)
+    Worker.push_to_socket(topics, "public", announce_activity)
 
     Task.await(task)
   end
@@ -460,12 +451,12 @@ defmodule PleromaWeb.StreamerTest do
       task =
         Task.async(fn ->
           assert_receive {:text, received_event}, 4_000
-          assert_receive {:text, received_event}, 4_000
-          assert_receive {:text, received_event}, 4_000
           assert %{"event" => "delete", "payload" => _} = Jason.decode!(received_event)
 
           refute_receive {:text, _}, 4_000
         end)
+
+      Process.sleep(1000)
 
       Streamer.add_socket(
         "direct",
@@ -497,8 +488,6 @@ defmodule PleromaWeb.StreamerTest do
       task =
         Task.async(fn ->
           assert_receive {:text, received_event}, 4_000
-          assert_receive {:text, received_event}, 4_000
-          assert_receive {:text, received_event}, 4_000
           assert %{"event" => "delete", "payload" => _} = Jason.decode!(received_event)
 
           assert_receive {:text, received_event}, 4_000
@@ -509,6 +498,8 @@ defmodule PleromaWeb.StreamerTest do
           assert %{"last_status" => last_status} = Jason.decode!(received_payload)
           assert last_status["id"] == to_string(create_activity.id)
         end)
+
+      Process.sleep(1000)
 
       Streamer.add_socket(
         "direct",

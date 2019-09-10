@@ -68,12 +68,7 @@ defmodule Pleroma.NotificationTest do
   end
 
   describe "create_notification" do
-    setup do
-      start_supervised(Streamer.supervisor())
-
-      :ok
-    end
-
+    @tag needs_streamer: true
     test "it creates a notification for user and send to the 'user' and the 'user:notification' stream" do
       user = insert(:user)
       task = Task.async(fn -> assert_receive {:text, _}, 4_000 end)

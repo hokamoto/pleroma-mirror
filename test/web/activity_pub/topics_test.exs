@@ -9,7 +9,7 @@ defmodule Pleroma.Web.ActivityPub.TopicsTest do
 
   describe "poll answer" do
     test "produce no topics" do
-      activity = %Activity{object: %Object{data: %{type: "Answer"}}}
+      activity = %Activity{object: %Object{data: %{"type" => "Answer"}}}
 
       assert [] == Topics.get_activity_topics(activity)
     end
@@ -17,7 +17,7 @@ defmodule Pleroma.Web.ActivityPub.TopicsTest do
 
   describe "non poll answer" do
     test "always add user and list topics" do
-      activity = %Activity{object: %Object{data: %{type: "FooBar"}}}
+      activity = %Activity{object: %Object{data: %{"type" => "FooBar"}}}
       topics = Topics.get_activity_topics(activity)
 
       assert Enum.member?(topics, "user")
@@ -27,7 +27,11 @@ defmodule Pleroma.Web.ActivityPub.TopicsTest do
 
   describe "public visibility" do
     setup do
-      activity = %Activity{object: %Object{data: %{type: "Note"}}, data: %{"to" => [Pleroma.Constants.as_public()]}}
+      activity = %Activity{
+        object: %Object{data: %{"type" => "Note"}},
+        data: %{"to" => [Pleroma.Constants.as_public()]}
+      }
+
       {:ok, activity: activity}
     end
 
@@ -54,7 +58,11 @@ defmodule Pleroma.Web.ActivityPub.TopicsTest do
 
   describe "public visibility create events" do
     setup do
-      activity = %Activity{object: %Object{data: %{:type => "Create", "attachment" => []}}, data: %{"to" => [Pleroma.Constants.as_public()]}}
+      activity = %Activity{
+        object: %Object{data: %{"type" => "Create", "attachment" => []}},
+        data: %{"to" => [Pleroma.Constants.as_public()]}
+      }
+
       {:ok, activity: activity}
     end
 
@@ -78,7 +86,11 @@ defmodule Pleroma.Web.ActivityPub.TopicsTest do
 
   describe "public visibility create events with attachments" do
     setup do
-      activity = %Activity{object: %Object{data: %{:type => "Create", "attachment" => ["foo"]}}, data: %{"to" => [Pleroma.Constants.as_public()]}}
+      activity = %Activity{
+        object: %Object{data: %{"type" => "Create", "attachment" => ["foo"]}},
+        data: %{"to" => [Pleroma.Constants.as_public()]}
+      }
+
       {:ok, activity: activity}
     end
 
@@ -101,12 +113,11 @@ defmodule Pleroma.Web.ActivityPub.TopicsTest do
 
       refute Enum.member?(topics, "public:local:media")
     end
-
   end
 
   describe "non-public visibility" do
     test "produces direct topic" do
-      activity = %Activity{object: %Object{data: %{type: "Note"}}, data: %{"to" => []}}
+      activity = %Activity{object: %Object{data: %{"type" => "Note"}}, data: %{"to" => []}}
       topics = Topics.get_activity_topics(activity)
 
       assert Enum.member?(topics, "direct")
@@ -117,9 +128,3 @@ defmodule Pleroma.Web.ActivityPub.TopicsTest do
     end
   end
 end
-
-
-
-
-
-
