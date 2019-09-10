@@ -156,7 +156,7 @@ defmodule PleromaWeb.StreamerTest do
         assert received_event == expected_event
       end)
 
-    fake_socket =  %StreamerSocket{
+    fake_socket = %StreamerSocket{
       transport_pid: task.pid,
       user: user
     }

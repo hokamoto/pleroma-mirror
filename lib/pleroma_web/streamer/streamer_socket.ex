@@ -5,18 +5,18 @@ defmodule PleromaWeb.Streamer.StreamerSocket do
   alias PleromaWeb.Streamer.StreamerSocket
 
   def from_socket(%{
-    transport_pid: transport_pid,
-    assigns: %{user: nil}
-  }) do
+        transport_pid: transport_pid,
+        assigns: %{user: nil}
+      }) do
     %StreamerSocket{
       transport_pid: transport_pid
     }
   end
 
   def from_socket(%{
-    transport_pid: transport_pid,
-    assigns: %{user: %User{} = user}
-  }) do
+        transport_pid: transport_pid,
+        assigns: %{user: %User{} = user}
+      }) do
     %StreamerSocket{
       transport_pid: transport_pid,
       user: user

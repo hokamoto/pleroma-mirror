@@ -6,7 +6,6 @@ defmodule PleromaWeb.StateTest do
   use Pleroma.DataCase
 
   import Pleroma.Factory
-  #alias Pleroma.User
   alias PleromaWeb.Streamer
   alias PleromaWeb.Streamer.StreamerSocket
 
@@ -26,9 +25,7 @@ defmodule PleromaWeb.StateTest do
     test "it can add a socket", %{user: user} do
       Streamer.add_socket("public", %{transport_pid: 1, assigns: %{user: user}})
 
-      assert(
-        %{"public" => [%StreamerSocket{transport_pid: 1}]} = Streamer.get_sockets()
-      )
+      assert(%{"public" => [%StreamerSocket{transport_pid: 1}]} = Streamer.get_sockets())
     end
 
     test "it can add multiple sockets per user", %{user: user} do
@@ -36,10 +33,12 @@ defmodule PleromaWeb.StateTest do
       Streamer.add_socket("public", %{transport_pid: 2, assigns: %{user: user}})
 
       assert(
-        %{"public" => [
+        %{
+          "public" => [
             %StreamerSocket{transport_pid: 2},
             %StreamerSocket{transport_pid: 1}
-        ]} = Streamer.get_sockets()
+          ]
+        } = Streamer.get_sockets()
       )
     end
 
@@ -48,9 +47,11 @@ defmodule PleromaWeb.StateTest do
       Streamer.add_socket("activity", %{transport_pid: 1, assigns: %{user: user}})
 
       assert(
-        %{"activity" => [
+        %{
+          "activity" => [
             %StreamerSocket{transport_pid: 1}
-        ]} = Streamer.get_sockets()
+          ]
+        } = Streamer.get_sockets()
       )
     end
   end

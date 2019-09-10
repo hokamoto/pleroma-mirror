@@ -15,6 +15,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   alias Pleroma.Upload
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.MRF
+  alias Pleroma.Web.ActivityPub.Topics
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.WebFinger
   alias PleromaWeb.Streamer
@@ -187,9 +188,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       participations
       |> Repo.preload(:user)
 
-    Enum.each(participations, fn participation ->
-      Streamer.stream("participation", participation)
-    end)
+    Streamer.stream("participation", participations)
   end
 
   def stream_out_participations(%Object{data: %{"context" => context}}, user) do
@@ -208,41 +207,16 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   def stream_out_participations(_, _), do: :noop
 
-  def stream_out(activity) do
-    if activity.data["type"] in ["Create", "Announce", "Delete"] do
-      object = Object.normalize(activity)
-      # Do not stream out poll replies
-      unless object.data["type"] == "Answer" do
-        Streamer.stream("user", activity)
-        Streamer.stream("list", activity)
+  def stream_out(%Activity{data: %{"type" => data_type}} = activity)
+      when data_type in ["Create", "Announce", "Delete"] do
 
-        if get_visibility(activity) == "public" do
-          Streamer.stream("public", activity)
+    activity
+    |> Topics.get_activity_topics()
+    |> Streamer.stream(activity)
+  end
 
-          if activity.local do
-            Streamer.stream("public:local", activity)
-          end
-
-          if activity.data["type"] in ["Create"] do
-            object.data
-            |> Map.get("tag", [])
-            |> Enum.filter(fn tag -> is_bitstring(tag) end)
-            |> Enum.each(fn tag -> Streamer.stream("hashtag:" <> tag, activity) end)
-
-            if object.data["attachment"] != [] do
-              Streamer.stream("public:media", activity)
-
-              if activity.local do
-                Streamer.stream("public:local:media", activity)
-              end
-            end
-          end
-        else
-          if get_visibility(activity) == "direct",
-            do: Streamer.stream("direct", activity)
-        end
-      end
-    end
+  def stream_out(_activity) do
+    :noop
   end
 
   def create(%{to: to, actor: actor, context: context, object: object} = params, fake \\ false) do

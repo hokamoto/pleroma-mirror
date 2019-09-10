@@ -19,7 +19,6 @@ defmodule PleromaWeb.Streamer do
   alias PleromaWeb.Streamer.StreamerSocket
 
   def start_link(_) do
-    IO.puts("inside start_link StreamerStreamerStreamerStreamer")
     GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
   end
 
@@ -35,6 +34,18 @@ defmodule PleromaWeb.Streamer do
     State.get_sockets()
   end
 
+  def stream(topics, item) when is_list(topics) do
+    Enum.each(topics, fn t ->
+      GenServer.cast(__MODULE__, %{action: :stream, topic: t, item: item})
+    end)
+  end
+
+  def stream(topic, items) when is_list(items) do
+    Enum.each(items, fn i ->
+      GenServer.cast(__MODULE__, %{action: :stream, topic: topic, item: i})
+    end)
+  end
+
   def stream(topic, item) do
     GenServer.cast(__MODULE__, %{action: :stream, topic: topic, item: item})
   end
@@ -42,7 +53,6 @@ defmodule PleromaWeb.Streamer do
   def supervisor, do: PleromaWeb.Streamer.Supervisor
 
   def init(args) do
-    IO.puts("inside init StreamerStreamerStreamerStreamer")
     {:ok, args}
   end
 
@@ -207,7 +217,7 @@ defmodule PleromaWeb.Streamer do
          false <- Pleroma.Web.ActivityPub.MRF.subdomain_match?(domain_blocks, item_host),
          false <- Pleroma.Web.ActivityPub.MRF.subdomain_match?(domain_blocks, parent_host),
          true <- thread_containment(item, user),
-         false <- CommonAPI.thread_muted?(user, item)  do
+         false <- CommonAPI.thread_muted?(user, item) do
       true
     else
       _ -> false
@@ -219,7 +229,10 @@ defmodule PleromaWeb.Streamer do
   end
 
   def push_to_socket(topics, topic, %Activity{data: %{"type" => "Announce"}} = item) do
-    Enum.each(topics[topic] || [], fn %StreamerSocket{transport_pid: transport_pid, user: socket_user} ->
+    Enum.each(topics[topic] || [], fn %StreamerSocket{
+                                        transport_pid: transport_pid,
+                                        user: socket_user
+                                      } ->
       # Get the current user so we have up-to-date blocks etc.
       if socket_user do
         user = User.get_cached_by_ap_id(socket_user.ap_id)
@@ -253,7 +266,10 @@ defmodule PleromaWeb.Streamer do
   def push_to_socket(_topics, _topic, %Activity{data: %{"type" => "Delete"}}), do: :noop
 
   def push_to_socket(topics, topic, item) do
-    Enum.each(topics[topic] || [], fn %StreamerSocket{transport_pid: transport_pid, user: socket_user} ->
+    Enum.each(topics[topic] || [], fn %StreamerSocket{
+                                        transport_pid: transport_pid,
+                                        user: socket_user
+                                      } ->
       # Get the current user so we have up-to-date blocks etc.
       if socket_user do
         user = User.get_cached_by_ap_id(socket_user.ap_id)

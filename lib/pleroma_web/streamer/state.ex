@@ -25,8 +25,6 @@ defmodule PleromaWeb.Streamer.State do
     GenServer.call(__MODULE__, %{action: :add, item: item, topic: topic})
   end
 
-
-
   def init(init_arg) do
     {:ok, init_arg}
   end
@@ -59,8 +57,6 @@ defmodule PleromaWeb.Streamer.State do
         _from,
         %{streams: _streams} = state
       ) do
-
-
     state = Map.put(state, :streams, [])
     Logger.debug("Got new conn for #{topic}")
     {:reply, state, state}

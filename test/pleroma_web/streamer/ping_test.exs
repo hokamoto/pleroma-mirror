@@ -6,9 +6,7 @@ defmodule PleromaWeb.PingTest do
   use Pleroma.DataCase
 
   import Pleroma.Factory
- # alias Pleroma.User
   alias PleromaWeb.Streamer
- # alias PleromaWeb.Streamer.StreamerSocket
 
   setup do
     start_supervised({Streamer.supervisor(), [ping_interval: 30]})
