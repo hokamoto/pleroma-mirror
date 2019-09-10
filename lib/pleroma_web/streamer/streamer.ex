@@ -4,6 +4,7 @@
 
 defmodule PleromaWeb.Streamer do
   alias PleromaWeb.Streamer.State
+  alias PleromaWeb.Streamer.Worker
 
   @timeout 60_000
   @mix_env Mix.env()
@@ -25,7 +26,7 @@ defmodule PleromaWeb.Streamer do
       Task.async(fn ->
         :poolboy.transaction(
           :streamer_worker,
-          fn pid -> GenServer.call(pid, {:stream, topics, items}) end,
+          &Worker.stream(&1, topics, items),
           @timeout
         )
       end)

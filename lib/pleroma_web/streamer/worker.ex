@@ -24,6 +24,10 @@ defmodule PleromaWeb.Streamer.Worker do
     {:ok, init_arg}
   end
 
+  def stream(pid, topics, items) do
+    GenServer.call(pid, {:stream, topics, items})
+  end
+
   def handle_call({:stream, topics, item}, _from, state) when is_list(topics) do
     Enum.each(topics, fn t ->
       do_stream(%{topic: t, item: item})
