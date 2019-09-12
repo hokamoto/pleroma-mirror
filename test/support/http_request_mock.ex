@@ -38,6 +38,10 @@ defmodule HttpRequestMock do
      }}
   end
 
+  def get("http://osada.macgirvin.com/.well-known/host-meta", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
   def get("https://mastodon.social/users/emelie/statuses/101849165031453009", _, _, _) do
     {:ok,
      %Tesla.Env{
