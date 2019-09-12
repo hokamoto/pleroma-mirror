@@ -2,16 +2,17 @@
 # Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule PleromaWeb.StreamerTest do
+defmodule Pleroma.Web.StreamerTest do
   use Pleroma.DataCase
+
+  import Pleroma.Factory
 
   alias Pleroma.List
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
-  alias PleromaWeb.Streamer
-  import Pleroma.Factory
-  alias PleromaWeb.Streamer.StreamerSocket
-  alias PleromaWeb.Streamer.Worker
+  alias Pleroma.Web.Streamer
+  alias Pleroma.Web.Streamer.StreamerSocket
+  alias Pleroma.Web.Streamer.Worker
 
   @moduletag needs_streamer: true
   clear_config_all([:instance, :skip_thread_containment])

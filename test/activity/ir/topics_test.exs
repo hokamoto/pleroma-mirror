@@ -1,9 +1,9 @@
-defmodule Pleroma.Web.ActivityPub.TopicsTest do
+defmodule Pleroma.Activity.Ir.TopicsTest do
   use Pleroma.DataCase
 
   alias Pleroma.Activity
   alias Pleroma.Object
-  alias Pleroma.Web.ActivityPub.Topics
+  alias Pleroma.Activity.Ir.Topics
 
   require Pleroma.Constants
 
@@ -81,6 +81,17 @@ defmodule Pleroma.Web.ActivityPub.TopicsTest do
 
       assert Enum.member?(topics, "hashtag:foo")
       assert Enum.member?(topics, "hashtag:bar")
+    end
+
+    test "only converts strinngs to hash tags", %{
+      activity: %{object: %{data: data} = object} = activity
+    } do
+      tagged_data = Map.put(data, "tag", [2])
+      activity = %{activity | object: %{object | data: tagged_data}}
+
+      topics = Topics.get_activity_topics(activity)
+
+      refute Enum.member?(topics, "hashtag:2")
     end
   end
 

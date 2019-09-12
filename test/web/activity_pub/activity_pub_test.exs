@@ -34,11 +34,11 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
         conversation.participations
         |> Repo.preload(:user)
 
-      with_mock PleromaWeb.Streamer,
+      with_mock Pleroma.Web.Streamer,
         stream: fn _, _ -> nil end do
         ActivityPub.stream_out_participations(conversation.participations)
 
-        assert called(PleromaWeb.Streamer.stream("participation", participations))
+        assert called(Pleroma.Web.Streamer.stream("participation", participations))
       end
     end
   end

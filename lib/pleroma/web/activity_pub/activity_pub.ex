@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Web.ActivityPub.ActivityPub do
   alias Pleroma.Activity
+  alias Pleroma.Activity.Ir.Topics
   alias Pleroma.Config
   alias Pleroma.Conversation
   alias Pleroma.Notification
@@ -15,10 +16,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   alias Pleroma.Upload
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.MRF
-  alias Pleroma.Web.ActivityPub.Topics
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.WebFinger
-  alias PleromaWeb.Streamer
+  alias Pleroma.Web.Streamer
 
   import Ecto.Query
   import Pleroma.Web.ActivityPub.Utils

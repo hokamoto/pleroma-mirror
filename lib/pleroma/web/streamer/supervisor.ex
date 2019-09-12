@@ -1,4 +1,4 @@
-defmodule PleromaWeb.Streamer.Supervisor do
+defmodule Pleroma.Web.Streamer.Supervisor do
   use Supervisor
 
   def start_link(opts) do
@@ -7,25 +7,25 @@ defmodule PleromaWeb.Streamer.Supervisor do
 
   def init(args) do
     children = [
-      {PleromaWeb.Streamer.State, args},
-      {PleromaWeb.Streamer.Ping, args},
+      {Pleroma.Web.Streamer.State, args},
+      {Pleroma.Web.Streamer.Ping, args},
       :poolboy.child_spec(:streamer_worker, poolboy_config())
     ]
 
-    opts = [strategy: :one_for_one, name: PleromaWeb.Streamer.Supervisor]
+    opts = [strategy: :one_for_one, name: Pleroma.Web.Streamer.Supervisor]
     Supervisor.init(children, opts)
   end
 
   defp poolboy_config do
     opts =
-      Application.get_env(:pleroma, :streamer,
+      Pleroma.Config.get(:streamer,
         workers: 3,
         overflow_workers: 2
       )
 
     [
       {:name, {:local, :streamer_worker}},
-      {:worker_module, PleromaWeb.Streamer.Worker},
+      {:worker_module, Pleroma.Web.Streamer.Worker},
       {:size, opts[:workers]},
       {:max_overflow, opts[:overflow_workers]}
     ]

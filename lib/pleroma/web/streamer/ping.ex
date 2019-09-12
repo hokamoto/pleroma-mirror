@@ -1,9 +1,9 @@
-defmodule PleromaWeb.Streamer.Ping do
+defmodule Pleroma.Web.Streamer.Ping do
   use GenServer
   require Logger
 
-  alias PleromaWeb.Streamer.State
-  alias PleromaWeb.Streamer.StreamerSocket
+  alias Pleroma.Web.Streamer.State
+  alias Pleroma.Web.Streamer.StreamerSocket
 
   @keepalive_interval :timer.seconds(30)
 

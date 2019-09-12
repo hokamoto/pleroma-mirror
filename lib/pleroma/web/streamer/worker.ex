@@ -1,4 +1,4 @@
-defmodule PleromaWeb.Streamer.Worker do
+defmodule Pleroma.Web.Streamer.Worker do
   use GenServer
 
   require Logger
@@ -12,9 +12,9 @@ defmodule PleromaWeb.Streamer.Worker do
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.CommonAPI
-  alias PleromaWeb.Streamer.State
-  alias PleromaWeb.Streamer.StreamerSocket
-  alias PleromaWeb.StreamerView
+  alias Pleroma.Web.Streamer.State
+  alias Pleroma.Web.Streamer.StreamerSocket
+  alias Pleroma.Web.StreamerView
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, %{}, [])

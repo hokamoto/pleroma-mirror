@@ -41,7 +41,7 @@ defmodule Pleroma.Web.ConnCase do
     end
 
     if tags[:needs_streamer] do
-      start_supervised(PleromaWeb.Streamer.supervisor())
+      start_supervised(Pleroma.Web.Streamer.supervisor())
     end
 
     {:ok, conn: Phoenix.ConnTest.build_conn()}

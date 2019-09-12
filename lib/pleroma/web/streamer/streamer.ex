@@ -2,9 +2,9 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule PleromaWeb.Streamer do
-  alias PleromaWeb.Streamer.State
-  alias PleromaWeb.Streamer.Worker
+defmodule Pleroma.Web.Streamer do
+  alias Pleroma.Web.Streamer.State
+  alias Pleroma.Web.Streamer.Worker
 
   @timeout 60_000
   @mix_env Mix.env()
@@ -33,7 +33,7 @@ defmodule PleromaWeb.Streamer do
     end
   end
 
-  def supervisor, do: PleromaWeb.Streamer.Supervisor
+  def supervisor, do: Pleroma.Web.Streamer.Supervisor
 
   defp should_send? do
     handle_should_send(@mix_env)

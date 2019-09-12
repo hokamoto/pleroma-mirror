@@ -2,12 +2,12 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule PleromaWeb.StateTest do
+defmodule Pleroma.Web.StateTest do
   use Pleroma.DataCase
 
   import Pleroma.Factory
-  alias PleromaWeb.Streamer
-  alias PleromaWeb.Streamer.StreamerSocket
+  alias Pleroma.Web.Streamer
+  alias Pleroma.Web.Streamer.StreamerSocket
 
   @moduletag needs_streamer: true
 

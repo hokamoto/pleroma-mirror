@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Web.ActivityPub.Topics do
+defmodule Pleroma.Activity.Ir.Topics do
   alias Pleroma.Object
   alias Pleroma.Web.ActivityPub.Visibility
 
@@ -49,7 +49,7 @@ defmodule Pleroma.Web.ActivityPub.Topics do
 
   defp hashtags_to_topics(%{data: %{"tag" => tags}}) do
     tags
-    |> Enum.filter(fn tag -> is_bitstring(tag) end)
+    |> Enum.filter(&is_bitstring(&1))
     |> Enum.map(fn tag -> "hashtag:" <> tag end)
   end
 

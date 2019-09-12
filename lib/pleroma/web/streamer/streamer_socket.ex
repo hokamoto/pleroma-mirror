@@ -1,8 +1,8 @@
-defmodule PleromaWeb.Streamer.StreamerSocket do
+defmodule Pleroma.Web.Streamer.StreamerSocket do
   defstruct transport_pid: nil, user: nil
 
   alias Pleroma.User
-  alias PleromaWeb.Streamer.StreamerSocket
+  alias Pleroma.Web.Streamer.StreamerSocket
 
   def from_socket(%{
         transport_pid: transport_pid,

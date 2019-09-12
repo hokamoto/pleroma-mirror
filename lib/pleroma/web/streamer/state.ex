@@ -1,8 +1,8 @@
-defmodule PleromaWeb.Streamer.State do
+defmodule Pleroma.Web.Streamer.State do
   use GenServer
   require Logger
 
-  alias PleromaWeb.Streamer.StreamerSocket
+  alias Pleroma.Web.Streamer.StreamerSocket
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, %{sockets: %{}}, name: __MODULE__)
@@ -39,14 +39,14 @@ defmodule PleromaWeb.Streamer.State do
       |> List.insert_at(0, stream_socket)
       |> Enum.uniq()
 
-    state = Kernel.put_in(state, [:sockets, internal_topic], sockets_for_topic)
+    state = put_in(state, [:sockets, internal_topic], sockets_for_topic)
     Logger.debug("Got new conn for #{topic}")
     {:reply, state, state}
   end
 
   def handle_call({:remove, socket, topic}, _from, %{sockets: sockets} = state) do
     internal_topic = internal_topic(topic, socket)
-    stream_socket = PleromaWeb.Streamer.StreamerSocket.from_socket(socket)
+    stream_socket = StreamerSocket.from_socket(socket)
 
     sockets_for_topic =
       sockets
