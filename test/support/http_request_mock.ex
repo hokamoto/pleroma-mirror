@@ -1024,6 +1024,23 @@ defmodule HttpRequestMock do
     {:ok, %Tesla.Env{status: 200, body: ""}}
   end
 
+  def get("https://mastodon.sdf.org/.well-known/host-meta", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get("http://mastodon.sdf.org/.well-known/host-meta", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get(
+        "https://mastodon.sdf.org/.well-known/webfinger?resource=acct:https://mastodon.sdf.org/users/snowdusk",
+        _,
+        _,
+        _
+      ) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
   def get(nil, _, _, _), do: nil
 
   def get(url, query, body, headers) do
@@ -1091,6 +1108,14 @@ defmodule HttpRequestMock do
   end
 
   def post("https://domain.com/users/nick" <> _id, _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def post("https://pleroma2.soykaf.com/cb", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def post("https://domain2.com/salmon", _, _, _) do
     {:ok, %Tesla.Env{status: 200, body: ""}}
   end
 
