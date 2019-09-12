@@ -39,7 +39,11 @@ defmodule HttpRequestMock do
   end
 
   def get("http://osada.macgirvin.com/.well-known/host-meta", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
+    {:ok, %Tesla.Env{status: 404, body: ""}}
+  end
+
+  def get("https://osada.macgirvin.com/.well-known/host-meta", _, _, _) do
+    {:ok, %Tesla.Env{status: 404, body: ""}}
   end
 
   def get("https://mastodon.social/users/emelie/statuses/101849165031453009", _, _, _) do
@@ -427,10 +431,6 @@ defmodule HttpRequestMock do
        status: 200,
        body: File.read!("test/fixtures/tesla_mock/https___shitposter.club_user_1.xml")
      }}
-  end
-
-  def get("https://shitposter.club/notice/2827849", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
   end
 
   def get("https://shitposter.club/notice/2827873", _, _, _) do
@@ -1012,10 +1012,6 @@ defmodule HttpRequestMock do
     {:ok, %Tesla.Env{status: 200, body: File.read!("test/fixtures/tesla_mock/sjw.json")}}
   end
 
-  def get("http://mastodon.example.org/@admin/99541947525187367", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
-  end
-
   def get("https://info.pleroma.site/activity4.json", _, _, _) do
     {:ok, %Tesla.Env{status: 500, body: "Error occurred"}}
   end
@@ -1037,14 +1033,6 @@ defmodule HttpRequestMock do
   end
 
   def get("http://social.stopwatchingus-heidelberg.de/.well-known/host-meta", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
-  end
-
-  def get("https://gs.archae.me/notice/778260", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
-  end
-
-  def get("https://mamot.fr/users/Skruyb/updates/176041", _, _, _) do
     {:ok, %Tesla.Env{status: 200, body: ""}}
   end
 
@@ -1077,31 +1065,6 @@ defmodule HttpRequestMock do
   end
 
   def get("https://pleroma.soykaf.com/.well-known/host-meta", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
-  end
-
-  def get("https://mastodon.social/@lambadalambda/5582979", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
-  end
-
-  def get(
-        "https://mastodon.sdf.org/.well-known/webfinger?resource=acct:https://mastodon.sdf.org/users/snowdusk",
-        _,
-        _,
-        _
-      ) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
-  end
-
-  def get("https://10.111.10.1/notice/9kCP7V", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
-  end
-
-  def get("https://172.16.32.40/notice/9kCP7V", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
-  end
-
-  def get("https://192.168.10.40/notice/9kCP7V", _, _, _) do
     {:ok, %Tesla.Env{status: 200, body: ""}}
   end
 
@@ -1189,18 +1152,6 @@ defmodule HttpRequestMock do
   end
 
   def post("https://domain.com/users/nick" <> _id, _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
-  end
-
-  def post("https://pleroma2.soykaf.com/cb", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
-  end
-
-  def post("https://domain2.com/salmon", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
-  end
-
-  def post("http://test-example.org/salmon", _, _, _) do
     {:ok, %Tesla.Env{status: 200, body: ""}}
   end
 
