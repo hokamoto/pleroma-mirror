@@ -1024,6 +1024,8 @@ defmodule HttpRequestMock do
     {:ok, %Tesla.Env{status: 200, body: ""}}
   end
 
+  def get(nil, _, _, _), do: nil
+
   def get(url, query, body, headers) do
     {:error,
      "Mock response not implemented for GET #{inspect(url)}, #{query}, #{inspect(body)}, #{
@@ -1086,6 +1088,10 @@ defmodule HttpRequestMock do
        status: 404,
        body: ""
      }}
+  end
+
+  def post("https://domain.com/users/nick" <> _id, _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
   end
 
   def post(url, query, body, headers) do
