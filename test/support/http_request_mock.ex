@@ -1032,6 +1032,58 @@ defmodule HttpRequestMock do
     {:ok, %Tesla.Env{status: 200, body: ""}}
   end
 
+  def get("https://social.stopwatchingus-heidelberg.de/.well-known/host-meta", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get("http://social.stopwatchingus-heidelberg.de/.well-known/host-meta", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get("https://gs.archae.me/notice/778260", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get("https://mamot.fr/users/Skruyb/updates/176041", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get("http://pleroma.example.org:4000/objects/" <> _scheme, _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get("https://pleroma.soykaf.com/objects/" <> _scheme, _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get("http://mamot.fr/.well-known/host-meta", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get("https://mamot.fr/.well-known/host-meta", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get("http://pawoo.net/.well-known/host-meta", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get("https://pawoo.net/.well-known/host-meta", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get("http://pleroma.soykaf.com/.well-known/host-meta", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get("https://pleroma.soykaf.com/.well-known/host-meta", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get("https://mastodon.social/@lambadalambda/5582979", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
   def get(
         "https://mastodon.sdf.org/.well-known/webfinger?resource=acct:https://mastodon.sdf.org/users/snowdusk",
         _,
