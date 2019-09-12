@@ -118,7 +118,7 @@ defmodule Pleroma.Object.FetcherTest do
     end
 
     test "all objects with fake directions are rejected by the object fetcher" do
-      assert {:error, _} =
+      assert {:error, _tesla_error} =
                Fetcher.fetch_and_contain_remote_object_from_id(
                  "https://info.pleroma.site/activity4.json"
                )

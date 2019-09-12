@@ -425,6 +425,10 @@ defmodule HttpRequestMock do
      }}
   end
 
+  def get("https://shitposter.club/notice/2827849", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
   def get("https://shitposter.club/notice/2827873", _, _, _) do
     {:ok,
      %Tesla.Env{
@@ -1002,6 +1006,14 @@ defmodule HttpRequestMock do
 
   def get("https://skippers-bin.com/users/7v1w1r8ce6", _, _, _) do
     {:ok, %Tesla.Env{status: 200, body: File.read!("test/fixtures/tesla_mock/sjw.json")}}
+  end
+
+  def get("http://mastodon.example.org/@admin/99541947525187367", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get("https://info.pleroma.site/activity4.json", _, _, _) do
+    {:ok, %Tesla.Env{status: 500, body: "Error occuried"}}
   end
 
   def get(url, query, body, headers) do
