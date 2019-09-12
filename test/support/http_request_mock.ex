@@ -1082,7 +1082,7 @@ defmodule HttpRequestMock do
   end
 
   def get("http://example.com/rel_me/error", _, _, _) do
-    {:error, "some error"}
+    {:ok, %Tesla.Env{status: 404, body: ""}}
   end
 
   def get(nil, _, _, _), do: nil
