@@ -1105,6 +1105,10 @@ defmodule HttpRequestMock do
     {:ok, %Tesla.Env{status: 200, body: ""}}
   end
 
+  def get("http://mstdn.jp/.well-known/host-meta", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
   def get(nil, _, _, _), do: nil
 
   def get(url, query, body, headers) do
