@@ -1109,6 +1109,15 @@ defmodule HttpRequestMock do
     {:ok, %Tesla.Env{status: 200, body: ""}}
   end
 
+  def get(
+        "https://mastodon.social/.well-known/webfinger?resource=https://mastodon.social/users/not_found",
+        _,
+        _,
+        _
+      ) do
+    {:ok, %Tesla.Env{status: 404, body: ""}}
+  end
+
   def get(nil, _, _, _), do: nil
 
   def get(url, query, body, headers) do
