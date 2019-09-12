@@ -1017,7 +1017,7 @@ defmodule HttpRequestMock do
   end
 
   def get("https://info.pleroma.site/activity4.json", _, _, _) do
-    {:ok, %Tesla.Env{status: 500, body: "Error occuried"}}
+    {:ok, %Tesla.Env{status: 500, body: "Error occurred"}}
   end
 
   def get("http://localhost:4001/users/nick" <> _id, _, _, _) do
