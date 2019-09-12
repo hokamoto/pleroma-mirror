@@ -1021,19 +1021,19 @@ defmodule HttpRequestMock do
   end
 
   def get("https://mastodon.sdf.org/.well-known/host-meta", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
+    {:ok, %Tesla.Env{status: 404, body: ""}}
   end
 
   def get("http://mastodon.sdf.org/.well-known/host-meta", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
+    {:ok, %Tesla.Env{status: 404, body: ""}}
   end
 
   def get("https://social.stopwatchingus-heidelberg.de/.well-known/host-meta", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
+    {:ok, %Tesla.Env{status: 404, body: ""}}
   end
 
   def get("http://social.stopwatchingus-heidelberg.de/.well-known/host-meta", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
+    {:ok, %Tesla.Env{status: 404, body: ""}}
   end
 
   def get("http://pleroma.example.org:4000/objects/" <> _scheme, _, _, _) do
@@ -1045,31 +1045,35 @@ defmodule HttpRequestMock do
   end
 
   def get("http://mamot.fr/.well-known/host-meta", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
+    {:ok, %Tesla.Env{status: 404, body: ""}}
   end
 
   def get("https://mamot.fr/.well-known/host-meta", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
+    {:ok, %Tesla.Env{status: 404, body: ""}}
   end
 
   def get("http://pawoo.net/.well-known/host-meta", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
+    {:ok, %Tesla.Env{status: 404, body: ""}}
   end
 
   def get("https://pawoo.net/.well-known/host-meta", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
+    {:ok, %Tesla.Env{status: 404, body: ""}}
   end
 
   def get("http://pleroma.soykaf.com/.well-known/host-meta", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
+    {:ok, %Tesla.Env{status: 404, body: ""}}
   end
 
   def get("https://pleroma.soykaf.com/.well-known/host-meta", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
+    {:ok, %Tesla.Env{status: 404, body: ""}}
   end
 
   def get("http://mstdn.jp/.well-known/host-meta", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
+    {:ok, %Tesla.Env{status: 404, body: ""}}
+  end
+
+  def get("https://mstdn.jp/.well-known/host-meta", _, _, _) do
+    {:ok, %Tesla.Env{status: 404, body: ""}}
   end
 
   def get(
