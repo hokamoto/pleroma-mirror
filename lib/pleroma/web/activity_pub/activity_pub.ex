@@ -17,8 +17,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.MRF
   alias Pleroma.Web.ActivityPub.Transmogrifier
-  alias Pleroma.Web.WebFinger
   alias Pleroma.Web.Streamer
+  alias Pleroma.Web.WebFinger
 
   import Ecto.Query
   import Pleroma.Web.ActivityPub.Utils

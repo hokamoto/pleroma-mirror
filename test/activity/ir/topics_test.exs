@@ -2,8 +2,8 @@ defmodule Pleroma.Activity.Ir.TopicsTest do
   use Pleroma.DataCase
 
   alias Pleroma.Activity
-  alias Pleroma.Object
   alias Pleroma.Activity.Ir.Topics
+  alias Pleroma.Object
 
   require Pleroma.Constants
 
