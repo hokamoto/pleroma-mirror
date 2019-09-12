@@ -1093,6 +1093,18 @@ defmodule HttpRequestMock do
     {:ok, %Tesla.Env{status: 200, body: ""}}
   end
 
+  def get("https://10.111.10.1/notice/9kCP7V", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get("https://172.16.32.40/notice/9kCP7V", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
+  def get("https://192.168.10.40/notice/9kCP7V", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: ""}}
+  end
+
   def get(nil, _, _, _), do: nil
 
   def get(url, query, body, headers) do
