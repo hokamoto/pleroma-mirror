@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Web.RelMeTest do
   use ExUnit.Case, async: true
+  import ExUnit.CaptureLog
 
   setup_all do
     Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
@@ -14,7 +15,10 @@ defmodule Pleroma.Web.RelMeTest do
     hrefs = ["https://social.example.org/users/lain"]
 
     assert Pleroma.Web.RelMe.parse("http://example.com/rel_me/null") == {:ok, []}
-    assert {:error, _} = Pleroma.Web.RelMe.parse("http://example.com/rel_me/error")
+
+    assert capture_log(fn ->
+             assert {:error, _} = Pleroma.Web.RelMe.parse("http://example.com/rel_me/error")
+           end) =~ "some error"
 
     assert Pleroma.Web.RelMe.parse("http://example.com/rel_me/link") == {:ok, hrefs}
     assert Pleroma.Web.RelMe.parse("http://example.com/rel_me/anchor") == {:ok, hrefs}
@@ -29,8 +33,13 @@ defmodule Pleroma.Web.RelMeTest do
     assert Pleroma.Web.RelMe.maybe_put_rel_me("http://example.com/rel_me/null", profile_urls) ==
              fallback
 
-    assert Pleroma.Web.RelMe.maybe_put_rel_me("http://example.com/rel_me/error", profile_urls) ==
-             fallback
+    assert capture_log(fn ->
+             assert Pleroma.Web.RelMe.maybe_put_rel_me(
+                      "http://example.com/rel_me/error",
+                      profile_urls
+                    ) ==
+                      fallback
+           end) =~ "some error"
 
     assert Pleroma.Web.RelMe.maybe_put_rel_me("http://example.com/rel_me/anchor", profile_urls) ==
              attr
