@@ -233,9 +233,7 @@ defmodule Pleroma.Web.ActivityPub.UtilsTest do
                "https://www.w3.org/ns/activitystreams",
                "http://localhost:4001/schemas/litepub-0.1.jsonld",
                %{
-                 "@language" => "und",
-                 "discoverable" => "mastodon:discoverable",
-                 "mastodon" => "http://joinmastodon.org/ns#"
+                 "@language" => "und"
                }
              ]
            }
