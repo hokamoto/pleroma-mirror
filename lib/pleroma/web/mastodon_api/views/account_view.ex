@@ -133,9 +133,10 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         note: HTML.strip_tags((user.bio || "") |> String.replace("<br>", "\n")),
         sensitive: false,
         fields: raw_fields,
-        pleroma: %{}
+        pleroma: %{
+          discoverable: discoverable
+        }
       },
-      discoverable: discoverable,
 
       # Pleroma extension
       pleroma: %{
