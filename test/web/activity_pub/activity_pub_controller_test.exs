@@ -4,16 +4,20 @@
 
 defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
   use Pleroma.Web.ConnCase
+  use Oban.Testing, repo: Pleroma.Repo
+
   import Pleroma.Factory
   alias Pleroma.Activity
   alias Pleroma.Instances
   alias Pleroma.Object
+  alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ObjectView
   alias Pleroma.Web.ActivityPub.Relay
   alias Pleroma.Web.ActivityPub.UserView
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.CommonAPI
+  alias Pleroma.Workers.ReceiverWorker
 
   setup_all do
     Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
@@ -175,6 +179,49 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
 
       assert json_response(conn, 404)
     end
+
+    test "it caches a response", %{conn: conn} do
+      note = insert(:note)
+      uuid = String.split(note.data["id"], "/") |> List.last()
+
+      conn1 =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/objects/#{uuid}")
+
+      assert json_response(conn1, :ok)
+      assert Enum.any?(conn1.resp_headers, &(&1 == {"x-cache", "MISS from Pleroma"}))
+
+      conn2 =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/objects/#{uuid}")
+
+      assert json_response(conn1, :ok) == json_response(conn2, :ok)
+      assert Enum.any?(conn2.resp_headers, &(&1 == {"x-cache", "HIT from Pleroma"}))
+    end
+
+    test "cached purged after object deletion", %{conn: conn} do
+      note = insert(:note)
+      uuid = String.split(note.data["id"], "/") |> List.last()
+
+      conn1 =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/objects/#{uuid}")
+
+      assert json_response(conn1, :ok)
+      assert Enum.any?(conn1.resp_headers, &(&1 == {"x-cache", "MISS from Pleroma"}))
+
+      Object.delete(note)
+
+      conn2 =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/objects/#{uuid}")
+
+      assert "Not found" == json_response(conn2, :not_found)
+    end
   end
 
   describe "/object/:uuid/likes" do
@@ -264,6 +311,51 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
 
       assert json_response(conn, 404)
     end
+
+    test "it caches a response", %{conn: conn} do
+      activity = insert(:note_activity)
+      uuid = String.split(activity.data["id"], "/") |> List.last()
+
+      conn1 =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/activities/#{uuid}")
+
+      assert json_response(conn1, :ok)
+      assert Enum.any?(conn1.resp_headers, &(&1 == {"x-cache", "MISS from Pleroma"}))
+
+      conn2 =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/activities/#{uuid}")
+
+      assert json_response(conn1, :ok) == json_response(conn2, :ok)
+      assert Enum.any?(conn2.resp_headers, &(&1 == {"x-cache", "HIT from Pleroma"}))
+    end
+
+    test "cached purged after activity deletion", %{conn: conn} do
+      user = insert(:user)
+      {:ok, activity} = CommonAPI.post(user, %{"status" => "cofe"})
+
+      uuid = String.split(activity.data["id"], "/") |> List.last()
+
+      conn1 =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/activities/#{uuid}")
+
+      assert json_response(conn1, :ok)
+      assert Enum.any?(conn1.resp_headers, &(&1 == {"x-cache", "MISS from Pleroma"}))
+
+      Activity.delete_by_ap_id(activity.object.data["id"])
+
+      conn2 =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/activities/#{uuid}")
+
+      assert "Not found" == json_response(conn2, :not_found)
+    end
   end
 
   describe "/inbox" do
@@ -277,7 +369,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
         |> post("/inbox", data)
 
       assert "ok" == json_response(conn, 200)
-      :timer.sleep(500)
+
+      ObanHelpers.perform(all_enqueued(worker: ReceiverWorker))
       assert Activity.get_by_ap_id(data["id"])
     end
 
@@ -319,7 +412,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
         |> post("/users/#{user.nickname}/inbox", data)
 
       assert "ok" == json_response(conn, 200)
-      :timer.sleep(500)
+      ObanHelpers.perform(all_enqueued(worker: ReceiverWorker))
       assert Activity.get_by_ap_id(data["id"])
     end
 
@@ -348,7 +441,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
         |> post("/users/#{recipient.nickname}/inbox", data)
 
       assert "ok" == json_response(conn, 200)
-      :timer.sleep(500)
+      ObanHelpers.perform(all_enqueued(worker: ReceiverWorker))
       assert Activity.get_by_ap_id(data["id"])
     end
 
@@ -359,6 +452,17 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
       conn =
         conn
         |> assign(:user, otheruser)
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/users/#{user.nickname}/inbox")
+
+      assert json_response(conn, 403)
+    end
+
+    test "it doesn't crash without an authenticated user", %{conn: conn} do
+      user = insert(:user)
+
+      conn =
+        conn
         |> put_req_header("accept", "application/activity+json")
         |> get("/users/#{user.nickname}/inbox")
 
@@ -426,6 +530,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
       |> put_req_header("content-type", "application/activity+json")
       |> post("/users/#{recipient.nickname}/inbox", data)
       |> json_response(200)
+
+      ObanHelpers.perform(all_enqueued(worker: ReceiverWorker))
 
       activity = Activity.get_by_ap_id(data["id"])
 
@@ -502,6 +608,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
         |> post("/users/#{user.nickname}/outbox", data)
 
       result = json_response(conn, 201)
+
       assert Activity.get_by_ap_id(result["id"])
     end
 
