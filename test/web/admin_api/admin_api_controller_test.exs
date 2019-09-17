@@ -1348,6 +1348,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         |> json_response(:ok)
 
       assert Enum.empty?(response["reports"])
+      assert response["total"] == 0
     end
 
     test "returns reports", %{conn: conn} do
@@ -1370,6 +1371,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
       assert length(response["reports"]) == 1
       assert report["id"] == report_id
+
+      assert response["total"] == 1
     end
 
     test "returns reports with specified state", %{conn: conn} do
@@ -1403,6 +1406,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       assert length(response["reports"]) == 1
       assert open_report["id"] == first_report_id
 
+      assert response["total"] == 1
+
       response =
         conn
         |> get("/api/pleroma/admin/reports", %{
@@ -1415,6 +1420,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       assert length(response["reports"]) == 1
       assert closed_report["id"] == second_report_id
 
+      assert response["total"] == 1
+
       response =
         conn
         |> get("/api/pleroma/admin/reports", %{
@@ -1423,6 +1430,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         |> json_response(:ok)
 
       assert Enum.empty?(response["reports"])
+      assert response["total"] == 0
     end
 
     test "returns 403 when requested by a non-admin" do
