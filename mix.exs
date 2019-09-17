@@ -153,7 +153,7 @@ defmodule Pleroma.Mixfile do
       {:quack, "~> 0.1.1"},
       {:joken, "~> 2.0"},
       {:benchee, "~> 1.0"},
-      {:pot, "~> 0.9.7"},
+      {:pot, "~> 0.10.1"},
       {:esshd, "~> 0.1.0", runtime: Application.get_env(:esshd, :enabled, false)},
       {:ex_rated, "~> 1.3"},
       {:ex_const, "~> 0.2"},
