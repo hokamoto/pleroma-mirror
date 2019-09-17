@@ -10,9 +10,21 @@ defmodule Pleroma.FormatterTest do
   import Pleroma.Factory
 
   setup_all do
-    Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
+    Tesla.Mock.mock_global(&global_mocks_plus(&1))
     :ok
   end
+
+  def global_mocks_plus(%{method: :get, url: url} = env) do
+    cond do
+      url =~ "//osada.macgirvin.com/.well-known/host-meta" ->
+        {:ok, %Tesla.Env{status: 404, body: ""}}
+
+      true ->
+        apply(HttpRequestMock, :request, [env])
+    end
+  end
+
+  def global_mocks_plus(env), do: apply(HttpRequestMock, :request, [env])
 
   describe ".add_hashtag_links" do
     test "turns hashtags into links" do
