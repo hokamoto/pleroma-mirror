@@ -60,9 +60,13 @@ Authentication is required and the user must be an admin.
 
 - Method: `POST`
 - Params:
-  - `nickname`
-  - `email`
-  - `password`
+  `users`: [
+    {
+      `nickname`,
+      `email`,
+      `password`
+    }
+  ]
 - Response: User’s nickname
 
 ## `/api/pleroma/admin/users/follow`
@@ -313,6 +317,7 @@ Note: Available `:permission_group` is currently moderator and admin. 404 is ret
 
 ```json
 {
+  "total" : 1,
   "reports": [
     {
       "account": {
