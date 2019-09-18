@@ -941,7 +941,7 @@ config :pleroma, :config_description, [
                 key: :length,
                 type: :integer,
                 suggestions: [16],
-                description: "backup code length."
+                description: "Determines the length of backup one-time pass-codes, in characters. Defaults to 16 characters."
               }
             ]
           }
