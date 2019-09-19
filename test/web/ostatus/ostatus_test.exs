@@ -637,6 +637,7 @@ defmodule Pleroma.Web.OStatusTest do
         User
         |> Repo.get_by(ap_id: "https://social.heldscal.la/user/23211")
         |> Map.put(:last_digest_emailed_at, nil)
+        |> Map.put(:multi_factor_authentication_settings, nil)
 
       assert user.info
       assert user == created_user
