@@ -14,6 +14,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   alias Pleroma.Web.AdminAPI.Config
   alias Pleroma.Web.AdminAPI.ConfigView
   alias Pleroma.Web.AdminAPI.ModerationLogView
+  alias Pleroma.Web.AdminAPI.Report
   alias Pleroma.Web.AdminAPI.ReportView
   alias Pleroma.Web.AdminAPI.Search
   alias Pleroma.Web.CommonAPI
@@ -455,7 +456,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     with %Activity{} = report <- Activity.get_by_id(id) do
       conn
       |> put_view(ReportView)
-      |> render("show.json", %{report: report})
+      |> render("show.json", Report.extract_report_info(report))
     else
       _ -> {:error, :not_found}
     end
@@ -471,7 +472,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
       conn
       |> put_view(ReportView)
-      |> render("show.json", %{report: report})
+      |> render("show.json", Report.extract_report_info(report))
     end
   end
 
