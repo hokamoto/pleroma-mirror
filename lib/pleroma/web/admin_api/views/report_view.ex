@@ -6,9 +6,9 @@ defmodule Pleroma.Web.AdminAPI.ReportView do
   use Pleroma.Web, :view
   alias Pleroma.HTML
   alias Pleroma.User
+  alias Pleroma.Web.AdminAPI.Report
   alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.MastodonAPI.StatusView
-  alias Pleroma.Web.AdminAPI.Report
 
   def render("index.json", %{reports: reports}) do
     %{
