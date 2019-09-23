@@ -110,6 +110,11 @@ config :pleroma, :config_description, [
         description:
           "If you use S3 compatible service such as Digital Ocean Spaces or CDN, set folder name or \"\" etc." <>
             " For example, when using CDN to S3 virtual host format, set \"\". At this time, write CNAME to CDN in public_endpoint."
+      },
+      %{
+        key: :streaming_enabled,
+        type: :boolean,
+        decsription: "Enable stream uploads to s3."
       }
     ]
   },

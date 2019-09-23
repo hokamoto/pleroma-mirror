@@ -23,6 +23,7 @@ Note: `strip_exif` has been replaced by `Pleroma.Upload.Filter.Mogrify`.
 * `truncated_namespace`: If you use S3 compatible service such as Digital Ocean Spaces or CDN, set folder name or "" etc.
 For example, when using CDN to S3 virtual host format, set "".
 At this time, write CNAME to CDN in public_endpoint.
+* `streaming_enabled`: enable stream uploads.
 
 ## Pleroma.Upload.Filter.Mogrify
 
