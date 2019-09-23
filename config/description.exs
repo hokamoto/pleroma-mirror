@@ -114,7 +114,8 @@ config :pleroma, :config_description, [
       %{
         key: :streaming_enabled,
         type: :boolean,
-        description: "Enable streaming uploads, when enabled the file will be sent to the server in chunks as it's being read. This may be unsupported by some providers, try disabling this if you have upload problems."
+        description:
+          "Enable streaming uploads, when enabled the file will be sent to the server in chunks as it's being read. This may be unsupported by some providers, try disabling this if you have upload problems."
       }
     ]
   },
