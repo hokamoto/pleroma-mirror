@@ -75,10 +75,7 @@ defmodule Pleroma.Web.ActivityPub.UserView do
 
     endpoints = render("endpoints.json", %{user: user})
 
-    user_tags =
-      user
-      |> Transmogrifier.add_emoji_tags()
-      |> Map.get("tag", [])
+    emoji_tags = Transmogrifier.take_emoji_tags(user)
 
     fields =
       user.info
@@ -110,7 +107,7 @@ defmodule Pleroma.Web.ActivityPub.UserView do
       },
       "endpoints" => endpoints,
       "attachment" => fields,
-      "tag" => (user.info.source_data["tag"] || []) ++ user_tags,
+      "tag" => (user.info.source_data["tag"] || []) ++ emoji_tags,
       "discoverable" => user.info.discoverable
     }
     |> Map.merge(maybe_make_image(&User.avatar_url/2, "icon", user))
@@ -228,11 +225,12 @@ defmodule Pleroma.Web.ActivityPub.UserView do
 
     activities = ActivityPub.fetch_user_activities(user, nil, params)
 
+    # this is sorted chronologically, so first activity is the newest (max)
     {max_id, min_id, collection} =
       if length(activities) > 0 do
         {
-          Enum.at(Enum.reverse(activities), 0).id,
           Enum.at(activities, 0).id,
+          Enum.at(Enum.reverse(activities), 0).id,
           Enum.map(activities, fn act ->
             {:ok, data} = Transmogrifier.prepare_outgoing(act.data)
             data
