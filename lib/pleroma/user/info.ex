@@ -41,6 +41,8 @@ defmodule Pleroma.User.Info do
     field(:topic, :string, default: nil)
     field(:hub, :string, default: nil)
     field(:salmon, :string, default: nil)
+    field(:hide_followers_count, :boolean, default: false)
+    field(:hide_follows_count, :boolean, default: false)
     field(:hide_followers, :boolean, default: false)
     field(:hide_follows, :boolean, default: false)
     field(:hide_favorites, :boolean, default: true)
@@ -263,6 +265,8 @@ defmodule Pleroma.User.Info do
       :salmon,
       :hide_followers,
       :hide_follows,
+      :hide_followers_count,
+      :hide_follows_count,
       :follower_count,
       :fields,
       :following_count,
@@ -284,7 +288,9 @@ defmodule Pleroma.User.Info do
       :hide_follows,
       :fields,
       :hide_followers,
-      :discoverable
+      :discoverable,
+      :hide_followers_count,
+      :hide_follows_count
     ])
     |> validate_fields(remote?)
   end
@@ -298,6 +304,8 @@ defmodule Pleroma.User.Info do
       :banner,
       :hide_follows,
       :hide_followers,
+      :hide_followers_count,
+      :hide_follows_count,
       :hide_favorites,
       :background,
       :show_role,
@@ -462,7 +470,9 @@ defmodule Pleroma.User.Info do
       :hide_followers,
       :hide_follows,
       :follower_count,
-      :following_count
+      :following_count,
+      :hide_followers_count,
+      :hide_follows_count
     ])
   end
 end
