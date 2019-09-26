@@ -157,7 +157,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     end
   end
 
-  def user_toggle_activation(%{assigns: %{user: _}} = conn, %{"nickname" => nickname}) do
+  def user_toggle_activation(%{assigns: %{user: admin}} = conn, %{"nickname" => nickname}) do
     user = User.get_cached_by_nickname(nickname)
 
     {:ok, updated_user} = User.deactivate(user, !user.info.deactivated)
@@ -165,7 +165,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     action = if user.info.deactivated, do: "activate", else: "deactivate"
 
     conn
-    |> put_private(:moderation_log, %{subject: user, action: action})
+    |> put_private(:moderation_log, %{subject: user, action: action, actor: admin})
     |> put_view(AccountView)
     |> render("show.json", %{user: updated_user})
   end
@@ -279,8 +279,9 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
       |> User.update_info(&User.Info.admin_api_update(&1, info))
 
     conn
-    |> put_private(:moderation_log,
-    %{action: "revoke", subject: user, permission: permission_group}
+    |> put_private(
+      :moderation_log,
+      %{action: "revoke", subject: user, permission: permission_group}
     )
     |> json(info)
   end
@@ -437,10 +438,10 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     end
   end
 
-  def report_update_state(%{assigns: %{user: _admin}} = conn, %{"id" => id, "state" => state}) do
+  def report_update_state(%{assigns: %{user: admin}} = conn, %{"id" => id, "state" => state}) do
     with {:ok, report} <- CommonAPI.update_report_state(id, state) do
       conn
-      |> put_private(:moderation_log, %{action: "report_update", subject: report})
+      |> put_private(:moderation_log, %{action: "report_update", subject: report, actor: admin})
       |> put_view(ReportView)
       |> render("show.json", Report.extract_report_info(report))
     end
