@@ -851,7 +851,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       assert resp = json_response(conn, 403)
 
-      assert resp["error"] == "Password reset is required"
+      assert resp["error"] == "password_reset_required"
       refute Map.has_key?(resp, "access_token")
     end
 
