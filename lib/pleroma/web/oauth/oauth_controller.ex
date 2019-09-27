@@ -218,7 +218,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
         render_error(conn, :forbidden, "Your account is currently disabled")
 
       {:password_reset_pending, true} ->
-        render_error(conn, :forbidden, "Password reset is required")
+        render_error(conn, :forbidden, "password_reset_required")
 
       _error ->
         render_invalid_credentials_error(conn)
