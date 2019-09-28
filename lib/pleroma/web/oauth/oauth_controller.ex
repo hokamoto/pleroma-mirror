@@ -11,12 +11,14 @@ defmodule Pleroma.Web.OAuth.OAuthController do
   alias Pleroma.User
   alias Pleroma.Web.Auth.Authenticator
   alias Pleroma.Web.ControllerHelper
+  alias Pleroma.Web.Endpoint
   alias Pleroma.Web.OAuth.App
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.Token
   alias Pleroma.Web.OAuth.Token.Strategy.RefreshToken
   alias Pleroma.Web.OAuth.Token.Strategy.Revoke, as: RevokeToken
   alias Pleroma.Web.OAuth.Scopes
+  alias Pleroma.Web.Router
 
   require Logger
 
@@ -218,7 +220,11 @@ defmodule Pleroma.Web.OAuth.OAuthController do
         render_error(conn, :forbidden, "Your account is currently disabled")
 
       {:password_reset_pending, true} ->
-        render_error(conn, :forbidden, "Password reset is required")
+        {:ok, %User{} = user} = Authenticator.get_user(conn)
+        {:ok, token} = Pleroma.PasswordResetToken.create_token(user)
+        redirect_url = Router.Helpers.reset_password_url(Endpoint, :reset, token.token)
+
+        redirect(conn, external: redirect_url)
 
       _error ->
         render_invalid_credentials_error(conn)
