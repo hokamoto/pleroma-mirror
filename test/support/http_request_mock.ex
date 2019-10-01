@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule HttpRequestMock do
@@ -990,6 +990,22 @@ defmodule HttpRequestMock do
 
   def get("http://example.com/rel_me/null", _, _, _) do
     {:ok, %Tesla.Env{status: 200, body: File.read!("test/fixtures/rel_me_null.html")}}
+  end
+
+  def get("https://skippers-bin.com/notes/7x9tmrp97i", _, _, _) do
+    {:ok,
+     %Tesla.Env{
+       status: 200,
+       body: File.read!("test/fixtures/tesla_mock/misskey_poll_no_end_date.json")
+     }}
+  end
+
+  def get("https://skippers-bin.com/users/7v1w1r8ce6", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: File.read!("test/fixtures/tesla_mock/sjw.json")}}
+  end
+
+  def get("https://patch.cx/users/rin", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: File.read!("test/fixtures/tesla_mock/rin.json")}}
   end
 
   def get(url, query, body, headers) do
