@@ -2517,11 +2517,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPIControllerTest do
              "thumbnail" => _,
              "languages" => _,
              "registrations" => _,
-             "poll_limits" => _,
-             "upload_limit" => _,
-             "avatar_upload_limit" => _,
-             "background_upload_limit" => _,
-             "banner_upload_limit" => _
+             "poll_limits" => _
            } = result
 
     assert email == from_config_email
