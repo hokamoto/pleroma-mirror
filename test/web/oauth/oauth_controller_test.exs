@@ -849,10 +849,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
           "client_secret" => app.client_secret
         })
 
-      assert resp = json_response(conn, 403)
-
-      assert resp["error"] == "Password reset is required"
-      refute Map.has_key?(resp, "access_token")
+      assert redirected_to(conn, 302) =~ ~r/password_reset/
     end
 
     test "rejects an invalid authorization code" do
