@@ -1019,6 +1019,13 @@ defmodule Pleroma.User do
     BackgroundWorker.enqueue("delete_user", %{"user_id" => user.id})
   end
 
+  def invisible?(%User{} = user) do
+    case user.info.source_data["type"] do
+      [_] -> "Invisible" in user.info.source_data["type"]
+      type -> type == "Invisible"
+    end
+  end
+
   def perform(:force_password_reset, user), do: force_password_reset(user)
 
   @spec perform(atom(), User.t()) :: {:ok, User.t()}

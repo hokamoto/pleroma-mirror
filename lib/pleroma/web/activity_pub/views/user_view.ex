@@ -41,7 +41,7 @@ defmodule Pleroma.Web.ActivityPub.UserView do
 
     %{
       "id" => user.ap_id,
-      "type" => "Application",
+      "type" => ["Application", "Invisible"],
       "following" => "#{user.ap_id}/following",
       "followers" => "#{user.ap_id}/followers",
       "inbox" => "#{user.ap_id}/inbox",
