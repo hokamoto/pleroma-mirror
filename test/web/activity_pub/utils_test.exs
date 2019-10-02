@@ -589,8 +589,8 @@ defmodule Pleroma.Web.ActivityPub.UtilsTest do
     end
   end
 
-  describe "add_announce_to_object/2" do
-    test "adds actor to announcement" do
+  describe "add_announce_to_object/3" do
+    test "adds actor to announcement for public announcements" do
       user = insert(:user)
       object = insert(:note)
 
@@ -602,9 +602,42 @@ defmodule Pleroma.Web.ActivityPub.UtilsTest do
           }
         )
 
-      assert {:ok, updated_object} = Utils.add_announce_to_object(activity, object)
+      assert {:ok, updated_object} = Utils.add_announce_to_object(activity, object, false)
       assert updated_object.data["announcements"] == [user.ap_id]
       assert updated_object.data["announcement_count"] == 1
+    end
+
+    test "adds actor to announcement for private announcements with override" do
+      user = insert(:user)
+      object = insert(:note)
+
+      activity =
+        insert(:note_activity,
+          data: %{
+            "actor" => user.ap_id,
+            "to" => [user.follower_address]
+          }
+        )
+
+      assert {:ok, updated_object} = Utils.add_announce_to_object(activity, object, true)
+      assert updated_object.data["announcements"] == [user.ap_id]
+      assert updated_object.data["announcement_count"] == 1
+    end
+
+    test "does not add actor to announcement for private announcements when there is no override" do
+      user = insert(:user)
+      object = insert(:note)
+
+      activity =
+        insert(:note_activity,
+          data: %{
+            "actor" => user.ap_id,
+            "to" => [user.follower_address]
+          }
+        )
+
+      assert {:ok, updated_object} = Utils.add_announce_to_object(activity, object, false)
+      assert updated_object.data["announcement_count"] == nil
     end
   end
 

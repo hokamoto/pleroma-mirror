@@ -491,12 +491,9 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     |> maybe_put("id", activity_id)
   end
 
-  @spec add_announce_to_object(Activity.t(), Object.t()) ::
+  @spec add_announce_to_object(Activity.t(), Object.t(), Boolean.t()) ::
           {:ok, Object.t()} | {:error, Ecto.Changeset.t()}
-  def add_announce_to_object(
-        %Activity{data: %{"actor" => actor}},
-        object
-      ) do
+  def add_announce_to_object(%Activity{data: %{"actor" => actor}}, object, true) do
     announcements = take_announcements(object)
 
     with announcements <- Enum.uniq([actor | announcements]) do
@@ -504,7 +501,15 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     end
   end
 
-  def add_announce_to_object(_, object), do: {:ok, object}
+  def add_announce_to_object(
+        %Activity{data: %{"cc" => [Pleroma.Constants.as_public()]}} = activity,
+        object,
+        _
+      ) do
+    add_announce_to_object(activity, object, true)
+  end
+
+  def add_announce_to_object(_, object, _), do: {:ok, object}
 
   @spec remove_announce_from_object(Activity.t(), Object.t()) ::
           {:ok, Object.t()} | {:error, Ecto.Changeset.t()}
