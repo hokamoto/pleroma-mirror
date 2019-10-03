@@ -8,6 +8,8 @@ defmodule Pleroma.Repo do
     adapter: Ecto.Adapters.Postgres,
     migration_timestamps: [type: :naive_datetime_usec]
 
+  import Ecto.Query, only: [from: 2]
+
   defmodule Instrumenter do
     use Prometheus.EctoInstrumenter
   end
@@ -23,7 +25,7 @@ defmodule Pleroma.Repo do
   @doc "find resource based on prepared query"
   @spec find_resource(Ecto.Query.t()) :: {:ok, struct()} | {:error, :not_found}
   def find_resource(%Ecto.Query{} = query) do
-    case __MODULE__.one(query) do
+    case one(query) do
       nil -> {:error, :not_found}
       resource -> {:ok, resource}
     end
@@ -42,9 +44,23 @@ defmodule Pleroma.Repo do
   """
   @spec get_assoc(struct(), atom()) :: {:ok, struct()} | {:error, :not_found}
   def get_assoc(resource, association) do
-    case __MODULE__.preload(resource, association) do
+    case preload(resource, association) do
       %{^association => assoc} when not is_nil(assoc) -> {:ok, assoc}
       _ -> {:error, :not_found}
     end
+  end
+
+  def paginate(query, %{page: page, page_size: page_size, total: true}) do
+    %{
+      items: paginate(query, %{page: page, page_size: page_size}),
+      total: aggregate(query, :count, :id)
+    }
+  end
+
+  def paginate(query, %{page: page, page_size: page_size}) do
+    offset = (page - 1) * page_size
+
+    from(q in query, limit: ^page_size, offset: ^offset)
+    |> all()
   end
 end

@@ -264,6 +264,19 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
       assert Enum.empty?(result["orderedItems"])
     end
 
+    test "it does not crash when page number is not digit", %{conn: conn, uuid: uuid, id: id} do
+      result =
+        conn
+        |> put_req_header("accept", "application/activity+json")
+        |> get("/objects/#{uuid}/likes?page=a")
+        |> json_response(200)
+
+      assert result["type"] == "OrderedCollectionPage"
+      assert result["totalItems"] == 1
+      assert List.first(result["orderedItems"])["id"] == id
+      refute result["next"]
+    end
+
     test "it contains the next key when likes count is more than 10", %{conn: conn} do
       note = insert(:note_activity)
       insert_list(11, :like_activity, note_activity: note)

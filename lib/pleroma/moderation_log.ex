@@ -15,18 +15,11 @@ defmodule Pleroma.ModerationLog do
   end
 
   def get_all(params) do
-    base_query =
-      get_all_query()
-      |> maybe_filter_by_date(params)
-      |> maybe_filter_by_user(params)
-      |> maybe_filter_by_search(params)
-
-    query_with_pagination = base_query |> paginate_query(params)
-
-    %{
-      items: Repo.all(query_with_pagination),
-      count: Repo.aggregate(base_query, :count, :id)
-    }
+    get_all_query()
+    |> maybe_filter_by_date(params)
+    |> maybe_filter_by_user(params)
+    |> maybe_filter_by_search(params)
+    |> Repo.paginate(Map.merge(params, %{total: true}))
   end
 
   defp maybe_filter_by_date(query, %{start_date: nil, end_date: nil}), do: query
@@ -67,17 +60,8 @@ defmodule Pleroma.ModerationLog do
     )
   end
 
-  defp paginate_query(query, %{page: page, page_size: page_size}) do
-    from(q in query,
-      limit: ^page_size,
-      offset: ^((page - 1) * page_size)
-    )
-  end
-
   defp get_all_query do
-    from(q in __MODULE__,
-      order_by: [desc: q.inserted_at]
-    )
+    from(q in __MODULE__, order_by: [desc: q.inserted_at])
   end
 
   defp parse_datetime(datetime) do

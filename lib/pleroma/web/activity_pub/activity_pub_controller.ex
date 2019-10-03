@@ -18,6 +18,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
   alias Pleroma.Web.ActivityPub.UserView
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.ActivityPub.Visibility
+  alias Pleroma.Web.ControllerHelper
   alias Pleroma.Web.Federator
 
   require Logger
@@ -82,35 +83,46 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     conn
   end
 
-  def object_likes(conn, %{"uuid" => uuid, "page" => page}) do
-    with ap_id <- o_status_url(conn, :object, uuid),
-         %Object{} = object <- Object.get_cached_by_ap_id(ap_id),
-         {_, true} <- {:public?, Visibility.is_public?(object)},
-         likes <- Utils.get_object_likes(object) do
-      {page, _} = Integer.parse(page)
+  def object_likes(conn, %{"uuid" => uuid, "page" => _} = params) do
+    page = ControllerHelper.fetch_integer_param(params, "page", 1)
 
+    with {:ok, result} <- get_object_likes(conn, uuid, page) do
       conn
       |> put_resp_content_type("application/activity+json")
       |> put_view(ObjectView)
-      |> render("likes.json", %{ap_id: ap_id, likes: likes, page: page})
-    else
-      {:public?, false} ->
-        {:error, :not_found}
+      |> render("likes.json", Map.merge(result, %{page: page}))
     end
   end
 
   def object_likes(conn, %{"uuid" => uuid}) do
-    with ap_id <- o_status_url(conn, :object, uuid),
-         %Object{} = object <- Object.get_cached_by_ap_id(ap_id),
-         {_, true} <- {:public?, Visibility.is_public?(object)},
-         likes <- Utils.get_object_likes(object) do
+    with {:ok, result} <- get_object_likes(conn, uuid) do
       conn
       |> put_resp_content_type("application/activity+json")
       |> put_view(ObjectView)
-      |> render("likes.json", %{ap_id: ap_id, likes: likes})
+      |> render("likes.json", result)
+    end
+  end
+
+  defp get_object_likes(conn, uuid, page \\ 1) do
+    with ap_id <- o_status_url(conn, :object, uuid),
+         %Object{} = object <- Object.get_cached_by_ap_id(ap_id),
+         {_, true} <- {:public?, Visibility.is_public?(object)},
+         %{items: likes, total: total} <-
+           Utils.get_object_likes(
+             object,
+             %{
+               page: page,
+               page_size: ObjectView.likes_page_size(),
+               total: true
+             }
+           ) do
+      {:ok, %{ap_id: ap_id, likes: likes, total: total}}
     else
       {:public?, false} ->
         {:error, :not_found}
+
+      error ->
+        error
     end
   end
 

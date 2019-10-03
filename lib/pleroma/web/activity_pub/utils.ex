@@ -261,6 +261,13 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     |> Repo.all()
   end
 
+  def get_object_likes(%{data: %{"id" => id}}, %{page: _page} = params) do
+    id
+    |> Activity.Queries.by_object_id()
+    |> Activity.Queries.by_type("Like")
+    |> Repo.paginate(params)
+  end
+
   @spec make_like_data(User.t(), map(), String.t()) :: map()
   def make_like_data(
         %User{ap_id: ap_id} = actor,
