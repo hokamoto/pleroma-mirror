@@ -10,11 +10,48 @@ defmodule Pleroma.Web.ActivityPub.ObjectViewTest do
   alias Pleroma.Web.ActivityPub.ObjectView
   alias Pleroma.Web.CommonAPI
 
+  describe "likes.json" do
+    test "render OrderedCollection for likes" do
+      note = insert(:note_activity)
+      [like | _] = likes = insert_list(10, :like_activity, note_activity: note)
+      result = ObjectView.render("likes.json", %{ap_id: "test_ap_id", likes: likes, total: 11})
+
+      assert result["@context"] == [
+               "https://www.w3.org/ns/activitystreams",
+               "http://localhost:4001/schemas/litepub-0.1.jsonld",
+               %{"@language" => "und"}
+             ]
+
+      assert result["id"] == "test_ap_id/likes"
+      assert result["totalItems"] == 11
+      assert result["type"] == "OrderedCollection"
+      assert result["first"]["id"] == "test_ap_id/likes?page=1"
+      assert result["first"]["next"] == "test_ap_id/likes?page=2"
+      assert result["first"]["partOf"] == "test_ap_id/likes"
+      assert result["first"]["totalItems"] == 11
+      assert result["first"]["type"] == "OrderedCollectionPage"
+      assert length(result["first"]["orderedItems"]) == 10
+      [item | _] = result["first"]["orderedItems"]
+
+      assert item == %{
+               "actor" => like.data["actor"],
+               "attachment" => [],
+               "attributedTo" => like.data["actor"],
+               "conversation" => nil,
+               "id" => like.data["id"],
+               "object" => like.data["object"],
+               "published_at" => like.data["published_at"],
+               "sensitive" => false,
+               "tag" => [],
+               "type" => "Like"
+             }
+    end
+  end
+
   test "renders a note object" do
     note = insert(:note)
 
     result = ObjectView.render("object.json", %{object: note})
-
     assert result["id"] == note.data["id"]
     assert result["to"] == note.data["to"]
     assert result["content"] == note.data["content"]

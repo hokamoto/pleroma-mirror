@@ -7,9 +7,13 @@ defmodule Pleroma.Web.ActivityPub.ObjectView do
   alias Pleroma.Activity
   alias Pleroma.Object
   alias Pleroma.Web.ActivityPub.Transmogrifier
+  alias Pleroma.Web.ActivityPub.Utils
+
+  @likes_page_size 10
+  def likes_page_size, do: @likes_page_size
 
   def render("object.json", %{object: %Object{} = object}) do
-    base = Pleroma.Web.ActivityPub.Utils.make_json_ld_header()
+    base = Utils.make_json_ld_header()
 
     additional = Transmogrifier.prepare_object(object.data)
     Map.merge(base, additional)
@@ -17,47 +21,49 @@ defmodule Pleroma.Web.ActivityPub.ObjectView do
 
   def render("object.json", %{object: %Activity{data: %{"type" => activity_type}} = activity})
       when activity_type in ["Create", "Listen"] do
-    base = Pleroma.Web.ActivityPub.Utils.make_json_ld_header()
+    base = Utils.make_json_ld_header()
     object = Object.normalize(activity)
 
     additional =
-      Transmogrifier.prepare_object(activity.data)
+      activity.data
+      |> Transmogrifier.prepare_object()
       |> Map.put("object", Transmogrifier.prepare_object(object.data))
 
     Map.merge(base, additional)
   end
 
   def render("object.json", %{object: %Activity{} = activity}) do
-    base = Pleroma.Web.ActivityPub.Utils.make_json_ld_header()
+    base = Utils.make_json_ld_header()
     object = Object.normalize(activity)
 
     additional =
-      Transmogrifier.prepare_object(activity.data)
+      activity.data
+      |> Transmogrifier.prepare_object()
       |> Map.put("object", object.data["id"])
 
     Map.merge(base, additional)
   end
 
-  def render("likes.json", %{ap_id: ap_id, likes: likes, page: page}) do
-    collection(likes, "#{ap_id}/likes", page)
-    |> Map.merge(Pleroma.Web.ActivityPub.Utils.make_json_ld_header())
+  def render("likes.json", %{ap_id: ap_id, likes: likes, page: page} = params) do
+    likes
+    |> collection("#{ap_id}/likes", page, params)
+    |> Map.merge(Utils.make_json_ld_header())
   end
 
-  def render("likes.json", %{ap_id: ap_id, likes: likes}) do
+  def render("likes.json", %{ap_id: ap_id, likes: likes} = params) do
     %{
       "id" => "#{ap_id}/likes",
       "type" => "OrderedCollection",
-      "totalItems" => length(likes),
-      "first" => collection(likes, "#{ap_id}/likes", 1)
+      "totalItems" => params[:total] || length(likes),
+      "first" => collection(likes, "#{ap_id}/likes", 1, params)
     }
-    |> Map.merge(Pleroma.Web.ActivityPub.Utils.make_json_ld_header())
+    |> Map.merge(Utils.make_json_ld_header())
   end
 
-  def collection(collection, iri, page) do
-    offset = (page - 1) * 10
-    items = Enum.slice(collection, offset, 10)
-    items = Enum.map(items, fn object -> Transmogrifier.prepare_object(object.data) end)
-    total = length(collection)
+  def collection(collection, iri, page, params \\ %{}) do
+    offset = (page - 1) * @likes_page_size
+    items = Enum.map(collection, &Transmogrifier.prepare_object(&1.data))
+    total = params[:total] || length(collection)
 
     map = %{
       "id" => "#{iri}?page=#{page}",
