@@ -641,4 +641,20 @@ defmodule Pleroma.Web.ActivityPub.UtilsTest do
       {:error, :invalid_type} = Utils.normalize_compound_type(123)
     end
   end
+
+  describe "compound_type_is_one_of?/2" do
+    test "works for non-compound types" do
+      assert Utils.compound_type_is_one_of?("Person", ["Person"])
+      refute Utils.compound_type_is_one_of?("Person", ["Service"])
+    end
+
+    test "works for compound types" do
+      assert Utils.compound_type_is_one_of?(["Application", "Invisible"], ["Application"])
+      refute Utils.compound_type_is_one_of?(["Application", "Invisible"], ["Service"])
+    end
+
+    test "returns false for unknown inputs" do
+      refute Utils.compound_type_is_one_of?(123, [456])
+    end
+  end
 end

@@ -37,6 +37,21 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   def normalize_compound_type(t) when is_binary(t), do: {:ok, [t]}
   def normalize_compound_type(_), do: {:error, :invalid_type}
 
+  def compound_type_is_one_of?(normalized_type, match_types)
+      when is_list(normalized_type) and is_list(match_types),
+      do: Enum.any?(normalized_type, fn subtype -> Enum.member?(match_types, subtype) end)
+
+  def compound_type_is_one_of?(denormalized_type, match_types)
+      when is_binary(denormalized_type) and is_list(match_types) do
+    with {:ok, normalized_type} <- normalize_compound_type(denormalized_type) do
+      compound_type_is_one_of?(normalized_type, match_types)
+    else
+      _e -> false
+    end
+  end
+
+  def compound_type_is_one_of?(_, _), do: false
+
   @spec determine_explicit_mentions(map()) :: map()
   def determine_explicit_mentions(%{"tag" => tag} = _) when is_list(tag) do
     Enum.flat_map(tag, fn
