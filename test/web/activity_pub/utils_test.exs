@@ -627,4 +627,18 @@ defmodule Pleroma.Web.ActivityPub.UtilsTest do
       assert updated_object.data["announcement_count"] == 1
     end
   end
+
+  describe "normalize_compound_type/1" do
+    test "works for lists" do
+      {:ok, ["Person", "Invisible"]} = Utils.normalize_compound_type(["Person", "Invisible"])
+    end
+
+    test "works for strings" do
+      {:ok, ["Person"]} = Utils.normalize_compound_type("Person")
+    end
+
+    test "errors for non-strings and non-lists" do
+      {:error, :invalid_type} = Utils.normalize_compound_type(123)
+    end
+  end
 end

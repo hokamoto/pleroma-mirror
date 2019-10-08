@@ -33,6 +33,10 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     Map.put(params, "actor", get_ap_id(params["actor"]))
   end
 
+  def normalize_compound_type(t) when is_list(t), do: {:ok, t}
+  def normalize_compound_type(t) when is_binary(t), do: {:ok, [t]}
+  def normalize_compound_type(_), do: {:error, :invalid_type}
+
   @spec determine_explicit_mentions(map()) :: map()
   def determine_explicit_mentions(%{"tag" => tag} = _) when is_list(tag) do
     Enum.flat_map(tag, fn
