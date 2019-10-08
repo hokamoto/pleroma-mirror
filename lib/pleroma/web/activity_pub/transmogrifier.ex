@@ -589,19 +589,24 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     end
   end
 
+  # Note: This particular Update clause must come last because it matches both literal
+  # and compound types.  To do so, we capture the object type as `object_type` and then
+  # process it with Utils.normalize_compound_type/1.  Accordingly, we cannot use guards
+  # and must instead use a pair of preconditions to find the primary type.
   def handle_incoming(
         %{"type" => "Update", "object" => %{"type" => object_type} = object, "actor" => actor_id} =
           data,
         _options
-      )
-      when object_type in [
-             "Person",
+      ) do
+    with {:ok, normalized_type} <- Utils.normalize_compound_type(object_type),
+         true <-
+           Utils.compound_type_is_one_of?(normalized_type, [
              "Application",
              "Service",
-             "Organization",
-             ["Application", "Invisible"]
-           ] do
-    with %User{ap_id: ^actor_id} = actor <- User.get_cached_by_ap_id(object["id"]) do
+             "Person",
+             "Organization"
+           ]),
+         %User{ap_id: ^actor_id} = actor <- User.get_cached_by_ap_id(object["id"]) do
       {:ok, new_user_data} = ActivityPub.user_data_from_user_object(object)
 
       banner = new_user_data[:info][:banner]
