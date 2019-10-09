@@ -490,16 +490,16 @@ defmodule HttpRequestMock do
   def get("http://pleroma.soykaf.com/.well-known/host-meta", _, _, _) do
     {:ok,
      %Tesla.Env{
-       status: 502,
-       body: ""
+       status: 200,
+       body: File.read!("test/fixtures/tesla_mock/soykaf.com_host_meta")
      }}
   end
 
   def get("https://pleroma.soykaf.com/.well-known/host-meta", _, _, _) do
     {:ok,
      %Tesla.Env{
-       status: 502,
-       body: ""
+       status: 200,
+       body: File.read!("test/fixtures/tesla_mock/soykaf.com_host_meta")
      }}
   end
 
