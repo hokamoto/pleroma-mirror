@@ -67,10 +67,11 @@ defmodule Pleroma.Web.MastodonAPI.SearchControllerTest do
       assert status["id"] == to_string(activity.id)
 
       results =
-        get(conn, "/api/v2/search", %{"q" => "天子"})
+        conn
+        |> get("/api/v2/search", %{"q" => "天子"})
         |> json_response(200)
 
-      [account] == results["accounts"]
+      [account] = results["accounts"]
       assert account["id"] == to_string(user_three.id)
     end
   end
