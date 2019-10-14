@@ -109,6 +109,7 @@ config :pleroma, Pleroma.Uploaders.Local, uploads: "uploads"
 
 config :pleroma, Pleroma.Uploaders.S3,
   bucket: nil,
+  streaming_enabled: true,
   public_endpoint: "https://s3.amazonaws.com"
 
 config :pleroma, Pleroma.Uploaders.MDII,
@@ -122,7 +123,8 @@ config :pleroma, :emoji,
     # Put groups that have higher priority than defaults here. Example in `docs/config/custom_emoji.md`
     Custom: ["/emoji/*.png", "/emoji/**/*.png"]
   ],
-  default_manifest: "https://git.pleroma.social/pleroma/emoji-index/raw/master/index.json"
+  default_manifest: "https://git.pleroma.social/pleroma/emoji-index/raw/master/index.json",
+  shared_pack_cache_seconds_per_file: 60
 
 config :pleroma, :uri_schemes,
   valid_schemes: [
@@ -278,6 +280,7 @@ config :pleroma, :instance,
   account_field_name_length: 512,
   account_field_value_length: 2048,
   external_user_synchronization: true,
+  extended_nickname_format: false,
   multi_factor_authentication: [
     totp: [
       # digits 6 or 8
@@ -417,7 +420,8 @@ config :pleroma, Pleroma.Web.Metadata,
   providers: [
     Pleroma.Web.Metadata.Providers.OpenGraph,
     Pleroma.Web.Metadata.Providers.TwitterCard,
-    Pleroma.Web.Metadata.Providers.RelMe
+    Pleroma.Web.Metadata.Providers.RelMe,
+    Pleroma.Web.Metadata.Providers.Feed
   ],
   unfurl_nsfw: false
 
@@ -518,7 +522,7 @@ config :auto_linker,
     class: false,
     strip_prefix: false,
     new_window: false,
-    rel: false
+    rel: "ugc"
   ]
 
 config :pleroma, :ldap,
@@ -596,9 +600,11 @@ config :pleroma, :env, Mix.env()
 config :http_signatures,
   adapter: Pleroma.Signature
 
-config :pleroma, :rate_limit, nil
+config :pleroma, :rate_limit, authentication: {60_000, 15}
 
 config :pleroma, Pleroma.ActivityExpiration, enabled: true
+
+config :pleroma, Pleroma.Plugs.RemoteIp, enabled: false
 
 config :pleroma, :web_cache_ttl,
   activity_pub: nil,

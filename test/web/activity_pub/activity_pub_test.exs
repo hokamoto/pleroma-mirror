@@ -257,6 +257,42 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
     end
   end
 
+  describe "listen activities" do
+    test "does not increase user note count" do
+      user = insert(:user)
+
+      {:ok, activity} =
+        ActivityPub.listen(%{
+          to: ["https://www.w3.org/ns/activitystreams#Public"],
+          actor: user,
+          context: "",
+          object: %{
+            "actor" => user.ap_id,
+            "to" => ["https://www.w3.org/ns/activitystreams#Public"],
+            "artist" => "lain",
+            "title" => "lain radio episode 1",
+            "length" => 180_000,
+            "type" => "Audio"
+          }
+        })
+
+      assert activity.actor == user.ap_id
+
+      user = User.get_cached_by_id(user.id)
+      assert user.info.note_count == 0
+    end
+
+    test "can be fetched into a timeline" do
+      _listen_activity_1 = insert(:listen)
+      _listen_activity_2 = insert(:listen)
+      _listen_activity_3 = insert(:listen)
+
+      timeline = ActivityPub.fetch_activities([], %{"type" => ["Listen"]})
+
+      assert length(timeline) == 3
+    end
+  end
+
   describe "create activities" do
     test "removes doubled 'to' recipients" do
       user = insert(:user)
@@ -647,6 +683,21 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       assert last == last_expected
     end
 
+    test "paginates via offset/limit" do
+      _first_activities = ActivityBuilder.insert_list(10)
+      activities = ActivityBuilder.insert_list(10)
+      _later_activities = ActivityBuilder.insert_list(10)
+      first_expected = List.first(activities)
+
+      activities =
+        ActivityPub.fetch_public_activities(%{"page" => "2", "page_size" => "20"}, :offset)
+
+      first = List.first(activities)
+
+      assert length(activities) == 20
+      assert first == first_expected
+    end
+
     test "doesn't return reblogs for users for whom reblogs have been muted" do
       activity = insert(:note_activity)
       user = insert(:user)
@@ -760,10 +811,11 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       {:ok, like_activity, object} = ActivityPub.like(user, object)
       assert object.data["like_count"] == 1
 
-      {:ok, _, _, object} = ActivityPub.unlike(user, object)
+      {:ok, unlike_activity, _, object} = ActivityPub.unlike(user, object)
       assert object.data["like_count"] == 0
 
       assert Activity.get_by_id(like_activity.id) == nil
+      assert note_activity.actor in unlike_activity.recipients
     end
   end
 
@@ -788,6 +840,39 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
     end
   end
 
+  describe "announcing a private object" do
+    test "adds an announce activity to the db if the audience is not widened" do
+      user = insert(:user)
+      {:ok, note_activity} = CommonAPI.post(user, %{"status" => ".", "visibility" => "private"})
+      object = Object.normalize(note_activity)
+
+      {:ok, announce_activity, object} = ActivityPub.announce(user, object, nil, true, false)
+
+      assert announce_activity.data["to"] == [User.ap_followers(user)]
+
+      assert announce_activity.data["object"] == object.data["id"]
+      assert announce_activity.data["actor"] == user.ap_id
+      assert announce_activity.data["context"] == object.data["context"]
+    end
+
+    test "does not add an announce activity to the db if the audience is widened" do
+      user = insert(:user)
+      {:ok, note_activity} = CommonAPI.post(user, %{"status" => ".", "visibility" => "private"})
+      object = Object.normalize(note_activity)
+
+      assert {:error, _} = ActivityPub.announce(user, object, nil, true, true)
+    end
+
+    test "does not add an announce activity to the db if the announcer is not the author" do
+      user = insert(:user)
+      announcer = insert(:user)
+      {:ok, note_activity} = CommonAPI.post(user, %{"status" => ".", "visibility" => "private"})
+      object = Object.normalize(note_activity)
+
+      assert {:error, _} = ActivityPub.announce(announcer, object, nil, true, false)
+    end
+  end
+
   describe "unannouncing an object" do
     test "unannouncing a previously announced object" do
       note_activity = insert(:note_activity)
@@ -806,7 +891,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
 
       assert unannounce_activity.data["to"] == [
                User.ap_followers(user),
-               announce_activity.data["actor"]
+               object.data["actor"]
              ]
 
       assert unannounce_activity.data["type"] == "Undo"

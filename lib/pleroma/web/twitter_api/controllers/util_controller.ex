@@ -13,10 +13,33 @@ defmodule Pleroma.Web.TwitterAPI.UtilController do
   alias Pleroma.Healthcheck
   alias Pleroma.Notification
   alias Pleroma.Plugs.AuthenticationPlug
+  alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.User
   alias Pleroma.Web
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.WebFinger
+
+  plug(
+    OAuthScopesPlug,
+    %{scopes: ["follow", "write:follows"]}
+    when action in [:do_remote_follow, :follow_import]
+  )
+
+  plug(OAuthScopesPlug, %{scopes: ["follow", "write:blocks"]} when action == :blocks_import)
+
+  plug(
+    OAuthScopesPlug,
+    %{scopes: ["write:accounts"]}
+    when action in [
+           :change_email,
+           :change_password,
+           :delete_account,
+           :update_notificaton_settings,
+           :disable_account
+         ]
+  )
+
+  plug(OAuthScopesPlug, %{scopes: ["write:notifications"]} when action == :notifications_read)
 
   plug(Pleroma.Plugs.SetFormatPlug when action in [:config, :version])
 
@@ -239,11 +262,9 @@ defmodule Pleroma.Web.TwitterAPI.UtilController do
 
   def emoji(conn, _params) do
     emoji =
-      Emoji.get_all()
-      |> Enum.map(fn {short_code, path, tags} ->
-        {short_code, %{image_url: path, tags: tags}}
+      Enum.reduce(Emoji.get_all(), %{}, fn {code, %Emoji{file: file, tags: tags}}, acc ->
+        Map.put(acc, code, %{image_url: file, tags: tags})
       end)
-      |> Enum.into(%{})
 
     json(conn, emoji)
   end

@@ -5,10 +5,10 @@
 defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   use Pleroma.Web, :controller
 
-  alias Ecto.Changeset
   alias Pleroma.Activity
   alias Pleroma.MFA
   alias Pleroma.ModerationLog
+  alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.User
   alias Pleroma.UserInviteToken
   alias Pleroma.Web.ActivityPub.ActivityPub
@@ -17,14 +17,78 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   alias Pleroma.Web.AdminAPI.Config
   alias Pleroma.Web.AdminAPI.ConfigView
   alias Pleroma.Web.AdminAPI.ModerationLogView
+  alias Pleroma.Web.AdminAPI.Report
   alias Pleroma.Web.AdminAPI.ReportView
   alias Pleroma.Web.AdminAPI.Search
   alias Pleroma.Web.CommonAPI
+  alias Pleroma.Web.Endpoint
   alias Pleroma.Web.MastodonAPI.StatusView
+  alias Pleroma.Web.Router
 
   import Pleroma.Web.ControllerHelper, only: [json_response: 3]
 
   require Logger
+
+  plug(
+    OAuthScopesPlug,
+    %{scopes: ["read:accounts"]}
+    when action in [:list_users, :user_show, :right_get, :invites]
+  )
+
+  plug(
+    OAuthScopesPlug,
+    %{scopes: ["write:accounts"]}
+    when action in [
+           :get_invite_token,
+           :revoke_invite,
+           :email_invite,
+           :get_password_reset,
+           :user_follow,
+           :user_unfollow,
+           :user_delete,
+           :users_create,
+           :user_toggle_activation,
+           :tag_users,
+           :untag_users,
+           :right_add,
+           :right_delete,
+           :set_activation_status
+         ]
+  )
+
+  plug(
+    OAuthScopesPlug,
+    %{scopes: ["read:reports"]} when action in [:list_reports, :report_show]
+  )
+
+  plug(
+    OAuthScopesPlug,
+    %{scopes: ["write:reports"]}
+    when action in [:report_update_state, :report_respond]
+  )
+
+  plug(
+    OAuthScopesPlug,
+    %{scopes: ["read:statuses"]} when action == :list_user_statuses
+  )
+
+  plug(
+    OAuthScopesPlug,
+    %{scopes: ["write:statuses"]}
+    when action in [:status_update, :status_delete]
+  )
+
+  plug(
+    OAuthScopesPlug,
+    %{scopes: ["read"]}
+    when action in [:config_show, :migrate_to_db, :migrate_from_db, :list_log]
+  )
+
+  plug(
+    OAuthScopesPlug,
+    %{scopes: ["write"]}
+    when action in [:relay_follow, :relay_unfollow, :config_update]
+  )
 
   @users_page_size 50
 
@@ -141,7 +205,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   def user_show(conn, %{"nickname" => nickname}) do
     with %User{} = user <- User.get_cached_by_nickname_or_id(nickname) do
       conn
-      |> json(AccountView.render("show.json", %{user: user}))
+      |> put_view(AccountView)
+      |> render("show.json", %{user: user})
     else
       _ -> {:error, :not_found}
     end
@@ -160,7 +225,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
         })
 
       conn
-      |> json(StatusView.render("index.json", %{activities: activities, as: :activity}))
+      |> put_view(StatusView)
+      |> render("index.json", %{activities: activities, as: :activity})
     else
       _ -> {:error, :not_found}
     end
@@ -180,7 +246,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     })
 
     conn
-    |> json(AccountView.render("show.json", %{user: updated_user}))
+    |> put_view(AccountView)
+    |> render("show.json", %{user: updated_user})
   end
 
   def tag_users(%{assigns: %{user: admin}} = conn, %{"nicknames" => nicknames, "tags" => tags}) do
@@ -252,18 +319,12 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
         "nickname" => nickname
       })
       when permission_group in ["moderator", "admin"] do
-    user = User.get_cached_by_nickname(nickname)
+    info = Map.put(%{}, "is_" <> permission_group, true)
 
-    info =
-      %{}
-      |> Map.put("is_" <> permission_group, true)
-
-    info_cng = User.Info.admin_api_update(user.info, info)
-
-    cng =
-      user
-      |> Changeset.change()
-      |> Changeset.put_embed(:info, info_cng)
+    {:ok, user} =
+      nickname
+      |> User.get_cached_by_nickname()
+      |> User.update_info(&User.Info.admin_api_update(&1, info))
 
     ModerationLog.insert_log(%{
       action: "grant",
@@ -271,8 +332,6 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
       subject: user,
       permission: permission_group
     })
-
-    {:ok, _user} = User.update_and_set_cache(cng)
 
     json(conn, info)
   end
@@ -291,41 +350,33 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     })
   end
 
+  def right_delete(%{assigns: %{user: %{nickname: nickname}}} = conn, %{"nickname" => nickname}) do
+    render_error(conn, :forbidden, "You can't revoke your own admin status.")
+  end
+
   def right_delete(
-        %{assigns: %{user: %User{:nickname => admin_nickname} = admin}} = conn,
+        %{assigns: %{user: admin}} = conn,
         %{
           "permission_group" => permission_group,
           "nickname" => nickname
         }
       )
       when permission_group in ["moderator", "admin"] do
-    if admin_nickname == nickname do
-      render_error(conn, :forbidden, "You can't revoke your own admin status.")
-    else
-      user = User.get_cached_by_nickname(nickname)
+    info = Map.put(%{}, "is_" <> permission_group, false)
 
-      info =
-        %{}
-        |> Map.put("is_" <> permission_group, false)
+    {:ok, user} =
+      nickname
+      |> User.get_cached_by_nickname()
+      |> User.update_info(&User.Info.admin_api_update(&1, info))
 
-      info_cng = User.Info.admin_api_update(user.info, info)
+    ModerationLog.insert_log(%{
+      action: "revoke",
+      actor: admin,
+      subject: user,
+      permission: permission_group
+    })
 
-      cng =
-        user
-        |> Changeset.change()
-        |> Changeset.put_embed(:info, info_cng)
-
-      {:ok, _user} = User.update_and_set_cache(cng)
-
-      ModerationLog.insert_log(%{
-        action: "revoke",
-        actor: admin,
-        subject: user,
-        permission: permission_group
-      })
-
-      json(conn, info)
-    end
+    json(conn, info)
   end
 
   def right_delete(conn, _) do
@@ -427,7 +478,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     invites = UserInviteToken.list_invites()
 
     conn
-    |> json(AccountView.render("invites.json", %{invites: invites}))
+    |> put_view(AccountView)
+    |> render("invites.json", %{invites: invites})
   end
 
   @doc "Revokes invite by token"
@@ -435,7 +487,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     with {:ok, invite} <- UserInviteToken.find_by_token(token),
          {:ok, updated_invite} = UserInviteToken.update_invite(invite, %{used: true}) do
       conn
-      |> json(AccountView.render("invite.json", %{invite: updated_invite}))
+      |> put_view(AccountView)
+      |> render("invite.json", %{invite: updated_invite})
     else
       nil -> {:error, :not_found}
     end
@@ -446,7 +499,20 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     (%User{local: true} = user) = User.get_cached_by_nickname(nickname)
     {:ok, token} = Pleroma.PasswordResetToken.create_token(user)
 
-    json(conn, token.token)
+    conn
+    |> json(%{
+      token: token.token,
+      link: Router.Helpers.reset_password_url(Endpoint, :reset, token.token)
+    })
+  end
+
+  @doc "Force password reset for a given user"
+  def force_password_reset(conn, %{"nickname" => nickname}) do
+    (%User{local: true} = user) = User.get_cached_by_nickname(nickname)
+
+    User.force_password_reset_async(user)
+
+    json_response(conn, :no_content, "")
   end
 
   @doc "Disable mfa for user's account."
@@ -462,13 +528,17 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   end
 
   def list_reports(conn, params) do
+    {page, page_size} = page_params(params)
+
     params =
       params
       |> Map.put("type", "Flag")
       |> Map.put("skip_preload", true)
       |> Map.put("total", true)
+      |> Map.put("limit", page_size)
+      |> Map.put("offset", (page - 1) * page_size)
 
-    reports = ActivityPub.fetch_activities([], params)
+    reports = ActivityPub.fetch_activities([], params, :offset)
 
     conn
     |> put_view(ReportView)
@@ -479,7 +549,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     with %Activity{} = report <- Activity.get_by_id(id) do
       conn
       |> put_view(ReportView)
-      |> render("show.json", %{report: report})
+      |> render("show.json", Report.extract_report_info(report))
     else
       _ -> {:error, :not_found}
     end
@@ -495,7 +565,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
       conn
       |> put_view(ReportView)
-      |> render("show.json", %{report: report})
+      |> render("show.json", Report.extract_report_info(report))
     end
   end
 
@@ -518,7 +588,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
       conn
       |> put_view(StatusView)
-      |> render("status.json", %{activity: activity})
+      |> render("show.json", %{activity: activity})
     else
       true ->
         {:param_cast, nil}
@@ -542,7 +612,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
       conn
       |> put_view(StatusView)
-      |> render("status.json", %{activity: activity})
+      |> render("show.json", %{activity: activity})
     end
   end
 
@@ -561,7 +631,15 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   def list_log(conn, params) do
     {page, page_size} = page_params(params)
 
-    log = ModerationLog.get_all(page, page_size)
+    log =
+      ModerationLog.get_all(%{
+        page: page,
+        page_size: page_size,
+        start_date: params["start_date"],
+        end_date: params["end_date"],
+        user_id: params["user_id"],
+        search: params["search"]
+      })
 
     conn
     |> put_view(ModerationLogView)
@@ -611,6 +689,12 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     conn
     |> put_view(ConfigView)
     |> render("index.json", %{configs: updated})
+  end
+
+  def reload_emoji(conn, _params) do
+    Pleroma.Emoji.reload()
+
+    conn |> json("ok")
   end
 
   def errors(conn, {:error, :not_found}) do

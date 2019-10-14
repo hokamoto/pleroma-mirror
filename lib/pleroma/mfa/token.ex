@@ -7,7 +7,6 @@ defmodule Pleroma.MFA.Token do
   import Ecto.Query
   import Ecto.Changeset
 
-  alias Pleroma.FlakeId
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web.OAuth.Token, as: OAuthToken
@@ -19,7 +18,7 @@ defmodule Pleroma.MFA.Token do
     field(:token, :string)
     field(:valid_until, :naive_datetime_usec)
 
-    belongs_to(:user, User, type: FlakeId)
+    belongs_to(:user, User, type: FlakeId.Ecto.CompatType)
     belongs_to(:authorization, Authorization)
 
     timestamps()

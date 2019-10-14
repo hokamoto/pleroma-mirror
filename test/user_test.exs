@@ -74,8 +74,8 @@ defmodule Pleroma.UserTest do
     CommonAPI.follow(follower, unlocked)
     CommonAPI.follow(follower, locked)
 
-    assert {:ok, []} = User.get_follow_requests(unlocked)
-    assert {:ok, [activity]} = User.get_follow_requests(locked)
+    assert [] = User.get_follow_requests(unlocked)
+    assert [activity] = User.get_follow_requests(locked)
 
     assert activity
   end
@@ -90,7 +90,7 @@ defmodule Pleroma.UserTest do
     CommonAPI.follow(accepted_follower, locked)
     User.follow(accepted_follower, locked)
 
-    assert {:ok, [activity]} = User.get_follow_requests(locked)
+    assert [activity] = User.get_follow_requests(locked)
     assert activity
   end
 
@@ -99,10 +99,10 @@ defmodule Pleroma.UserTest do
     follower = insert(:user)
 
     CommonAPI.follow(follower, followed)
-    assert {:ok, [_activity]} = User.get_follow_requests(followed)
+    assert [_activity] = User.get_follow_requests(followed)
 
     {:ok, _follower} = User.block(followed, follower)
-    assert {:ok, []} = User.get_follow_requests(followed)
+    assert [] = User.get_follow_requests(followed)
   end
 
   test "follow_all follows mutliple users" do
@@ -515,7 +515,7 @@ defmodule Pleroma.UserTest do
     user = insert(:user)
 
     assert User.ap_id(user) ==
-             Pleroma.Web.Router.Helpers.o_status_url(
+             Pleroma.Web.Router.Helpers.feed_url(
                Pleroma.Web.Endpoint,
                :feed_redirect,
                user.nickname
@@ -526,7 +526,7 @@ defmodule Pleroma.UserTest do
     user = insert(:user)
 
     assert User.ap_followers(user) ==
-             Pleroma.Web.Router.Helpers.o_status_url(
+             Pleroma.Web.Router.Helpers.feed_url(
                Pleroma.Web.Endpoint,
                :feed_redirect,
                user.nickname
@@ -560,7 +560,7 @@ defmodule Pleroma.UserTest do
 
     test "it enforces the fqn format for nicknames" do
       cs = User.remote_user_creation(%{@valid_remote | nickname: "bla"})
-      assert cs.changes.local == false
+      assert Ecto.Changeset.get_field(cs, :local) == false
       assert cs.changes.avatar
       refute cs.valid?
     end
@@ -584,7 +584,7 @@ defmodule Pleroma.UserTest do
       {:ok, follower_one} = User.follow(follower_one, user)
       {:ok, follower_two} = User.follow(follower_two, user)
 
-      {:ok, res} = User.get_followers(user)
+      res = User.get_followers(user)
 
       assert Enum.member?(res, follower_one)
       assert Enum.member?(res, follower_two)
@@ -600,7 +600,7 @@ defmodule Pleroma.UserTest do
       {:ok, user} = User.follow(user, followed_one)
       {:ok, user} = User.follow(user, followed_two)
 
-      {:ok, res} = User.get_friends(user)
+      res = User.get_friends(user)
 
       followed_one = User.get_cached_by_ap_id(followed_one.ap_id)
       followed_two = User.get_cached_by_ap_id(followed_two.ap_id)
@@ -975,7 +975,7 @@ defmodule Pleroma.UserTest do
       info = User.get_cached_user_info(user2)
 
       assert info.follower_count == 0
-      assert {:ok, []} = User.get_followers(user2)
+      assert [] = User.get_followers(user2)
     end
 
     test "hide a user from friends" do
@@ -991,7 +991,7 @@ defmodule Pleroma.UserTest do
 
       assert info.following_count == 0
       assert User.following_count(user2) == 0
-      assert {:ok, []} = User.get_friends(user2)
+      assert [] = User.get_friends(user2)
     end
 
     test "hide a user's statuses from timelines and notifications" do
@@ -1034,7 +1034,7 @@ defmodule Pleroma.UserTest do
     test ".delete_user_activities deletes all create activities", %{user: user} do
       {:ok, activity} = CommonAPI.post(user, %{"status" => "2hu"})
 
-      {:ok, _} = User.delete_user_activities(user)
+      User.delete_user_activities(user)
 
       # TODO: Remove favorites, repeats, delete activities.
       refute Activity.get_by_id(activity.id)
@@ -1294,9 +1294,9 @@ defmodule Pleroma.UserTest do
       bio = "A.k.a. @nick@domain.com"
 
       expected_text =
-        "A.k.a. <span class='h-card'><a data-user='#{remote_user.id}' class='u-url mention' href='#{
+        ~s(A.k.a. <span class="h-card"><a data-user="#{remote_user.id}" class="u-url mention" href="#{
           remote_user.ap_id
-        }'>@<span>nick@domain.com</span></a></span>"
+        }" rel="ugc">@<span>nick@domain.com</span></a></span>)
 
       assert expected_text == User.parse_bio(bio, user)
     end
@@ -1457,15 +1457,15 @@ defmodule Pleroma.UserTest do
   describe "ensure_keys_present" do
     test "it creates keys for a user and stores them in info" do
       user = insert(:user)
-      refute is_binary(user.info.keys)
+      refute is_binary(user.keys)
       {:ok, user} = User.ensure_keys_present(user)
-      assert is_binary(user.info.keys)
+      assert is_binary(user.keys)
     end
 
     test "it doesn't create keys if there already are some" do
-      user = insert(:user, %{info: %{keys: "xxx"}})
+      user = insert(:user, keys: "xxx")
       {:ok, user} = User.ensure_keys_present(user)
-      assert user.info.keys == "xxx"
+      assert user.keys == "xxx"
     end
   end
 
@@ -1688,6 +1688,98 @@ defmodule Pleroma.UserTest do
 
     test "changes email", %{user: user} do
       assert {:ok, %User{email: "cofe@cofe.party"}} = User.change_email(user, "cofe@cofe.party")
+    end
+  end
+
+  describe "set_password_reset_pending/2" do
+    setup do
+      [user: insert(:user)]
+    end
+
+    test "sets password_reset_pending to true", %{user: user} do
+      %{password_reset_pending: password_reset_pending} = user.info
+
+      refute password_reset_pending
+
+      {:ok, %{info: %{password_reset_pending: password_reset_pending}}} =
+        User.force_password_reset(user)
+
+      assert password_reset_pending
+    end
+  end
+
+  test "change_info/2" do
+    user = insert(:user)
+    assert user.info.hide_follows == false
+
+    changeset = User.change_info(user, &User.Info.profile_update(&1, %{hide_follows: true}))
+    assert changeset.changes.info.changes.hide_follows == true
+  end
+
+  test "update_info/2" do
+    user = insert(:user)
+    assert user.info.hide_follows == false
+
+    assert {:ok, _} = User.update_info(user, &User.Info.profile_update(&1, %{hide_follows: true}))
+
+    assert %{info: %{hide_follows: true}} = Repo.get(User, user.id)
+    assert {:ok, %{info: %{hide_follows: true}}} = Cachex.get(:user_cache, "ap_id:#{user.ap_id}")
+  end
+
+  describe "get_cached_by_nickname_or_id" do
+    setup do
+      limit_to_local_content = Pleroma.Config.get([:instance, :limit_to_local_content])
+      local_user = insert(:user)
+      remote_user = insert(:user, nickname: "nickname@example.com", local: false)
+
+      on_exit(fn ->
+        Pleroma.Config.put([:instance, :limit_to_local_content], limit_to_local_content)
+      end)
+
+      [local_user: local_user, remote_user: remote_user]
+    end
+
+    test "allows getting remote users by id no matter what :limit_to_local_content is set to", %{
+      remote_user: remote_user
+    } do
+      Pleroma.Config.put([:instance, :limit_to_local_content], false)
+      assert %User{} = User.get_cached_by_nickname_or_id(remote_user.id)
+
+      Pleroma.Config.put([:instance, :limit_to_local_content], true)
+      assert %User{} = User.get_cached_by_nickname_or_id(remote_user.id)
+
+      Pleroma.Config.put([:instance, :limit_to_local_content], :unauthenticated)
+      assert %User{} = User.get_cached_by_nickname_or_id(remote_user.id)
+    end
+
+    test "disallows getting remote users by nickname without authentication when :limit_to_local_content is set to :unauthenticated",
+         %{remote_user: remote_user} do
+      Pleroma.Config.put([:instance, :limit_to_local_content], :unauthenticated)
+      assert nil == User.get_cached_by_nickname_or_id(remote_user.nickname)
+    end
+
+    test "allows getting remote users by nickname with authentication when :limit_to_local_content is set to :unauthenticated",
+         %{remote_user: remote_user, local_user: local_user} do
+      Pleroma.Config.put([:instance, :limit_to_local_content], :unauthenticated)
+      assert %User{} = User.get_cached_by_nickname_or_id(remote_user.nickname, for: local_user)
+    end
+
+    test "disallows getting remote users by nickname when :limit_to_local_content is set to true",
+         %{remote_user: remote_user} do
+      Pleroma.Config.put([:instance, :limit_to_local_content], true)
+      assert nil == User.get_cached_by_nickname_or_id(remote_user.nickname)
+    end
+
+    test "allows getting local users by nickname no matter what :limit_to_local_content is set to",
+         %{local_user: local_user} do
+      Pleroma.Config.put([:instance, :limit_to_local_content], false)
+      assert %User{} = User.get_cached_by_nickname_or_id(local_user.nickname)
+
+      Pleroma.Config.put([:instance, :limit_to_local_content], true)
+      assert %User{} = User.get_cached_by_nickname_or_id(local_user.nickname)
+
+      Pleroma.Config.put([:instance, :limit_to_local_content], :unauthenticated)
+      assert %User{} = User.get_cached_by_nickname_or_id(local_user.nickname)
     end
   end
 end
