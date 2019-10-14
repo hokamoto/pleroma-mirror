@@ -4,18 +4,24 @@
 
 defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
   use Pleroma.Web.ConnCase
+  use Oban.Testing, repo: Pleroma.Repo
 
   alias Pleroma.Activity
   alias Pleroma.ActivityExpiration
   alias Pleroma.Config
+  alias Pleroma.Conversation.Participation
   alias Pleroma.Object
   alias Pleroma.Repo
   alias Pleroma.ScheduledActivity
+  alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
 
   import Pleroma.Factory
+
+  clear_config([:instance, :federating])
+  clear_config([:instance, :allow_relay])
 
   describe "posting statuses" do
     setup do
@@ -26,6 +32,34 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
         |> assign(:user, user)
 
       [conn: conn]
+    end
+
+    test "posting a status and checks reblog count after perform  all backroud job", %{conn: conn} do
+      Pleroma.Config.put([:instance, :federating], true)
+      Pleroma.Config.get([:instance, :allow_relay], true)
+      user = insert(:user)
+
+      response =
+        conn
+        |> assign(:user, user)
+        |> post("api/v1/statuses", %{
+          "content_type" => "text/plain",
+          "source" => "Pleroma FE",
+          "status" => "Hello world",
+          "visibility" => "public"
+        })
+        |> json_response(200)
+
+      assert response["reblogs_count"] == 0
+      ObanHelpers.perform_all()
+
+      response =
+        conn
+        |> assign(:user, user)
+        |> get("api/v1/statuses/#{response["id"]}", %{})
+        |> json_response(200)
+
+      assert response["reblogs_count"] == 0
     end
 
     test "posting a status", %{conn: conn} do
@@ -463,6 +497,24 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
 
     assert %{"id" => id} = json_response(conn, 200)
     assert id == to_string(activity.id)
+  end
+
+  test "get a direct status", %{conn: conn} do
+    user = insert(:user)
+    other_user = insert(:user)
+
+    {:ok, activity} =
+      CommonAPI.post(user, %{"status" => "@#{other_user.nickname}", "visibility" => "direct"})
+
+    conn =
+      conn
+      |> assign(:user, user)
+      |> get("/api/v1/statuses/#{activity.id}")
+
+    [participation] = Participation.for_user(user)
+
+    res = json_response(conn, 200)
+    assert res["pleroma"]["direct_conversation_id"] == participation.id
   end
 
   test "get statuses by IDs", %{conn: conn} do
