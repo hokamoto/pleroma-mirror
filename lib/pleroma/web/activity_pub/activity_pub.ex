@@ -1047,6 +1047,13 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     data = Transmogrifier.maybe_fix_user_object(data)
     discoverable = data["discoverable"] || false
 
+    invisible =
+      if is_list(data["type"]) do
+        Enum.member?(data["type"], "Invisible")
+      else
+        false
+      end
+
     user_data = %{
       ap_id: data["id"],
       info: %{
@@ -1055,7 +1062,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         banner: banner,
         fields: fields,
         locked: locked,
-        discoverable: discoverable
+        discoverable: discoverable,
+        invisible: invisible
       },
       avatar: avatar,
       name: data["name"],

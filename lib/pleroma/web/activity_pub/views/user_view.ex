@@ -39,9 +39,16 @@ defmodule Pleroma.Web.ActivityPub.UserView do
 
     endpoints = render("endpoints.json", %{user: user})
 
+    service_types =
+      if User.invisible?(user) do
+        ["Application", "Invisible"]
+      else
+        "Application"
+      end
+
     %{
       "id" => user.ap_id,
-      "type" => "Application",
+      "type" => service_types,
       "following" => "#{user.ap_id}/following",
       "followers" => "#{user.ap_id}/followers",
       "inbox" => "#{user.ap_id}/inbox",
