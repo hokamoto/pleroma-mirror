@@ -361,12 +361,13 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         %Object{data: %{"id" => _}} = object,
         activity_id \\ nil,
         local \\ true,
-        public \\ true
+        public \\ true,
+        relay \\ false
       ) do
     with true <- is_announceable?(object, user, public),
          announce_data <- make_announce_data(user, object, activity_id, public),
          {:ok, activity} <- insert(announce_data, local),
-         {:ok, object} <- add_announce_to_object(activity, object),
+         {:ok, object} <- add_announce_to_object(activity, object, local && !relay),
          :ok <- maybe_federate(activity) do
       {:ok, activity, object}
     else
