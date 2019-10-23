@@ -33,7 +33,8 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
             sensitive: false,
             object: nil,
             preview?: false,
-            changes: %{}
+            changes: %{},
+            type: "Note"
 
   def create(user, params) do
     %__MODULE__{user: user}
@@ -51,6 +52,7 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
     |> with_valid(&to_and_cc/1)
     |> with_valid(&context/1)
     |> sensitive()
+    |> set_type()
     |> with_valid(&object/1)
     |> preview?()
     |> with_valid(&changes/1)
@@ -179,7 +181,8 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
         draft.summary,
         draft.cc,
         draft.sensitive,
-        draft.poll
+        draft.poll,
+        draft.type
       )
       |> Map.put("emoji", emoji)
 
@@ -216,4 +219,7 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
 
   defp validate(%{valid?: true} = draft), do: {:ok, draft}
   defp validate(%{errors: [message | _]}), do: {:error, message}
+
+  defp set_type(%{params: %{"type" => "Story"}} = draft), do: %{draft | type: "Story"}
+  defp set_type(draft), do: draft
 end

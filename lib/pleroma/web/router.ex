@@ -283,6 +283,10 @@ defmodule Pleroma.Web.Router do
       put("/mascot", MascotController, :update)
 
       post("/scrobble", ScrobbleController, :new_scrobble)
+
+      post("/stories", PleromaAPIController, :create_story)
+      get("/stories", PleromaAPIController, :list_stories)
+      get("/stories/:id", PleromaAPIController, :list_user_stories)
     end
 
     scope [] do
