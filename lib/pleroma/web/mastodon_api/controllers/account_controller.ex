@@ -264,6 +264,18 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
     end
   end
 
+  def stories(%{assigns: %{user: reading_user}} = conn, params) do
+    with %User{} = user <- User.get_cached_by_nickname_or_id(params["id"], for: reading_user) do
+      params = Map.put(params, "tag", params["tagged"])
+      activities = ActivityPub.fetch_user_stories(user, reading_user, params)
+
+      conn
+      |> add_link_headers(activities)
+      |> put_view(StatusView)
+      |> render("index.json", activities: activities, for: reading_user, as: :activity)
+    end
+  end
+
   @doc "GET /api/v1/accounts/:id/followers"
   def followers(%{assigns: %{user: for_user, account: user}} = conn, params) do
     followers =

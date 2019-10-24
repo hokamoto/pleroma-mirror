@@ -286,7 +286,6 @@ defmodule Pleroma.Web.Router do
 
       post("/stories", PleromaAPIController, :create_story)
       get("/stories", PleromaAPIController, :list_stories)
-      get("/stories/:id", PleromaAPIController, :list_user_stories)
     end
 
     scope [] do
@@ -451,6 +450,7 @@ defmodule Pleroma.Web.Router do
     get("/polls/:id", PollController, :show)
 
     get("/accounts/:id/statuses", AccountController, :statuses)
+    get("/accounts/:id/stories", AccountController, :stories)
     get("/accounts/:id/followers", AccountController, :followers)
     get("/accounts/:id/following", AccountController, :following)
     get("/accounts/:id", AccountController, :show)

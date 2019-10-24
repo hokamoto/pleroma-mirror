@@ -229,23 +229,6 @@ defmodule Pleroma.Web.PleromaAPI.PleromaAPIControllerTest do
       assert abs(NaiveDateTime.diff(expiration.scheduled_at, estimated_expires_at, :second)) < 60
     end
 
-    test "reading a user story", %{conn1: conn1, conn2: conn2} do
-      # Create a story by user1
-      post(conn1, pleroma_api_path(conn1, :create_story), %{"status" => @content})
-      # Create a regular status by user1
-      post(conn1, status_path(conn1, :create), %{"status" => "cofe"})
-
-      conn2 = get(conn2, pleroma_api_path(conn2, :list_user_stories, conn1.assigns.user.id))
-
-      assert response = json_response(conn2, 200)
-
-      assert length(response) == 1
-
-      [story] = response
-
-      assert story["content"] == @content
-    end
-
     test "List stories", %{conn1: conn1, conn2: conn2, conn3: conn3} do
       user2_status = "You take the red pill"
       user3_status = "You take the blue pill"

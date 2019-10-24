@@ -10,7 +10,6 @@ defmodule Pleroma.Web.PleromaAPI.PleromaAPIController do
   alias Pleroma.Conversation.Participation
   alias Pleroma.Notification
   alias Pleroma.Plugs.OAuthScopesPlug
-  alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.MastodonAPI.ConversationView
@@ -136,18 +135,6 @@ defmodule Pleroma.Web.PleromaAPI.PleromaAPIController do
         conn
         |> put_status(:unprocessable_entity)
         |> json(%{error: message})
-    end
-  end
-
-  def list_user_stories(%{assigns: %{user: reading_user}} = conn, params) do
-    with %User{} = user <- User.get_cached_by_nickname_or_id(params["id"], for: reading_user) do
-      params = Map.put(params, "tag", params["tagged"])
-      activities = ActivityPub.fetch_user_stories(user, reading_user, params)
-
-      conn
-      |> add_link_headers(activities)
-      |> put_view(StatusView)
-      |> render("index.json", activities: activities, for: reading_user, as: :activity)
     end
   end
 
