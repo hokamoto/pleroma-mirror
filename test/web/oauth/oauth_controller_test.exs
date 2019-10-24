@@ -857,8 +857,8 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       {:ok, user} =
         insert(:user, password_hash: Comeonin.Pbkdf2.hashpwsalt(password))
-        |> User.change_info(&User.Info.confirmation_changeset(&1, need_confirmation: true))
-        |> Repo.update()
+        |> User.confirmation_changeset(need_confirmation: true)
+        |> User.update_and_set_cache()
 
       refute Pleroma.User.auth_active?(user)
 
@@ -885,7 +885,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       user =
         insert(:user,
           password_hash: Comeonin.Pbkdf2.hashpwsalt(password),
-          info: %{deactivated: true}
+          deactivated: true
         )
 
       app = insert(:oauth_app)
@@ -911,7 +911,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       user =
         insert(:user,
           password_hash: Comeonin.Pbkdf2.hashpwsalt(password),
-          info: %{password_reset_pending: true}
+          password_reset_pending: true
         )
 
       app = insert(:oauth_app, scopes: ["read", "write"])

@@ -7,14 +7,11 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
   alias Pleroma.Activity
   alias Pleroma.Object
   alias Pleroma.Object.Fetcher
-  alias Pleroma.Repo
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.CommonAPI
-  alias Pleroma.Web.OStatus
-  alias Pleroma.Web.Websub.WebsubClientSubscription
 
   import Mock
   import Pleroma.Factory
@@ -148,7 +145,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
 
       user = User.get_cached_by_ap_id(object_data["actor"])
 
-      assert user.info.note_count == 1
+      assert user.note_count == 1
     end
 
     test "it works for incoming notices with hashtags" do
@@ -585,7 +582,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
                }
              ]
 
-      assert user.info.banner["url"] == [
+      assert user.banner["url"] == [
                %{
                  "href" =>
                    "https://cd.niu.moe/accounts/headers/000/033/323/original/850b3448fa5fd477.png"
@@ -604,7 +601,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
 
       user = User.get_cached_by_ap_id(activity.actor)
 
-      assert User.Info.fields(user.info) == [
+      assert User.fields(user) == [
                %{"name" => "foo", "value" => "bar"},
                %{"name" => "foo1", "value" => "bar1"}
              ]
@@ -625,7 +622,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
 
       user = User.get_cached_by_ap_id(user.ap_id)
 
-      assert User.Info.fields(user.info) == [
+      assert User.fields(user) == [
                %{"name" => "foo", "value" => "updated"},
                %{"name" => "foo1", "value" => "updated"}
              ]
@@ -643,7 +640,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
 
       user = User.get_cached_by_ap_id(user.ap_id)
 
-      assert User.Info.fields(user.info) == [
+      assert User.fields(user) == [
                %{"name" => "foo", "value" => "updated"},
                %{"name" => "foo1", "value" => "updated"}
              ]
@@ -654,7 +651,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
 
       user = User.get_cached_by_ap_id(user.ap_id)
 
-      assert User.Info.fields(user.info) == []
+      assert User.fields(user) == []
     end
 
     test "it works for incoming update activities which lock the account" do
@@ -677,7 +674,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       {:ok, %Activity{data: data, local: false}} = Transmogrifier.handle_incoming(update_data)
 
       user = User.get_cached_by_ap_id(data["actor"])
-      assert user.info.locked == true
+      assert user.locked == true
     end
 
     test "it works for incoming deletes" do
@@ -918,7 +915,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
 
     test "it works for incoming accepts which were orphaned" do
       follower = insert(:user)
-      followed = insert(:user, %{info: %User.Info{locked: true}})
+      followed = insert(:user, locked: true)
 
       {:ok, follow_activity} = ActivityPub.follow(follower, followed)
 
@@ -940,7 +937,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
 
     test "it works for incoming accepts which are referenced by IRI only" do
       follower = insert(:user)
-      followed = insert(:user, %{info: %User.Info{locked: true}})
+      followed = insert(:user, locked: true)
 
       {:ok, follow_activity} = ActivityPub.follow(follower, followed)
 
@@ -960,7 +957,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
 
     test "it fails for incoming accepts which cannot be correlated" do
       follower = insert(:user)
-      followed = insert(:user, %{info: %User.Info{locked: true}})
+      followed = insert(:user, locked: true)
 
       accept_data =
         File.read!("test/fixtures/mastodon-accept-activity.json")
@@ -979,7 +976,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
 
     test "it fails for incoming rejects which cannot be correlated" do
       follower = insert(:user)
-      followed = insert(:user, %{info: %User.Info{locked: true}})
+      followed = insert(:user, locked: true)
 
       accept_data =
         File.read!("test/fixtures/mastodon-reject-activity.json")
@@ -998,7 +995,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
 
     test "it works for incoming rejects which are orphaned" do
       follower = insert(:user)
-      followed = insert(:user, %{info: %User.Info{locked: true}})
+      followed = insert(:user, locked: true)
 
       {:ok, follower} = User.follow(follower, followed)
       {:ok, _follow_activity} = ActivityPub.follow(follower, followed)
@@ -1024,7 +1021,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
 
     test "it works for incoming rejects which are referenced by IRI only" do
       follower = insert(:user)
-      followed = insert(:user, %{info: %User.Info{locked: true}})
+      followed = insert(:user, locked: true)
 
       {:ok, follower} = User.follow(follower, followed)
       {:ok, follow_activity} = ActivityPub.follow(follower, followed)
@@ -1109,6 +1106,50 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       assert activity.data["actor"] == other_user.ap_id
       assert activity.data["cc"] == [user.ap_id]
     end
+
+    test "it correctly processes messages with non-array to field" do
+      user = insert(:user)
+
+      message = %{
+        "@context" => "https://www.w3.org/ns/activitystreams",
+        "to" => "https://www.w3.org/ns/activitystreams#Public",
+        "type" => "Create",
+        "object" => %{
+          "content" => "blah blah blah",
+          "type" => "Note",
+          "attributedTo" => user.ap_id,
+          "inReplyTo" => nil
+        },
+        "actor" => user.ap_id
+      }
+
+      assert {:ok, activity} = Transmogrifier.handle_incoming(message)
+
+      assert ["https://www.w3.org/ns/activitystreams#Public"] == activity.data["to"]
+    end
+
+    test "it correctly processes messages with non-array cc field" do
+      user = insert(:user)
+
+      message = %{
+        "@context" => "https://www.w3.org/ns/activitystreams",
+        "to" => user.follower_address,
+        "cc" => "https://www.w3.org/ns/activitystreams#Public",
+        "type" => "Create",
+        "object" => %{
+          "content" => "blah blah blah",
+          "type" => "Note",
+          "attributedTo" => user.ap_id,
+          "inReplyTo" => nil
+        },
+        "actor" => user.ap_id
+      }
+
+      assert {:ok, activity} = Transmogrifier.handle_incoming(message)
+
+      assert ["https://www.w3.org/ns/activitystreams#Public"] == activity.data["cc"]
+      assert [user.follower_address] == activity.data["to"]
+    end
   end
 
   describe "prepare outgoing" do
@@ -1179,32 +1220,6 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       {:ok, modified} = Transmogrifier.prepare_outgoing(activity.data)
 
       assert modified["object"]["actor"] == modified["object"]["attributedTo"]
-    end
-
-    test "it translates ostatus IDs to external URLs" do
-      incoming = File.read!("test/fixtures/incoming_note_activity.xml")
-      {:ok, [referent_activity]} = OStatus.handle_incoming(incoming)
-
-      user = insert(:user)
-
-      {:ok, activity, _} = CommonAPI.favorite(referent_activity.id, user)
-      {:ok, modified} = Transmogrifier.prepare_outgoing(activity.data)
-
-      assert modified["object"] == "http://gs.example.org:4040/index.php/notice/29"
-    end
-
-    test "it translates ostatus reply_to IDs to external URLs" do
-      incoming = File.read!("test/fixtures/incoming_note_activity.xml")
-      {:ok, [referred_activity]} = OStatus.handle_incoming(incoming)
-
-      user = insert(:user)
-
-      {:ok, activity} =
-        CommonAPI.post(user, %{"status" => "HI!", "in_reply_to_status_id" => referred_activity.id})
-
-      {:ok, modified} = Transmogrifier.prepare_outgoing(activity.data)
-
-      assert modified["object"]["inReplyTo"] == "http://gs.example.org:4040/index.php/notice/29"
     end
 
     test "it strips internal hashtag data" do
@@ -1326,18 +1341,18 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       assert "http://localhost:4001/users/rye@niu.moe/followers" in activity.recipients
 
       user = User.get_cached_by_id(user.id)
-      assert user.info.note_count == 1
+      assert user.note_count == 1
 
       {:ok, user} = Transmogrifier.upgrade_user_from_ap_id("https://niu.moe/users/rye")
       ObanHelpers.perform_all()
 
-      assert user.info.ap_enabled
-      assert user.info.note_count == 1
+      assert user.ap_enabled
+      assert user.note_count == 1
       assert user.follower_address == "https://niu.moe/users/rye/followers"
       assert user.following_address == "https://niu.moe/users/rye/following"
 
       user = User.get_cached_by_id(user.id)
-      assert user.info.note_count == 1
+      assert user.note_count == 1
 
       activity = Activity.get_by_id(activity.id)
       assert user.follower_address in activity.recipients
@@ -1358,7 +1373,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
                      "https://cdn.niu.moe/accounts/headers/000/033/323/original/850b3448fa5fd477.png"
                  }
                ]
-             } = user.info.banner
+             } = user.banner
 
       refute "..." in activity.recipients
 
@@ -1368,21 +1383,6 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
       user_two = User.get_cached_by_id(user_two.id)
       assert user.follower_address in user_two.following
       refute "..." in user_two.following
-    end
-  end
-
-  describe "maybe_retire_websub" do
-    test "it deletes all websub client subscripitions with the user as topic" do
-      subscription = %WebsubClientSubscription{topic: "https://niu.moe/users/rye.atom"}
-      {:ok, ws} = Repo.insert(subscription)
-
-      subscription = %WebsubClientSubscription{topic: "https://niu.moe/users/pasty.atom"}
-      {:ok, ws2} = Repo.insert(subscription)
-
-      Transmogrifier.maybe_retire_websub("https://niu.moe/users/rye")
-
-      refute Repo.get(WebsubClientSubscription, ws.id)
-      assert Repo.get(WebsubClientSubscription, ws2.id)
     end
   end
 
