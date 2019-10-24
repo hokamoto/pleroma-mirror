@@ -5,13 +5,12 @@
 defmodule Pleroma.Web.PleromaAPI.PleromaAPIController do
   use Pleroma.Web, :controller
 
-  import Pleroma.Web.ControllerHelper, only: [add_link_headers: 2, try_render: 3]
+  import Pleroma.Web.ControllerHelper, only: [add_link_headers: 2]
 
   alias Pleroma.Conversation.Participation
   alias Pleroma.Notification
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.Web.ActivityPub.ActivityPub
-  alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.MastodonAPI.ConversationView
   alias Pleroma.Web.MastodonAPI.NotificationView
   alias Pleroma.Web.MastodonAPI.StatusView
@@ -110,52 +109,5 @@ defmodule Pleroma.Web.PleromaAPI.PleromaAPIController do
       |> put_view(NotificationView)
       |> render("index.json", %{notifications: notifications, for: user})
     end
-  end
-
-  def create_story(%{assigns: %{user: user}} = conn, %{"status" => _} = params) do
-    # Stories exprires in 24 hours
-    expires_in = 24 * 60 * 60
-
-    params =
-      params
-      |> Map.put("expires_in", expires_in)
-      |> Map.put("type", "Story")
-
-    with {:ok, activity} <- CommonAPI.post(user, params) do
-      conn
-      |> put_view(Pleroma.Web.MastodonAPI.StatusView)
-      |> try_render("show.json",
-        activity: activity,
-        for: user,
-        as: :activity,
-        with_direct_conversation_id: true
-      )
-    else
-      {:error, message} ->
-        conn
-        |> put_status(:unprocessable_entity)
-        |> json(%{error: message})
-    end
-  end
-
-  def list_stories(%{assigns: %{user: user}} = conn, params) do
-    params =
-      params
-      |> Map.put("type", ["Create", "Announce"])
-      |> Map.put("blocking_user", user)
-      |> Map.put("muting_user", user)
-      |> Map.put("user", user)
-
-    recipients = [user.ap_id | user.following]
-
-    activities =
-      recipients
-      |> ActivityPub.fetch_stories(params)
-      |> Enum.reverse()
-
-    conn
-    |> put_view(StatusView)
-    |> add_link_headers(activities)
-    |> render("index.json", activities: activities, for: user, as: :activity)
   end
 end

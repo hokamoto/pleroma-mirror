@@ -284,8 +284,8 @@ defmodule Pleroma.Web.Router do
 
       post("/scrobble", ScrobbleController, :new_scrobble)
 
-      post("/stories", PleromaAPIController, :create_story)
-      get("/stories", PleromaAPIController, :list_stories)
+      post("/stories", StoryController, :create)
+      get("/stories", StoryController, :list)
     end
 
     scope [] do

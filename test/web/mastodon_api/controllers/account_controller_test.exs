@@ -913,7 +913,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     test "reading a user stories", %{conn1: conn1, conn2: conn2} do
       content = "HELO stories"
       # Create a story by user1
-      post(conn1, pleroma_api_path(conn1, :create_story), %{"status" => content})
+      post(conn1, story_path(conn1, :create), %{"status" => content})
       # Create a regular status by user1
       post(conn1, status_path(conn1, :create), %{"status" => "cofe"})
 

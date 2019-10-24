@@ -741,13 +741,12 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       |> Map.put("pinned_activity_ids", user.info.pinned_activities)
       |> Map.put("object_data_type", "Story")
 
-    recipients =
-      user_activities_recipients(%{
-        "godmode" => params["godmode"],
-        "reading_user" => reading_user
-      })
-
-    fetch_activities(recipients, params)
+    %{
+      "godmode" => params["godmode"],
+      "reading_user" => reading_user
+    }
+    |> user_activities_recipients()
+    |> fetch_activities(params)
     |> Enum.reverse()
   end
 
