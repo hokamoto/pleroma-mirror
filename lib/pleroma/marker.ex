@@ -11,6 +11,7 @@ defmodule Pleroma.Marker do
   alias Ecto.Multi
   alias Pleroma.Repo
   alias Pleroma.User
+  alias __MODULE__
 
   @timelines ["notifications"]
 
@@ -18,6 +19,7 @@ defmodule Pleroma.Marker do
     field(:last_read_id, :string, default: "")
     field(:timeline, :string, default: "")
     field(:lock_version, :integer, default: 0)
+    field(:unread_count, :integer, default: 0)
 
     belongs_to(:user, User, type: FlakeId.Ecto.CompatType)
     timestamps()
@@ -38,12 +40,45 @@ defmodule Pleroma.Marker do
 
       Multi.insert(multi, timeline, marker,
         returning: true,
-        on_conflict: {:replace, [:last_read_id]},
+        on_conflict: {:replace, [:last_read_id, :unread_count]},
         conflict_target: [:user_id, :timeline]
       )
     end)
     |> Repo.transaction()
   end
+
+  @spec multi_set_unread_count(Multi.t(), User.t(), String.t()) :: Multi.t()
+  def multi_set_unread_count(multi, %User{} = user, "notifications") do
+    multi
+    |> Multi.run(:counters, fn _repo, _changes ->
+      query =
+        from(q in Pleroma.Notification,
+          where: q.user_id == ^user.id,
+          select: %{
+            timeline: "notifications",
+            user_id: type(^user.id, :string),
+            unread_count: fragment("SUM( CASE WHEN seen = false THEN 1 ELSE 0 END )"),
+            last_read_id:
+              type(fragment("MAX( CASE WHEN seen = true THEN id ELSE null END )"), :string)
+          }
+        )
+
+      {:ok, Repo.one(query)}
+    end)
+    |> Multi.insert(
+      :marker,
+      fn %{counters: attrs} ->
+        Marker
+        |> struct(attrs)
+        |> Ecto.Changeset.change()
+      end,
+      returning: true,
+      on_conflict: {:replace, [:last_read_id, :unread_count]},
+      conflict_target: [:user_id, :timeline]
+    )
+  end
+
+  def multi_set_unread_count(multi, _, _), do: multi
 
   defp get_marker(user, timeline) do
     case Repo.find_resource(get_query(user, timeline)) do
@@ -55,7 +90,7 @@ defmodule Pleroma.Marker do
   @doc false
   defp changeset(marker, attrs) do
     marker
-    |> cast(attrs, [:last_read_id])
+    |> cast(attrs, [:last_read_id, :unread_count])
     |> validate_required([:user_id, :timeline, :last_read_id])
     |> validate_inclusion(:timeline, @timelines)
   end

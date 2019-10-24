@@ -31,6 +31,9 @@ defmodule Pleroma.NotificationTest do
       assert notified_ids == [other_user.id, third_user.id]
       assert notification.activity_id == activity.id
       assert other_notification.activity_id == activity.id
+
+      assert [%Pleroma.Marker{unread_count: 2}] =
+               Pleroma.Marker.get_markers(other_user, ["notifications"])
     end
 
     test "it creates a notification for subscribed users" do
@@ -310,6 +313,13 @@ defmodule Pleroma.NotificationTest do
       assert n1.seen == true
       assert n2.seen == true
       assert n3.seen == false
+
+      assert %Pleroma.Marker{unread_count: 1} =
+               Pleroma.Repo.get_by(
+                 Pleroma.Marker,
+                 user_id: other_user.id,
+                 timeline: "notifications"
+               )
     end
   end
 
