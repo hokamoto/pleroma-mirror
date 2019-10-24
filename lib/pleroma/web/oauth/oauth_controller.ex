@@ -222,7 +222,8 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     with {:ok, %User{} = user} <- Authenticator.get_user(conn),
          {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
          {:user_active, true} <- {:user_active, !user.deactivated},
-         {:password_reset_pending, false} <- {:password_reset_pending, user.password_reset_pending},
+         {:password_reset_pending, false} <-
+           {:password_reset_pending, user.password_reset_pending},
          {:ok, app} <- Token.Utils.fetch_app(conn),
          {:ok, scopes} <- validate_scopes(app, params),
          {:ok, auth} <- Authorization.create_authorization(app, user, scopes),
