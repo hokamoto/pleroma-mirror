@@ -10,7 +10,6 @@ defmodule Pleroma.Web.PleromaAPI.StoryController do
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
-  alias Pleroma.Web.MastodonAPI.StatusView
 
   plug(
     OAuthScopesPlug,
@@ -26,6 +25,8 @@ defmodule Pleroma.Web.PleromaAPI.StoryController do
 
   plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
 
+  plug(:put_view, Pleroma.Web.MastodonAPI.StatusView)
+
   def create(%{assigns: %{user: user}} = conn, %{"status" => _} = params) do
     # Stories exprires in 24 hours
     expires_in = 24 * 60 * 60
@@ -37,7 +38,6 @@ defmodule Pleroma.Web.PleromaAPI.StoryController do
 
     with {:ok, activity} <- CommonAPI.post(user, params) do
       conn
-      |> put_view(StatusView)
       |> try_render("show.json",
         activity: activity,
         for: user,
@@ -68,7 +68,6 @@ defmodule Pleroma.Web.PleromaAPI.StoryController do
       |> Enum.reverse()
 
     conn
-    |> put_view(StatusView)
     |> add_link_headers(activities)
     |> render("index.json", activities: activities, for: user, as: :activity)
   end
