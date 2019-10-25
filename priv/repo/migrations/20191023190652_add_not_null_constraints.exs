@@ -2,166 +2,133 @@ defmodule Pleroma.Repo.Migrations.AddNotNullConstraints do
   use Ecto.Migration
 
   def change do
-    alter table(:activities) do
-      modify(:data, :map, null: false)
-      modify(:local, :boolean, null: false, default: true)
-    end
+    # modify/3 function will require index recreation, so using execute/1 instead
 
-    alter table(:activity_expirations) do
-      modify(:activity_id, references(:activities, type: :uuid, on_delete: :delete_all),
-        null: false
-      )
-    end
+    execute("ALTER TABLE activities
+    ALTER COLUMN data SET NOT NULL,
+    ALTER COLUMN local SET NOT NULL")
 
-    alter table(:apps) do
-      modify(:client_name, :string, null: false)
-      modify(:redirect_uris, :string, null: false)
-    end
+    execute("ALTER TABLE activity_expirations
+    ALTER COLUMN activity_id SET NOT NULL")
 
-    alter table(:bookmarks) do
-      modify(:user_id, references(:users, type: :uuid, on_delete: :delete_all), null: false)
+    execute("ALTER TABLE apps
+    ALTER COLUMN client_name SET NOT NULL,
+    ALTER COLUMN redirect_uris SET NOT NULL")
 
-      modify(:activity_id, references(:activities, type: :uuid, on_delete: :delete_all),
-        null: false
-      )
-    end
+    execute("ALTER TABLE bookmarks
+    ALTER COLUMN user_id SET NOT NULL,
+    ALTER COLUMN activity_id SET NOT NULL")
 
-    alter table(:config) do
-      modify(:key, :string, null: false)
-      modify(:value, :binary, null: false)
-    end
+    execute("ALTER TABLE config
+    ALTER COLUMN key SET NOT NULL,
+    ALTER COLUMN value SET NOT NULL")
 
-    alter table(:conversation_participation_recipient_ships) do
-      modify(:user_id, references(:users, type: :uuid, on_delete: :delete_all), null: false)
+    execute("ALTER TABLE conversation_participation_recipient_ships
+    ALTER COLUMN user_id SET NOT NULL,
+    ALTER COLUMN participation_id SET NOT NULL")
 
-      modify(:participation_id, references(:conversation_participations, on_delete: :delete_all),
-        null: false
-      )
-    end
+    execute("ALTER TABLE conversation_participations
+    ALTER COLUMN user_id SET NOT NULL,
+    ALTER COLUMN conversation_id SET NOT NULL,
+    ALTER COLUMN read SET NOT NULL")
 
-    alter table(:conversation_participation) do
-      modify(:user_id, references(:users, type: :uuid, on_delete: :delete_all), null: false)
-      modify(:conversation_id, references(:conversations, on_delete: :delete_all), null: false)
-      modify(:read, :boolean, null: false)
-    end
+    execute("ALTER TABLE filters
+    ALTER COLUMN user_id SET NOT NULL,
+    ALTER COLUMN filter_id SET NOT NULL,
+    ALTER COLUMN hide SET NOT NULL,
+    ALTER COLUMN whole_word SET NOT NULL")
 
-    alter table(:filters) do
-      modify(:user_id, references(:users, type: :uuid, on_delete: :delete_all), null: false)
-      modify(:filter_id, :integer, null: false)
-      modify(:hide, :boolean, null: false)
-      modify(:whole_word, :boolean, null: false)
-    end
+    execute("ALTER TABLE instances
+    ALTER COLUMN host SET NOT NULL")
 
-    alter table(:instances) do
-      modify(:host, :string, null: false)
-    end
+    execute("ALTER TABLE lists
+    ALTER COLUMN user_id SET NOT NULL")
 
-    alter table(:lists) do
-      modify(:user_id, references(:users, type: :uuid, on_delete: :delete_all), null: false)
-    end
+    execute("ALTER TABLE markers
+    ALTER COLUMN user_id SET NOT NULL")
 
-    alter table(:markers) do
-      modify(:user_id, references(:users, type: :uuid, on_delete: :delete_all), null: false)
-    end
+    execute("ALTER TABLE moderation_log
+    ALTER COLUMN data SET NOT NULL")
 
-    alter table(:moderation_log) do
-      modify(:data, :map, null: false)
-    end
+    execute("ALTER TABLE notifications
+    ALTER COLUMN user_id SET NOT NULL,
+    ALTER COLUMN activity_id SET NOT NULL,
+    ALTER COLUMN seen SET NOT NULL")
 
-    alter table(:notifications) do
-      modify(:user_id, references(:users, type: :uuid, on_delete: :delete_all), null: false)
+    execute("ALTER TABLE oauth_authorizations
+    ALTER COLUMN app_id SET NOT NULL,
+    ALTER COLUMN user_id SET NOT NULL,
+    ALTER COLUMN token SET NOT NULL,
+    ALTER COLUMN used SET NOT NULL")
 
-      modify(:activity_id, references(:activities, type: :uuid, on_delete: :delete_all),
-        null: false
-      )
+    execute("ALTER TABLE oauth_tokens
+    ALTER COLUMN app_id SET NOT NULL,
+    ALTER COLUMN user_id SET NOT NULL")
 
-      modify(:seen, :boolean, null: false)
-    end
+    execute("ALTER TABLE objects
+    ALTER COLUMN data SET NOT NULL")
 
-    alter table(:oauth_authorizations) do
-      modify(:app_id, references(:apps), null: false)
-      modify(:user_id, references(:users), null: false)
-      modify(:token, :boolean, null: false)
-      modify(:used, :boolean, null: false)
-    end
+    execute("ALTER TABLE password_reset_tokens
+    ALTER COLUMN token SET NOT NULL,
+    ALTER COLUMN user_id SET NOT NULL,
+    ALTER COLUMN used SET NOT NULL")
 
-    alter table(:oauth_tokens) do
-      modify(:app_id, references(:apps), null: false)
-      modify(:user_id, references(:users), null: false)
-    end
+    execute("ALTER TABLE push_subscriptions
+    ALTER COLUMN user_id SET NOT NULL,
+    ALTER COLUMN token_id SET NOT NULL,
+    ALTER COLUMN endpoint SET NOT NULL,
+    ALTER COLUMN key_p256dh SET NOT NULL,
+    ALTER COLUMN key_auth SET NOT NULL,
+    ALTER COLUMN data SET NOT NULL")
 
-    alter table(:objects) do
-      modify(:data, :map, null: false)
-    end
+    execute("ALTER TABLE registrations
+    ALTER COLUMN user_id SET NOT NULL,
+    ALTER COLUMN provider SET NOT NULL,
+    ALTER COLUMN uid SET NOT NULL,
+    ALTER COLUMN info SET NOT NULL")
 
-    alter table(:password_reset_tokens) do
-      modify(:token, :string, null: false)
-      modify(:user_id, references(:users), null: false)
-      modify(:used, :boolean, null: false)
-    end
+    execute("ALTER TABLE scheduled_activities
+    ALTER COLUMN user_id SET NOT NULL")
 
-    alter table(:push_subscriptions) do
-      modify(:user_id, references(:users, on_delete: :delete_all), null: false)
-      modify(:token_id, references(:oauth_tokens, on_delete: :delete_all), null: false)
-      modify(:endpoint, :string, null: false)
-      modify(:key_p256dh, :string, null: false)
-      modify(:key_auth, :string, null: false)
-      modify(:data, :map, null: false)
-    end
+    execute("ALTER TABLE thread_mutes
+    ALTER COLUMN user_id SET NOT NULL,
+    ALTER COLUMN context SET NOT NULL")
 
-    alter table(:registrations) do
-      modify(:user_id, references(:users, type: :uuid, on_delete: :delete_all), null: false)
-      modify(:provider, :string, null: false)
-      modify(:uid, :string, null: false)
-      modify(:info, :map, null: false)
-    end
+    execute("ALTER TABLE user_invite_tokens
+    ALTER COLUMN token SET NOT NULL,
+    ALTER COLUMN used SET NOT NULL,
+    ALTER COLUMN uses SET NOT NULL,
+    ALTER COLUMN invite_type SET NOT NULL")
 
-    alter table(:scheduled_activities) do
-      modify(:user_id, references(:users, type: :uuid, on_delete: :delete_all), null: false)
-    end
-
-    alter table(:thread_mutes) do
-      modify(:user_id, references(:users, type: :uuid, on_delete: :delete_all), null: false)
-      modify(:context, :string, null: false)
-    end
-
-    alter table(:user_invite_tokens) do
-      modify(:token, :string, null: false)
-      modify(:used, :boolean, null: false)
-      modify(:uses, :integer, null: false)
-      modify(:invite_type, :string, null: false)
-    end
-
-    alter table(:users) do
-      modify(:following, {:array, :string}, null: false)
-      modify(:local, :boolean, null: false)
-      modify(:tags, {:array, :string}, null: false)
-      modify(:banner, :map, null: false)
-      modify(:background, :map, null: false)
-      modify(:source_data, :map, null: false)
-      modify(:note_count, :integer, null: false)
-      modify(:follower_count, :integer, null: false)
-      modify(:following_count, :integer, null: false)
-      modify(:confirmation_token, :string, null: false)
-      modify(:default_scope, :string, null: false)
-      modify(:blocks, {:array, :string}, null: false)
-      modify(:domain_blocks, {:array, :string}, null: false)
-      modify(:mutes, {:array, :string}, null: false)
-      modify(:muted_reblogs, {:array, :string}, null: false)
-      modify(:muted_notifications, {:array, :string}, null: false)
-      modify(:subscribers, {:array, :string}, null: false)
-      modify(:settings, :map, null: false)
-      modify(:magic_key, :string, null: false)
-      modify(:uri, :string, null: false)
-      modify(:unread_conversation_count, :integer, null: false)
-      modify(:pinned_activities, {:array, :string}, null: false)
-      modify(:email_notifications, :map, null: false)
-      modify(:mascot, :map, null: false)
-      modify(:mascot, {:array, :map}, null: false)
-      modify(:pleroma_settings_store, :map, null: false)
-      modify(:fields, {:array, :map}, null: false)
-      modify(:raw_fields, {:array, :map}, null: false)
-      modify(:notification_settings, :map, null: false)
-    end
+    execute("ALTER TABLE users
+    ALTER COLUMN following SET NOT NULL,
+    ALTER COLUMN local SET NOT NULL,
+    ALTER COLUMN tags SET NOT NULL,
+    ALTER COLUMN banner SET NOT NULL,
+    ALTER COLUMN background SET NOT NULL,
+    ALTER COLUMN source_data SET NOT NULL,
+    ALTER COLUMN note_count SET NOT NULL,
+    ALTER COLUMN follower_count SET NOT NULL,
+    ALTER COLUMN following_count SET NOT NULL,
+    ALTER COLUMN confirmation_token SET NOT NULL,
+    ALTER COLUMN default_scope SET NOT NULL,
+    ALTER COLUMN blocks SET NOT NULL,
+    ALTER COLUMN domain_blocks SET NOT NULL,
+    ALTER COLUMN mutes SET NOT NULL,
+    ALTER COLUMN muted_reblogs SET NOT NULL,
+    ALTER COLUMN muted_notifications SET NOT NULL,
+    ALTER COLUMN subscribers SET NOT NULL,
+    ALTER COLUMN settings SET NOT NULL,
+    ALTER COLUMN magic_key SET NOT NULL,
+    ALTER COLUMN uri SET NOT NULL,
+    ALTER COLUMN unread_conversation_count SET NOT NULL,
+    ALTER COLUMN pinned_activities SET NOT NULL,
+    ALTER COLUMN email_notifications SET NOT NULL,
+    ALTER COLUMN mascot SET NOT NULL,
+    ALTER COLUMN emoji SET NOT NULL,
+    ALTER COLUMN pleroma_settings_store SET NOT NULL,
+    ALTER COLUMN fields SET NOT NULL,
+    ALTER COLUMN raw_fields SET NOT NULL,
+    ALTER COLUMN notification_settings SET NOT NULL")
   end
 end
