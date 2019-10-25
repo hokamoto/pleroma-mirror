@@ -35,7 +35,6 @@ defmodule Pleroma.Repo.Migrations.AddNotNullConstraints do
     execute("ALTER TABLE filters
     ALTER COLUMN user_id SET NOT NULL,
     ALTER COLUMN filter_id SET NOT NULL,
-    ALTER COLUMN hide SET NOT NULL,
     ALTER COLUMN whole_word SET NOT NULL")
 
     execute("ALTER TABLE instances
@@ -52,18 +51,15 @@ defmodule Pleroma.Repo.Migrations.AddNotNullConstraints do
 
     execute("ALTER TABLE notifications
     ALTER COLUMN user_id SET NOT NULL,
-    ALTER COLUMN activity_id SET NOT NULL,
     ALTER COLUMN seen SET NOT NULL")
 
     execute("ALTER TABLE oauth_authorizations
     ALTER COLUMN app_id SET NOT NULL,
-    ALTER COLUMN user_id SET NOT NULL,
     ALTER COLUMN token SET NOT NULL,
     ALTER COLUMN used SET NOT NULL")
 
     execute("ALTER TABLE oauth_tokens
-    ALTER COLUMN app_id SET NOT NULL,
-    ALTER COLUMN user_id SET NOT NULL")
+    ALTER COLUMN app_id SET NOT NULL")
 
     execute("ALTER TABLE objects
     ALTER COLUMN data SET NOT NULL")
@@ -82,7 +78,6 @@ defmodule Pleroma.Repo.Migrations.AddNotNullConstraints do
     ALTER COLUMN data SET NOT NULL")
 
     execute("ALTER TABLE registrations
-    ALTER COLUMN user_id SET NOT NULL,
     ALTER COLUMN provider SET NOT NULL,
     ALTER COLUMN uid SET NOT NULL,
     ALTER COLUMN info SET NOT NULL")
@@ -95,7 +90,6 @@ defmodule Pleroma.Repo.Migrations.AddNotNullConstraints do
     ALTER COLUMN context SET NOT NULL")
 
     execute("ALTER TABLE user_invite_tokens
-    ALTER COLUMN token SET NOT NULL,
     ALTER COLUMN used SET NOT NULL,
     ALTER COLUMN uses SET NOT NULL,
     ALTER COLUMN invite_type SET NOT NULL")
@@ -103,14 +97,10 @@ defmodule Pleroma.Repo.Migrations.AddNotNullConstraints do
     execute("ALTER TABLE users
     ALTER COLUMN following SET NOT NULL,
     ALTER COLUMN local SET NOT NULL,
-    ALTER COLUMN tags SET NOT NULL,
-    ALTER COLUMN banner SET NOT NULL,
     ALTER COLUMN background SET NOT NULL,
     ALTER COLUMN source_data SET NOT NULL,
     ALTER COLUMN note_count SET NOT NULL,
     ALTER COLUMN follower_count SET NOT NULL,
-    ALTER COLUMN following_count SET NOT NULL,
-    ALTER COLUMN confirmation_token SET NOT NULL,
     ALTER COLUMN default_scope SET NOT NULL,
     ALTER COLUMN blocks SET NOT NULL,
     ALTER COLUMN domain_blocks SET NOT NULL,
@@ -118,13 +108,9 @@ defmodule Pleroma.Repo.Migrations.AddNotNullConstraints do
     ALTER COLUMN muted_reblogs SET NOT NULL,
     ALTER COLUMN muted_notifications SET NOT NULL,
     ALTER COLUMN subscribers SET NOT NULL,
-    ALTER COLUMN settings SET NOT NULL,
-    ALTER COLUMN magic_key SET NOT NULL,
-    ALTER COLUMN uri SET NOT NULL,
     ALTER COLUMN unread_conversation_count SET NOT NULL,
     ALTER COLUMN pinned_activities SET NOT NULL,
     ALTER COLUMN email_notifications SET NOT NULL,
-    ALTER COLUMN mascot SET NOT NULL,
     ALTER COLUMN emoji SET NOT NULL,
     ALTER COLUMN pleroma_settings_store SET NOT NULL,
     ALTER COLUMN fields SET NOT NULL,
@@ -164,7 +150,6 @@ defmodule Pleroma.Repo.Migrations.AddNotNullConstraints do
     execute("ALTER TABLE filters
     ALTER COLUMN user_id DROP NOT NULL,
     ALTER COLUMN filter_id DROP NOT NULL,
-    ALTER COLUMN hide DROP NOT NULL,
     ALTER COLUMN whole_word DROP NOT NULL")
 
     execute("ALTER TABLE instances
@@ -181,18 +166,15 @@ defmodule Pleroma.Repo.Migrations.AddNotNullConstraints do
 
     execute("ALTER TABLE notifications
     ALTER COLUMN user_id DROP NOT NULL,
-    ALTER COLUMN activity_id DROP NOT NULL,
     ALTER COLUMN seen DROP NOT NULL")
 
     execute("ALTER TABLE oauth_authorizations
     ALTER COLUMN app_id DROP NOT NULL,
-    ALTER COLUMN user_id DROP NOT NULL,
     ALTER COLUMN token DROP NOT NULL,
     ALTER COLUMN used DROP NOT NULL")
 
     execute("ALTER TABLE oauth_tokens
-    ALTER COLUMN app_id DROP NOT NULL,
-    ALTER COLUMN user_id DROP NOT NULL")
+    ALTER COLUMN app_id DROP NOT NULL")
 
     execute("ALTER TABLE objects
     ALTER COLUMN data DROP NOT NULL")
@@ -211,7 +193,6 @@ defmodule Pleroma.Repo.Migrations.AddNotNullConstraints do
     ALTER COLUMN data DROP NOT NULL")
 
     execute("ALTER TABLE registrations
-    ALTER COLUMN user_id DROP NOT NULL,
     ALTER COLUMN provider DROP NOT NULL,
     ALTER COLUMN uid DROP NOT NULL,
     ALTER COLUMN info DROP NOT NULL")
@@ -224,7 +205,6 @@ defmodule Pleroma.Repo.Migrations.AddNotNullConstraints do
     ALTER COLUMN context DROP NOT NULL")
 
     execute("ALTER TABLE user_invite_tokens
-    ALTER COLUMN token DROP NOT NULL,
     ALTER COLUMN used DROP NOT NULL,
     ALTER COLUMN uses DROP NOT NULL,
     ALTER COLUMN invite_type DROP NOT NULL")
@@ -232,14 +212,10 @@ defmodule Pleroma.Repo.Migrations.AddNotNullConstraints do
     execute("ALTER TABLE users
     ALTER COLUMN following DROP NOT NULL,
     ALTER COLUMN local DROP NOT NULL,
-    ALTER COLUMN tags DROP NOT NULL,
-    ALTER COLUMN banner DROP NOT NULL,
     ALTER COLUMN background DROP NOT NULL,
     ALTER COLUMN source_data DROP NOT NULL,
     ALTER COLUMN note_count DROP NOT NULL,
     ALTER COLUMN follower_count DROP NOT NULL,
-    ALTER COLUMN following_count DROP NOT NULL,
-    ALTER COLUMN confirmation_token DROP NOT NULL,
     ALTER COLUMN default_scope DROP NOT NULL,
     ALTER COLUMN blocks DROP NOT NULL,
     ALTER COLUMN domain_blocks DROP NOT NULL,
@@ -247,13 +223,9 @@ defmodule Pleroma.Repo.Migrations.AddNotNullConstraints do
     ALTER COLUMN muted_reblogs DROP NOT NULL,
     ALTER COLUMN muted_notifications DROP NOT NULL,
     ALTER COLUMN subscribers DROP NOT NULL,
-    ALTER COLUMN settings DROP NOT NULL,
-    ALTER COLUMN magic_key DROP NOT NULL,
-    ALTER COLUMN uri DROP NOT NULL,
     ALTER COLUMN unread_conversation_count DROP NOT NULL,
     ALTER COLUMN pinned_activities DROP NOT NULL,
     ALTER COLUMN email_notifications DROP NOT NULL,
-    ALTER COLUMN mascot DROP NOT NULL,
     ALTER COLUMN emoji DROP NOT NULL,
     ALTER COLUMN pleroma_settings_store DROP NOT NULL,
     ALTER COLUMN fields DROP NOT NULL,
