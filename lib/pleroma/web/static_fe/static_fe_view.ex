@@ -5,9 +5,9 @@
 defmodule Pleroma.Web.StaticFE.StaticFEView do
   use Pleroma.Web, :view
 
+  alias Pleroma.Emoji.Formatter
   alias Pleroma.User
   alias Pleroma.Web.MediaProxy
-  alias Pleroma.Formatter
   alias Pleroma.Web.Router.Helpers
 
   import Phoenix.HTML

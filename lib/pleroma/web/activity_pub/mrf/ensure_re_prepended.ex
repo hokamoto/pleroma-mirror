@@ -5,11 +5,13 @@
 defmodule Pleroma.Web.ActivityPub.MRF.EnsureRePrepended do
   alias Pleroma.Object
 
+  @moduledoc "Ensure a re: is prepended on replies to a post with a Subject"
   @behaviour Pleroma.Web.ActivityPub.MRF
 
   @reply_prefix Regex.compile!("^re:[[:space:]]*", [:caseless])
+
   def filter_by_summary(
-        %{"summary" => parent_summary} = _parent,
+        %{data: %{"summary" => parent_summary}} = _in_reply_to,
         %{"summary" => child_summary} = child
       )
       when not is_nil(child_summary) and byte_size(child_summary) > 0 and
@@ -23,17 +25,13 @@ defmodule Pleroma.Web.ActivityPub.MRF.EnsureRePrepended do
     end
   end
 
-  def filter_by_summary(_parent, child), do: child
+  def filter_by_summary(_in_reply_to, child), do: child
 
-  def filter(%{"type" => activity_type} = object) when activity_type == "Create" do
-    child = object["object"]
-    in_reply_to = Object.normalize(child["inReplyTo"])
-
+  def filter(%{"type" => "Create", "object" => child_object} = object) do
     child =
-      if(in_reply_to,
-        do: filter_by_summary(in_reply_to.data, child),
-        else: child
-      )
+      child_object["inReplyTo"]
+      |> Object.normalize(child_object["inReplyTo"])
+      |> filter_by_summary(child_object)
 
     object = Map.put(object, "object", child)
 
@@ -41,4 +39,6 @@ defmodule Pleroma.Web.ActivityPub.MRF.EnsureRePrepended do
   end
 
   def filter(object), do: {:ok, object}
+
+  def describe, do: {:ok, %{}}
 end

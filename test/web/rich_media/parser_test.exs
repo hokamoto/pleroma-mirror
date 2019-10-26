@@ -1,3 +1,7 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.Web.RichMedia.ParserTest do
   use ExUnit.Case, async: true
 
@@ -8,6 +12,21 @@ defmodule Pleroma.Web.RichMedia.ParserTest do
         url: "http://example.com/ogp"
       } ->
         %Tesla.Env{status: 200, body: File.read!("test/fixtures/rich_media/ogp.html")}
+
+      %{
+        method: :get,
+        url: "http://example.com/non-ogp"
+      } ->
+        %Tesla.Env{status: 200, body: File.read!("test/fixtures/rich_media/non_ogp_embed.html")}
+
+      %{
+        method: :get,
+        url: "http://example.com/ogp-missing-title"
+      } ->
+        %Tesla.Env{
+          status: 200,
+          body: File.read!("test/fixtures/rich_media/ogp-missing-title.html")
+        }
 
       %{
         method: :get,
@@ -38,14 +57,35 @@ defmodule Pleroma.Web.RichMedia.ParserTest do
     assert {:error, _} = Pleroma.Web.RichMedia.Parser.parse("http://example.com/empty")
   end
 
+  test "doesn't just add a title" do
+    assert Pleroma.Web.RichMedia.Parser.parse("http://example.com/non-ogp") ==
+             {:error,
+              "Found metadata was invalid or incomplete: %{url: \"http://example.com/non-ogp\"}"}
+  end
+
   test "parses ogp" do
     assert Pleroma.Web.RichMedia.Parser.parse("http://example.com/ogp") ==
              {:ok,
               %{
                 image: "http://ia.media-imdb.com/images/rock.jpg",
                 title: "The Rock",
+                description:
+                  "Directed by Michael Bay. With Sean Connery, Nicolas Cage, Ed Harris, John Spencer.",
                 type: "video.movie",
-                url: "http://www.imdb.com/title/tt0117500/"
+                url: "http://example.com/ogp"
+              }}
+  end
+
+  test "falls back to <title> when ogp:title is missing" do
+    assert Pleroma.Web.RichMedia.Parser.parse("http://example.com/ogp-missing-title") ==
+             {:ok,
+              %{
+                image: "http://ia.media-imdb.com/images/rock.jpg",
+                title: "The Rock (1996)",
+                description:
+                  "Directed by Michael Bay. With Sean Connery, Nicolas Cage, Ed Harris, John Spencer.",
+                type: "video.movie",
+                url: "http://example.com/ogp-missing-title"
               }}
   end
 
@@ -57,7 +97,8 @@ defmodule Pleroma.Web.RichMedia.ParserTest do
                 site: "@flickr",
                 image: "https://farm6.staticflickr.com/5510/14338202952_93595258ff_z.jpg",
                 title: "Small Island Developing States Photo Submission",
-                description: "View the album on Flickr."
+                description: "View the album on Flickr.",
+                url: "http://example.com/twitter-card"
               }}
   end
 
@@ -81,7 +122,7 @@ defmodule Pleroma.Web.RichMedia.ParserTest do
                 thumbnail_width: 150,
                 title: "Bacon Lollys",
                 type: "photo",
-                url: "https://farm4.staticflickr.com/3040/2362225867_4a87ab8baf_b.jpg",
+                url: "http://example.com/oembed",
                 version: "1.0",
                 web_page: "https://www.flickr.com/photos/bees/2362225867/",
                 web_page_short_url: "https://flic.kr/p/4AK2sc",

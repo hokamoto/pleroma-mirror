@@ -17,9 +17,23 @@ config :pleroma, Pleroma.Captcha,
 # Print only warnings and errors during test
 config :logger, level: :warn
 
+config :pleroma, :auth, oauth_consumer_strategies: []
+
+config :pleroma, Pleroma.Upload, filters: [], link_name: false
+
 config :pleroma, Pleroma.Uploaders.Local, uploads: "test/uploads"
 
-config :pleroma, Pleroma.Mailer, adapter: Swoosh.Adapters.Test
+config :pleroma, Pleroma.Emails.Mailer, adapter: Swoosh.Adapters.Test, enabled: true
+
+config :pleroma, :instance,
+  email: "admin@example.com",
+  notify_email: "noreply@example.com",
+  skip_thread_containment: false,
+  federating: false,
+  external_user_synchronization: false,
+  static_dir: "test/instance_static/"
+
+config :pleroma, :activitypub, sign_object_fetches: false
 
 # Configure your database
 config :pleroma, Pleroma.Repo,
@@ -33,10 +47,12 @@ config :pleroma, Pleroma.Repo,
 # Reduce hash rounds for testing
 config :pbkdf2_elixir, rounds: 1
 
-config :pleroma, :websub, Pleroma.Web.WebsubMock
-config :pleroma, :ostatus, Pleroma.Web.OStatusMock
 config :tesla, adapter: Tesla.Mock
-config :pleroma, :rich_media, enabled: false
+
+config :pleroma, :rich_media,
+  enabled: false,
+  ignore_hosts: [],
+  ignore_tld: ["local", "localdomain", "lan"]
 
 config :web_push_encryption, :vapid_details,
   subject: "mailto:administrator@example.com",
@@ -44,13 +60,41 @@ config :web_push_encryption, :vapid_details,
     "BLH1qVhJItRGCfxgTtONfsOKDc9VRAraXw-3NsmjMngWSh7NxOizN6bkuRA7iLTMPS82PjwJAr3UoK9EC1IFrz4",
   private_key: "_-XZ0iebPrRfZ_o0-IatTdszYa8VCH1yLN-JauK7HHA"
 
-config :pleroma, Pleroma.Jobs, testing: [max_jobs: 2]
+config :web_push_encryption, :http_client, Pleroma.Web.WebPushHttpClientMock
 
-try do
+config :pleroma, Oban,
+  queues: false,
+  prune: :disabled
+
+config :pleroma, Pleroma.Scheduler, jobs: []
+
+config :pleroma, Pleroma.ScheduledActivity,
+  daily_user_limit: 2,
+  total_user_limit: 3,
+  enabled: false
+
+config :pleroma, :rate_limit,
+  search: [{1000, 30}, {1000, 30}],
+  app_account_creation: {10_000, 5},
+  password_reset: {1000, 30},
+  ap_routes: nil
+
+config :pleroma, :http_security, report_uri: "https://endpoint.com"
+
+config :pleroma, :http, send_user_agent: false
+
+rum_enabled = System.get_env("RUM_ENABLED") == "true"
+config :pleroma, :database, rum_enabled: rum_enabled
+IO.puts("RUM enabled: #{rum_enabled}")
+
+config :joken, default_signer: "yU8uHKq+yyAkZ11Hx//jcdacWc8yQ1bxAAGrplzB0Zwwjkp35v0RK9SO8WTPr6QZ"
+
+config :pleroma, Pleroma.ReverseProxy.Client, Pleroma.ReverseProxy.ClientMock
+
+if File.exists?("./config/test.secret.exs") do
   import_config "test.secret.exs"
-rescue
-  _ ->
-    IO.puts(
-      "You may want to create test.secret.exs to declare custom database connection parameters."
-    )
+else
+  IO.puts(
+    "You may want to create test.secret.exs to declare custom database connection parameters."
+  )
 end

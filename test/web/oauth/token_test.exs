@@ -1,13 +1,13 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.OAuth.TokenTest do
   use Pleroma.DataCase
+  alias Pleroma.Repo
   alias Pleroma.Web.OAuth.App
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.Token
-  alias Pleroma.Repo
 
   import Pleroma.Factory
 
@@ -68,5 +68,18 @@ defmodule Pleroma.Web.OAuth.TokenTest do
     {tokens, _} = Token.delete_user_tokens(user)
 
     assert tokens == 2
+  end
+
+  test "deletes expired tokens" do
+    insert(:oauth_token, valid_until: Timex.shift(Timex.now(), days: -3))
+    insert(:oauth_token, valid_until: Timex.shift(Timex.now(), days: -3))
+    t3 = insert(:oauth_token)
+    t4 = insert(:oauth_token, valid_until: Timex.shift(Timex.now(), minutes: 10))
+    {tokens, _} = Token.delete_expired_tokens()
+    assert tokens == 2
+    available_tokens = Pleroma.Repo.all(Token)
+
+    token_ids = available_tokens |> Enum.map(& &1.id)
+    assert token_ids == [t3.id, t4.id]
   end
 end

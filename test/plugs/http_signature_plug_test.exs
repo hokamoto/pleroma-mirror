@@ -1,10 +1,9 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Plugs.HTTPSignaturePlugTest do
   use Pleroma.Web.ConnCase
-  alias Pleroma.Web.HTTPSignatures
   alias Pleroma.Web.Plugs.HTTPSignaturePlug
 
   import Plug.Conn
@@ -25,24 +24,6 @@ defmodule Pleroma.Web.Plugs.HTTPSignaturePlugTest do
 
       assert conn.assigns.valid_signature == true
       assert called(HTTPSignatures.validate_conn(:_))
-    end
-  end
-
-  test "bails out early if the signature isn't by the activity actor" do
-    params = %{"actor" => "https://mst3k.interlinked.me/users/luciferMysticus"}
-    conn = build_conn(:get, "/doesntmattter", params)
-
-    with_mock HTTPSignatures, validate_conn: fn _ -> false end do
-      conn =
-        conn
-        |> put_req_header(
-          "signature",
-          "keyId=\"http://mastodon.example.org/users/admin#main-key"
-        )
-        |> HTTPSignaturePlug.call(%{})
-
-      assert conn.assigns.valid_signature == false
-      refute called(HTTPSignatures.validate_conn(:_))
     end
   end
 end

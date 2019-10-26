@@ -3,7 +3,6 @@
 /db
 /deps
 /*.ez
-/uploads
 /test/uploads
 /.elixir_ls
 /test/fixtures/test_tmp.txt
@@ -11,6 +10,7 @@
 /test/tmp/
 /doc
 /instance
+/priv/ssh_keys
 
 # Prevent committing custom emojis
 /priv/static/emoji/custom/*
@@ -35,3 +35,15 @@ erl_crash.dump
 
 # Editor config
 /.vscode/
+
+# Prevent committing docs files
+/priv/static/doc/*
+docs/generated_config.md
+
+# Code test coverage
+/cover
+/Elixir.*.coverdata
+
+.idea
+pleroma.iml
+

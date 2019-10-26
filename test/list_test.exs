@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.ListTest do
@@ -13,6 +13,13 @@ defmodule Pleroma.ListTest do
     {:ok, %Pleroma.List{} = list} = Pleroma.List.create("title", user)
     %Pleroma.List{title: title} = Pleroma.List.get(list.id, user)
     assert title == "title"
+  end
+
+  test "validates title" do
+    user = insert(:user)
+
+    assert {:error, changeset} = Pleroma.List.create("", user)
+    assert changeset.errors == [title: {"can't be blank", [validation: :required]}]
   end
 
   test "getting a list not belonging to the user" do
@@ -106,11 +113,37 @@ defmodule Pleroma.ListTest do
     {:ok, not_owned_list} = Pleroma.List.follow(not_owned_list, member_1)
     {:ok, not_owned_list} = Pleroma.List.follow(not_owned_list, member_2)
 
-    lists_1 = Pleroma.List.get_lists_account_belongs(owner, member_1.id)
+    lists_1 = Pleroma.List.get_lists_account_belongs(owner, member_1)
     assert owned_list in lists_1
     refute not_owned_list in lists_1
-    lists_2 = Pleroma.List.get_lists_account_belongs(owner, member_2.id)
+    lists_2 = Pleroma.List.get_lists_account_belongs(owner, member_2)
     assert owned_list in lists_2
     refute not_owned_list in lists_2
+  end
+
+  test "get by ap_id" do
+    user = insert(:user)
+    {:ok, list} = Pleroma.List.create("foo", user)
+    assert Pleroma.List.get_by_ap_id(list.ap_id) == list
+  end
+
+  test "memberships" do
+    user = insert(:user)
+    member = insert(:user)
+    {:ok, list} = Pleroma.List.create("foo", user)
+    {:ok, list} = Pleroma.List.follow(list, member)
+
+    assert Pleroma.List.memberships(member) == [list.ap_id]
+  end
+
+  test "member?" do
+    user = insert(:user)
+    member = insert(:user)
+
+    {:ok, list} = Pleroma.List.create("foo", user)
+    {:ok, list} = Pleroma.List.follow(list, member)
+
+    assert Pleroma.List.member?(list, member)
+    refute Pleroma.List.member?(list, user)
   end
 end

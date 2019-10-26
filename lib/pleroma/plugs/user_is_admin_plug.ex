@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Plugs.UserIsAdminPlug do
+  import Pleroma.Web.TranslationHelpers
   import Plug.Conn
   alias Pleroma.User
 
@@ -10,14 +11,13 @@ defmodule Pleroma.Plugs.UserIsAdminPlug do
     options
   end
 
-  def call(%{assigns: %{user: %User{info: %{is_admin: true}}}} = conn, _) do
+  def call(%{assigns: %{user: %User{is_admin: true}}} = conn, _) do
     conn
   end
 
   def call(conn, _) do
     conn
-    |> put_resp_content_type("application/json")
-    |> send_resp(403, Jason.encode!(%{error: "User is not admin."}))
+    |> render_error(:forbidden, "User is not admin.")
     |> halt
   end
 end

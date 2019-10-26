@@ -1,3 +1,7 @@
+# Pleroma: A lightweight social networking server
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
+# SPDX-License-Identifier: AGPL-3.0-only
+
 defmodule Pleroma.User.WelcomeMessage do
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
@@ -14,7 +18,7 @@ defmodule Pleroma.User.WelcomeMessage do
     end
   end
 
-  defp welcome_user() do
+  defp welcome_user do
     with nickname when is_binary(nickname) <-
            Pleroma.Config.get([:instance, :welcome_user_nickname]),
          %User{local: true} = user <- User.get_cached_by_nickname(nickname) do
@@ -24,7 +28,7 @@ defmodule Pleroma.User.WelcomeMessage do
     end
   end
 
-  defp welcome_message() do
+  defp welcome_message do
     Pleroma.Config.get([:instance, :welcome_message])
   end
 end

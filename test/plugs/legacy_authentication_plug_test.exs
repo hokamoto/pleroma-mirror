@@ -1,23 +1,22 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Plugs.LegacyAuthenticationPlugTest do
-  use Pleroma.Web.ConnCase, async: true
+  use Pleroma.Web.ConnCase
+
+  import Pleroma.Factory
 
   alias Pleroma.Plugs.LegacyAuthenticationPlug
   alias Pleroma.User
 
-  import Mock
-
   setup do
-    # password is "password"
-    user = %User{
-      id: 1,
-      name: "dude",
-      password_hash:
-        "$6$9psBWV8gxkGOZWBz$PmfCycChoxeJ3GgGzwvhlgacb9mUoZ.KUXNCssekER4SJ7bOK53uXrHNb2e4i8yPFgSKyzaW9CcmrDXWIEMtD1"
-    }
+    user =
+      insert(:user,
+        password: "password",
+        password_hash:
+          "$6$9psBWV8gxkGOZWBz$PmfCycChoxeJ3GgGzwvhlgacb9mUoZ.KUXNCssekER4SJ7bOK53uXrHNb2e4i8yPFgSKyzaW9CcmrDXWIEMtD1"
+      )
 
     %{user: user}
   end
@@ -36,6 +35,7 @@ defmodule Pleroma.Plugs.LegacyAuthenticationPlugTest do
     assert ret_conn == conn
   end
 
+  @tag :skip_on_mac
   test "it authenticates the auth_user if present and password is correct and resets the password",
        %{
          conn: conn,
@@ -46,20 +46,12 @@ defmodule Pleroma.Plugs.LegacyAuthenticationPlugTest do
       |> assign(:auth_credentials, %{username: "dude", password: "password"})
       |> assign(:auth_user, user)
 
-    conn =
-      with_mock User,
-        reset_password: fn user, %{password: password, password_confirmation: password} ->
-          send(self(), :reset_password)
-          {:ok, user}
-        end do
-        conn
-        |> LegacyAuthenticationPlug.call(%{})
-      end
+    conn = LegacyAuthenticationPlug.call(conn, %{})
 
-    assert_received :reset_password
-    assert conn.assigns.user == user
+    assert conn.assigns.user.id == user.id
   end
 
+  @tag :skip_on_mac
   test "it does nothing if the password is wrong", %{
     conn: conn,
     user: user

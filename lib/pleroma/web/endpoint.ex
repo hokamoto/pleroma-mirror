@@ -7,25 +7,48 @@ defmodule Pleroma.Web.Endpoint do
 
   socket("/socket", Pleroma.Web.UserSocket)
 
+  plug(Pleroma.Plugs.SetLocalePlug)
+  plug(CORSPlug)
+  plug(Pleroma.Plugs.HTTPSecurityPlug)
+  plug(Pleroma.Plugs.UploadedMedia)
+
+  @static_cache_control "public, no-cache"
+
+  # InstanceStatic needs to be before Plug.Static to be able to override shipped-static files
+  # If you're adding new paths to `only:` you'll need to configure them in InstanceStatic as well
+  # Cache-control headers are duplicated in case we turn off etags in the future
+  plug(Pleroma.Plugs.InstanceStatic,
+    at: "/",
+    gzip: true,
+    cache_control_for_etags: @static_cache_control,
+    headers: %{
+      "cache-control" => @static_cache_control
+    }
+  )
+
   # Serve at "/" the static files from "priv/static" directory.
   #
   # You should set gzip to true if you are running phoenix.digest
   # when deploying your static files in production.
-  plug(CORSPlug)
-  plug(Pleroma.Plugs.HTTPSecurityPlug)
-
-  plug(Pleroma.Plugs.UploadedMedia)
-
-  # InstanceStatic needs to be before Plug.Static to be able to override shipped-static files
-  # If you're adding new paths to `only:` you'll need to configure them in InstanceStatic as well
-  plug(Pleroma.Plugs.InstanceStatic, at: "/")
-
   plug(
     Plug.Static,
     at: "/",
     from: :pleroma,
     only:
-      ~w(index.html static finmoji emoji packs sounds images instance sw.js sw-pleroma.js favicon.png schemas doc)
+      ~w(index.html robots.txt static finmoji emoji packs sounds images instance sw.js sw-pleroma.js favicon.png schemas doc),
+    # credo:disable-for-previous-line Credo.Check.Readability.MaxLineLength
+    gzip: true,
+    cache_control_for_etags: @static_cache_control,
+    headers: %{
+      "cache-control" => @static_cache_control
+    }
+  )
+
+  plug(Plug.Static.IndexHtml, at: "/pleroma/admin/")
+
+  plug(Plug.Static,
+    at: "/pleroma/admin/",
+    from: {:pleroma, "priv/static/adminfe/"}
   )
 
   # Code reloading can be explicitly enabled under the
@@ -34,7 +57,7 @@ defmodule Pleroma.Web.Endpoint do
     plug(Phoenix.CodeReloader)
   end
 
-  plug(TrailingFormatPlug)
+  plug(Pleroma.Plugs.TrailingFormatPlug)
   plug(Plug.RequestId)
   plug(Plug.Logger)
 
@@ -43,17 +66,23 @@ defmodule Pleroma.Web.Endpoint do
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
     json_decoder: Jason,
-    length: Application.get_env(:pleroma, :instance) |> Keyword.get(:upload_limit),
+    length: Pleroma.Config.get([:instance, :upload_limit]),
     body_reader: {Pleroma.Web.Plugs.DigestPlug, :read_body, []}
   )
 
   plug(Plug.MethodOverride)
   plug(Plug.Head)
 
+  secure_cookies = Pleroma.Config.get([__MODULE__, :secure_cookie_flag])
+
   cookie_name =
-    if Application.get_env(:pleroma, Pleroma.Web.Endpoint) |> Keyword.get(:secure_cookie_flag),
+    if secure_cookies,
       do: "__Host-pleroma_key",
       else: "pleroma_key"
+
+  extra =
+    Pleroma.Config.get([__MODULE__, :extra_cookie_attrs])
+    |> Enum.join(";")
 
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
@@ -62,12 +91,28 @@ defmodule Pleroma.Web.Endpoint do
     Plug.Session,
     store: :cookie,
     key: cookie_name,
-    signing_salt: {Pleroma.Config, :get, [[__MODULE__, :signing_salt], "CqaoopA2"]},
+    signing_salt: Pleroma.Config.get([__MODULE__, :signing_salt], "CqaoopA2"),
     http_only: true,
-    secure:
-      Application.get_env(:pleroma, Pleroma.Web.Endpoint) |> Keyword.get(:secure_cookie_flag),
-    extra: "SameSite=Strict"
+    secure: secure_cookies,
+    extra: extra
   )
+
+  plug(Pleroma.Plugs.RemoteIp)
+
+  defmodule Instrumenter do
+    use Prometheus.PhoenixInstrumenter
+  end
+
+  defmodule PipelineInstrumenter do
+    use Prometheus.PlugPipelineInstrumenter
+  end
+
+  defmodule MetricsExporter do
+    use Prometheus.PlugExporter
+  end
+
+  plug(PipelineInstrumenter)
+  plug(MetricsExporter)
 
   plug(Pleroma.Web.Router)
 

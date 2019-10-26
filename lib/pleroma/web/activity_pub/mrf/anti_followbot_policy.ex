@@ -5,6 +5,8 @@
 defmodule Pleroma.Web.ActivityPub.MRF.AntiFollowbotPolicy do
   alias Pleroma.User
 
+  @moduledoc "Prevent followbots from following with a bit of heuristic"
+
   @behaviour Pleroma.Web.ActivityPub.MRF
 
   # XXX: this should become User.normalize_by_ap_id() or similar, really.
@@ -23,15 +25,25 @@ defmodule Pleroma.Web.ActivityPub.MRF.AntiFollowbotPolicy do
   defp score_displayname(_), do: 0.0
 
   defp determine_if_followbot(%User{nickname: nickname, name: displayname}) do
+    # nickname will be a binary string except when following a relay
     nick_score =
-      nickname
-      |> String.downcase()
-      |> score_nickname()
+      if is_binary(nickname) do
+        nickname
+        |> String.downcase()
+        |> score_nickname()
+      else
+        0.0
+      end
 
+    # displayname will either be a binary string or nil, if a displayname isn't set.
     name_score =
-      displayname
-      |> String.downcase()
-      |> score_displayname()
+      if is_binary(displayname) do
+        displayname
+        |> String.downcase()
+        |> score_displayname()
+      else
+        0.0
+      end
 
     nick_score + name_score
   end
@@ -54,4 +66,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.AntiFollowbotPolicy do
 
   @impl true
   def filter(message), do: {:ok, message}
+
+  @impl true
+  def describe, do: {:ok, %{}}
 end

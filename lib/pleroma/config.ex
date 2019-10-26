@@ -12,8 +12,12 @@ defmodule Pleroma.Config do
   def get([key], default), do: get(key, default)
 
   def get([parent_key | keys], default) do
-    Application.get_env(:pleroma, parent_key)
-    |> get_in(keys) || default
+    case :pleroma
+         |> Application.get_env(parent_key)
+         |> get_in(keys) do
+      nil -> default
+      any -> any
+    end
   end
 
   def get(key, default) do
@@ -34,7 +38,7 @@ defmodule Pleroma.Config do
 
   def put([parent_key | keys], value) do
     parent =
-      Application.get_env(:pleroma, parent_key)
+      Application.get_env(:pleroma, parent_key, [])
       |> put_in(keys, value)
 
     Application.put_env(:pleroma, parent_key, parent)
@@ -57,4 +61,8 @@ defmodule Pleroma.Config do
   def delete(key) do
     Application.delete_env(:pleroma, key)
   end
+
+  def oauth_consumer_strategies, do: get([:auth, :oauth_consumer_strategies], [])
+
+  def oauth_consumer_enabled?, do: oauth_consumer_strategies() != []
 end

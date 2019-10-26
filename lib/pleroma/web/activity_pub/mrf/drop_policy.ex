@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Web.ActivityPub.MRF.DropPolicy do
   require Logger
+  @moduledoc "Drop and log everything received"
   @behaviour Pleroma.Web.ActivityPub.MRF
 
   @impl true
@@ -11,4 +12,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.DropPolicy do
     Logger.info("REJECTING #{inspect(object)}")
     {:reject, object}
   end
+
+  @impl true
+  def describe, do: {:ok, %{}}
 end

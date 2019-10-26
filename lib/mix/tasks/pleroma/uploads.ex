@@ -1,31 +1,22 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Mix.Tasks.Pleroma.Uploads do
   use Mix.Task
+  import Mix.Pleroma
   alias Pleroma.Upload
   alias Pleroma.Uploaders.Local
-  alias Mix.Tasks.Pleroma.Common
   require Logger
 
   @log_every 50
 
   @shortdoc "Migrates uploads from local to remote storage"
-  @moduledoc """
-   Manages uploads
+  @moduledoc File.read!("docs/administration/CLI_tasks/uploads.md")
 
-   ## Migrate uploads from local to remote storage
-       mix pleroma.uploads migrate_local TARGET_UPLOADER [OPTIONS...]
-   Options:
-   - `--delete` - delete local uploads after migrating them to the target uploader
-
-
-   A list of available uploaders can be seen in config.exs
-  """
   def run(["migrate_local", target_uploader | args]) do
     delete? = Enum.member?(args, "--delete")
-    Common.start_pleroma()
+    start_pleroma()
     local_path = Pleroma.Config.get!([Local, :uploads])
     uploader = Module.concat(Pleroma.Uploaders, target_uploader)
 
@@ -39,10 +30,10 @@ defmodule Mix.Tasks.Pleroma.Uploads do
       Pleroma.Config.put([Upload, :uploader], uploader)
     end
 
-    Mix.shell().info("Migrating files from local #{local_path} to #{to_string(uploader)}")
+    shell_info("Migrating files from local #{local_path} to #{to_string(uploader)}")
 
     if delete? do
-      Mix.shell().info(
+      shell_info(
         "Attention: uploaded files will be deleted, hope you have backups! (--delete ; cancel with ^C)"
       )
 
@@ -79,7 +70,7 @@ defmodule Mix.Tasks.Pleroma.Uploads do
       |> Enum.filter(& &1)
 
     total_count = length(uploads)
-    Mix.shell().info("Found #{total_count} uploads")
+    shell_info("Found #{total_count} uploads")
 
     uploads
     |> Task.async_stream(
@@ -91,7 +82,7 @@ defmodule Mix.Tasks.Pleroma.Uploads do
             :ok
 
           error ->
-            Mix.shell().error("failed to upload #{inspect(upload.path)}: #{inspect(error)}")
+            shell_error("failed to upload #{inspect(upload.path)}: #{inspect(error)}")
         end
       end,
       timeout: 150_000
@@ -100,10 +91,10 @@ defmodule Mix.Tasks.Pleroma.Uploads do
     # credo:disable-for-next-line Credo.Check.Warning.UnusedEnumOperation
     |> Enum.reduce(0, fn done, count ->
       count = count + length(done)
-      Mix.shell().info("Uploaded #{count}/#{total_count} files")
+      shell_info("Uploaded #{count}/#{total_count} files")
       count
     end)
 
-    Mix.shell().info("Done!")
+    shell_info("Done!")
   end
 end

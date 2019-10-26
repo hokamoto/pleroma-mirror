@@ -4,11 +4,15 @@
 
 defmodule Pleroma.ThreadMute do
   use Ecto.Schema
-  alias Pleroma.{Repo, User, ThreadMute}
+
+  alias Pleroma.Repo
+  alias Pleroma.ThreadMute
+  alias Pleroma.User
+
   require Ecto.Query
 
   schema "thread_mutes" do
-    belongs_to(:user, User, type: Pleroma.FlakeId)
+    belongs_to(:user, User, type: FlakeId.Ecto.CompatType)
     field(:context, :string)
   end
 
@@ -20,7 +24,7 @@ defmodule Pleroma.ThreadMute do
   end
 
   def query(user_id, context) do
-    user_id = Pleroma.FlakeId.from_string(user_id)
+    {:ok, user_id} = FlakeId.Ecto.CompatType.dump(user_id)
 
     ThreadMute
     |> Ecto.Query.where(user_id: ^user_id)
