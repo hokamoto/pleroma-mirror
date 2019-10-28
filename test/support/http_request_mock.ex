@@ -1200,7 +1200,7 @@ defmodule HttpRequestMock do
   end
 
   def get("http://mastodon.example.org/@admin/99541947525187367", _, _, _) do
-    {:ok, %Tesla.Env{status: 200, body: ""}}
+    {:ok, %Tesla.Env{status: 200, body: File.read!("test/fixtures/mastodon-post-activity.json")}}
   end
 
   def get("https://info.pleroma.site/activity4.json", _, _, _) do
