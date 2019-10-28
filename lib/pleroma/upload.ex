@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Upload do
   @moduledoc """
-  # Upload
+  Manage user uploads
 
   Options:
   * `:type`: presets for activity type (defaults to Document) and size limits from app configuration
@@ -70,7 +70,7 @@ defmodule Pleroma.Upload do
            %{
              "type" => "Link",
              "mediaType" => upload.content_type,
-             "href" => url_from_spec(opts.base_url, url_spec)
+             "href" => url_from_spec(upload, opts.base_url, url_spec)
            }
          ],
          "name" => Map.get(opts, :description) || upload.name
@@ -83,6 +83,10 @@ defmodule Pleroma.Upload do
 
         {:error, error}
     end
+  end
+
+  def char_unescaped?(char) do
+    URI.char_unreserved?(char) or char == ?/
   end
 
   defp get_opts(opts) do
@@ -101,7 +105,7 @@ defmodule Pleroma.Upload do
           {Pleroma.Config.get!([:instance, :upload_limit]), "Document"}
       end
 
-    opts = %{
+    %{
       activity_type: Keyword.get(opts, :activity_type, activity_type),
       size_limit: Keyword.get(opts, :size_limit, size_limit),
       uploader: Keyword.get(opts, :uploader, Pleroma.Config.get([__MODULE__, :uploader])),
@@ -114,37 +118,6 @@ defmodule Pleroma.Upload do
           Pleroma.Config.get([__MODULE__, :base_url], Pleroma.Web.base_url())
         )
     }
-
-    # TODO: 1.0+ : remove old config compatibility
-    opts =
-      if Pleroma.Config.get([__MODULE__, :strip_exif]) == true &&
-           !Enum.member?(opts.filters, Pleroma.Upload.Filter.Mogrify) do
-        Logger.warn("""
-        Pleroma: configuration `:instance, :strip_exif` is deprecated, please instead set:
-
-          :pleroma, Pleroma.Upload, [filters: [Pleroma.Upload.Filter.Mogrify]]
-
-          :pleroma, Pleroma.Upload.Filter.Mogrify, args: ["strip", "auto-orient"]
-        """)
-
-        Pleroma.Config.put([Pleroma.Upload.Filter.Mogrify], args: ["strip", "auto-orient"])
-        Map.put(opts, :filters, opts.filters ++ [Pleroma.Upload.Filter.Mogrify])
-      else
-        opts
-      end
-
-    if Pleroma.Config.get([:instance, :dedupe_media]) == true &&
-         !Enum.member?(opts.filters, Pleroma.Upload.Filter.Dedupe) do
-      Logger.warn("""
-      Pleroma: configuration `:instance, :dedupe_media` is deprecated, please instead set:
-
-      :pleroma, Pleroma.Upload, [filters: [Pleroma.Upload.Filter.Dedupe]]
-      """)
-
-      Map.put(opts, :filters, opts.filters ++ [Pleroma.Upload.Filter.Dedupe])
-    else
-      opts
-    end
   end
 
   defp prepare_upload(%Plug.Upload{} = file, opts) do
@@ -215,16 +188,25 @@ defmodule Pleroma.Upload do
     tmp_path
   end
 
-  defp url_from_spec(base_url, {:file, path}) do
+  defp url_from_spec(%__MODULE__{name: name}, base_url, {:file, path}) do
     path =
-      path
-      |> URI.encode()
-      |> String.replace("?", "%3F")
-      |> String.replace(":", "%3A")
+      URI.encode(path, &char_unescaped?/1) <>
+        if Pleroma.Config.get([__MODULE__, :link_name], false) do
+          "?name=#{URI.encode(name, &char_unescaped?/1)}"
+        else
+          ""
+        end
 
-    [base_url, "media", path]
+    prefix =
+      if is_nil(Pleroma.Config.get([__MODULE__, :base_url])) do
+        "media"
+      else
+        ""
+      end
+
+    [base_url, prefix, path]
     |> Path.join()
   end
 
-  defp url_from_spec(_base_url, {:url, url}), do: url
+  defp url_from_spec(_upload, _base_url, {:url, url}), do: url
 end

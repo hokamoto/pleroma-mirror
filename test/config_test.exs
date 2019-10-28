@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.ConfigTest do
@@ -28,6 +28,15 @@ defmodule Pleroma.ConfigTest do
     assert Pleroma.Config.get([:azerty, :uiop], true) == true
   end
 
+  test "get/1 when value is false" do
+    Pleroma.Config.put([:instance, :false_test], false)
+    Pleroma.Config.put([:instance, :nested], [])
+    Pleroma.Config.put([:instance, :nested, :false_test], false)
+
+    assert Pleroma.Config.get([:instance, :false_test]) == false
+    assert Pleroma.Config.get([:instance, :nested, :false_test]) == false
+  end
+
   test "get!/1" do
     assert Pleroma.Config.get!(:instance) == Application.get_env(:pleroma, :instance)
 
@@ -41,6 +50,15 @@ defmodule Pleroma.ConfigTest do
     assert_raise(Pleroma.Config.Error, fn ->
       Pleroma.Config.get!([:azerty, :uiop])
     end)
+  end
+
+  test "get!/1 when value is false" do
+    Pleroma.Config.put([:instance, :false_test], false)
+    Pleroma.Config.put([:instance, :nested], [])
+    Pleroma.Config.put([:instance, :nested, :false_test], false)
+
+    assert Pleroma.Config.get!([:instance, :false_test]) == false
+    assert Pleroma.Config.get!([:instance, :nested, :false_test]) == false
   end
 
   test "put/2 with a key" do

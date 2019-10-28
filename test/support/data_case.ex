@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.DataCase do
@@ -39,22 +39,25 @@ defmodule Pleroma.DataCase do
       Ecto.Adapters.SQL.Sandbox.mode(Pleroma.Repo, {:shared, self()})
     end
 
+    if tags[:needs_streamer] do
+      start_supervised(Pleroma.Web.Streamer.supervisor())
+    end
+
     :ok
   end
 
-  def ensure_local_uploader(_context) do
+  def ensure_local_uploader(context) do
+    test_uploader = Map.get(context, :uploader, Pleroma.Uploaders.Local)
     uploader = Pleroma.Config.get([Pleroma.Upload, :uploader])
     filters = Pleroma.Config.get([Pleroma.Upload, :filters])
 
-    unless uploader == Pleroma.Uploaders.Local || filters != [] do
-      Pleroma.Config.put([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
-      Pleroma.Config.put([Pleroma.Upload, :filters], [])
+    Pleroma.Config.put([Pleroma.Upload, :uploader], test_uploader)
+    Pleroma.Config.put([Pleroma.Upload, :filters], [])
 
-      on_exit(fn ->
-        Pleroma.Config.put([Pleroma.Upload, :uploader], uploader)
-        Pleroma.Config.put([Pleroma.Upload, :filters], filters)
-      end)
-    end
+    on_exit(fn ->
+      Pleroma.Config.put([Pleroma.Upload, :uploader], uploader)
+      Pleroma.Config.put([Pleroma.Upload, :filters], filters)
+    end)
 
     :ok
   end

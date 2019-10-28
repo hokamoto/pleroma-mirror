@@ -7,6 +7,7 @@ defmodule Pleroma.Plugs.UploadedMedia do
   """
 
   import Plug.Conn
+  import Pleroma.Web.Gettext
   require Logger
 
   @behaviour Plug
@@ -24,7 +25,19 @@ defmodule Pleroma.Plugs.UploadedMedia do
   end
 
   def call(%{request_path: <<"/", @path, "/", file::binary>>} = conn, opts) do
-    config = Pleroma.Config.get([Pleroma.Upload])
+    conn =
+      case fetch_query_params(conn) do
+        %{query_params: %{"name" => name}} = conn ->
+          name = String.replace(name, "\"", "\\\"")
+
+          conn
+          |> put_resp_header("content-disposition", "filename=\"#{name}\"")
+
+        conn ->
+          conn
+      end
+
+    config = Pleroma.Config.get(Pleroma.Upload)
 
     with uploader <- Keyword.fetch!(config, :uploader),
          proxy_remote = Keyword.get(config, :proxy_remote, false),
@@ -33,7 +46,7 @@ defmodule Pleroma.Plugs.UploadedMedia do
     else
       _ ->
         conn
-        |> send_resp(500, "Failed")
+        |> send_resp(:internal_server_error, dgettext("errors", "Failed"))
         |> halt()
     end
   end
@@ -52,7 +65,7 @@ defmodule Pleroma.Plugs.UploadedMedia do
       conn
     else
       conn
-      |> send_resp(404, "Not found")
+      |> send_resp(:not_found, dgettext("errors", "Not found"))
       |> halt()
     end
   end
@@ -72,7 +85,7 @@ defmodule Pleroma.Plugs.UploadedMedia do
     Logger.error("#{__MODULE__}: Unknown get startegy: #{inspect(unknown)}")
 
     conn
-    |> send_resp(500, "Internal Error")
+    |> send_resp(:internal_server_error, dgettext("errors", "Internal Error"))
     |> halt()
   end
 end

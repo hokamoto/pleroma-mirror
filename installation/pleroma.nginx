@@ -14,17 +14,19 @@ server {
 
     listen         80;
     listen         [::]:80;
-    return         301 https://$server_name$request_uri;
 
     # Uncomment this if you need to use the 'webroot' method with certbot. Make sure
     # that the directory exists and that it is accessible by the webserver. If you followed
-    # the guide, you already ran 'sudo mkdir -p /var/lib/letsencrypt' to create the folder.
+    # the guide, you already ran 'mkdir -p /var/lib/letsencrypt' to create the folder.
     # You may need to load this file with the ssl server block commented out, run certbot
     # to get the certificate, and then uncomment it.
     #
     # location ~ /\.well-known/acme-challenge {
-    #     root /var/lib/letsencrypt/.well-known/acme-challenge;
+    #     root /var/lib/letsencrypt/;
     # }
+    location / {
+      return         301 https://$server_name$request_uri;
+    }
 }
 
 # Enable SSL session caching for improved performance
@@ -37,7 +39,7 @@ server {
     listen [::]:443 ssl http2;
     ssl_session_timeout 5m;
 
-    ssl_trusted_certificate   /etc/letsencrypt/live/example.tld/fullchain.pem;
+    ssl_trusted_certificate   /etc/letsencrypt/live/example.tld/chain.pem;
     ssl_certificate           /etc/letsencrypt/live/example.tld/fullchain.pem;
     ssl_certificate_key       /etc/letsencrypt/live/example.tld/privkey.pem;
 
@@ -68,25 +70,28 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
-        proxy_pass http://localhost:4000;
+        # this is explicitly IPv4 since Pleroma.Web.Endpoint binds on IPv4 only
+        # and `localhost.` resolves to [::0] on some systems: see issue #930
+        proxy_pass http://127.0.0.1:4000;
 
         client_max_body_size 16m;
     }
 
     location ~ ^/(media|proxy) {
-        proxy_cache pleroma_media_cache;
+        proxy_cache        pleroma_media_cache;
         slice              1m;
         proxy_cache_key    $host$uri$is_args$args$slice_range;
         proxy_set_header   Range $slice_range;
         proxy_http_version 1.1;
         proxy_cache_valid  200 206 301 304 1h;
-        proxy_cache_lock on;
+        proxy_cache_lock   on;
         proxy_ignore_client_abort on;
-        proxy_buffering on;
+        proxy_buffering    on;
         chunked_transfer_encoding on;
         proxy_ignore_headers Cache-Control;
-        proxy_hide_header Cache-Control;
-        proxy_pass http://localhost:4000;
+        proxy_hide_header  Cache-Control;
+        proxy_pass         http://127.0.0.1:4000;
     }
 }

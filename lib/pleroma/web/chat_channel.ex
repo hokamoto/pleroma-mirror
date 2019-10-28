@@ -4,8 +4,8 @@
 
 defmodule Pleroma.Web.ChatChannel do
   use Phoenix.Channel
-  alias Pleroma.Web.ChatChannel.ChatChannelState
   alias Pleroma.User
+  alias Pleroma.Web.ChatChannel.ChatChannelState
 
   def join("chat:public", _message, socket) do
     send(self(), :after_join)
@@ -22,7 +22,7 @@ defmodule Pleroma.Web.ChatChannel do
 
     if String.length(text) > 0 do
       author = User.get_cached_by_nickname(user_name)
-      author = Pleroma.Web.MastodonAPI.AccountView.render("account.json", user: author)
+      author = Pleroma.Web.MastodonAPI.AccountView.render("show.json", user: author)
       message = ChatChannelState.add_message(%{text: text, author: author})
 
       broadcast!(socket, "new_msg", message)
@@ -33,9 +33,11 @@ defmodule Pleroma.Web.ChatChannel do
 end
 
 defmodule Pleroma.Web.ChatChannel.ChatChannelState do
+  use Agent
+
   @max_messages 20
 
-  def start_link do
+  def start_link(_) do
     Agent.start_link(fn -> %{max_id: 1, messages: []} end, name: __MODULE__)
   end
 
@@ -48,7 +50,7 @@ defmodule Pleroma.Web.ChatChannel.ChatChannelState do
     end)
   end
 
-  def messages() do
+  def messages do
     Agent.get(__MODULE__, fn state -> state[:messages] |> Enum.reverse() end)
   end
 end

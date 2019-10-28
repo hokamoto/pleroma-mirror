@@ -1,18 +1,21 @@
 defmodule Pleroma.Repo.Migrations.MakeFollowingPostgresArray do
   use Ecto.Migration
 
-  def change do
+  def up do
     alter table(:users) do
-      add :following_temp, {:array, :string}
+      add(:following_temp, {:array, :string})
     end
 
-    execute """
+    execute("""
     update users set following_temp = array(select jsonb_array_elements_text(following));
-    """
+    """)
 
     alter table(:users) do
-      remove :following
+      remove(:following)
     end
-    rename table(:users), :following_temp, to: :following
+
+    rename(table(:users), :following_temp, to: :following)
   end
+
+  def down, do: :ok
 end

@@ -1,10 +1,11 @@
 # Pleroma: A lightweight social networking server
-# Copyright \xc2\xa9 2017-2019 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Metadata.Utils do
-  alias Pleroma.HTML
+  alias Pleroma.Emoji
   alias Pleroma.Formatter
+  alias Pleroma.HTML
   alias Pleroma.Web.MediaProxy
 
   def scrub_html_and_truncate(%{data: %{"content" => content}} = object) do
@@ -12,19 +13,19 @@ defmodule Pleroma.Web.Metadata.Utils do
     # html content comes from DB already encoded, decode first and scrub after
     |> HtmlEntities.decode()
     |> String.replace(~r/<br\s?\/?>/, " ")
-    |> HTML.get_cached_stripped_html_for_object(object, __MODULE__)
-    |> Formatter.demojify()
+    |> HTML.get_cached_stripped_html_for_activity(object, "metadata")
+    |> Emoji.Formatter.demojify()
     |> Formatter.truncate()
   end
 
-  def scrub_html_and_truncate(content) when is_binary(content) do
+  def scrub_html_and_truncate(content, max_length \\ 200) when is_binary(content) do
     content
     # html content comes from DB already encoded, decode first and scrub after
     |> HtmlEntities.decode()
     |> String.replace(~r/<br\s?\/?>/, " ")
     |> HTML.strip_tags()
-    |> Formatter.demojify()
-    |> Formatter.truncate()
+    |> Emoji.Formatter.demojify()
+    |> Formatter.truncate(max_length)
   end
 
   def attachment_url(url) do
@@ -38,5 +39,12 @@ defmodule Pleroma.Web.Metadata.Utils do
       else
         "(@#{user.nickname})"
       end
+  end
+
+  @spec fetch_media_type(list(String.t()), String.t()) :: String.t() | nil
+  def fetch_media_type(supported_types, media_type) do
+    Enum.find(supported_types, fn support_type ->
+      String.starts_with?(media_type, support_type)
+    end)
   end
 end

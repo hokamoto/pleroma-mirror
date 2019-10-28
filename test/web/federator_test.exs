@@ -1,19 +1,33 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.FederatorTest do
+  alias Pleroma.Instances
+  alias Pleroma.Tests.ObanHelpers
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.Federator
-  alias Pleroma.Instances
+  alias Pleroma.Workers.PublisherWorker
+
   use Pleroma.DataCase
+  use Oban.Testing, repo: Pleroma.Repo
+
   import Pleroma.Factory
   import Mock
 
   setup_all do
     Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
+
     :ok
   end
+
+  clear_config_all([:instance, :federating]) do
+    Pleroma.Config.put([:instance, :federating], true)
+  end
+
+  clear_config([:instance, :allow_relay])
+  clear_config([:instance, :rewrite_policy])
+  clear_config([:mrf_keyword])
 
   describe "Publish an activity" do
     setup do
@@ -35,6 +49,7 @@ defmodule Pleroma.Web.FederatorTest do
     } do
       with_mocks([relay_mock]) do
         Federator.publish(activity)
+        ObanHelpers.perform(all_enqueued(worker: PublisherWorker))
       end
 
       assert_received :relay_publish
@@ -48,19 +63,15 @@ defmodule Pleroma.Web.FederatorTest do
 
       with_mocks([relay_mock]) do
         Federator.publish(activity)
+        ObanHelpers.perform(all_enqueued(worker: PublisherWorker))
       end
 
       refute_received :relay_publish
-
-      Pleroma.Config.put([:instance, :allow_relay], true)
     end
   end
 
   describe "Targets reachability filtering in `publish`" do
-    test_with_mock "it federates only to reachable instances via AP",
-                   Federator,
-                   [:passthrough],
-                   [] do
+    test "it federates only to reachable instances via AP" do
       user = insert(:user)
 
       {inbox1, inbox2} =
@@ -70,14 +81,16 @@ defmodule Pleroma.Web.FederatorTest do
         local: false,
         nickname: "nick1@domain.com",
         ap_id: "https://domain.com/users/nick1",
-        info: %{ap_enabled: true, source_data: %{"inbox" => inbox1}}
+        source_data: %{"inbox" => inbox1},
+        ap_enabled: true
       })
 
       insert(:user, %{
         local: false,
         nickname: "nick2@domain2.com",
         ap_id: "https://domain2.com/users/nick2",
-        info: %{ap_enabled: true, source_data: %{"inbox" => inbox2}}
+        source_data: %{"inbox" => inbox2},
+        ap_enabled: true
       })
 
       dt = NaiveDateTime.utc_now()
@@ -88,87 +101,17 @@ defmodule Pleroma.Web.FederatorTest do
       {:ok, _activity} =
         CommonAPI.post(user, %{"status" => "HI @nick1@domain.com, @nick2@domain2.com!"})
 
-      assert called(Federator.publish_single_ap(%{inbox: inbox1, unreachable_since: dt}))
+      expected_dt = NaiveDateTime.to_iso8601(dt)
 
-      refute called(Federator.publish_single_ap(%{inbox: inbox2}))
-    end
+      ObanHelpers.perform(all_enqueued(worker: PublisherWorker))
 
-    test_with_mock "it federates only to reachable instances via Websub",
-                   Federator,
-                   [:passthrough],
-                   [] do
-      user = insert(:user)
-      websub_topic = Pleroma.Web.OStatus.feed_path(user)
-
-      sub1 =
-        insert(:websub_subscription, %{
-          topic: websub_topic,
-          state: "active",
-          callback: "http://pleroma.soykaf.com/cb"
-        })
-
-      sub2 =
-        insert(:websub_subscription, %{
-          topic: websub_topic,
-          state: "active",
-          callback: "https://pleroma2.soykaf.com/cb"
-        })
-
-      dt = NaiveDateTime.utc_now()
-      Instances.set_unreachable(sub2.callback, dt)
-
-      Instances.set_consistently_unreachable(sub1.callback)
-
-      {:ok, _activity} = CommonAPI.post(user, %{"status" => "HI"})
-
-      assert called(
-               Federator.publish_single_websub(%{
-                 callback: sub2.callback,
-                 unreachable_since: dt
-               })
+      assert ObanHelpers.member?(
+               %{
+                 "op" => "publish_one",
+                 "params" => %{"inbox" => inbox1, "unreachable_since" => expected_dt}
+               },
+               all_enqueued(worker: PublisherWorker)
              )
-
-      refute called(Federator.publish_single_websub(%{callback: sub1.callback}))
-    end
-
-    test_with_mock "it federates only to reachable instances via Salmon",
-                   Federator,
-                   [:passthrough],
-                   [] do
-      user = insert(:user)
-
-      remote_user1 =
-        insert(:user, %{
-          local: false,
-          nickname: "nick1@domain.com",
-          ap_id: "https://domain.com/users/nick1",
-          info: %{salmon: "https://domain.com/salmon"}
-        })
-
-      remote_user2 =
-        insert(:user, %{
-          local: false,
-          nickname: "nick2@domain2.com",
-          ap_id: "https://domain2.com/users/nick2",
-          info: %{salmon: "https://domain2.com/salmon"}
-        })
-
-      dt = NaiveDateTime.utc_now()
-      Instances.set_unreachable(remote_user2.ap_id, dt)
-
-      Instances.set_consistently_unreachable("domain.com")
-
-      {:ok, _activity} =
-        CommonAPI.post(user, %{"status" => "HI @nick1@domain.com, @nick2@domain2.com!"})
-
-      assert called(
-               Federator.publish_single_salmon(%{
-                 recipient: remote_user2,
-                 unreachable_since: dt
-               })
-             )
-
-      refute called(Federator.publish_single_websub(%{recipient: remote_user1}))
     end
   end
 
@@ -188,7 +131,8 @@ defmodule Pleroma.Web.FederatorTest do
         "to" => ["https://www.w3.org/ns/activitystreams#Public"]
       }
 
-      {:ok, _activity} = Federator.incoming_ap_doc(params)
+      assert {:ok, job} = Federator.incoming_ap_doc(params)
+      assert {:ok, _activity} = ObanHelpers.perform(job)
     end
 
     test "rejects incoming AP docs with incorrect origin" do
@@ -206,7 +150,24 @@ defmodule Pleroma.Web.FederatorTest do
         "to" => ["https://www.w3.org/ns/activitystreams#Public"]
       }
 
-      :error = Federator.incoming_ap_doc(params)
+      assert {:ok, job} = Federator.incoming_ap_doc(params)
+      assert :error = ObanHelpers.perform(job)
+    end
+
+    test "it does not crash if MRF rejects the post" do
+      Pleroma.Config.put([:mrf_keyword, :reject], ["lain"])
+
+      Pleroma.Config.put(
+        [:instance, :rewrite_policy],
+        Pleroma.Web.ActivityPub.MRF.KeywordPolicy
+      )
+
+      params =
+        File.read!("test/fixtures/mastodon-post-activity.json")
+        |> Poison.decode!()
+
+      assert {:ok, job} = Federator.incoming_ap_doc(params)
+      assert :error = ObanHelpers.perform(job)
     end
   end
 end

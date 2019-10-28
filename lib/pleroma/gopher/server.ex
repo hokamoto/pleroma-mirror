@@ -6,7 +6,7 @@ defmodule Pleroma.Gopher.Server do
   use GenServer
   require Logger
 
-  def start_link() do
+  def start_link(_) do
     config = Pleroma.Config.get(:gopher, [])
     ip = Keyword.get(config, :ip, {0, 0, 0, 0})
     port = Keyword.get(config, :port, 1234)
@@ -36,12 +36,12 @@ defmodule Pleroma.Gopher.Server do
 end
 
 defmodule Pleroma.Gopher.Server.ProtocolHandler do
-  alias Pleroma.Web.ActivityPub.ActivityPub
-  alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Activity
   alias Pleroma.HTML
+  alias Pleroma.Object
   alias Pleroma.User
-  alias Pleroma.Repo
+  alias Pleroma.Web.ActivityPub.ActivityPub
+  alias Pleroma.Web.ActivityPub.Visibility
 
   def start_link(ref, socket, transport, opts) do
     pid = spawn_link(__MODULE__, :init, [ref, socket, transport, opts])
@@ -66,7 +66,8 @@ defmodule Pleroma.Gopher.Server.ProtocolHandler do
   def link(name, selector, type \\ 1) do
     address = Pleroma.Web.Endpoint.host()
     port = Pleroma.Config.get([:gopher, :port], 1234)
-    "#{type}#{name}\t#{selector}\t#{address}\t#{port}\r\n"
+    dstport = Pleroma.Config.get([:gopher, :dstport], port)
+    "#{type}#{name}\t#{selector}\t#{address}\t#{dstport}\r\n"
   end
 
   def render_activities(activities) do
@@ -75,14 +76,14 @@ defmodule Pleroma.Gopher.Server.ProtocolHandler do
     |> Enum.map(fn activity ->
       user = User.get_cached_by_ap_id(activity.data["actor"])
 
-      object = activity.data["object"]
-      like_count = object["like_count"] || 0
-      announcement_count = object["announcement_count"] || 0
+      object = Object.normalize(activity)
+      like_count = object.data["like_count"] || 0
+      announcement_count = object.data["announcement_count"] || 0
 
       link("Post ##{activity.id} by #{user.nickname}", "/notices/#{activity.id}") <>
         info("#{like_count} likes, #{announcement_count} repeats") <>
         "i\tfake\t(NULL)\t0\r\n" <>
-        info(HTML.strip_tags(String.replace(activity.data["object"]["content"], "<br>", "\r")))
+        info(HTML.strip_tags(String.replace(object.data["content"], "<br>", "\r")))
     end)
     |> Enum.join("i\tfake\t(NULL)\t0\r\n")
   end
@@ -110,7 +111,7 @@ defmodule Pleroma.Gopher.Server.ProtocolHandler do
   end
 
   def response("/notices/" <> id) do
-    with %Activity{} = activity <- Repo.get(Activity, id),
+    with %Activity{} = activity <- Activity.get_by_id(id),
          true <- Visibility.is_public?(activity) do
       activities =
         ActivityPub.fetch_activities_for_context(activity.data["context"])

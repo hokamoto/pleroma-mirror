@@ -8,11 +8,11 @@ defmodule Pleroma.Filter do
   import Ecto.Changeset
   import Ecto.Query
 
-  alias Pleroma.User
   alias Pleroma.Repo
+  alias Pleroma.User
 
   schema "filters" do
-    belongs_to(:user, User, type: Pleroma.FlakeId)
+    belongs_to(:user, User, type: FlakeId.Ecto.CompatType)
     field(:filter_id, :integer)
     field(:hide, :boolean, default: false)
     field(:whole_word, :boolean, default: true)
@@ -38,7 +38,8 @@ defmodule Pleroma.Filter do
     query =
       from(
         f in Pleroma.Filter,
-        where: f.user_id == ^user_id
+        where: f.user_id == ^user_id,
+        order_by: [desc: :id]
       )
 
     Repo.all(query)
