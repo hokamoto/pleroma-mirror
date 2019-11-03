@@ -24,6 +24,15 @@ defmodule Pleroma.Factory do
     }
   end
 
+  def ex_nickname_factory(attrs \\ %{}) do
+    user = attrs[:user] || insert(:user)
+
+    %Pleroma.ExNickname{
+      nickname: sequence(:ex_nickname, &"exnick#{&1}"),
+      user_id: user.id
+    }
+  end
+
   def user_factory do
     user = %User{
       name: sequence(:name, &"Test テスト User #{&1}"),

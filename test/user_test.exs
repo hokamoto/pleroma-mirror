@@ -5,6 +5,7 @@
 defmodule Pleroma.UserTest do
   alias Pleroma.Activity
   alias Pleroma.Builders.UserBuilder
+  alias Pleroma.ExNickname
   alias Pleroma.Object
   alias Pleroma.Repo
   alias Pleroma.Tests.ObanHelpers
@@ -393,6 +394,48 @@ defmodule Pleroma.UserTest do
 
       refute user.confirmation_pending
       refute user.confirmation_token
+    end
+  end
+
+  describe "get_by_nickname/1" do
+    clear_config([:instance, :allow_local_nickname_changing])
+    clear_config([:instance, :resolve_ex_nicknames])
+
+    test "gets an existing user by exact nickname" do
+      user = insert(:user)
+
+      assert user == User.get_by_nickname(user.nickname)
+    end
+
+    test "gets an existing local user by fully-qualified nickname" do
+      user = insert(:user)
+      host = Pleroma.Web.Endpoint.host()
+      fully_qualified_nickname = "#{user.nickname}@#{host}"
+
+      assert user == User.get_by_nickname(fully_qualified_nickname)
+    end
+
+    test "with previous nicknames resolution enabled, " <>
+           "gets an existing local user by one of previous nicknames" do
+      user = insert(:user)
+      ex_nickname = insert(:ex_nickname, user: user)
+
+      Pleroma.Config.put([:instance, :allow_local_nickname_changing], true)
+      assert user == User.get_by_nickname(ex_nickname.nickname)
+
+      Pleroma.Config.put([:instance, :allow_local_nickname_changing], false)
+      Pleroma.Config.put([:instance, :resolve_ex_nicknames], true)
+      assert user == User.get_by_nickname(ex_nickname.nickname)
+    end
+
+    test "with previous nicknames resolution disabled, " <>
+           "does not get an existing local user by any of previous nicknames" do
+      user = insert(:user)
+      ex_nickname = insert(:ex_nickname, user: user)
+
+      Pleroma.Config.put([:instance, :allow_local_nickname_changing], false)
+      Pleroma.Config.put([:instance, :resolve_ex_nicknames], false)
+      assert is_nil(User.get_by_nickname(ex_nickname.nickname))
     end
   end
 
@@ -1744,6 +1787,74 @@ defmodule Pleroma.UserTest do
       true = user.email_notifications["digest"]
       assert {:ok, result} = User.update_email_notifications(user, %{"digest" => false})
       assert result.email_notifications["digest"] == false
+    end
+  end
+
+  describe "update_nickname/2" do
+    clear_config([:instance, :federating]) do
+      Pleroma.Config.put([:instance, :federating], false)
+    end
+
+    clear_config([:instance, :allow_local_nickname_changing]) do
+      Pleroma.Config.put([:instance, :allow_local_nickname_changing], true)
+    end
+
+    setup do
+      user = insert(:user, local: true)
+      {:ok, user: user}
+    end
+
+    test "no op if new nickname is the same as existing one", %{user: user} do
+      assert {:ok, user} == User.update_nickname(user, user.nickname)
+    end
+
+    test "returns `{:error, :forbidden}` if instance is federating", %{user: user} do
+      Pleroma.Config.put([:instance, :federating], true)
+
+      assert {:error, :forbidden} == User.update_nickname(user, user.nickname <> "a")
+    end
+
+    test "returns `{:error, :forbidden}` if nickname changes are disabled", %{user: user} do
+      Pleroma.Config.put([:instance, :allow_local_nickname_changing], false)
+
+      assert {:error, :forbidden} == User.update_nickname(user, user.nickname <> "a")
+    end
+
+    test "returns `{:error, :unavailable}` if nickname is occupied by another user", %{user: user} do
+      user2 = insert(:user)
+
+      assert {:error, :unavailable} == User.update_nickname(user, user2.nickname)
+    end
+
+    test "returns `{:error, :unavailable}` if nickname was used by another user", %{user: user} do
+      user2 = insert(:user)
+      user2_ex_nickname = insert(:ex_nickname, user: user2)
+
+      assert {:error, :unavailable} == User.update_nickname(user, user2_ex_nickname.nickname)
+    end
+
+    test "changes local user's `nickname` if nickname is valid and was never occupied", %{
+      user: user
+    } do
+      new_nickname = user.nickname <> "a"
+
+      assert {:ok, updated_user} = User.update_nickname(user, new_nickname)
+      assert updated_user == User.get_by_id(user.id)
+      assert updated_user.nickname == new_nickname
+      assert Repo.get_by(ExNickname, nickname: user.nickname)
+    end
+
+    test "changes local user's `nickname` if nickname was previous used by the same user", %{
+      user: user
+    } do
+      ex_nickname_record = insert(:ex_nickname, user: user)
+      reused_nickname = ex_nickname_record.nickname
+
+      assert {:ok, updated_user} = User.update_nickname(user, reused_nickname)
+      assert updated_user == User.get_by_id(user.id)
+      assert updated_user.nickname == reused_nickname
+      assert Repo.get_by(ExNickname, nickname: user.nickname)
+      refute Repo.get_by(ExNickname, nickname: reused_nickname)
     end
   end
 end

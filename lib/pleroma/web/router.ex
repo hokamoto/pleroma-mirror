@@ -278,6 +278,7 @@ defmodule Pleroma.Web.Router do
       patch("/accounts/update_avatar", AccountController, :update_avatar)
       patch("/accounts/update_banner", AccountController, :update_banner)
       patch("/accounts/update_background", AccountController, :update_background)
+      patch("/accounts/update_nickname", AccountController, :update_nickname)
 
       get("/mascot", MascotController, :show)
       put("/mascot", MascotController, :update)

@@ -14,6 +14,7 @@ defmodule Pleroma.Web.PleromaAPI.AccountController do
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
+  alias Pleroma.Web.ControllerHelper
   alias Pleroma.Web.MastodonAPI.StatusView
 
   require Pleroma.Constants
@@ -30,7 +31,8 @@ defmodule Pleroma.Web.PleromaAPI.AccountController do
     when action in [
            :update_avatar,
            :update_banner,
-           :update_background
+           :update_background,
+           :update_nickname
          ]
   )
 
@@ -45,6 +47,28 @@ defmodule Pleroma.Web.PleromaAPI.AccountController do
   plug(RateLimiter, :account_confirmation_resend when action == :confirmation_resend)
   plug(:assign_account_by_id when action in [:favourites, :subscribe, :unsubscribe])
   plug(:put_view, Pleroma.Web.MastodonAPI.AccountView)
+
+  @doc "PATCH /api/v1/pleroma/accounts/update_nickname"
+  def update_nickname(%{assigns: %{user: user}} = conn, %{} = params) do
+    nickname = params["nickname"] || params["username"]
+
+    with {:ok, _user} <- User.update_nickname(user, nickname) do
+      json(conn, %{nickname: nickname})
+    else
+      {:error, :forbidden} ->
+        json_response(conn, :forbidden, %{error: "Nickname change is disabled"})
+
+      {:error, :unavailable} ->
+        json_response(conn, :unprocessable_entity, %{error: "Nickname is unavailable"})
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        message = ControllerHelper.changeset_errors(changeset)
+        json_response(conn, :unprocessable_entity, %{error: message})
+
+      _ ->
+        json_response(conn, :unprocessable_entity, %{error: "Unknown error"})
+    end
+  end
 
   @doc "POST /api/v1/pleroma/accounts/confirmation_resend"
   def confirmation_resend(conn, params) do

@@ -87,4 +87,10 @@ defmodule Pleroma.Web.ControllerHelper do
   def try_render(conn, _, _) do
     render_error(conn, :not_implemented, "Can't display this activity")
   end
+
+  def changeset_errors(%Ecto.Changeset{} = changeset, _format \\ :plain) do
+    changeset.errors
+    |> Enum.map(fn {field, {error, _}} -> "#{field} #{error}" end)
+    |> Enum.join("; ")
+  end
 end

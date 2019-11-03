@@ -97,6 +97,9 @@ config :pleroma, Pleroma.Emails.Mailer,
 * `federating`: Enable federation with other instances
 * `federation_incoming_replies_max_depth`: Max. depth of reply-to activities fetching on incoming federation, to prevent out-of-memory situations while fetching very long threads. If set to `nil`, threads of any depth will be fetched. Lower this value if you experience out-of-memory crashes.
 * `federation_reachability_timeout_days`: Timeout (in days) of each external federation target being unreachable prior to pausing federating to it.
+* `allow_local_nickname_changing`: if `federating` is `false`, enables nickname changing for local users
+* `resolve_ex_nicknames`: enables previously used nicknames resolution even if `allow_local_nickname_changing` is `false`
+* `resolve `
 * `allow_relay`: Enable Pleroma’s Relay, which makes it possible to follow a whole instance
 * `rewrite_policy`: Message Rewrite Policy, either one or a list. Here are the ones available by default:
   * `Pleroma.Web.ActivityPub.MRF.NoOpPolicy`: Doesn’t modify activities (default)

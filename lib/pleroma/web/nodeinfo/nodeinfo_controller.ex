@@ -58,6 +58,9 @@ defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
         "polls",
         "pleroma_explicit_addressing",
         "shareable_emoji_packs",
+        if Config.local_nickname_changing_enabled?() do
+          "nickname_changing"
+        end,
         if Config.get([:media_proxy, :enabled]) do
           "media_proxy"
         end,
