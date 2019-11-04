@@ -1,4 +1,4 @@
-image: elixir:1.8.1
+image: elixir:1.9.2
 
 variables:
   POSTGRES_DB: pleroma_test
@@ -155,8 +155,7 @@ stop_review_app:
 
 amd64:
   stage: release 
-  # TODO: Replace with upstream image when 1.9.0 comes out
-  image: rinpatch/elixir:1.9.0-rc.0
+  image: elixir:1.9.2
   only: &release-only
   - stable@pleroma/pleroma
   - develop@pleroma/pleroma
@@ -193,8 +192,7 @@ amd64-musl:
   stage: release
   artifacts: *release-artifacts
   only: *release-only
-  # TODO: Replace with upstream image when 1.9.0 comes out
-  image: rinpatch/elixir:1.9.0-rc.0-alpine
+  image: elixir:1.9.2-alpine
   cache: *release-cache
   variables: *release-variables
   before_script: &before-release-musl
@@ -210,8 +208,7 @@ arm:
   only: *release-only
   tags:
     - arm32
-  # TODO: Replace with upstream image when 1.9.0 comes out
-  image: rinpatch/elixir:1.9.0-rc.0-arm
+  image: elixir:1.9.2-arm
   cache: *release-cache
   variables: *release-variables
   before_script: *before-release
@@ -223,8 +220,7 @@ arm-musl:
   only: *release-only
   tags:
     - arm32
-  # TODO: Replace with upstream image when 1.9.0 comes out
-  image: rinpatch/elixir:1.9.0-rc.0-arm-alpine
+  image: elixir:1.9.2-arm-alpine
   cache: *release-cache
   variables: *release-variables
   before_script: *before-release-musl
@@ -236,8 +232,7 @@ arm64:
   only: *release-only
   tags:
     - arm
-  # TODO: Replace with upstream image when 1.9.0 comes out
-  image: rinpatch/elixir:1.9.0-rc.0-arm64
+  image: elixir:1.9.2-arm64
   cache: *release-cache
   variables: *release-variables
   before_script: *before-release
@@ -249,8 +244,7 @@ arm64-musl:
   only: *release-only
   tags:
     - arm
-  # TODO: Replace with upstream image when 1.9.0 comes out
-  image: rinpatch/elixir:1.9.0-rc.0-arm64-alpine
+  image: elixir:1.9.2-arm64-alpine
   cache: *release-cache
   variables: *release-variables
   before_script: *before-release-musl
