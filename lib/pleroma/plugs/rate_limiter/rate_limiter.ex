@@ -149,7 +149,7 @@ defmodule Pleroma.Plugs.RateLimiter do
     end
   end
 
-  defp create_item(), do: {:ok, 0}
+  defp create_item, do: {:ok, 0}
 
   defp update_item(value), do: {:ok, %ConCache.Item{value: value + 1, ttl: :no_update}}
 
