@@ -51,6 +51,42 @@ defmodule Pleroma.Web.PleromaAPI.AccountControllerTest do
     end
   end
 
+  describe "PATCH /api/v1/pleroma/accounts/update_nickname" do
+    clear_config([:instance, :federating]) do
+      Pleroma.Config.put([:instance, :federating], false)
+    end
+
+    clear_config([:instance, :allow_local_nickname_changing]) do
+      Config.put([:instance, :allow_local_nickname_changing], true)
+    end
+
+    test "local user's nickname can be changed", %{conn: conn} do
+      user = insert(:user)
+      new_nickname = user.nickname <> "a"
+
+      conn =
+        conn
+        |> assign(:user, user)
+        |> patch("/api/v1/pleroma/accounts/update_nickname", %{nickname: new_nickname})
+
+      assert json_response(conn, 200)
+
+      user = refresh_record(user)
+      assert new_nickname == user.nickname
+    end
+
+    test "renders error json if nickname validation failed", %{conn: conn} do
+      user = insert(:user)
+
+      conn =
+        conn
+        |> assign(:user, user)
+        |> patch("/api/v1/pleroma/accounts/update_nickname", %{nickname: "_bad_nickname"})
+
+      assert json_response(conn, 422) == %{"error" => "nickname has invalid format"}
+    end
+  end
+
   describe "PATCH /api/v1/pleroma/accounts/update_avatar" do
     test "user avatar can be set", %{conn: conn} do
       user = insert(:user)

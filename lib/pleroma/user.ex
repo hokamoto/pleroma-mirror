@@ -13,6 +13,7 @@ defmodule Pleroma.User do
   alias Pleroma.Activity
   alias Pleroma.Conversation.Participation
   alias Pleroma.Delivery
+  alias Pleroma.ExNickname
   alias Pleroma.FollowingRelationship
   alias Pleroma.Keys
   alias Pleroma.Notification
@@ -687,10 +688,26 @@ defmodule Pleroma.User do
   end
 
   def get_by_nickname(nickname) do
-    Repo.get_by(User, nickname: nickname) ||
-      if Regex.match?(~r(@#{Pleroma.Web.Endpoint.host()})i, nickname) do
-        Repo.get_by(User, nickname: local_nickname(nickname))
+    nickname =
+      if is_local_nickname?(nickname) do
+        local_nickname(nickname)
+      else
+        nickname
       end
+
+    user = Repo.get_by(User, nickname: nickname)
+
+    cond do
+      not is_nil(user) ->
+        user
+
+      !String.contains?(nickname, "@") &&
+          Pleroma.Config.resolve_ex_nicknames?() ->
+        ExNickname.get_user_by_ex_nickname(nickname)
+
+      true ->
+        nil
+    end
   end
 
   def get_by_email(email), do: Repo.get_by(User, email: email)
@@ -1466,6 +1483,11 @@ defmodule Pleroma.User do
     end
   end
 
+  def is_local_nickname?(nickname) do
+    host = Pleroma.Web.Endpoint.host()
+    Regex.match?(~r/@#{host}$/i, nickname)
+  end
+
   def local_nickname(nickname_or_mention) do
     nickname_or_mention
     |> full_nickname()
@@ -1651,6 +1673,61 @@ defmodule Pleroma.User do
     user
     |> cast(%{deactivated: deactivated}, [:deactivated])
     |> update_and_set_cache()
+  end
+
+  defp nickname_update_changeset(user, nickname) do
+    user
+    |> cast(%{nickname: nickname}, [:nickname])
+    |> validate_required(:nickname)
+    |> unique_constraint(:nickname)
+    |> validate_exclusion(:nickname, Pleroma.Config.get([User, :restricted_nicknames]))
+    |> validate_format(:nickname, local_nickname_regex())
+  end
+
+  @doc "Updates `nickname`, leaving `ap_id` unchanged"
+  def update_nickname(%User{local: true} = user, nickname) do
+    cond do
+      user.nickname == nickname ->
+        {:ok, user}
+
+      !Pleroma.Config.local_nickname_changing_enabled?() ->
+        {:error, :forbidden}
+
+      Repo.get_by(User, nickname: nickname) ->
+        {:error, :unavailable}
+
+      ex_nickname = Repo.get_by(ExNickname, nickname: nickname) ->
+        if ex_nickname.user_id == user.id do
+          ops = Multi.delete(Multi.new(), :existing_ex_nickname, ex_nickname)
+          handle_nickname_update(user, nickname, ops)
+        else
+          {:error, :unavailable}
+        end
+
+      true ->
+        handle_nickname_update(user, nickname)
+    end
+  end
+
+  def update_nickname(_user, _nickname), do: {:error, :forbidden}
+
+  defp handle_nickname_update(%User{} = user, nickname, %Multi{} = ops \\ Multi.new()) do
+    ex_nickname_create_changeset =
+      ExNickname.changeset(%ExNickname{}, %{user_id: user.id, nickname: user.nickname})
+
+    ops =
+      ops
+      |> Multi.insert(:ex_nickname, ex_nickname_create_changeset)
+      |> Multi.update(:user, nickname_update_changeset(user, nickname))
+
+    case Repo.transaction(ops) do
+      {:ok, %{user: updated_user} = _} ->
+        invalidate_cache(user)
+        set_cache(updated_user)
+
+      {:error, _, changeset, _} ->
+        {:error, changeset}
+    end
   end
 
   def update_banner(user, banner) do

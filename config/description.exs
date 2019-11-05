@@ -577,6 +577,17 @@ config :pleroma, :config_description, [
         ]
       },
       %{
+        key: :allow_local_nickname_changing,
+        type: :boolean,
+        description: "If `federating` is `false`, enables nickname changing for local users"
+      },
+      %{
+        key: :resolve_ex_nicknames,
+        type: :boolean,
+        description:
+          "Enables previously used nicknames resolution even if `allow_local_nickname_changing` is `false`"
+      },
+      %{
         key: :federation_publisher_modules,
         type: [:list, :module],
         description: "List of modules for federation publishing",

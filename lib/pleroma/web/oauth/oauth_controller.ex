@@ -415,16 +415,11 @@ defmodule Pleroma.Web.OAuth.OAuthController do
         user: user
       )
     else
-      {:error, changeset} ->
+      {:error, %Ecto.Changeset{} = changeset} ->
         message =
-          Enum.map(changeset.errors, fn {field, {error, _}} ->
-            "#{field} #{error}"
-          end)
-          |> Enum.join("; ")
-
-        message =
-          String.replace(
-            message,
+          changeset
+          |> ControllerHelper.changeset_errors()
+          |> String.replace(
             "ap_id has already been taken",
             "nickname has already been taken"
           )

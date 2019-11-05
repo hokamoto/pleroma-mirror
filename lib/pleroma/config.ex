@@ -65,4 +65,12 @@ defmodule Pleroma.Config do
   def oauth_consumer_strategies, do: get([:auth, :oauth_consumer_strategies], [])
 
   def oauth_consumer_enabled?, do: oauth_consumer_strategies() != []
+
+  def local_nickname_changing_enabled? do
+    !get([:instance, :federating]) && get([:instance, :allow_local_nickname_changing])
+  end
+
+  def resolve_ex_nicknames? do
+    local_nickname_changing_enabled?() || get([:instance, :resolve_ex_nicknames])
+  end
 end
