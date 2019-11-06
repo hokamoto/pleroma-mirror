@@ -19,13 +19,21 @@ defmodule Pleroma.Object do
 
   schema "objects" do
     field(:data, :map)
+    # This is set by a database side trigger on insert and update
+    field(:ap_id, :string)
 
     timestamps()
   end
 
+  # Add the default 'returning' options, so we get the generated ap_id column
+  def insert(cng, options \\ []) do
+    cng
+    |> Repo.insert(Keyword.put(options, :returning, true))
+  end
+
   def create(data) do
     Object.change(%Object{}, %{data: data})
-    |> Repo.insert()
+    |> insert()
   end
 
   def change(struct, params \\ %{}) do
@@ -59,7 +67,7 @@ defmodule Pleroma.Object do
   def get_by_ap_id(nil), do: nil
 
   def get_by_ap_id(ap_id) do
-    Repo.one(from(object in Object, where: fragment("(?)->>'id' = ?", object.data, ^ap_id)))
+    Repo.one(from(object in Object, where: object.ap_id == ^ap_id))
   end
 
   defp warn_on_no_object_preloaded(ap_id) do

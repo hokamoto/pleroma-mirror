@@ -55,6 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Mastodon API: Add `/api/v1/markers` for managing timeline read markers
 
 ### Changed
+- **ATTENTION - LONG MIGRATION** Objects have an ap_id column now, extracted with a trigger.
 - **Breaking:** Elixir >=1.8 is now required (was >= 1.7)
 - **Breaking:** Admin API: Return link alongside with token on password reset
 - Replaced [pleroma_job_queue](https://git.pleroma.social/pleroma/pleroma_job_queue) and `Pleroma.Web.Federator.RetryQueue` with [Oban](https://github.com/sorentwo/oban) (see [`docs/config.md`](docs/config.md) on migrating customized worker / retry settings)
