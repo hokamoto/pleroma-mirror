@@ -33,22 +33,22 @@ defmodule Pleroma.Plugs.RateLimiter do
 
   AllowedSyntax:
 
-      plug(RateLimiter, name: :limiter_name)
-      plug(RateLimiter, options})   # :name is a required option
+      plug(Pleroma.Plugs.RateLimiter, name: :limiter_name)
+      plug(Pleroma.Plugs.RateLimiter, options)   # :name is a required option
 
   Allowed options:
 
-      * `name` required
-      * `bucket_name` overrides name (e.g. to have a separate limit for a set of actions)
+      * `name` required, always used to fetch the limit values from the config
+      * `bucket_name` overrides name for counting purposes (e.g. to have a separate limit for a set of actions)
       * `params` appends values of specified request params (e.g. ["id"]) to bucket name
 
   Inside a controller:
 
-      plug(RateLimiter, [name: :one] when action == :one)
-      plug(RateLimiter, [name: :two] when action in [:two, :three])
+      plug(Pleroma.Plugs.RateLimiter, [name: :one] when action == :one)
+      plug(Pleroma.Plugs.RateLimiter, [name: :two] when action in [:two, :three])
 
       plug(
-        RateLimiter,
+        Pleroma.Plugs.RateLimiter,
         [name: :status_id_action, bucket_name: "status_id_action:fav_unfav", params: ["id"]]
         when action in ~w(fav_status unfav_status)a
       )
@@ -57,7 +57,7 @@ defmodule Pleroma.Plugs.RateLimiter do
 
       pipeline :api do
         ...
-        plug(RateLimiter, name: :one)
+        plug(Pleroma.Plugs.RateLimiter, name: :one)
         ...
       end
   """
