@@ -25,7 +25,7 @@ defmodule Pleroma.Plugs.RateLimiterTest do
 
     test "it restricts based on config values" do
       limiter_name = :test_opts
-      scale = 1000
+      scale = 60
       limit = 5
 
       Pleroma.Config.put([:rate_limit, limiter_name], {scale, limit})
@@ -36,14 +36,14 @@ defmodule Pleroma.Plugs.RateLimiterTest do
       for i <- 1..5 do
         conn = RateLimiter.call(conn, opts)
         assert {^i, _} = RateLimiter.inspect_bucket(conn, limiter_name, opts)
-        Process.sleep(150)
+        Process.sleep(10)
       end
 
       conn = RateLimiter.call(conn, opts)
       assert %{"error" => "Throttled"} = Phoenix.ConnTest.json_response(conn, :too_many_requests)
       assert conn.halted
 
-      Process.sleep(800)
+      Process.sleep(50)
 
       conn = conn(:get, "/")
 

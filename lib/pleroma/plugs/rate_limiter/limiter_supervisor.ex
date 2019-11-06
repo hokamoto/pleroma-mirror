@@ -10,7 +10,7 @@ defmodule Pleroma.Plugs.RateLimiter.LimiterSupervisor do
       __MODULE__,
       {ConCache,
        name: limiter_name,
-       ttl_check_interval: Kernel.trunc(expiration / 2),
+       ttl_check_interval: check_interval(expiration),
        global_ttl: expiration}
     )
   end
@@ -18,5 +18,11 @@ defmodule Pleroma.Plugs.RateLimiter.LimiterSupervisor do
   @impl true
   def init(_init_arg) do
     DynamicSupervisor.init(strategy: :one_for_one)
+  end
+
+  defp check_interval(exp) do
+    (exp / 2)
+    |> Kernel.trunc()
+    |> Kernel.min(5000)
   end
 end
