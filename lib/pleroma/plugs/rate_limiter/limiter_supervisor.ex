@@ -9,9 +9,7 @@ defmodule Pleroma.Plugs.RateLimiter.LimiterSupervisor do
     DynamicSupervisor.start_child(
       __MODULE__,
       {ConCache,
-       name: limiter_name,
-       ttl_check_interval: check_interval(expiration),
-       global_ttl: expiration}
+       name: limiter_name, ttl_check_interval: check_interval(expiration), global_ttl: expiration}
     )
   end
 
