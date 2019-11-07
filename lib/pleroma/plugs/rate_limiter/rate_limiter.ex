@@ -102,56 +102,49 @@ defmodule Pleroma.Plugs.RateLimiter do
   end
 
   def inspect_bucket(conn, name_root, settings) do
-    name_root
-    |> user_bucket_name()
-    |> Process.whereis()
-    |> case do
-      nil ->
+    settings =
+      settings
+      |> incorporate_conn_info(conn)
+
+    bucket_name = make_bucket_name(%{settings | name: name_root})
+    key_name = make_key_name(settings)
+    limit = get_limits(settings)
+
+    case Cachex.get(bucket_name, key_name) do
+      {:error, :no_cache} ->
         {:err, :not_found}
 
-      _ ->
-        settings =
-          settings
-          |> incorporate_conn_info(conn)
+      {:ok, nil} ->
+        {0, limit}
 
-        bucket_name = make_bucket_name(settings)
-        key_name = make_key_name(settings)
-        limit = get_limits(settings)
-
-        count = ConCache.get(bucket_name, key_name) || 0
-        {count, limit - count}
+      {:ok, value} ->
+        {value, limit - value}
     end
   end
 
   defp check_rate(settings) do
-    bucket_pid = get_or_create_bucket_pid(settings)
+    bucket_name = make_bucket_name(settings)
     key_name = make_key_name(settings)
     limit = get_limits(settings)
-    {:ok, value} = ConCache.fetch_or_store(bucket_pid, key_name, &create_item/0)
 
-    if value < limit do
-      :ok = ConCache.update(bucket_pid, key_name, &update_item(&1))
-      {:ok, value + 1}
-    else
-      {:error, value}
+    case Cachex.get_and_update(bucket_name, key_name, &increment_value(&1, limit)) do
+      {:commit, value} ->
+        {:ok, value}
+
+      {:ignore, value} ->
+        {:error, value}
+
+      {:error, :no_cache} ->
+        initialize_buckets(settings)
+        check_rate(settings)
     end
   end
 
-  defp get_or_create_bucket_pid(settings) do
-    bucket_name = make_bucket_name(settings)
-    bucket_pid = Process.whereis(bucket_name)
+  defp increment_value(nil, _limit), do: {:commit, 1}
 
-    if is_nil(bucket_pid) do
-      initialize_bucket(settings)
-      Process.whereis(bucket_name)
-    else
-      bucket_pid
-    end
-  end
+  defp increment_value(val, limit) when val >= limit, do: {:ignore, val}
 
-  defp create_item, do: {:ok, 0}
-
-  defp update_item(value), do: {:ok, %ConCache.Item{value: value + 1, ttl: :no_update}}
+  defp increment_value(val, _limit), do: {:commit, val + 1}
 
   defp incorporate_conn_info(settings, %{assigns: %{user: %User{id: user_id}}, params: params}) do
     Map.merge(settings, %{
@@ -216,9 +209,9 @@ defmodule Pleroma.Plugs.RateLimiter do
     "#{input}#{param_string}"
   end
 
-  defp initialize_bucket(%{name: _name, limits: nil}), do: :ok
+  defp initialize_buckets(%{name: _name, limits: nil}), do: :ok
 
-  defp initialize_bucket(%{name: name, limits: limits}) do
+  defp initialize_buckets(%{name: name, limits: limits}) do
     LimiterSupervisor.add_limiter(anon_bucket_name(name), get_scale(:anon, limits))
     LimiterSupervisor.add_limiter(user_bucket_name(name), get_scale(:user, limits))
   end
