@@ -12,7 +12,7 @@ defmodule Pleroma.Plugs.RateLimiter.LimiterSupervisor do
       DynamicSupervisor.start_child(
         __MODULE__,
         %{
-          id: limiter_name,
+          id: String.to_atom("rl_#{limiter_name}"),
           start:
             {Cachex, :start_link,
              [
