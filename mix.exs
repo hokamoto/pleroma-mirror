@@ -95,6 +95,10 @@ defmodule Pleroma.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      # credo:disable-for-next-line Credo.Check.Readability.MaxLineLength
+      # Locked `fast_sanitize` to 0.1.0 since 0.1.1 forces `fast_html` 0.99 which won't compile on macOS
+      {:fast_sanitize, "0.1.0"},
+      {:fast_html, "~> 0.9.0"},
       {:phoenix, "~> 1.4.8"},
       {:tzdata, "~> 0.5.21"},
       {:plug_cowboy, "~> 2.0"},
@@ -108,7 +112,6 @@ defmodule Pleroma.Mixfile do
       {:comeonin, "~> 4.1.1"},
       {:pbkdf2_elixir, "~> 0.12.3"},
       {:trailing_format_plug, "~> 0.0.7"},
-      {:fast_sanitize, "~> 0.1"},
       {:html_entities, "~> 0.5", override: true},
       {:phoenix_html, "~> 2.10"},
       {:calendar, "~> 0.17.4"},
