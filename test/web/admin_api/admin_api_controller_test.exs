@@ -14,6 +14,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
   alias Pleroma.UserInviteToken
+  alias Pleroma.Web.ActivityPub.Relay
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.MediaProxy
 
@@ -1042,6 +1043,32 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                    "tags" => [],
                    "avatar" => User.avatar_url(user) |> MediaProxy.url(),
                    "display_name" => HTML.strip_tags(user.name || user.nickname)
+                 }
+               ]
+             }
+    end
+
+    test "it omits relay user", %{admin: admin} do
+      assert %User{} = Relay.get_actor()
+
+      conn =
+        build_conn()
+        |> assign(:user, admin)
+        |> get("/api/pleroma/admin/users")
+
+      assert json_response(conn, 200) == %{
+               "count" => 1,
+               "page_size" => 50,
+               "users" => [
+                 %{
+                   "deactivated" => admin.deactivated,
+                   "id" => admin.id,
+                   "nickname" => admin.nickname,
+                   "roles" => %{"admin" => true, "moderator" => false},
+                   "local" => true,
+                   "tags" => [],
+                   "avatar" => User.avatar_url(admin) |> MediaProxy.url(),
+                   "display_name" => HTML.strip_tags(admin.name || admin.nickname)
                  }
                ]
              }
@@ -2577,7 +2604,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       conn =
         build_conn()
         |> assign(:user, admin)
-        |> patch("/api/pleroma/admin/users/#{user.nickname}/force_password_reset")
+        |> patch("/api/pleroma/admin/users/force_password_reset", %{nicknames: [user.nickname]})
 
       assert json_response(conn, 204) == ""
 
@@ -2611,22 +2638,20 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "GET /relay", %{admin: admin} do
-      Pleroma.Web.ActivityPub.Relay.get_actor()
-      |> Ecto.Changeset.change(
-        following: [
-          "http://test-app.com/user/test1",
-          "http://test-app.com/user/test1",
-          "http://test-app-42.com/user/test1"
-        ]
-      )
-      |> Pleroma.User.update_and_set_cache()
+      relay_user = Pleroma.Web.ActivityPub.Relay.get_actor()
+
+      ["http://mastodon.example.org/users/admin", "https://mstdn.io/users/mayuutann"]
+      |> Enum.each(fn ap_id ->
+        {:ok, user} = User.get_or_fetch_by_ap_id(ap_id)
+        User.follow(relay_user, user)
+      end)
 
       conn =
         build_conn()
         |> assign(:user, admin)
         |> get("/api/pleroma/admin/relay")
 
-      assert json_response(conn, 200)["relays"] -- ["test-app.com", "test-app-42.com"] == []
+      assert json_response(conn, 200)["relays"] -- ["mastodon.example.org", "mstdn.io"] == []
     end
 
     test "DELETE /relay", %{admin: admin} do

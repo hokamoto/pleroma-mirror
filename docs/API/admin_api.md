@@ -391,13 +391,13 @@ Note: Available `:permission_group` is currently moderator and admin. 404 is ret
 }
 ```
 
-
-## `/api/pleroma/admin/users/:nickname/force_password_reset`
+## `/api/pleroma/admin/users/force_password_reset`
 
 ### Force passord reset for a user with a given nickname
 
 - Methods: `PATCH`
-- Params: none
+- Params:
+  - `nicknames`
 - Response: none (code `204`)
 
 ## `/api/pleroma/admin/users/disable_mfa`
