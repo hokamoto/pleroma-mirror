@@ -798,6 +798,14 @@ config :auto_linker,
   ]
 ```
 
+## :static_fe
+
+Render profiles and posts using server-generated HTML that is viewable without using JavaScript.
+
+Available options:
+
+* `enabled` - Enables the rendering of static HTML. Defaults to `false`.
+
 ### Multi-factor authentication -  :two_factor_authentication
 * `totp` - a list containing TOTP configuration
   - `digits` - Determines the length of a one-time pass-code, in characters. Defaults to 6 characters.
