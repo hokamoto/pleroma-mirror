@@ -274,7 +274,7 @@ config :pleroma, :instance,
   account_field_name_length: 512,
   account_field_value_length: 2048,
   external_user_synchronization: true,
-  extended_nickname_format: false,
+  extended_nickname_format: true,
   multi_factor_authentication: [
     totp: [
       # digits 6 or 8
