@@ -7,11 +7,71 @@ defmodule Pleroma.Web.PleromaAPI.PleromaAPIControllerTest do
 
   alias Pleroma.Conversation.Participation
   alias Pleroma.Notification
+  alias Pleroma.Object
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
 
   import Pleroma.Factory
+
+  test "POST /api/v1/pleroma/statuses/:id/react_with_emoji", %{conn: conn} do
+    user = insert(:user)
+    other_user = insert(:user)
+
+    {:ok, activity} = CommonAPI.post(user, %{"status" => "#cofe"})
+
+    result =
+      conn
+      |> assign(:user, other_user)
+      |> post("/api/v1/pleroma/statuses/#{activity.id}/react_with_emoji", %{"emoji" => "☕"})
+
+    assert %{"id" => id} = json_response(result, 200)
+    assert to_string(activity.id) == id
+  end
+
+  test "POST /api/v1/pleroma/statuses/:id/unreact_with_emoji", %{conn: conn} do
+    user = insert(:user)
+    other_user = insert(:user)
+
+    {:ok, activity} = CommonAPI.post(user, %{"status" => "#cofe"})
+    {:ok, activity, _object} = CommonAPI.react_with_emoji(activity.id, other_user, "☕")
+
+    result =
+      conn
+      |> assign(:user, other_user)
+      |> post("/api/v1/pleroma/statuses/#{activity.id}/unreact_with_emoji", %{"emoji" => "☕"})
+
+    assert %{"id" => id} = json_response(result, 200)
+    assert to_string(activity.id) == id
+
+    object = Object.normalize(activity)
+
+    assert object.data["reaction_count"] == 0
+  end
+
+  test "GET /api/v1/pleroma/statuses/:id/emoji_reactions_by", %{conn: conn} do
+    user = insert(:user)
+    other_user = insert(:user)
+
+    {:ok, activity} = CommonAPI.post(user, %{"status" => "#cofe"})
+
+    result =
+      conn
+      |> get("/api/v1/pleroma/statuses/#{activity.id}/emoji_reactions_by")
+      |> json_response(200)
+
+    assert result == %{}
+
+    {:ok, _, _} = CommonAPI.react_with_emoji(activity.id, other_user, "🎅")
+
+    result =
+      conn
+      |> get("/api/v1/pleroma/statuses/#{activity.id}/emoji_reactions_by")
+      |> json_response(200)
+
+    [represented_user] = result["🎅"]
+    assert represented_user["id"] == other_user.id
+  end
 
   test "/api/v1/pleroma/conversations/:id", %{conn: conn} do
     user = insert(:user)
@@ -108,7 +168,7 @@ defmodule Pleroma.Web.PleromaAPI.PleromaAPIControllerTest do
     [participation2, participation1] = Participation.for_user(other_user)
     assert Participation.get(participation2.id).read == false
     assert Participation.get(participation1.id).read == false
-    assert User.get_cached_by_id(other_user.id).info.unread_conversation_count == 2
+    assert User.get_cached_by_id(other_user.id).unread_conversation_count == 2
 
     [%{"unread" => false}, %{"unread" => false}] =
       conn
@@ -119,7 +179,7 @@ defmodule Pleroma.Web.PleromaAPI.PleromaAPIControllerTest do
     [participation2, participation1] = Participation.for_user(other_user)
     assert Participation.get(participation2.id).read == true
     assert Participation.get(participation1.id).read == true
-    assert User.get_cached_by_id(other_user.id).info.unread_conversation_count == 0
+    assert User.get_cached_by_id(other_user.id).unread_conversation_count == 0
   end
 
   describe "POST /api/v1/pleroma/notifications/read" do

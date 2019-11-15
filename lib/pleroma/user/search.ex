@@ -54,15 +54,7 @@ defmodule Pleroma.User.Search do
     |> maybe_restrict_local(for_user)
   end
 
-  @nickname_regex ~r/^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~\-@]+$/
   defp fts_search(query, query_string) do
-    {nickname_weight, name_weight} =
-      if String.match?(query_string, @nickname_regex) do
-        {"A", "B"}
-      else
-        {"B", "A"}
-      end
-
     query_string = to_tsquery(query_string)
 
     from(
@@ -70,12 +62,10 @@ defmodule Pleroma.User.Search do
       where:
         fragment(
           """
-          (setweight(to_tsvector('simple', ?), ?) || setweight(to_tsvector('simple', ?), ?)) @@ to_tsquery('simple', ?)
+          (to_tsvector('simple', ?) || to_tsvector('simple', ?)) @@ to_tsquery('simple', ?)
           """,
           u.name,
-          ^name_weight,
           u.nickname,
-          ^nickname_weight,
           ^query_string
         )
     )
@@ -108,14 +98,14 @@ defmodule Pleroma.User.Search do
   defp base_query(_user, false), do: User
   defp base_query(user, true), do: User.get_followers_query(user)
 
-  defp filter_blocked_user(query, %User{info: %{blocks: blocks}})
+  defp filter_blocked_user(query, %User{blocks: blocks})
        when length(blocks) > 0 do
     from(q in query, where: not (q.ap_id in ^blocks))
   end
 
   defp filter_blocked_user(query, _), do: query
 
-  defp filter_blocked_domains(query, %User{info: %{domain_blocks: domain_blocks}})
+  defp filter_blocked_domains(query, %User{domain_blocks: domain_blocks})
        when length(domain_blocks) > 0 do
     domains = Enum.join(domain_blocks, ",")
 

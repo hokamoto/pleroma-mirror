@@ -38,7 +38,8 @@ defmodule Pleroma.Object.Fetcher do
          data <- maybe_reinject_internal_fields(data, struct),
          changeset <- Object.change(struct, %{data: data}),
          changeset <- touch_changeset(changeset),
-         {:ok, object} <- Repo.insert_or_update(changeset) do
+         {:ok, object} <- Repo.insert_or_update(changeset),
+         {:ok, object} <- Object.set_cache(object) do
       {:ok, object}
     else
       e ->
@@ -53,7 +54,7 @@ defmodule Pleroma.Object.Fetcher do
          {:ok, object} <- reinject_object(object, data) do
       {:ok, object}
     else
-      {:local, true} -> object
+      {:local, true} -> {:ok, object}
       e -> {:error, e}
     end
   end
@@ -90,6 +91,9 @@ defmodule Pleroma.Object.Fetcher do
       {:fetch_object, %Object{} = object} ->
         {:ok, object}
 
+      {:fetch, {:error, error}} ->
+        {:error, error}
+
       e ->
         e
     end
@@ -110,6 +114,9 @@ defmodule Pleroma.Object.Fetcher do
     with {:ok, object} <- fetch_object_from_id(id, options) do
       object
     else
+      {:error, %Tesla.Mock.Error{}} ->
+        nil
+
       e ->
         Logger.error("Error while fetching #{id}: #{inspect(e)}")
         nil
@@ -169,6 +176,9 @@ defmodule Pleroma.Object.Fetcher do
 
       {:scheme, _} ->
         {:error, "Unsupported URI scheme"}
+
+      {:error, e} ->
+        {:error, e}
 
       e ->
         {:error, e}

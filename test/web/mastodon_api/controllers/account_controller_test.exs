@@ -269,7 +269,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
 
     test "getting followers, hide_followers", %{conn: conn} do
       user = insert(:user)
-      other_user = insert(:user, %{info: %{hide_followers: true}})
+      other_user = insert(:user, hide_followers: true)
       {:ok, _user} = User.follow(user, other_user)
 
       conn =
@@ -281,7 +281,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
 
     test "getting followers, hide_followers, same user requesting", %{conn: conn} do
       user = insert(:user)
-      other_user = insert(:user, %{info: %{hide_followers: true}})
+      other_user = insert(:user, hide_followers: true)
       {:ok, _user} = User.follow(user, other_user)
 
       conn =
@@ -349,7 +349,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     end
 
     test "getting following, hide_follows", %{conn: conn} do
-      user = insert(:user, %{info: %{hide_follows: true}})
+      user = insert(:user, hide_follows: true)
       other_user = insert(:user)
       {:ok, user} = User.follow(user, other_user)
 
@@ -361,7 +361,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     end
 
     test "getting following, hide_follows, same user requesting", %{conn: conn} do
-      user = insert(:user, %{info: %{hide_follows: true}})
+      user = insert(:user, hide_follows: true)
       other_user = insert(:user)
       {:ok, user} = User.follow(user, other_user)
 
@@ -471,7 +471,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
 
       conn =
         build_conn()
-        |> assign(:user, follower)
+        |> assign(:user, User.get_cached_by_id(follower.id))
         |> post("/api/v1/accounts/#{followed.id}/follow?reblogs=true")
 
       assert %{"showing_reblogs" => true} = json_response(conn, 200)
@@ -683,7 +683,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
       token_from_db = Repo.preload(token_from_db, :user)
       assert token_from_db.user
 
-      assert token_from_db.user.info.confirmation_pending
+      assert token_from_db.user.confirmation_pending
     end
 
     test "returns error when user already registred", %{conn: conn, valid_params: valid_params} do
@@ -727,7 +727,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
         token_from_db = Repo.preload(token_from_db, :user)
         assert token_from_db.user
 
-        assert token_from_db.user.info.confirmation_pending
+        assert token_from_db.user.confirmation_pending
       end
 
       conn =
@@ -812,7 +812,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     end
 
     test "verify_credentials default scope unlisted", %{conn: conn} do
-      user = insert(:user, %{info: %User.Info{default_scope: "unlisted"}})
+      user = insert(:user, default_scope: "unlisted")
 
       conn =
         conn
@@ -824,7 +824,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     end
 
     test "locked accounts", %{conn: conn} do
-      user = insert(:user, %{info: %User.Info{default_scope: "private"}})
+      user = insert(:user, default_scope: "private")
 
       conn =
         conn

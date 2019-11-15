@@ -13,6 +13,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
   alias Pleroma.UserInviteToken
+  alias Pleroma.Web.ActivityPub.Relay
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.MediaProxy
   import Pleroma.Factory
@@ -25,7 +26,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "DELETE /api/pleroma/admin/users" do
     test "single user" do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       user = insert(:user)
 
       conn =
@@ -43,7 +44,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "multiple users" do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       user_one = insert(:user)
       user_two = insert(:user)
 
@@ -67,7 +68,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "/api/pleroma/admin/users" do
     test "Create" do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
 
       conn =
         build_conn()
@@ -97,7 +98,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "Cannot create user with exisiting email" do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       user = insert(:user)
 
       conn =
@@ -128,7 +129,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "Cannot create user with exisiting nickname" do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       user = insert(:user)
 
       conn =
@@ -159,7 +160,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "Multiple user creation works in transaction" do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       user = insert(:user)
 
       conn =
@@ -208,7 +209,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "/api/pleroma/admin/users/:nickname" do
     test "Show", %{conn: conn} do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       user = insert(:user)
 
       conn =
@@ -231,7 +232,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "when the user doesn't exist", %{conn: conn} do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       user = build(:user)
 
       conn =
@@ -245,7 +246,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "/api/pleroma/admin/users/follow" do
     test "allows to force-follow another user" do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       user = insert(:user)
       follower = insert(:user)
 
@@ -271,7 +272,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "/api/pleroma/admin/users/unfollow" do
     test "allows to force-unfollow another user" do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       user = insert(:user)
       follower = insert(:user)
 
@@ -299,7 +300,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "PUT /api/pleroma/admin/users/tag" do
     setup do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       user1 = insert(:user, %{tags: ["x"]})
       user2 = insert(:user, %{tags: ["y"]})
       user3 = insert(:user, %{tags: ["unchanged"]})
@@ -348,7 +349,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "DELETE /api/pleroma/admin/users/tag" do
     setup do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       user1 = insert(:user, %{tags: ["x"]})
       user2 = insert(:user, %{tags: ["y", "z"]})
       user3 = insert(:user, %{tags: ["unchanged"]})
@@ -397,7 +398,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "/api/pleroma/admin/users/:nickname/permission_group" do
     test "GET is giving user_info" do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
 
       conn =
         build_conn()
@@ -412,7 +413,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "/:right POST, can add to a permission group" do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       user = insert(:user)
 
       conn =
@@ -432,7 +433,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "/:right POST, can add to a permission group (multiple)" do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       user_one = insert(:user)
       user_two = insert(:user)
 
@@ -455,8 +456,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "/:right DELETE, can remove from a permission group" do
-      admin = insert(:user, info: %{is_admin: true})
-      user = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
+      user = insert(:user, is_admin: true)
 
       conn =
         build_conn()
@@ -475,9 +476,9 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "/:right DELETE, can remove from a permission group (multiple)" do
-      admin = insert(:user, info: %{is_admin: true})
-      user_one = insert(:user, info: %{is_admin: true})
-      user_two = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
+      user_one = insert(:user, is_admin: true)
+      user_two = insert(:user, is_admin: true)
 
       conn =
         build_conn()
@@ -502,7 +503,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "POST /api/pleroma/admin/email_invite, with valid config" do
     setup do
-      [user: insert(:user, info: %{is_admin: true})]
+      [user: insert(:user, is_admin: true)]
     end
 
     clear_config([:instance, :registrations_open]) do
@@ -562,7 +563,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "POST /api/pleroma/admin/users/email_invite, with invalid config" do
     setup do
-      [user: insert(:user, info: %{is_admin: true})]
+      [user: insert(:user, is_admin: true)]
     end
 
     clear_config([:instance, :registrations_open])
@@ -594,7 +595,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
   end
 
   test "/api/pleroma/admin/users/:nickname/password_reset" do
-    admin = insert(:user, info: %{is_admin: true})
+    admin = insert(:user, is_admin: true)
     user = insert(:user)
 
     conn =
@@ -610,7 +611,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "GET /api/pleroma/admin/users" do
     setup do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
 
       conn =
         build_conn()
@@ -626,7 +627,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       users =
         [
           %{
-            "deactivated" => admin.info.deactivated,
+            "deactivated" => admin.deactivated,
             "id" => admin.id,
             "nickname" => admin.nickname,
             "roles" => %{"admin" => true, "moderator" => false},
@@ -636,7 +637,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
             "display_name" => HTML.strip_tags(admin.name || admin.nickname)
           },
           %{
-            "deactivated" => user.info.deactivated,
+            "deactivated" => user.deactivated,
             "id" => user.id,
             "nickname" => user.nickname,
             "roles" => %{"admin" => false, "moderator" => false},
@@ -677,7 +678,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                "page_size" => 50,
                "users" => [
                  %{
-                   "deactivated" => user.info.deactivated,
+                   "deactivated" => user.deactivated,
                    "id" => user.id,
                    "nickname" => user.nickname,
                    "roles" => %{"admin" => false, "moderator" => false},
@@ -701,7 +702,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                "page_size" => 50,
                "users" => [
                  %{
-                   "deactivated" => user.info.deactivated,
+                   "deactivated" => user.deactivated,
                    "id" => user.id,
                    "nickname" => user.nickname,
                    "roles" => %{"admin" => false, "moderator" => false},
@@ -725,7 +726,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                "page_size" => 50,
                "users" => [
                  %{
-                   "deactivated" => user.info.deactivated,
+                   "deactivated" => user.deactivated,
                    "id" => user.id,
                    "nickname" => user.nickname,
                    "roles" => %{"admin" => false, "moderator" => false},
@@ -749,7 +750,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                "page_size" => 50,
                "users" => [
                  %{
-                   "deactivated" => user.info.deactivated,
+                   "deactivated" => user.deactivated,
                    "id" => user.id,
                    "nickname" => user.nickname,
                    "roles" => %{"admin" => false, "moderator" => false},
@@ -773,7 +774,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                "page_size" => 50,
                "users" => [
                  %{
-                   "deactivated" => user.info.deactivated,
+                   "deactivated" => user.deactivated,
                    "id" => user.id,
                    "nickname" => user.nickname,
                    "roles" => %{"admin" => false, "moderator" => false},
@@ -797,7 +798,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                "page_size" => 1,
                "users" => [
                  %{
-                   "deactivated" => user.info.deactivated,
+                   "deactivated" => user.deactivated,
                    "id" => user.id,
                    "nickname" => user.nickname,
                    "roles" => %{"admin" => false, "moderator" => false},
@@ -816,7 +817,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                "page_size" => 1,
                "users" => [
                  %{
-                   "deactivated" => user2.info.deactivated,
+                   "deactivated" => user2.deactivated,
                    "id" => user2.id,
                    "nickname" => user2.nickname,
                    "roles" => %{"admin" => false, "moderator" => false},
@@ -830,7 +831,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "only local users" do
-      admin = insert(:user, info: %{is_admin: true}, nickname: "john")
+      admin = insert(:user, is_admin: true, nickname: "john")
       user = insert(:user, nickname: "bob")
 
       insert(:user, nickname: "bobb", local: false)
@@ -845,7 +846,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                "page_size" => 50,
                "users" => [
                  %{
-                   "deactivated" => user.info.deactivated,
+                   "deactivated" => user.deactivated,
                    "id" => user.id,
                    "nickname" => user.nickname,
                    "roles" => %{"admin" => false, "moderator" => false},
@@ -859,7 +860,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "only local users with no query", %{admin: old_admin} do
-      admin = insert(:user, info: %{is_admin: true}, nickname: "john")
+      admin = insert(:user, is_admin: true, nickname: "john")
       user = insert(:user, nickname: "bob")
 
       insert(:user, nickname: "bobb", local: false)
@@ -872,7 +873,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
       users =
         [
           %{
-            "deactivated" => user.info.deactivated,
+            "deactivated" => user.deactivated,
             "id" => user.id,
             "nickname" => user.nickname,
             "roles" => %{"admin" => false, "moderator" => false},
@@ -882,7 +883,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
             "display_name" => HTML.strip_tags(user.name || user.nickname)
           },
           %{
-            "deactivated" => admin.info.deactivated,
+            "deactivated" => admin.deactivated,
             "id" => admin.id,
             "nickname" => admin.nickname,
             "roles" => %{"admin" => true, "moderator" => false},
@@ -912,7 +913,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "load only admins", %{conn: conn, admin: admin} do
-      second_admin = insert(:user, info: %{is_admin: true})
+      second_admin = insert(:user, is_admin: true)
       insert(:user)
       insert(:user)
 
@@ -951,7 +952,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "load only moderators", %{conn: conn} do
-      moderator = insert(:user, info: %{is_moderator: true})
+      moderator = insert(:user, is_moderator: true)
       insert(:user)
       insert(:user)
 
@@ -1016,11 +1017,11 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "it works with multiple filters" do
-      admin = insert(:user, nickname: "john", info: %{is_admin: true})
-      user = insert(:user, nickname: "bob", local: false, info: %{deactivated: true})
+      admin = insert(:user, nickname: "john", is_admin: true)
+      user = insert(:user, nickname: "bob", local: false, deactivated: true)
 
-      insert(:user, nickname: "ken", local: true, info: %{deactivated: true})
-      insert(:user, nickname: "bobb", local: false, info: %{deactivated: false})
+      insert(:user, nickname: "ken", local: true, deactivated: true)
+      insert(:user, nickname: "bobb", local: false, deactivated: false)
 
       conn =
         build_conn()
@@ -1032,7 +1033,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                "page_size" => 50,
                "users" => [
                  %{
-                   "deactivated" => user.info.deactivated,
+                   "deactivated" => user.deactivated,
                    "id" => user.id,
                    "nickname" => user.nickname,
                    "roles" => %{"admin" => false, "moderator" => false},
@@ -1044,12 +1045,38 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                ]
              }
     end
+
+    test "it omits relay user", %{admin: admin} do
+      assert %User{} = Relay.get_actor()
+
+      conn =
+        build_conn()
+        |> assign(:user, admin)
+        |> get("/api/pleroma/admin/users")
+
+      assert json_response(conn, 200) == %{
+               "count" => 1,
+               "page_size" => 50,
+               "users" => [
+                 %{
+                   "deactivated" => admin.deactivated,
+                   "id" => admin.id,
+                   "nickname" => admin.nickname,
+                   "roles" => %{"admin" => true, "moderator" => false},
+                   "local" => true,
+                   "tags" => [],
+                   "avatar" => User.avatar_url(admin) |> MediaProxy.url(),
+                   "display_name" => HTML.strip_tags(admin.name || admin.nickname)
+                 }
+               ]
+             }
+    end
   end
 
   test "PATCH /api/pleroma/admin/users/activate" do
-    admin = insert(:user, info: %{is_admin: true})
-    user_one = insert(:user, info: %{deactivated: true})
-    user_two = insert(:user, info: %{deactivated: true})
+    admin = insert(:user, is_admin: true)
+    user_one = insert(:user, deactivated: true)
+    user_two = insert(:user, deactivated: true)
 
     conn =
       build_conn()
@@ -1069,9 +1096,9 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
   end
 
   test "PATCH /api/pleroma/admin/users/deactivate" do
-    admin = insert(:user, info: %{is_admin: true})
-    user_one = insert(:user, info: %{deactivated: false})
-    user_two = insert(:user, info: %{deactivated: false})
+    admin = insert(:user, is_admin: true)
+    user_one = insert(:user, deactivated: false)
+    user_two = insert(:user, deactivated: false)
 
     conn =
       build_conn()
@@ -1091,7 +1118,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
   end
 
   test "PATCH /api/pleroma/admin/users/:nickname/toggle_activation" do
-    admin = insert(:user, info: %{is_admin: true})
+    admin = insert(:user, is_admin: true)
     user = insert(:user)
 
     conn =
@@ -1101,7 +1128,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
     assert json_response(conn, 200) ==
              %{
-               "deactivated" => !user.info.deactivated,
+               "deactivated" => !user.deactivated,
                "id" => user.id,
                "nickname" => user.nickname,
                "roles" => %{"admin" => false, "moderator" => false},
@@ -1119,7 +1146,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "POST /api/pleroma/admin/users/invite_token" do
     setup do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
 
       conn =
         build_conn()
@@ -1183,7 +1210,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "GET /api/pleroma/admin/users/invites" do
     setup do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
 
       conn =
         build_conn()
@@ -1221,7 +1248,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "POST /api/pleroma/admin/users/revoke_invite" do
     test "with token" do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       {:ok, invite} = UserInviteToken.create_invite()
 
       conn =
@@ -1241,7 +1268,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "with invalid token" do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
 
       conn =
         build_conn()
@@ -1254,7 +1281,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "GET /api/pleroma/admin/reports/:id" do
     setup %{conn: conn} do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
 
       %{conn: assign(conn, :user, admin)}
     end
@@ -1285,9 +1312,9 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
   end
 
-  describe "PUT /api/pleroma/admin/reports/:id" do
+  describe "PATCH /api/pleroma/admin/reports" do
     setup %{conn: conn} do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       [reporter, target_user] = insert_pair(:user)
       activity = insert(:note_activity, user: target_user)
 
@@ -1298,16 +1325,32 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
           "status_ids" => [activity.id]
         })
 
-      %{conn: assign(conn, :user, admin), id: report_id, admin: admin}
+      {:ok, %{id: second_report_id}} =
+        CommonAPI.report(reporter, %{
+          "account_id" => target_user.id,
+          "comment" => "I feel very offended",
+          "status_ids" => [activity.id]
+        })
+
+      %{
+        conn: assign(conn, :user, admin),
+        id: report_id,
+        admin: admin,
+        second_report_id: second_report_id
+      }
     end
 
     test "mark report as resolved", %{conn: conn, id: id, admin: admin} do
-      response =
-        conn
-        |> put("/api/pleroma/admin/reports/#{id}", %{"state" => "resolved"})
-        |> json_response(:ok)
+      conn
+      |> patch("/api/pleroma/admin/reports", %{
+        "reports" => [
+          %{"state" => "resolved", "id" => id}
+        ]
+      })
+      |> json_response(:no_content)
 
-      assert response["state"] == "resolved"
+      activity = Activity.get_by_id(id)
+      assert activity.data["state"] == "resolved"
 
       log_entry = Repo.one(ModerationLog)
 
@@ -1316,12 +1359,16 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "closes report", %{conn: conn, id: id, admin: admin} do
-      response =
-        conn
-        |> put("/api/pleroma/admin/reports/#{id}", %{"state" => "closed"})
-        |> json_response(:ok)
+      conn
+      |> patch("/api/pleroma/admin/reports", %{
+        "reports" => [
+          %{"state" => "closed", "id" => id}
+        ]
+      })
+      |> json_response(:no_content)
 
-      assert response["state"] == "closed"
+      activity = Activity.get_by_id(id)
+      assert activity.data["state"] == "closed"
 
       log_entry = Repo.one(ModerationLog)
 
@@ -1332,23 +1379,60 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     test "returns 400 when state is unknown", %{conn: conn, id: id} do
       conn =
         conn
-        |> put("/api/pleroma/admin/reports/#{id}", %{"state" => "test"})
+        |> patch("/api/pleroma/admin/reports", %{
+          "reports" => [
+            %{"state" => "test", "id" => id}
+          ]
+        })
 
-      assert json_response(conn, :bad_request) == "Unsupported state"
+      assert hd(json_response(conn, :bad_request))["error"] == "Unsupported state"
     end
 
     test "returns 404 when report is not exist", %{conn: conn} do
       conn =
         conn
-        |> put("/api/pleroma/admin/reports/test", %{"state" => "closed"})
+        |> patch("/api/pleroma/admin/reports", %{
+          "reports" => [
+            %{"state" => "closed", "id" => "test"}
+          ]
+        })
 
-      assert json_response(conn, :not_found) == "Not found"
+      assert hd(json_response(conn, :bad_request))["error"] == "not_found"
+    end
+
+    test "updates state of multiple reports", %{
+      conn: conn,
+      id: id,
+      admin: admin,
+      second_report_id: second_report_id
+    } do
+      conn
+      |> patch("/api/pleroma/admin/reports", %{
+        "reports" => [
+          %{"state" => "resolved", "id" => id},
+          %{"state" => "closed", "id" => second_report_id}
+        ]
+      })
+      |> json_response(:no_content)
+
+      activity = Activity.get_by_id(id)
+      second_activity = Activity.get_by_id(second_report_id)
+      assert activity.data["state"] == "resolved"
+      assert second_activity.data["state"] == "closed"
+
+      [first_log_entry, second_log_entry] = Repo.all(ModerationLog)
+
+      assert ModerationLog.get_log_entry_message(first_log_entry) ==
+               "@#{admin.nickname} updated report ##{id} with 'resolved' state"
+
+      assert ModerationLog.get_log_entry_message(second_log_entry) ==
+               "@#{admin.nickname} updated report ##{second_report_id} with 'closed' state"
     end
   end
 
   describe "GET /api/pleroma/admin/reports" do
     setup %{conn: conn} do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
 
       %{conn: assign(conn, :user, admin)}
     end
@@ -1465,10 +1549,148 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
   end
 
-  #
+  describe "GET /api/pleroma/admin/grouped_reports" do
+    setup %{conn: conn} do
+      admin = insert(:user, is_admin: true)
+      [reporter, target_user] = insert_pair(:user)
+
+      date1 = (DateTime.to_unix(DateTime.utc_now()) + 1000) |> DateTime.from_unix!()
+      date2 = (DateTime.to_unix(DateTime.utc_now()) + 2000) |> DateTime.from_unix!()
+      date3 = (DateTime.to_unix(DateTime.utc_now()) + 3000) |> DateTime.from_unix!()
+
+      first_status =
+        insert(:note_activity, user: target_user, data_attrs: %{"published" => date1})
+
+      second_status =
+        insert(:note_activity, user: target_user, data_attrs: %{"published" => date2})
+
+      third_status =
+        insert(:note_activity, user: target_user, data_attrs: %{"published" => date3})
+
+      {:ok, first_report} =
+        CommonAPI.report(reporter, %{
+          "account_id" => target_user.id,
+          "status_ids" => [first_status.id, second_status.id, third_status.id]
+        })
+
+      {:ok, second_report} =
+        CommonAPI.report(reporter, %{
+          "account_id" => target_user.id,
+          "status_ids" => [first_status.id, second_status.id]
+        })
+
+      {:ok, third_report} =
+        CommonAPI.report(reporter, %{
+          "account_id" => target_user.id,
+          "status_ids" => [first_status.id]
+        })
+
+      %{
+        conn: assign(conn, :user, admin),
+        first_status: Activity.get_by_ap_id_with_object(first_status.data["id"]),
+        second_status: Activity.get_by_ap_id_with_object(second_status.data["id"]),
+        third_status: Activity.get_by_ap_id_with_object(third_status.data["id"]),
+        first_status_reports: [first_report, second_report, third_report],
+        second_status_reports: [first_report, second_report],
+        third_status_reports: [first_report],
+        target_user: target_user,
+        reporter: reporter
+      }
+    end
+
+    test "returns reports grouped by status", %{
+      conn: conn,
+      first_status: first_status,
+      second_status: second_status,
+      third_status: third_status,
+      first_status_reports: first_status_reports,
+      second_status_reports: second_status_reports,
+      third_status_reports: third_status_reports,
+      target_user: target_user,
+      reporter: reporter
+    } do
+      response =
+        conn
+        |> get("/api/pleroma/admin/grouped_reports")
+        |> json_response(:ok)
+
+      assert length(response["reports"]) == 3
+
+      first_group =
+        Enum.find(response["reports"], &(&1["status"]["id"] == first_status.data["id"]))
+
+      second_group =
+        Enum.find(response["reports"], &(&1["status"]["id"] == second_status.data["id"]))
+
+      third_group =
+        Enum.find(response["reports"], &(&1["status"]["id"] == third_status.data["id"]))
+
+      assert length(first_group["reports"]) == 3
+      assert length(second_group["reports"]) == 2
+      assert length(third_group["reports"]) == 1
+
+      assert first_group["date"] ==
+               Enum.max_by(first_status_reports, fn act ->
+                 NaiveDateTime.from_iso8601!(act.data["published"])
+               end).data["published"]
+
+      assert first_group["status"] == %{
+               "id" => first_status.data["id"],
+               "content" => first_status.object.data["content"],
+               "published" => first_status.object.data["published"]
+             }
+
+      assert first_group["account"]["id"] == target_user.id
+
+      assert length(first_group["actors"]) == 1
+      assert hd(first_group["actors"])["id"] == reporter.id
+
+      assert Enum.map(first_group["reports"], & &1["id"]) --
+               Enum.map(first_status_reports, & &1.id) == []
+
+      assert second_group["date"] ==
+               Enum.max_by(second_status_reports, fn act ->
+                 NaiveDateTime.from_iso8601!(act.data["published"])
+               end).data["published"]
+
+      assert second_group["status"] == %{
+               "id" => second_status.data["id"],
+               "content" => second_status.object.data["content"],
+               "published" => second_status.object.data["published"]
+             }
+
+      assert second_group["account"]["id"] == target_user.id
+
+      assert length(second_group["actors"]) == 1
+      assert hd(second_group["actors"])["id"] == reporter.id
+
+      assert Enum.map(second_group["reports"], & &1["id"]) --
+               Enum.map(second_status_reports, & &1.id) == []
+
+      assert third_group["date"] ==
+               Enum.max_by(third_status_reports, fn act ->
+                 NaiveDateTime.from_iso8601!(act.data["published"])
+               end).data["published"]
+
+      assert third_group["status"] == %{
+               "id" => third_status.data["id"],
+               "content" => third_status.object.data["content"],
+               "published" => third_status.object.data["published"]
+             }
+
+      assert third_group["account"]["id"] == target_user.id
+
+      assert length(third_group["actors"]) == 1
+      assert hd(third_group["actors"])["id"] == reporter.id
+
+      assert Enum.map(third_group["reports"], & &1["id"]) --
+               Enum.map(third_status_reports, & &1.id) == []
+    end
+  end
+
   describe "POST /api/pleroma/admin/reports/:id/respond" do
     setup %{conn: conn} do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
 
       %{conn: assign(conn, :user, admin), admin: admin}
     end
@@ -1523,7 +1745,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "PUT /api/pleroma/admin/statuses/:id" do
     setup %{conn: conn} do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       activity = insert(:note_activity)
 
       %{conn: assign(conn, :user, admin), id: activity.id, admin: admin}
@@ -1589,7 +1811,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "DELETE /api/pleroma/admin/statuses/:id" do
     setup %{conn: conn} do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       activity = insert(:note_activity)
 
       %{conn: assign(conn, :user, admin), id: activity.id, admin: admin}
@@ -1619,7 +1841,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "GET /api/pleroma/admin/config" do
     setup %{conn: conn} do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
 
       %{conn: assign(conn, :user, admin)}
     end
@@ -1656,7 +1878,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "POST /api/pleroma/admin/config" do
     setup %{conn: conn} do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
 
       temp_file = "config/test.exported_from_db.secret.exs"
 
@@ -2224,7 +2446,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "config mix tasks run" do
     setup %{conn: conn} do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
 
       temp_file = "config/test.exported_from_db.secret.exs"
 
@@ -2240,6 +2462,10 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
     clear_config([:instance, :dynamic_configuration]) do
       Pleroma.Config.put([:instance, :dynamic_configuration], true)
+    end
+
+    clear_config([:feed, :post_title]) do
+      Pleroma.Config.put([:feed, :post_title], %{max_length: 100, omission: "…"})
     end
 
     test "transfer settings to DB and to file", %{conn: conn, admin: admin} do
@@ -2260,7 +2486,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "GET /api/pleroma/admin/users/:nickname/statuses" do
     setup do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       user = insert(:user)
 
       date1 = (DateTime.to_unix(DateTime.utc_now()) + 2000) |> DateTime.from_unix!()
@@ -2317,8 +2543,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "GET /api/pleroma/admin/moderation_log" do
     setup %{conn: conn} do
-      admin = insert(:user, info: %{is_admin: true})
-      moderator = insert(:user, info: %{is_moderator: true})
+      admin = insert(:user, is_admin: true)
+      moderator = insert(:user, is_moderator: true)
 
       %{conn: assign(conn, :user, admin), admin: admin, moderator: moderator}
     end
@@ -2526,31 +2752,31 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
 
   describe "PATCH /users/:nickname/force_password_reset" do
     setup %{conn: conn} do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
       user = insert(:user)
 
       %{conn: assign(conn, :user, admin), admin: admin, user: user}
     end
 
     test "sets password_reset_pending to true", %{admin: admin, user: user} do
-      assert user.info.password_reset_pending == false
+      assert user.password_reset_pending == false
 
       conn =
         build_conn()
         |> assign(:user, admin)
-        |> patch("/api/pleroma/admin/users/#{user.nickname}/force_password_reset")
+        |> patch("/api/pleroma/admin/users/force_password_reset", %{nicknames: [user.nickname]})
 
       assert json_response(conn, 204) == ""
 
       ObanHelpers.perform_all()
 
-      assert User.get_by_id(user.id).info.password_reset_pending == true
+      assert User.get_by_id(user.id).password_reset_pending == true
     end
   end
 
   describe "relays" do
     setup %{conn: conn} do
-      admin = insert(:user, info: %{is_admin: true})
+      admin = insert(:user, is_admin: true)
 
       %{conn: assign(conn, :user, admin), admin: admin}
     end
@@ -2572,22 +2798,20 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "GET /relay", %{admin: admin} do
-      Pleroma.Web.ActivityPub.Relay.get_actor()
-      |> Ecto.Changeset.change(
-        following: [
-          "http://test-app.com/user/test1",
-          "http://test-app.com/user/test1",
-          "http://test-app-42.com/user/test1"
-        ]
-      )
-      |> Pleroma.User.update_and_set_cache()
+      relay_user = Pleroma.Web.ActivityPub.Relay.get_actor()
+
+      ["http://mastodon.example.org/users/admin", "https://mstdn.io/users/mayuutann"]
+      |> Enum.each(fn ap_id ->
+        {:ok, user} = User.get_or_fetch_by_ap_id(ap_id)
+        User.follow(relay_user, user)
+      end)
 
       conn =
         build_conn()
         |> assign(:user, admin)
         |> get("/api/pleroma/admin/relay")
 
-      assert json_response(conn, 200)["relays"] -- ["test-app.com", "test-app-42.com"] == []
+      assert json_response(conn, 200)["relays"] -- ["mastodon.example.org", "mstdn.io"] == []
     end
 
     test "DELETE /relay", %{admin: admin} do

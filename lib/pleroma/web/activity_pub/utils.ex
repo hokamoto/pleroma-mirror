@@ -11,7 +11,9 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web
+  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Visibility
+  alias Pleroma.Web.AdminAPI.AccountView
   alias Pleroma.Web.Endpoint
   alias Pleroma.Web.Router.Helpers
 
@@ -30,6 +32,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     "Audio",
     "Story"
   ]
+  @strip_status_report_states ~w(closed resolved)
   @supported_report_states ~w(open closed resolved)
   @valid_visibilities ~w(public unlisted private direct)
 
@@ -262,6 +265,16 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     |> Repo.one()
   end
 
+  @doc """
+  Returns like activities targeting an object
+  """
+  def get_object_likes(%{data: %{"id" => id}}) do
+    id
+    |> Activity.Queries.by_object_id()
+    |> Activity.Queries.by_type("Like")
+    |> Repo.all()
+  end
+
   @spec make_like_data(User.t(), map(), String.t()) :: map()
   def make_like_data(
         %User{ap_id: ap_id} = actor,
@@ -293,18 +306,67 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     |> maybe_put("id", activity_id)
   end
 
+  def make_emoji_reaction_data(user, object, emoji, activity_id) do
+    make_like_data(user, object, activity_id)
+    |> Map.put("type", "EmojiReaction")
+    |> Map.put("content", emoji)
+  end
+
   @spec update_element_in_object(String.t(), list(any), Object.t()) ::
           {:ok, Object.t()} | {:error, Ecto.Changeset.t()}
   def update_element_in_object(property, element, object) do
+    length =
+      if is_map(element) do
+        element
+        |> Map.values()
+        |> List.flatten()
+        |> length()
+      else
+        element
+        |> length()
+      end
+
     data =
       Map.merge(
         object.data,
-        %{"#{property}_count" => length(element), "#{property}s" => element}
+        %{"#{property}_count" => length, "#{property}s" => element}
       )
 
     object
     |> Changeset.change(data: data)
     |> Object.update_and_set_cache()
+  end
+
+  @spec add_emoji_reaction_to_object(Activity.t(), Object.t()) ::
+          {:ok, Object.t()} | {:error, Ecto.Changeset.t()}
+
+  def add_emoji_reaction_to_object(
+        %Activity{data: %{"content" => emoji, "actor" => actor}},
+        object
+      ) do
+    reactions = object.data["reactions"] || %{}
+    emoji_actors = reactions[emoji] || []
+    new_emoji_actors = [actor | emoji_actors] |> Enum.uniq()
+    new_reactions = Map.put(reactions, emoji, new_emoji_actors)
+    update_element_in_object("reaction", new_reactions, object)
+  end
+
+  def remove_emoji_reaction_from_object(
+        %Activity{data: %{"content" => emoji, "actor" => actor}},
+        object
+      ) do
+    reactions = object.data["reactions"] || %{}
+    emoji_actors = reactions[emoji] || []
+    new_emoji_actors = List.delete(emoji_actors, actor)
+
+    new_reactions =
+      if new_emoji_actors == [] do
+        Map.delete(reactions, emoji)
+      else
+        Map.put(reactions, emoji, new_emoji_actors)
+      end
+
+    update_element_in_object("reaction", new_reactions, object)
   end
 
   @spec add_like_to_object(Activity.t(), Object.t()) ::
@@ -404,6 +466,19 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     |> Repo.one()
   end
 
+  def get_latest_reaction(internal_activity_id, %{ap_id: ap_id}, emoji) do
+    %{data: %{"object" => object_ap_id}} = Activity.get_by_id(internal_activity_id)
+
+    "EmojiReaction"
+    |> Activity.Queries.by_type()
+    |> where(actor: ^ap_id)
+    |> where([activity], fragment("?->>'content' = ?", activity.data, ^emoji))
+    |> Activity.Queries.by_object_id(object_ap_id)
+    |> order_by([activity], fragment("? desc nulls last", activity.id))
+    |> limit(1)
+    |> Repo.one()
+  end
+
   #### Announce-related helpers
 
   @doc """
@@ -490,6 +565,25 @@ defmodule Pleroma.Web.ActivityPub.Utils do
       "actor" => ap_id,
       "object" => activity.data,
       "to" => [user.follower_address, object.data["actor"]],
+      "cc" => [Pleroma.Constants.as_public()],
+      "context" => context
+    }
+    |> maybe_put("id", activity_id)
+  end
+
+  def make_undo_data(
+        %User{ap_id: actor, follower_address: follower_address},
+        %Activity{
+          data: %{"id" => undone_activity_id, "context" => context},
+          actor: undone_activity_actor
+        },
+        activity_id \\ nil
+      ) do
+    %{
+      "type" => "Undo",
+      "actor" => actor,
+      "object" => undone_activity_id,
+      "to" => [follower_address, undone_activity_actor],
       "cc" => [Pleroma.Constants.as_public()],
       "context" => context
     }
@@ -622,12 +716,31 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   def make_flag_data(_, _), do: %{}
 
   defp build_flag_object(%{account: account, statuses: statuses} = _) do
-    [account.ap_id] ++
-      Enum.map(statuses || [], fn
+    [account.ap_id] ++ build_flag_object(%{statuses: statuses})
+  end
+
+  defp build_flag_object(%{statuses: statuses}) do
+    Enum.map(statuses || [], &build_flag_object/1)
+  end
+
+  defp build_flag_object(act) when is_map(act) or is_binary(act) do
+    id =
+      case act do
         %Activity{} = act -> act.data["id"]
         act when is_map(act) -> act["id"]
         act when is_binary(act) -> act
-      end)
+      end
+
+    activity = Activity.get_by_ap_id_with_object(id)
+    actor = User.get_by_ap_id(activity.object.data["actor"])
+
+    %{
+      "type" => "Note",
+      "id" => activity.data["id"],
+      "content" => activity.object.data["content"],
+      "published" => activity.object.data["published"],
+      "actor" => AccountView.render("show.json", %{user: actor})
+    }
   end
 
   defp build_flag_object(_), do: []
@@ -672,6 +785,108 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   end
 
   #### Report-related helpers
+  def get_reports(params, page, page_size) do
+    params =
+      params
+      |> Map.put("type", "Flag")
+      |> Map.put("skip_preload", true)
+      |> Map.put("total", true)
+      |> Map.put("limit", page_size)
+      |> Map.put("offset", (page - 1) * page_size)
+
+    ActivityPub.fetch_activities([], params, :offset)
+  end
+
+  @spec get_reports_grouped_by_status(%{required(:activity) => String.t()}) :: %{
+          required(:groups) => [
+            %{
+              required(:date) => String.t(),
+              required(:account) => %{},
+              required(:status) => %{},
+              required(:actors) => [%User{}],
+              required(:reports) => [%Activity{}]
+            }
+          ],
+          required(:total) => integer
+        }
+  def get_reports_grouped_by_status(groups) do
+    parsed_groups =
+      groups
+      |> Enum.map(fn entry ->
+        activity =
+          case Jason.decode(entry.activity) do
+            {:ok, activity} -> activity
+            _ -> build_flag_object(entry.activity)
+          end
+
+        parse_report_group(activity)
+      end)
+
+    %{
+      groups: parsed_groups
+    }
+  end
+
+  def parse_report_group(activity) do
+    reports = get_reports_by_status_id(activity["id"])
+    max_date = Enum.max_by(reports, &NaiveDateTime.from_iso8601!(&1.data["published"]))
+    actors = Enum.map(reports, & &1.user_actor)
+
+    %{
+      date: max_date.data["published"],
+      account: activity["actor"],
+      status: %{
+        id: activity["id"],
+        content: activity["content"],
+        published: activity["published"]
+      },
+      actors: Enum.uniq(actors),
+      reports: reports
+    }
+  end
+
+  def get_reports_by_status_id(ap_id) do
+    from(a in Activity,
+      where: fragment("(?)->>'type' = 'Flag'", a.data),
+      where: fragment("(?)->'object' @> ?", a.data, ^[%{id: ap_id}])
+    )
+    |> Activity.with_preloaded_user_actor()
+    |> Repo.all()
+  end
+
+  @spec get_reported_activities() :: [
+          %{
+            required(:activity) => String.t(),
+            required(:date) => String.t()
+          }
+        ]
+  def get_reported_activities do
+    from(a in Activity,
+      where: fragment("(?)->>'type' = 'Flag'", a.data),
+      select: %{
+        date: fragment("max(?->>'published') date", a.data),
+        activity:
+          fragment("jsonb_array_elements_text((? #- '{object,0}')->'object') activity", a.data)
+      },
+      group_by: fragment("activity"),
+      order_by: fragment("date DESC")
+    )
+    |> Repo.all()
+  end
+
+  def update_report_state(%Activity{} = activity, state)
+      when state in @strip_status_report_states do
+    {:ok, stripped_activity} = strip_report_status_data(activity)
+
+    new_data =
+      activity.data
+      |> Map.put("state", state)
+      |> Map.put("object", stripped_activity.data["object"])
+
+    activity
+    |> Changeset.change(data: new_data)
+    |> Repo.update()
+  end
 
   def update_report_state(%Activity{} = activity, state) when state in @supported_report_states do
     new_data = Map.put(activity.data, "state", state)
@@ -681,7 +896,27 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     |> Repo.update()
   end
 
+  def update_report_state(activity_ids, state) when state in @supported_report_states do
+    activities_num = length(activity_ids)
+
+    from(a in Activity, where: a.id in ^activity_ids)
+    |> update(set: [data: fragment("jsonb_set(data, '{state}', ?)", ^state)])
+    |> Repo.update_all([])
+    |> case do
+      {^activities_num, _} -> :ok
+      _ -> {:error, activity_ids}
+    end
+  end
+
   def update_report_state(_, _), do: {:error, "Unsupported state"}
+
+  def strip_report_status_data(activity) do
+    [actor | reported_activities] = activity.data["object"]
+    stripped_activities = Enum.map(reported_activities, & &1["id"])
+    new_data = put_in(activity.data, ["object"], [actor | stripped_activities])
+
+    {:ok, %{activity | data: new_data}}
+  end
 
   def update_activity_visibility(activity, visibility) when visibility in @valid_visibilities do
     [to, cc, recipients] =

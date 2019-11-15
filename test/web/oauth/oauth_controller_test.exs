@@ -469,6 +469,29 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert html_response(conn, 200) =~ ~s(type="submit")
     end
 
+    test "renders authentication page if user is already authenticated but user request with another client",
+         %{
+           app: app,
+           conn: conn
+         } do
+      token = insert(:oauth_token, app_id: app.id)
+
+      conn =
+        conn
+        |> put_session(:oauth_token, token.token)
+        |> get(
+          "/oauth/authorize",
+          %{
+            "response_type" => "code",
+            "client_id" => "another_client_id",
+            "redirect_uri" => OAuthController.default_redirect_uri(app),
+            "scope" => "read"
+          }
+        )
+
+      assert html_response(conn, 200) =~ ~s(type="submit")
+    end
+
     test "with existing authentication and non-OOB `redirect_uri`, redirects to app with `token` and `state` params",
          %{
            app: app,
@@ -780,8 +803,8 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       {:ok, user} =
         insert(:user, password_hash: Comeonin.Pbkdf2.hashpwsalt(password))
-        |> User.change_info(&User.Info.confirmation_changeset(&1, need_confirmation: true))
-        |> Repo.update()
+        |> User.confirmation_changeset(need_confirmation: true)
+        |> User.update_and_set_cache()
 
       refute Pleroma.User.auth_active?(user)
 
@@ -808,7 +831,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       user =
         insert(:user,
           password_hash: Comeonin.Pbkdf2.hashpwsalt(password),
-          info: %{deactivated: true}
+          deactivated: true
         )
 
       app = insert(:oauth_app)
@@ -834,7 +857,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       user =
         insert(:user,
           password_hash: Comeonin.Pbkdf2.hashpwsalt(password),
-          info: %{password_reset_pending: true}
+          password_reset_pending: true
         )
 
       app = insert(:oauth_app, scopes: ["read", "write"])

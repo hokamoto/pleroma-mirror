@@ -24,8 +24,8 @@ defmodule Pleroma.Web.NodeInfoTest do
   end
 
   test "nodeinfo shows staff accounts", %{conn: conn} do
-    moderator = insert(:user, %{local: true, info: %{is_moderator: true}})
-    admin = insert(:user, %{local: true, info: %{is_admin: true}})
+    moderator = insert(:user, local: true, is_moderator: true)
+    admin = insert(:user, local: true, is_admin: true)
 
     conn =
       conn
@@ -82,6 +82,30 @@ defmodule Pleroma.Web.NodeInfoTest do
     refute "safe_dm_mentions" in response["metadata"]["features"]
 
     Pleroma.Config.put([:instance, :safe_dm_mentions], option)
+  end
+
+  test "it shows if federation is enabled/disabled", %{conn: conn} do
+    original = Pleroma.Config.get([:instance, :federating])
+
+    Pleroma.Config.put([:instance, :federating], true)
+
+    response =
+      conn
+      |> get("/nodeinfo/2.1.json")
+      |> json_response(:ok)
+
+    assert response["metadata"]["federation"]["enabled"] == true
+
+    Pleroma.Config.put([:instance, :federating], false)
+
+    response =
+      conn
+      |> get("/nodeinfo/2.1.json")
+      |> json_response(:ok)
+
+    assert response["metadata"]["federation"]["enabled"] == false
+
+    Pleroma.Config.put([:instance, :federating], original)
   end
 
   test "it shows MRF transparency data if enabled", %{conn: conn} do
