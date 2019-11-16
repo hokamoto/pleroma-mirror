@@ -8,6 +8,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   alias Pleroma.Config
   alias Pleroma.Conversation
   alias Pleroma.Conversation.Participation
+  alias Pleroma.Filter
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Object.Containment
@@ -1011,6 +1012,26 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp restrict_instance(query, _), do: query
 
+  defp restrict_filtered(query, %{"user" => %User{} = user}) do
+    case Filter.compose_regex(user) do
+      nil ->
+        query
+
+      regex ->
+        from([activity, object] in query,
+          where:
+            fragment("not(?->>'content' ~* ?)", object.data, ^regex) or
+              activity.actor == ^user.ap_id
+        )
+    end
+  end
+
+  defp restrict_filtered(query, %{"blocking_user" => %User{} = user}) do
+    restrict_filtered(query, %{"user" => user})
+  end
+
+  defp restrict_filtered(query, _), do: query
+
   defp exclude_poll_votes(query, %{"include_poll_votes" => true}), do: query
 
   defp exclude_poll_votes(query, _) do
@@ -1118,6 +1139,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> restrict_pinned(opts)
     |> restrict_muted_reblogs(restrict_muted_reblogs_opts)
     |> restrict_instance(opts)
+    |> restrict_filtered(opts)
     |> Activity.restrict_deactivated_users()
     |> exclude_poll_votes(opts)
     |> exclude_visibility(opts)
