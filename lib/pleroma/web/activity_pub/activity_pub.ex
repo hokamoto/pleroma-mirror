@@ -762,7 +762,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       |> Map.put("user", reading_user)
       |> Map.put("actor_id", user.ap_id)
       |> Map.put("whole_db", true)
-      |> Map.put("pinned_activity_ids", user.info.pinned_activities)
+      |> Map.put("pinned_activity_ids", Map.get(user.info, :pinned_activities))
       |> Map.put("object_data_type", "Story")
 
     %{
