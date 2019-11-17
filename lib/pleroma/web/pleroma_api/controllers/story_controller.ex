@@ -60,7 +60,7 @@ defmodule Pleroma.Web.PleromaAPI.StoryController do
       |> Map.put("muting_user", user)
       |> Map.put("user", user)
 
-    recipients = [user.ap_id | user.following]
+    recipients = [user.ap_id | Pleroma.User.following(user)]
 
     activities =
       recipients
