@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.UploadTest do
@@ -250,12 +250,8 @@ defmodule Pleroma.UploadTest do
   end
 
   describe "Setting a custom base_url for uploaded media" do
-    setup do
+    clear_config([Pleroma.Upload, :base_url]) do
       Pleroma.Config.put([Pleroma.Upload, :base_url], "https://cache.pleroma.social")
-
-      on_exit(fn ->
-        Pleroma.Config.put([Pleroma.Upload, :base_url], nil)
-      end)
     end
 
     test "returns a media url with configured base_url" do

@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Instances.InstanceTest do
@@ -10,19 +10,14 @@ defmodule Pleroma.Instances.InstanceTest do
 
   import Pleroma.Factory
 
-  setup_all do
-    config_path = [:instance, :federation_reachability_timeout_days]
-    initial_setting = Pleroma.Config.get(config_path)
-
-    Pleroma.Config.put(config_path, 1)
-    on_exit(fn -> Pleroma.Config.put(config_path, initial_setting) end)
-
-    :ok
+  clear_config_all([:instance, :federation_reachability_timeout_days]) do
+    Pleroma.Config.put([:instance, :federation_reachability_timeout_days], 1)
   end
 
   describe "set_reachable/1" do
     test "clears `unreachable_since` of existing matching Instance record having non-nil `unreachable_since`" do
-      instance = insert(:instance, unreachable_since: NaiveDateTime.utc_now())
+      unreachable_since = NaiveDateTime.to_iso8601(NaiveDateTime.utc_now())
+      instance = insert(:instance, unreachable_since: unreachable_since)
 
       assert {:ok, instance} = Instance.set_reachable(instance.host)
       refute instance.unreachable_since

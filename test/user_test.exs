@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.UserTest do
@@ -7,19 +7,23 @@ defmodule Pleroma.UserTest do
   alias Pleroma.Builders.UserBuilder
   alias Pleroma.Object
   alias Pleroma.Repo
+  alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
 
   use Pleroma.DataCase
+  use Oban.Testing, repo: Pleroma.Repo
 
-  import Pleroma.Factory
   import Mock
+  import Pleroma.Factory
 
   setup_all do
     Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
     :ok
   end
+
+  clear_config([:instance, :account_activation_required])
 
   describe "when tags are nil" do
     test "tagging a user" do
@@ -64,30 +68,40 @@ defmodule Pleroma.UserTest do
 
   test "returns all pending follow requests" do
     unlocked = insert(:user)
-    locked = insert(:user, %{info: %{locked: true}})
+    locked = insert(:user, locked: true)
     follower = insert(:user)
 
-    Pleroma.Web.TwitterAPI.TwitterAPI.follow(follower, %{"user_id" => unlocked.id})
-    Pleroma.Web.TwitterAPI.TwitterAPI.follow(follower, %{"user_id" => locked.id})
+    CommonAPI.follow(follower, unlocked)
+    CommonAPI.follow(follower, locked)
 
-    assert {:ok, []} = User.get_follow_requests(unlocked)
-    assert {:ok, [activity]} = User.get_follow_requests(locked)
+    assert [] = User.get_follow_requests(unlocked)
+    assert [activity] = User.get_follow_requests(locked)
 
     assert activity
   end
 
   test "doesn't return already accepted or duplicate follow requests" do
-    locked = insert(:user, %{info: %{locked: true}})
+    locked = insert(:user, locked: true)
     pending_follower = insert(:user)
     accepted_follower = insert(:user)
 
-    Pleroma.Web.TwitterAPI.TwitterAPI.follow(pending_follower, %{"user_id" => locked.id})
-    Pleroma.Web.TwitterAPI.TwitterAPI.follow(pending_follower, %{"user_id" => locked.id})
-    Pleroma.Web.TwitterAPI.TwitterAPI.follow(accepted_follower, %{"user_id" => locked.id})
-    User.follow(accepted_follower, locked)
+    CommonAPI.follow(pending_follower, locked)
+    CommonAPI.follow(pending_follower, locked)
+    CommonAPI.follow(accepted_follower, locked)
+    Pleroma.FollowingRelationship.update(accepted_follower, locked, "accept")
 
-    assert {:ok, [activity]} = User.get_follow_requests(locked)
-    assert activity
+    assert [^pending_follower] = User.get_follow_requests(locked)
+  end
+
+  test "clears follow requests when requester is blocked" do
+    followed = insert(:user, locked: true)
+    follower = insert(:user)
+
+    CommonAPI.follow(follower, followed)
+    assert [_activity] = User.get_follow_requests(followed)
+
+    {:ok, _follower} = User.block(followed, follower)
+    assert [] = User.get_follow_requests(followed)
   end
 
   test "follow_all follows mutliple users" do
@@ -121,10 +135,10 @@ defmodule Pleroma.UserTest do
     followed_two = insert(:user)
 
     {:ok, user} = User.follow_all(user, [followed_zero, followed_one])
-    assert length(user.following) == 3
+    assert length(User.following(user)) == 3
 
     {:ok, user} = User.follow_all(user, [followed_one, followed_two])
-    assert length(user.following) == 4
+    assert length(User.following(user)) == 4
   end
 
   test "follow takes a user and another user" do
@@ -136,14 +150,14 @@ defmodule Pleroma.UserTest do
     user = User.get_cached_by_id(user.id)
 
     followed = User.get_cached_by_ap_id(followed.ap_id)
-    assert followed.info.follower_count == 1
+    assert followed.follower_count == 1
 
-    assert User.ap_followers(followed) in user.following
+    assert User.ap_followers(followed) in User.following(user)
   end
 
   test "can't follow a deactivated users" do
     user = insert(:user)
-    followed = insert(:user, info: %{deactivated: true})
+    followed = insert(:user, %{deactivated: true})
 
     {:error, _} = User.follow(user, followed)
   end
@@ -167,54 +181,80 @@ defmodule Pleroma.UserTest do
   end
 
   test "local users do not automatically follow local locked accounts" do
-    follower = insert(:user, info: %{locked: true})
-    followed = insert(:user, info: %{locked: true})
+    follower = insert(:user, locked: true)
+    followed = insert(:user, locked: true)
 
     {:ok, follower} = User.maybe_direct_follow(follower, followed)
 
     refute User.following?(follower, followed)
   end
 
-  # This is a somewhat useless test.
-  # test "following a remote user will ensure a websub subscription is present" do
-  #   user = insert(:user)
-  #   {:ok, followed} = OStatus.make_user("shp@social.heldscal.la")
+  describe "unfollow/2" do
+    setup do
+      setting = Pleroma.Config.get([:instance, :external_user_synchronization])
 
-  #   assert followed.local == false
+      on_exit(fn ->
+        Pleroma.Config.put([:instance, :external_user_synchronization], setting)
+      end)
 
-  #   {:ok, user} = User.follow(user, followed)
-  #   assert User.ap_followers(followed) in user.following
+      :ok
+    end
 
-  #   query = from w in WebsubClientSubscription,
-  #   where: w.topic == ^followed.info["topic"]
-  #   websub = Repo.one(query)
+    test "unfollow with syncronizes external user" do
+      Pleroma.Config.put([:instance, :external_user_synchronization], true)
 
-  #   assert websub
-  # end
+      followed =
+        insert(:user,
+          nickname: "fuser1",
+          follower_address: "http://localhost:4001/users/fuser1/followers",
+          following_address: "http://localhost:4001/users/fuser1/following",
+          ap_id: "http://localhost:4001/users/fuser1"
+        )
 
-  test "unfollow takes a user and another user" do
-    followed = insert(:user)
-    user = insert(:user, %{following: [User.ap_followers(followed)]})
+      user =
+        insert(:user, %{
+          local: false,
+          nickname: "fuser2",
+          ap_id: "http://localhost:4001/users/fuser2",
+          follower_address: "http://localhost:4001/users/fuser2/followers",
+          following_address: "http://localhost:4001/users/fuser2/following"
+        })
 
-    {:ok, user, _activity} = User.unfollow(user, followed)
+      {:ok, user} = User.follow(user, followed, "accept")
 
-    user = User.get_cached_by_id(user.id)
+      {:ok, user, _activity} = User.unfollow(user, followed)
 
-    assert user.following == []
-  end
+      user = User.get_cached_by_id(user.id)
 
-  test "unfollow doesn't unfollow yourself" do
-    user = insert(:user)
+      assert User.following(user) == []
+    end
 
-    {:error, _} = User.unfollow(user, user)
+    test "unfollow takes a user and another user" do
+      followed = insert(:user)
+      user = insert(:user)
 
-    user = User.get_cached_by_id(user.id)
-    assert user.following == [user.ap_id]
+      {:ok, user} = User.follow(user, followed, "accept")
+
+      assert User.following(user) == [user.follower_address, followed.follower_address]
+
+      {:ok, user, _activity} = User.unfollow(user, followed)
+
+      assert User.following(user) == [user.follower_address]
+    end
+
+    test "unfollow doesn't unfollow yourself" do
+      user = insert(:user)
+
+      {:error, _} = User.unfollow(user, user)
+
+      assert User.following(user) == [user.follower_address]
+    end
   end
 
   test "test if a user is following another user" do
     followed = insert(:user)
-    user = insert(:user, %{following: [User.ap_followers(followed)]})
+    user = insert(:user)
+    User.follow(user, followed, "accept")
 
     assert User.following?(user, followed)
     refute User.following?(followed, user)
@@ -236,6 +276,9 @@ defmodule Pleroma.UserTest do
       password_confirmation: "test",
       email: "email@example.com"
     }
+    clear_config([:instance, :autofollowed_nicknames])
+    clear_config([:instance, :welcome_message])
+    clear_config([:instance, :welcome_user_nickname])
 
     test "it autofollows accounts that are set for it" do
       user = insert(:user)
@@ -252,8 +295,6 @@ defmodule Pleroma.UserTest do
 
       assert User.following?(registered_user, user)
       refute User.following?(registered_user, remote_user)
-
-      Pleroma.Config.put([:instance, :autofollowed_nicknames], [])
     end
 
     test "it sends a welcome message if it is set" do
@@ -269,9 +310,6 @@ defmodule Pleroma.UserTest do
       assert registered_user.ap_id in activity.recipients
       assert Object.normalize(activity).data["content"] =~ "cool site"
       assert activity.actor == welcome_user.ap_id
-
-      Pleroma.Config.put([:instance, :welcome_user_nickname], nil)
-      Pleroma.Config.put([:instance, :welcome_message], nil)
     end
 
     test "it requires an email, name, nickname and password, bio is optional" do
@@ -299,17 +337,13 @@ defmodule Pleroma.UserTest do
       refute changeset.valid?
     end
 
-    test "it sets the password_hash, ap_id and following fields" do
+    test "it sets the password_hash and ap_id" do
       changeset = User.register_changeset(%User{}, @full_user_data)
 
       assert changeset.valid?
 
       assert is_binary(changeset.changes[:password_hash])
       assert changeset.changes[:ap_id] == User.ap_id(%User{nickname: @full_user_data.nickname})
-
-      assert changeset.changes[:following] == [
-               User.ap_followers(%User{nickname: @full_user_data.nickname})
-             ]
 
       assert changeset.changes.follower_address == "#{changeset.changes.ap_id}/followers"
     end
@@ -337,15 +371,8 @@ defmodule Pleroma.UserTest do
       email: "email@example.com"
     }
 
-    setup do
-      setting = Pleroma.Config.get([:instance, :account_activation_required])
-
-      unless setting do
-        Pleroma.Config.put([:instance, :account_activation_required], true)
-        on_exit(fn -> Pleroma.Config.put([:instance, :account_activation_required], setting) end)
-      end
-
-      :ok
+    clear_config([:instance, :account_activation_required]) do
+      Pleroma.Config.put([:instance, :account_activation_required], true)
     end
 
     test "it creates unconfirmed user" do
@@ -354,8 +381,8 @@ defmodule Pleroma.UserTest do
 
       {:ok, user} = Repo.insert(changeset)
 
-      assert user.info.confirmation_pending
-      assert user.info.confirmation_token
+      assert user.confirmation_pending
+      assert user.confirmation_token
     end
 
     test "it creates confirmed user if :confirmed option is given" do
@@ -364,8 +391,8 @@ defmodule Pleroma.UserTest do
 
       {:ok, user} = Repo.insert(changeset)
 
-      refute user.info.confirmation_pending
-      refute user.info.confirmation_token
+      refute user.confirmation_pending
+      refute user.confirmation_token
     end
   end
 
@@ -428,11 +455,6 @@ defmodule Pleroma.UserTest do
       assert user == fetched_user
     end
 
-    test "fetches an external user via ostatus if no user exists" do
-      {:ok, fetched_user} = User.get_or_fetch_by_nickname("shp@social.heldscal.la")
-      assert fetched_user.nickname == "shp@social.heldscal.la"
-    end
-
     test "returns nil if no user could be fetched" do
       {:error, fetched_user} = User.get_or_fetch_by_nickname("nonexistant@social.heldscal.la")
       assert fetched_user == "not found nonexistant@social.heldscal.la"
@@ -459,7 +481,8 @@ defmodule Pleroma.UserTest do
       assert orig_user.last_refreshed_at == a_week_ago
 
       {:ok, user} = User.get_or_fetch_by_ap_id("http://mastodon.example.org/users/admin")
-      assert user.info.source_data["endpoints"]
+
+      assert user.source_data["endpoints"]
 
       refute user.last_refreshed_at == orig_user.last_refreshed_at
     end
@@ -469,7 +492,7 @@ defmodule Pleroma.UserTest do
     user = insert(:user)
 
     assert User.ap_id(user) ==
-             Pleroma.Web.Router.Helpers.o_status_url(
+             Pleroma.Web.Router.Helpers.feed_url(
                Pleroma.Web.Endpoint,
                :feed_redirect,
                user.nickname
@@ -480,7 +503,7 @@ defmodule Pleroma.UserTest do
     user = insert(:user)
 
     assert User.ap_followers(user) ==
-             Pleroma.Web.Router.Helpers.o_status_url(
+             Pleroma.Web.Router.Helpers.feed_url(
                Pleroma.Web.Endpoint,
                :feed_redirect,
                user.nickname
@@ -497,6 +520,9 @@ defmodule Pleroma.UserTest do
       avatar: %{some: "avatar"}
     }
 
+    clear_config([:instance, :user_bio_length])
+    clear_config([:instance, :user_name_length])
+
     test "it confirms validity" do
       cs = User.remote_user_creation(@valid_remote)
       assert cs.valid?
@@ -511,7 +537,7 @@ defmodule Pleroma.UserTest do
 
     test "it enforces the fqn format for nicknames" do
       cs = User.remote_user_creation(%{@valid_remote | nickname: "bla"})
-      assert cs.changes.local == false
+      assert Ecto.Changeset.get_field(cs, :local) == false
       assert cs.changes.avatar
       refute cs.valid?
     end
@@ -520,19 +546,6 @@ defmodule Pleroma.UserTest do
       [:name, :ap_id]
       |> Enum.each(fn field ->
         cs = User.remote_user_creation(Map.delete(@valid_remote, field))
-        refute cs.valid?
-      end)
-    end
-
-    test "it restricts some sizes" do
-      [bio: 5000, name: 100]
-      |> Enum.each(fn {field, size} ->
-        string = String.pad_leading(".", size)
-        cs = User.remote_user_creation(Map.put(@valid_remote, field, string))
-        assert cs.valid?
-
-        string = String.pad_leading(".", size + 1)
-        cs = User.remote_user_creation(Map.put(@valid_remote, field, string))
         refute cs.valid?
       end)
     end
@@ -548,7 +561,7 @@ defmodule Pleroma.UserTest do
       {:ok, follower_one} = User.follow(follower_one, user)
       {:ok, follower_two} = User.follow(follower_two, user)
 
-      {:ok, res} = User.get_followers(user)
+      res = User.get_followers(user)
 
       assert Enum.member?(res, follower_one)
       assert Enum.member?(res, follower_two)
@@ -564,7 +577,7 @@ defmodule Pleroma.UserTest do
       {:ok, user} = User.follow(user, followed_one)
       {:ok, user} = User.follow(user, followed_two)
 
-      {:ok, res} = User.get_friends(user)
+      res = User.get_friends(user)
 
       followed_one = User.get_cached_by_ap_id(followed_one.ap_id)
       followed_two = User.get_cached_by_ap_id(followed_two.ap_id)
@@ -575,94 +588,63 @@ defmodule Pleroma.UserTest do
   end
 
   describe "updating note and follower count" do
-    test "it sets the info->note_count property" do
+    test "it sets the note_count property" do
       note = insert(:note)
 
       user = User.get_cached_by_ap_id(note.data["actor"])
 
-      assert user.info.note_count == 0
+      assert user.note_count == 0
 
       {:ok, user} = User.update_note_count(user)
 
-      assert user.info.note_count == 1
+      assert user.note_count == 1
     end
 
-    test "it increases the info->note_count property" do
+    test "it increases the note_count property" do
       note = insert(:note)
       user = User.get_cached_by_ap_id(note.data["actor"])
 
-      assert user.info.note_count == 0
+      assert user.note_count == 0
 
       {:ok, user} = User.increase_note_count(user)
 
-      assert user.info.note_count == 1
+      assert user.note_count == 1
 
       {:ok, user} = User.increase_note_count(user)
 
-      assert user.info.note_count == 2
+      assert user.note_count == 2
     end
 
-    test "it decreases the info->note_count property" do
+    test "it decreases the note_count property" do
       note = insert(:note)
       user = User.get_cached_by_ap_id(note.data["actor"])
 
-      assert user.info.note_count == 0
+      assert user.note_count == 0
 
       {:ok, user} = User.increase_note_count(user)
 
-      assert user.info.note_count == 1
+      assert user.note_count == 1
 
       {:ok, user} = User.decrease_note_count(user)
 
-      assert user.info.note_count == 0
+      assert user.note_count == 0
 
       {:ok, user} = User.decrease_note_count(user)
 
-      assert user.info.note_count == 0
+      assert user.note_count == 0
     end
 
-    test "it sets the info->follower_count property" do
+    test "it sets the follower_count property" do
       user = insert(:user)
       follower = insert(:user)
 
       User.follow(follower, user)
 
-      assert user.info.follower_count == 0
+      assert user.follower_count == 0
 
       {:ok, user} = User.update_follower_count(user)
 
-      assert user.info.follower_count == 1
-    end
-  end
-
-  describe "remove duplicates from following list" do
-    test "it removes duplicates" do
-      user = insert(:user)
-      follower = insert(:user)
-
-      {:ok, %User{following: following} = follower} = User.follow(follower, user)
-      assert length(following) == 2
-
-      {:ok, follower} =
-        follower
-        |> User.update_changeset(%{following: following ++ following})
-        |> Repo.update()
-
-      assert length(follower.following) == 4
-
-      {:ok, follower} = User.remove_duplicated_following(follower)
-      assert length(follower.following) == 2
-    end
-
-    test "it does nothing when following is uniq" do
-      user = insert(:user)
-      follower = insert(:user)
-
-      {:ok, follower} = User.follow(follower, user)
-      assert length(follower.following) == 2
-
-      {:ok, follower} = User.remove_duplicated_following(follower)
-      assert length(follower.following) == 2
+      assert user.follower_count == 1
     end
   end
 
@@ -675,7 +657,9 @@ defmodule Pleroma.UserTest do
         user3.nickname
       ]
 
-      result = User.follow_import(user1, identifiers)
+      {:ok, job} = User.follow_import(user1, identifiers)
+      result = ObanHelpers.perform(job)
+
       assert is_list(result)
       assert result == [user2, user3]
     end
@@ -886,46 +870,71 @@ defmodule Pleroma.UserTest do
         user3.nickname
       ]
 
-      result = User.blocks_import(user1, identifiers)
+      {:ok, job} = User.blocks_import(user1, identifiers)
+      result = ObanHelpers.perform(job)
+
       assert is_list(result)
       assert result == [user2, user3]
     end
   end
 
-  test "get recipients from activity" do
-    actor = insert(:user)
-    user = insert(:user, local: true)
-    user_two = insert(:user, local: false)
-    addressed = insert(:user, local: true)
-    addressed_remote = insert(:user, local: false)
+  describe "get_recipients_from_activity" do
+    test "get recipients" do
+      actor = insert(:user)
+      user = insert(:user, local: true)
+      user_two = insert(:user, local: false)
+      addressed = insert(:user, local: true)
+      addressed_remote = insert(:user, local: false)
 
-    {:ok, activity} =
-      CommonAPI.post(actor, %{
-        "status" => "hey @#{addressed.nickname} @#{addressed_remote.nickname}"
-      })
+      {:ok, activity} =
+        CommonAPI.post(actor, %{
+          "status" => "hey @#{addressed.nickname} @#{addressed_remote.nickname}"
+        })
 
-    assert Enum.map([actor, addressed], & &1.ap_id) --
-             Enum.map(User.get_recipients_from_activity(activity), & &1.ap_id) == []
+      assert Enum.map([actor, addressed], & &1.ap_id) --
+               Enum.map(User.get_recipients_from_activity(activity), & &1.ap_id) == []
 
-    {:ok, user} = User.follow(user, actor)
-    {:ok, _user_two} = User.follow(user_two, actor)
-    recipients = User.get_recipients_from_activity(activity)
-    assert length(recipients) == 3
-    assert user in recipients
-    assert addressed in recipients
+      {:ok, user} = User.follow(user, actor)
+      {:ok, _user_two} = User.follow(user_two, actor)
+      recipients = User.get_recipients_from_activity(activity)
+      assert length(recipients) == 3
+      assert user in recipients
+      assert addressed in recipients
+    end
+
+    test "has following" do
+      actor = insert(:user)
+      user = insert(:user)
+      user_two = insert(:user)
+      addressed = insert(:user, local: true)
+
+      {:ok, activity} =
+        CommonAPI.post(actor, %{
+          "status" => "hey @#{addressed.nickname}"
+        })
+
+      assert Enum.map([actor, addressed], & &1.ap_id) --
+               Enum.map(User.get_recipients_from_activity(activity), & &1.ap_id) == []
+
+      {:ok, _actor} = User.follow(actor, user)
+      {:ok, _actor} = User.follow(actor, user_two)
+      recipients = User.get_recipients_from_activity(activity)
+      assert length(recipients) == 2
+      assert addressed in recipients
+    end
   end
 
   describe ".deactivate" do
     test "can de-activate then re-activate a user" do
       user = insert(:user)
-      assert false == user.info.deactivated
+      assert false == user.deactivated
       {:ok, user} = User.deactivate(user)
-      assert true == user.info.deactivated
+      assert true == user.deactivated
       {:ok, user} = User.deactivate(user, false)
-      assert false == user.info.deactivated
+      assert false == user.deactivated
     end
 
-    test "hide a user from followers " do
+    test "hide a user from followers" do
       user = insert(:user)
       user2 = insert(:user)
 
@@ -935,7 +944,7 @@ defmodule Pleroma.UserTest do
       info = User.get_cached_user_info(user2)
 
       assert info.follower_count == 0
-      assert {:ok, []} = User.get_followers(user2)
+      assert [] = User.get_followers(user2)
     end
 
     test "hide a user from friends" do
@@ -951,7 +960,7 @@ defmodule Pleroma.UserTest do
 
       assert info.following_count == 0
       assert User.following_count(user2) == 0
-      assert {:ok, []} = User.get_friends(user2)
+      assert [] = User.get_friends(user2)
     end
 
     test "hide a user's statuses from timelines and notifications" do
@@ -970,7 +979,9 @@ defmodule Pleroma.UserTest do
       assert [activity] == ActivityPub.fetch_public_activities(%{}) |> Repo.preload(:bookmark)
 
       assert [%{activity | thread_muted?: CommonAPI.thread_muted?(user2, activity)}] ==
-               ActivityPub.fetch_activities([user2.ap_id | user2.following], %{"user" => user2})
+               ActivityPub.fetch_activities([user2.ap_id | User.following(user2)], %{
+                 "user" => user2
+               })
 
       {:ok, _user} = User.deactivate(user)
 
@@ -978,7 +989,9 @@ defmodule Pleroma.UserTest do
       assert [] == Pleroma.Notification.for_user(user2)
 
       assert [] ==
-               ActivityPub.fetch_activities([user2.ap_id | user2.following], %{"user" => user2})
+               ActivityPub.fetch_activities([user2.ap_id | User.following(user2)], %{
+                 "user" => user2
+               })
     end
   end
 
@@ -989,13 +1002,24 @@ defmodule Pleroma.UserTest do
       [user: user]
     end
 
+    clear_config([:instance, :federating])
+
     test ".delete_user_activities deletes all create activities", %{user: user} do
       {:ok, activity} = CommonAPI.post(user, %{"status" => "2hu"})
 
-      {:ok, _} = User.delete_user_activities(user)
+      User.delete_user_activities(user)
 
       # TODO: Remove favorites, repeats, delete activities.
       refute Activity.get_by_id(activity.id)
+    end
+
+    test "it deletes deactivated user" do
+      {:ok, user} = insert(:user, deactivated: true) |> User.set_cache()
+
+      {:ok, job} = User.delete(user)
+      {:ok, _user} = ObanHelpers.perform(job)
+
+      refute User.get_by_id(user.id)
     end
 
     test "it deletes a user, all follow relationships and all activities", %{user: user} do
@@ -1012,7 +1036,8 @@ defmodule Pleroma.UserTest do
       {:ok, like_two, _} = CommonAPI.favorite(activity.id, follower)
       {:ok, repeat, _} = CommonAPI.repeat(activity_two.id, user)
 
-      {:ok, _} = User.delete(user)
+      {:ok, job} = User.delete(user)
+      {:ok, _user} = ObanHelpers.perform(job)
 
       follower = User.get_cached_by_id(follower.id)
 
@@ -1022,7 +1047,7 @@ defmodule Pleroma.UserTest do
 
       user_activities =
         user.ap_id
-        |> Activity.query_by_actor()
+        |> Activity.Queries.by_actor()
         |> Repo.all()
         |> Enum.map(fn act -> act.data["type"] end)
 
@@ -1039,22 +1064,24 @@ defmodule Pleroma.UserTest do
                    Pleroma.Web.ActivityPub.Publisher,
                    [:passthrough],
                    [] do
-      config_path = [:instance, :federating]
-      initial_setting = Pleroma.Config.get(config_path)
-      Pleroma.Config.put(config_path, true)
+      Pleroma.Config.put([:instance, :federating], true)
 
       {:ok, follower} = User.get_or_fetch_by_ap_id("http://mastodon.example.org/users/admin")
       {:ok, _} = User.follow(follower, user)
 
-      {:ok, _user} = User.delete(user)
+      {:ok, job} = User.delete(user)
+      {:ok, _user} = ObanHelpers.perform(job)
 
-      assert called(
-               Pleroma.Web.ActivityPub.Publisher.publish_one(%{
-                 inbox: "http://mastodon.example.org/inbox"
-               })
+      assert ObanHelpers.member?(
+               %{
+                 "op" => "publish_one",
+                 "params" => %{
+                   "inbox" => "http://mastodon.example.org/inbox",
+                   "id" => "pleroma:fakeid"
+                 }
+               },
+               all_enqueued(worker: Pleroma.Workers.PublisherWorker)
              )
-
-      Pleroma.Config.put(config_path, initial_setting)
     end
   end
 
@@ -1062,11 +1089,58 @@ defmodule Pleroma.UserTest do
     assert {:ok, _key} = User.get_public_key_for_ap_id("http://mastodon.example.org/users/admin")
   end
 
-  test "insert or update a user from given data" do
-    user = insert(:user, %{nickname: "nick@name.de"})
-    data = %{ap_id: user.ap_id <> "xxx", name: user.name, nickname: user.nickname}
+  describe "insert or update a user from given data" do
+    test "with normal data" do
+      user = insert(:user, %{nickname: "nick@name.de"})
+      data = %{ap_id: user.ap_id <> "xxx", name: user.name, nickname: user.nickname}
 
-    assert {:ok, %User{}} = User.insert_or_update_user(data)
+      assert {:ok, %User{}} = User.insert_or_update_user(data)
+    end
+
+    test "with overly long fields" do
+      current_max_length = Pleroma.Config.get([:instance, :account_field_value_length], 255)
+      user = insert(:user, nickname: "nickname@supergood.domain")
+
+      data = %{
+        ap_id: user.ap_id,
+        name: user.name,
+        nickname: user.nickname,
+        fields: [
+          %{"name" => "myfield", "value" => String.duplicate("h", current_max_length + 1)}
+        ]
+      }
+
+      assert {:ok, %User{}} = User.insert_or_update_user(data)
+    end
+
+    test "with an overly long bio" do
+      current_max_length = Pleroma.Config.get([:instance, :user_bio_length], 5000)
+      user = insert(:user, nickname: "nickname@supergood.domain")
+
+      data = %{
+        ap_id: user.ap_id,
+        name: user.name,
+        nickname: user.nickname,
+        bio: String.duplicate("h", current_max_length + 1),
+        info: %{}
+      }
+
+      assert {:ok, %User{}} = User.insert_or_update_user(data)
+    end
+
+    test "with an overly long display name" do
+      current_max_length = Pleroma.Config.get([:instance, :user_name_length], 100)
+      user = insert(:user, nickname: "nickname@supergood.domain")
+
+      data = %{
+        ap_id: user.ap_id,
+        name: String.duplicate("h", current_max_length + 1),
+        nickname: user.nickname,
+        info: %{}
+      }
+
+      assert {:ok, %User{}} = User.insert_or_update_user(data)
+    end
   end
 
   describe "per-user rich-text filtering" do
@@ -1077,7 +1151,7 @@ defmodule Pleroma.UserTest do
     end
 
     test "html_filter_policy returns TwitterText scrubber when rich-text is disabled" do
-      user = insert(:user, %{info: %{no_rich_text: true}})
+      user = insert(:user, no_rich_text: true)
 
       assert Pleroma.HTML.Scrubber.TwitterText == User.html_filter_policy(user)
     end
@@ -1098,7 +1172,8 @@ defmodule Pleroma.UserTest do
     test "User.delete() plugs any possible zombie objects" do
       user = insert(:user)
 
-      {:ok, _} = User.delete(user)
+      {:ok, job} = User.delete(user)
+      {:ok, _} = ObanHelpers.perform(job)
 
       {:ok, cached_user} = Cachex.get(:user_cache, "ap_id:#{user.ap_id}")
 
@@ -1113,15 +1188,20 @@ defmodule Pleroma.UserTest do
   test "auth_active?/1 works correctly" do
     Pleroma.Config.put([:instance, :account_activation_required], true)
 
-    local_user = insert(:user, local: true, info: %{confirmation_pending: true})
-    confirmed_user = insert(:user, local: true, info: %{confirmation_pending: false})
+    local_user = insert(:user, local: true, confirmation_pending: true)
+    confirmed_user = insert(:user, local: true, confirmation_pending: false)
     remote_user = insert(:user, local: false)
 
     refute User.auth_active?(local_user)
     assert User.auth_active?(confirmed_user)
     assert User.auth_active?(remote_user)
 
-    Pleroma.Config.put([:instance, :account_activation_required], false)
+    # also shows unactive for deactivated users
+
+    deactivated_but_confirmed =
+      insert(:user, local: true, confirmation_pending: false, deactivated: true)
+
+    refute User.auth_active?(deactivated_but_confirmed)
   end
 
   describe "superuser?/1" do
@@ -1133,22 +1213,36 @@ defmodule Pleroma.UserTest do
 
     test "returns false for remote users" do
       user = insert(:user, local: false)
-      remote_admin_user = insert(:user, local: false, info: %{is_admin: true})
+      remote_admin_user = insert(:user, local: false, is_admin: true)
 
       refute User.superuser?(user)
       refute User.superuser?(remote_admin_user)
     end
 
     test "returns true for local moderators" do
-      user = insert(:user, local: true, info: %{is_moderator: true})
+      user = insert(:user, local: true, is_moderator: true)
 
       assert User.superuser?(user)
     end
 
     test "returns true for local admins" do
-      user = insert(:user, local: true, info: %{is_admin: true})
+      user = insert(:user, local: true, is_admin: true)
 
       assert User.superuser?(user)
+    end
+  end
+
+  describe "invisible?/1" do
+    test "returns true for an invisible user" do
+      user = insert(:user, local: true, invisible: true)
+
+      assert User.invisible?(user)
+    end
+
+    test "returns false for a non-invisible user" do
+      user = insert(:user, local: true)
+
+      refute User.invisible?(user)
     end
   end
 
@@ -1162,16 +1256,14 @@ defmodule Pleroma.UserTest do
     test "returns false when the account is unauthenticated and auth is required" do
       Pleroma.Config.put([:instance, :account_activation_required], true)
 
-      user = insert(:user, local: true, info: %{confirmation_pending: true})
+      user = insert(:user, local: true, confirmation_pending: true)
       other_user = insert(:user, local: true)
 
       refute User.visible_for?(user, other_user)
-
-      Pleroma.Config.put([:instance, :account_activation_required], false)
     end
 
     test "returns true when the account is unauthenticated and auth is not required" do
-      user = insert(:user, local: true, info: %{confirmation_pending: true})
+      user = insert(:user, local: true, confirmation_pending: true)
       other_user = insert(:user, local: true)
 
       assert User.visible_for?(user, other_user)
@@ -1180,12 +1272,10 @@ defmodule Pleroma.UserTest do
     test "returns true when the account is unauthenticated and being viewed by a privileged account (auth required)" do
       Pleroma.Config.put([:instance, :account_activation_required], true)
 
-      user = insert(:user, local: true, info: %{confirmation_pending: true})
-      other_user = insert(:user, local: true, info: %{is_admin: true})
+      user = insert(:user, local: true, confirmation_pending: true)
+      other_user = insert(:user, local: true, is_admin: true)
 
       assert User.visible_for?(user, other_user)
-
-      Pleroma.Config.put([:instance, :account_activation_required], false)
     end
   end
 
@@ -1196,26 +1286,26 @@ defmodule Pleroma.UserTest do
       bio = "A.k.a. @nick@domain.com"
 
       expected_text =
-        "A.k.a. <span class='h-card'><a data-user='#{remote_user.id}' class='u-url mention' href='#{
+        ~s(A.k.a. <span class="h-card"><a data-user="#{remote_user.id}" class="u-url mention" href="#{
           remote_user.ap_id
-        }'>@<span>nick@domain.com</span></a></span>"
+        }" rel="ugc">@<span>nick@domain.com</span></a></span>)
 
       assert expected_text == User.parse_bio(bio, user)
     end
 
     test "Adds rel=me on linkbacked urls" do
-      user = insert(:user, ap_id: "http://social.example.org/users/lain")
+      user = insert(:user, ap_id: "https://social.example.org/users/lain")
 
-      bio = "http://example.org/rel_me/null"
+      bio = "http://example.com/rel_me/null"
       expected_text = "<a href=\"#{bio}\">#{bio}</a>"
       assert expected_text == User.parse_bio(bio, user)
 
-      bio = "http://example.org/rel_me/link"
-      expected_text = "<a href=\"#{bio}\">#{bio}</a>"
+      bio = "http://example.com/rel_me/link"
+      expected_text = "<a href=\"#{bio}\" rel=\"me\">#{bio}</a>"
       assert expected_text == User.parse_bio(bio, user)
 
-      bio = "http://example.org/rel_me/anchor"
-      expected_text = "<a href=\"#{bio}\">#{bio}</a>"
+      bio = "http://example.com/rel_me/anchor"
+      expected_text = "<a href=\"#{bio}\" rel=\"me\">#{bio}</a>"
       assert expected_text == User.parse_bio(bio, user)
     end
   end
@@ -1230,43 +1320,144 @@ defmodule Pleroma.UserTest do
     {:ok, _follower2} = User.follow(follower2, user)
     {:ok, _follower3} = User.follow(follower3, user)
 
-    {:ok, _} = User.block(user, follower)
+    {:ok, user} = User.block(user, follower)
 
-    user_show = Pleroma.Web.TwitterAPI.UserView.render("show.json", %{user: user})
+    assert User.user_info(user).follower_count == 2
+  end
 
-    assert Map.get(user_show, "followers_count") == 2
+  describe "list_inactive_users_query/1" do
+    defp days_ago(days) do
+      NaiveDateTime.add(
+        NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second),
+        -days * 60 * 60 * 24,
+        :second
+      )
+    end
+
+    test "Users are inactive by default" do
+      total = 10
+
+      users =
+        Enum.map(1..total, fn _ ->
+          insert(:user, last_digest_emailed_at: days_ago(20), deactivated: false)
+        end)
+
+      inactive_users_ids =
+        Pleroma.User.list_inactive_users_query()
+        |> Pleroma.Repo.all()
+        |> Enum.map(& &1.id)
+
+      Enum.each(users, fn user ->
+        assert user.id in inactive_users_ids
+      end)
+    end
+
+    test "Only includes users who has no recent activity" do
+      total = 10
+
+      users =
+        Enum.map(1..total, fn _ ->
+          insert(:user, last_digest_emailed_at: days_ago(20), deactivated: false)
+        end)
+
+      {inactive, active} = Enum.split(users, trunc(total / 2))
+
+      Enum.map(active, fn user ->
+        to = Enum.random(users -- [user])
+
+        {:ok, _} =
+          CommonAPI.post(user, %{
+            "status" => "hey @#{to.nickname}"
+          })
+      end)
+
+      inactive_users_ids =
+        Pleroma.User.list_inactive_users_query()
+        |> Pleroma.Repo.all()
+        |> Enum.map(& &1.id)
+
+      Enum.each(active, fn user ->
+        refute user.id in inactive_users_ids
+      end)
+
+      Enum.each(inactive, fn user ->
+        assert user.id in inactive_users_ids
+      end)
+    end
+
+    test "Only includes users with no read notifications" do
+      total = 10
+
+      users =
+        Enum.map(1..total, fn _ ->
+          insert(:user, last_digest_emailed_at: days_ago(20), deactivated: false)
+        end)
+
+      [sender | recipients] = users
+      {inactive, active} = Enum.split(recipients, trunc(total / 2))
+
+      Enum.each(recipients, fn to ->
+        {:ok, _} =
+          CommonAPI.post(sender, %{
+            "status" => "hey @#{to.nickname}"
+          })
+
+        {:ok, _} =
+          CommonAPI.post(sender, %{
+            "status" => "hey again @#{to.nickname}"
+          })
+      end)
+
+      Enum.each(active, fn user ->
+        [n1, _n2] = Pleroma.Notification.for_user(user)
+        {:ok, _} = Pleroma.Notification.read_one(user, n1.id)
+      end)
+
+      inactive_users_ids =
+        Pleroma.User.list_inactive_users_query()
+        |> Pleroma.Repo.all()
+        |> Enum.map(& &1.id)
+
+      Enum.each(active, fn user ->
+        refute user.id in inactive_users_ids
+      end)
+
+      Enum.each(inactive, fn user ->
+        assert user.id in inactive_users_ids
+      end)
+    end
   end
 
   describe "toggle_confirmation/1" do
     test "if user is confirmed" do
-      user = insert(:user, info: %{confirmation_pending: false})
+      user = insert(:user, confirmation_pending: false)
       {:ok, user} = User.toggle_confirmation(user)
 
-      assert user.info.confirmation_pending
-      assert user.info.confirmation_token
+      assert user.confirmation_pending
+      assert user.confirmation_token
     end
 
     test "if user is unconfirmed" do
-      user = insert(:user, info: %{confirmation_pending: true, confirmation_token: "some token"})
+      user = insert(:user, confirmation_pending: true, confirmation_token: "some token")
       {:ok, user} = User.toggle_confirmation(user)
 
-      refute user.info.confirmation_pending
-      refute user.info.confirmation_token
+      refute user.confirmation_pending
+      refute user.confirmation_token
     end
   end
 
   describe "ensure_keys_present" do
     test "it creates keys for a user and stores them in info" do
       user = insert(:user)
-      refute is_binary(user.info.keys)
+      refute is_binary(user.keys)
       {:ok, user} = User.ensure_keys_present(user)
-      assert is_binary(user.info.keys)
+      assert is_binary(user.keys)
     end
 
     test "it doesn't create keys if there already are some" do
-      user = insert(:user, %{info: %{keys: "xxx"}})
+      user = insert(:user, keys: "xxx")
       {:ok, user} = User.ensure_keys_present(user)
-      assert user.info.keys == "xxx"
+      assert user.keys == "xxx"
     end
   end
 
@@ -1287,7 +1478,7 @@ defmodule Pleroma.UserTest do
       user1 = insert(:user, local: false, ap_id: "http://localhost:4001/users/masto_closed")
       user2 = insert(:user, local: false, ap_id: "http://localhost:4001/users/fuser2")
       insert(:user, local: true)
-      insert(:user, local: false, info: %{deactivated: true})
+      insert(:user, local: false, deactivated: true)
       {:ok, user1: user1, user2: user2}
     end
 
@@ -1395,10 +1586,7 @@ defmodule Pleroma.UserTest do
   end
 
   describe "following/followers synchronization" do
-    setup do
-      sync = Pleroma.Config.get([:instance, :external_user_synchronization])
-      on_exit(fn -> Pleroma.Config.put([:instance, :external_user_synchronization], sync) end)
-    end
+    clear_config([:instance, :external_user_synchronization])
 
     test "updates the counters normally on following/getting a follow when disabled" do
       Pleroma.Config.put([:instance, :external_user_synchronization], false)
@@ -1409,7 +1597,7 @@ defmodule Pleroma.UserTest do
           local: false,
           follower_address: "http://localhost:4001/users/masto_closed/followers",
           following_address: "http://localhost:4001/users/masto_closed/following",
-          info: %{ap_enabled: true}
+          ap_enabled: true
         )
 
       assert User.user_info(other_user).following_count == 0
@@ -1432,7 +1620,7 @@ defmodule Pleroma.UserTest do
           local: false,
           follower_address: "http://localhost:4001/users/masto_closed/followers",
           following_address: "http://localhost:4001/users/masto_closed/following",
-          info: %{ap_enabled: true}
+          ap_enabled: true
         )
 
       assert User.user_info(other_user).following_count == 0
@@ -1455,7 +1643,7 @@ defmodule Pleroma.UserTest do
           local: false,
           follower_address: "http://localhost:4001/users/masto_closed/followers",
           following_address: "http://localhost:4001/users/masto_closed/following",
-          info: %{ap_enabled: true}
+          ap_enabled: true
         )
 
       assert User.user_info(other_user).following_count == 0
@@ -1465,6 +1653,104 @@ defmodule Pleroma.UserTest do
       {:ok, other_user} = User.follow(other_user, user)
 
       assert User.user_info(other_user).following_count == 152
+    end
+  end
+
+  describe "change_email/2" do
+    setup do
+      [user: insert(:user)]
+    end
+
+    test "blank email returns error", %{user: user} do
+      assert {:error, %{errors: [email: {"can't be blank", _}]}} = User.change_email(user, "")
+      assert {:error, %{errors: [email: {"can't be blank", _}]}} = User.change_email(user, nil)
+    end
+
+    test "non unique email returns error", %{user: user} do
+      %{email: email} = insert(:user)
+
+      assert {:error, %{errors: [email: {"has already been taken", _}]}} =
+               User.change_email(user, email)
+    end
+
+    test "invalid email returns error", %{user: user} do
+      assert {:error, %{errors: [email: {"has invalid format", _}]}} =
+               User.change_email(user, "cofe")
+    end
+
+    test "changes email", %{user: user} do
+      assert {:ok, %User{email: "cofe@cofe.party"}} = User.change_email(user, "cofe@cofe.party")
+    end
+  end
+
+  describe "get_cached_by_nickname_or_id" do
+    setup do
+      limit_to_local_content = Pleroma.Config.get([:instance, :limit_to_local_content])
+      local_user = insert(:user)
+      remote_user = insert(:user, nickname: "nickname@example.com", local: false)
+
+      on_exit(fn ->
+        Pleroma.Config.put([:instance, :limit_to_local_content], limit_to_local_content)
+      end)
+
+      [local_user: local_user, remote_user: remote_user]
+    end
+
+    test "allows getting remote users by id no matter what :limit_to_local_content is set to", %{
+      remote_user: remote_user
+    } do
+      Pleroma.Config.put([:instance, :limit_to_local_content], false)
+      assert %User{} = User.get_cached_by_nickname_or_id(remote_user.id)
+
+      Pleroma.Config.put([:instance, :limit_to_local_content], true)
+      assert %User{} = User.get_cached_by_nickname_or_id(remote_user.id)
+
+      Pleroma.Config.put([:instance, :limit_to_local_content], :unauthenticated)
+      assert %User{} = User.get_cached_by_nickname_or_id(remote_user.id)
+    end
+
+    test "disallows getting remote users by nickname without authentication when :limit_to_local_content is set to :unauthenticated",
+         %{remote_user: remote_user} do
+      Pleroma.Config.put([:instance, :limit_to_local_content], :unauthenticated)
+      assert nil == User.get_cached_by_nickname_or_id(remote_user.nickname)
+    end
+
+    test "allows getting remote users by nickname with authentication when :limit_to_local_content is set to :unauthenticated",
+         %{remote_user: remote_user, local_user: local_user} do
+      Pleroma.Config.put([:instance, :limit_to_local_content], :unauthenticated)
+      assert %User{} = User.get_cached_by_nickname_or_id(remote_user.nickname, for: local_user)
+    end
+
+    test "disallows getting remote users by nickname when :limit_to_local_content is set to true",
+         %{remote_user: remote_user} do
+      Pleroma.Config.put([:instance, :limit_to_local_content], true)
+      assert nil == User.get_cached_by_nickname_or_id(remote_user.nickname)
+    end
+
+    test "allows getting local users by nickname no matter what :limit_to_local_content is set to",
+         %{local_user: local_user} do
+      Pleroma.Config.put([:instance, :limit_to_local_content], false)
+      assert %User{} = User.get_cached_by_nickname_or_id(local_user.nickname)
+
+      Pleroma.Config.put([:instance, :limit_to_local_content], true)
+      assert %User{} = User.get_cached_by_nickname_or_id(local_user.nickname)
+
+      Pleroma.Config.put([:instance, :limit_to_local_content], :unauthenticated)
+      assert %User{} = User.get_cached_by_nickname_or_id(local_user.nickname)
+    end
+  end
+
+  describe "update_email_notifications/2" do
+    setup do
+      user = insert(:user, email_notifications: %{"digest" => true})
+
+      {:ok, user: user}
+    end
+
+    test "Notifications are updated", %{user: user} do
+      true = user.email_notifications["digest"]
+      assert {:ok, result} = User.update_email_notifications(user, %{"digest" => false})
+      assert result.email_notifications["digest"] == false
     end
   end
 end

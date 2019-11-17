@@ -1,22 +1,21 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.WebFinger.WebFingerControllerTest do
   use Pleroma.Web.ConnCase
 
+  import ExUnit.CaptureLog
   import Pleroma.Factory
   import Tesla.Mock
 
   setup do
     mock(fn env -> apply(HttpRequestMock, :request, [env]) end)
-
-    config_path = [:instance, :federating]
-    initial_setting = Pleroma.Config.get(config_path)
-
-    Pleroma.Config.put(config_path, true)
-    on_exit(fn -> Pleroma.Config.put(config_path, initial_setting) end)
     :ok
+  end
+
+  clear_config_all([:instance, :federating]) do
+    Pleroma.Config.put([:instance, :federating], true)
   end
 
   test "GET host-meta" do
@@ -77,11 +76,13 @@ defmodule Pleroma.Web.WebFinger.WebFingerControllerTest do
   test "Sends a 404 when invalid format" do
     user = insert(:user)
 
-    assert_raise Phoenix.NotAcceptableError, fn ->
-      build_conn()
-      |> put_req_header("accept", "text/html")
-      |> get("/.well-known/webfinger?resource=acct:#{user.nickname}@localhost")
-    end
+    assert capture_log(fn ->
+             assert_raise Phoenix.NotAcceptableError, fn ->
+               build_conn()
+               |> put_req_header("accept", "text/html")
+               |> get("/.well-known/webfinger?resource=acct:#{user.nickname}@localhost")
+             end
+           end) =~ "no supported media type in accept header"
   end
 
   test "Sends a 400 when resource param is missing" do

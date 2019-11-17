@@ -4,7 +4,9 @@
 
 defmodule Pleroma.Web.CommonAPI do
   alias Pleroma.Activity
-  alias Pleroma.Formatter
+  alias Pleroma.ActivityExpiration
+  alias Pleroma.Conversation.Participation
+  alias Pleroma.FollowingRelationship
   alias Pleroma.Object
   alias Pleroma.ThreadMute
   alias Pleroma.User
@@ -15,15 +17,14 @@ defmodule Pleroma.Web.CommonAPI do
   import Pleroma.Web.Gettext
   import Pleroma.Web.CommonAPI.Utils
 
+  require Pleroma.Constants
+
   def follow(follower, followed) do
+    timeout = Pleroma.Config.get([:activitypub, :follow_handshake_timeout])
+
     with {:ok, follower} <- User.maybe_direct_follow(follower, followed),
          {:ok, activity} <- ActivityPub.follow(follower, followed),
-         {:ok, follower, followed} <-
-           User.wait_and_refresh(
-             Pleroma.Config.get([:activitypub, :follow_handshake_timeout]),
-             follower,
-             followed
-           ) do
+         {:ok, follower, followed} <- User.wait_and_refresh(timeout, follower, followed) do
       {:ok, follower, followed, activity}
     end
   end
@@ -40,6 +41,7 @@ defmodule Pleroma.Web.CommonAPI do
     with {:ok, follower} <- User.follow(follower, followed),
          %Activity{} = follow_activity <- Utils.fetch_latest_follow(follower, followed),
          {:ok, follow_activity} <- Utils.update_follow_state_for_all(follow_activity, "accept"),
+         {:ok, _relationship} <- FollowingRelationship.update(follower, followed, "accept"),
          {:ok, _activity} <-
            ActivityPub.accept(%{
              to: [follower.ap_id],
@@ -54,6 +56,7 @@ defmodule Pleroma.Web.CommonAPI do
   def reject_follow_request(follower, followed) do
     with %Activity{} = follow_activity <- Utils.fetch_latest_follow(follower, followed),
          {:ok, follow_activity} <- Utils.update_follow_state_for_all(follow_activity, "reject"),
+         {:ok, _relationship} <- FollowingRelationship.update(follower, followed, "reject"),
          {:ok, _activity} <-
            ActivityPub.reject(%{
              to: [follower.ap_id],
@@ -74,29 +77,27 @@ defmodule Pleroma.Web.CommonAPI do
          {:ok, delete} <- ActivityPub.delete(object) do
       {:ok, delete}
     else
-      _ ->
-        {:error, dgettext("errors", "Could not delete")}
+      _ -> {:error, dgettext("errors", "Could not delete")}
     end
   end
 
-  def repeat(id_or_ap_id, user) do
+  def repeat(id_or_ap_id, user, params \\ %{}) do
     with %Activity{} = activity <- get_by_id_or_ap_id(id_or_ap_id),
          object <- Object.normalize(activity),
-         nil <- Utils.get_existing_announce(user.ap_id, object) do
-      ActivityPub.announce(user, object)
+         nil <- Utils.get_existing_announce(user.ap_id, object),
+         public <- public_announce?(object, params) do
+      ActivityPub.announce(user, object, nil, true, public)
     else
-      _ ->
-        {:error, dgettext("errors", "Could not repeat")}
+      _ -> {:error, dgettext("errors", "Could not repeat")}
     end
   end
 
   def unrepeat(id_or_ap_id, user) do
-    with %Activity{} = activity <- get_by_id_or_ap_id(id_or_ap_id),
-         object <- Object.normalize(activity) do
+    with %Activity{} = activity <- get_by_id_or_ap_id(id_or_ap_id) do
+      object = Object.normalize(activity)
       ActivityPub.unannounce(user, object)
     else
-      _ ->
-        {:error, dgettext("errors", "Could not unrepeat")}
+      _ -> {:error, dgettext("errors", "Could not unrepeat")}
     end
   end
 
@@ -106,30 +107,42 @@ defmodule Pleroma.Web.CommonAPI do
          nil <- Utils.get_existing_like(user.ap_id, object) do
       ActivityPub.like(user, object)
     else
-      _ ->
-        {:error, dgettext("errors", "Could not favorite")}
+      _ -> {:error, dgettext("errors", "Could not favorite")}
     end
   end
 
   def unfavorite(id_or_ap_id, user) do
-    with %Activity{} = activity <- get_by_id_or_ap_id(id_or_ap_id),
-         object <- Object.normalize(activity) do
+    with %Activity{} = activity <- get_by_id_or_ap_id(id_or_ap_id) do
+      object = Object.normalize(activity)
       ActivityPub.unlike(user, object)
     else
-      _ ->
-        {:error, dgettext("errors", "Could not unfavorite")}
+      _ -> {:error, dgettext("errors", "Could not unfavorite")}
     end
   end
 
-  def vote(user, object, choices) do
-    with "Question" <- object.data["type"],
-         {:author, false} <- {:author, object.data["actor"] == user.ap_id},
-         {:existing_votes, []} <- {:existing_votes, Utils.get_existing_votes(user.ap_id, object)},
-         {options, max_count} <- get_options_and_max_count(object),
-         option_count <- Enum.count(options),
-         {:choice_check, {choices, true}} <-
-           {:choice_check, normalize_and_validate_choice_indices(choices, option_count)},
-         {:count_check, true} <- {:count_check, Enum.count(choices) <= max_count} do
+  def react_with_emoji(id, user, emoji) do
+    with %Activity{} = activity <- Activity.get_by_id(id),
+         object <- Object.normalize(activity) do
+      ActivityPub.react_with_emoji(user, object, emoji)
+    else
+      _ ->
+        {:error, dgettext("errors", "Could not add reaction emoji")}
+    end
+  end
+
+  def unreact_with_emoji(id, user, emoji) do
+    with %Activity{} = reaction_activity <- Utils.get_latest_reaction(id, user, emoji) do
+      ActivityPub.unreact_with_emoji(user, reaction_activity.data["id"])
+    else
+      _ ->
+        {:error, dgettext("errors", "Could not remove reaction emoji")}
+    end
+  end
+
+  def vote(user, %{data: %{"type" => "Question"}} = object, choices) do
+    with :ok <- validate_not_author(object, user),
+         :ok <- validate_existing_votes(user, object),
+         {:ok, options, choices} <- normalize_and_validate_choices(choices, object) do
       answer_activities =
         Enum.map(choices, fn index ->
           answer_data = make_answer_data(user, object, Enum.at(options, index)["name"])
@@ -148,139 +161,141 @@ defmodule Pleroma.Web.CommonAPI do
 
       object = Object.get_cached_by_ap_id(object.data["id"])
       {:ok, answer_activities, object}
-    else
-      {:author, _} -> {:error, dgettext("errors", "Poll's author can't vote")}
-      {:existing_votes, _} -> {:error, dgettext("errors", "Already voted")}
-      {:choice_check, {_, false}} -> {:error, dgettext("errors", "Invalid indices")}
-      {:count_check, false} -> {:error, dgettext("errors", "Too many choices")}
     end
   end
 
-  defp get_options_and_max_count(object) do
-    if Map.has_key?(object.data, "anyOf") do
-      {object.data["anyOf"], Enum.count(object.data["anyOf"])}
+  defp validate_not_author(%{data: %{"actor" => ap_id}}, %{ap_id: ap_id}),
+    do: {:error, dgettext("errors", "Poll's author can't vote")}
+
+  defp validate_not_author(_, _), do: :ok
+
+  defp validate_existing_votes(%{ap_id: ap_id}, object) do
+    if Utils.get_existing_votes(ap_id, object) == [] do
+      :ok
     else
-      {object.data["oneOf"], 1}
+      {:error, dgettext("errors", "Already voted")}
     end
   end
 
-  defp normalize_and_validate_choice_indices(choices, count) do
-    Enum.map_reduce(choices, true, fn index, valid ->
-      index = if is_binary(index), do: String.to_integer(index), else: index
-      {index, if(valid, do: index < count, else: valid)}
-    end)
+  defp get_options_and_max_count(%{data: %{"anyOf" => any_of}}), do: {any_of, Enum.count(any_of)}
+  defp get_options_and_max_count(%{data: %{"oneOf" => one_of}}), do: {one_of, 1}
+
+  defp normalize_and_validate_choices(choices, object) do
+    choices = Enum.map(choices, fn i -> if is_binary(i), do: String.to_integer(i), else: i end)
+    {options, max_count} = get_options_and_max_count(object)
+    count = Enum.count(options)
+
+    with {_, true} <- {:valid_choice, Enum.all?(choices, &(&1 < count))},
+         {_, true} <- {:count_check, Enum.count(choices) <= max_count} do
+      {:ok, options, choices}
+    else
+      {:valid_choice, _} -> {:error, dgettext("errors", "Invalid indices")}
+      {:count_check, _} -> {:error, dgettext("errors", "Too many choices")}
+    end
   end
 
-  def get_visibility(%{"visibility" => visibility}, in_reply_to)
+  def public_announce?(_, %{"visibility" => visibility})
+      when visibility in ~w{public unlisted private direct},
+      do: visibility in ~w(public unlisted)
+
+  def public_announce?(object, _) do
+    Visibility.is_public?(object)
+  end
+
+  def get_visibility(_, _, %Participation{}), do: {"direct", "direct"}
+
+  def get_visibility(%{"visibility" => visibility}, in_reply_to, _)
       when visibility in ~w{public unlisted private direct},
       do: {visibility, get_replied_to_visibility(in_reply_to)}
 
-  def get_visibility(%{"visibility" => "list:" <> list_id}, in_reply_to) do
+  def get_visibility(%{"visibility" => "list:" <> list_id}, in_reply_to, _) do
     visibility = {:list, String.to_integer(list_id)}
     {visibility, get_replied_to_visibility(in_reply_to)}
   end
 
-  def get_visibility(_, in_reply_to) when not is_nil(in_reply_to) do
+  def get_visibility(_, in_reply_to, _) when not is_nil(in_reply_to) do
     visibility = get_replied_to_visibility(in_reply_to)
     {visibility, visibility}
   end
 
-  def get_visibility(_, in_reply_to), do: {"public", get_replied_to_visibility(in_reply_to)}
+  def get_visibility(_, in_reply_to, _), do: {"public", get_replied_to_visibility(in_reply_to)}
 
   def get_replied_to_visibility(nil), do: nil
 
   def get_replied_to_visibility(activity) do
     with %Object{} = object <- Object.normalize(activity) do
-      Pleroma.Web.ActivityPub.Visibility.get_visibility(object)
+      Visibility.get_visibility(object)
     end
   end
 
-  def post(user, %{"status" => status} = data) do
-    limit = Pleroma.Config.get([:instance, :limit])
+  def check_expiry_date({:ok, nil} = res), do: res
 
-    with status <- String.trim(status),
-         attachments <- attachments_from_ids(data),
-         in_reply_to <- get_replied_to_activity(data["in_reply_to_status_id"]),
-         {visibility, in_reply_to_visibility} <- get_visibility(data, in_reply_to),
-         {_, false} <-
-           {:private_to_public, in_reply_to_visibility == "direct" && visibility != "direct"},
-         {content_html, mentions, tags} <-
-           make_content_html(
-             status,
-             attachments,
-             data,
-             visibility
-           ),
-         mentioned_users <- for({_, mentioned_user} <- mentions, do: mentioned_user.ap_id),
-         addressed_users <- get_addressed_users(mentioned_users, data["to"]),
-         {poll, poll_emoji} <- make_poll_data(data),
-         {to, cc} <- get_to_and_cc(user, addressed_users, in_reply_to, visibility),
-         context <- make_context(in_reply_to),
-         cw <- data["spoiler_text"] || "",
-         sensitive <- data["sensitive"] || Enum.member?(tags, {"#nsfw", "nsfw"}),
-         full_payload <- String.trim(status <> cw),
-         :ok <- validate_character_limit(full_payload, attachments, limit),
-         object <-
-           make_note_data(
-             user.ap_id,
-             to,
-             context,
-             content_html,
-             attachments,
-             in_reply_to,
-             tags,
-             cw,
-             cc,
-             sensitive,
-             poll
-           ),
-         object <-
-           Map.put(
-             object,
-             "emoji",
-             Map.merge(Formatter.get_emoji_map(full_payload), poll_emoji)
-           ) do
-      preview? = Pleroma.Web.ControllerHelper.truthy_param?(data["preview"]) || false
-      direct? = visibility == "direct"
+  def check_expiry_date({:ok, in_seconds}) do
+    expiry = NaiveDateTime.utc_now() |> NaiveDateTime.add(in_seconds)
 
-      %{
-        to: to,
-        actor: user,
-        context: context,
-        object: object,
-        additional: %{"cc" => cc, "directMessage" => direct?}
-      }
-      |> maybe_add_list_data(user, visibility)
-      |> ActivityPub.create(preview?)
+    if ActivityExpiration.expires_late_enough?(expiry) do
+      {:ok, expiry}
     else
-      {:private_to_public, true} ->
-        {:error, dgettext("errors", "The message visibility must be direct")}
-
-      {:error, _} = e ->
-        e
-
-      e ->
-        {:error, e}
+      {:error, "Expiry date is too soon"}
     end
   end
+
+  def check_expiry_date(expiry_str) do
+    Ecto.Type.cast(:integer, expiry_str)
+    |> check_expiry_date()
+  end
+
+  def listen(user, %{"title" => _} = data) do
+    with visibility <- data["visibility"] || "public",
+         {to, cc} <- get_to_and_cc(user, [], nil, visibility, nil),
+         listen_data <-
+           Map.take(data, ["album", "artist", "title", "length"])
+           |> Map.put("type", "Audio")
+           |> Map.put("to", to)
+           |> Map.put("cc", cc)
+           |> Map.put("actor", user.ap_id),
+         {:ok, activity} <-
+           ActivityPub.listen(%{
+             actor: user,
+             to: to,
+             object: listen_data,
+             context: Utils.generate_context_id(),
+             additional: %{"cc" => cc}
+           }) do
+      {:ok, activity}
+    end
+  end
+
+  def post(user, %{"status" => _} = data) do
+    with {:ok, draft} <- Pleroma.Web.CommonAPI.ActivityDraft.create(user, data) do
+      draft.changes
+      |> ActivityPub.create(draft.preview?)
+      |> maybe_create_activity_expiration(draft.expires_at)
+    end
+  end
+
+  defp maybe_create_activity_expiration({:ok, activity}, %NaiveDateTime{} = expires_at) do
+    with {:ok, _} <- ActivityExpiration.create(activity, expires_at) do
+      {:ok, activity}
+    end
+  end
+
+  defp maybe_create_activity_expiration(result, _), do: result
 
   # Updates the emojis for a user based on their profile
   def update(user) do
+    emoji = emoji_from_profile(user)
+    source_data = Map.put(user.source_data, "tag", emoji)
+
     user =
-      with emoji <- emoji_from_profile(user),
-           source_data <- (user.info.source_data || %{}) |> Map.put("tag", emoji),
-           info_cng <- User.Info.set_source_data(user.info, source_data),
-           change <- Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_cng),
-           {:ok, user} <- User.update_and_set_cache(change) do
-        user
-      else
-        _e ->
-          user
+      case User.update_source_data(user, source_data) do
+        {:ok, user} -> user
+        _ -> user
       end
 
     ActivityPub.update(%{
       local: true,
-      to: [user.follower_address],
+      to: [Pleroma.Constants.as_public(), user.follower_address],
       cc: [],
       actor: user.ap_id,
       object: Pleroma.Web.ActivityPub.UserView.render("user.json", %{user: user})
@@ -290,44 +305,25 @@ defmodule Pleroma.Web.CommonAPI do
   def pin(id_or_ap_id, %{ap_id: user_ap_id} = user) do
     with %Activity{
            actor: ^user_ap_id,
-           data: %{
-             "type" => "Create"
-           },
-           object: %Object{
-             data: %{
-               "type" => "Note"
-             }
-           }
+           data: %{"type" => "Create"},
+           object: %Object{data: %{"type" => "Note"}}
          } = activity <- get_by_id_or_ap_id(id_or_ap_id),
          true <- Visibility.is_public?(activity),
-         %{valid?: true} = info_changeset <- User.Info.add_pinnned_activity(user.info, activity),
-         changeset <-
-           Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_changeset),
-         {:ok, _user} <- User.update_and_set_cache(changeset) do
+         {:ok, _user} <- User.add_pinnned_activity(user, activity) do
       {:ok, activity}
     else
-      %{errors: [pinned_activities: {err, _}]} ->
-        {:error, err}
-
-      _ ->
-        {:error, dgettext("errors", "Could not pin")}
+      {:error, %{errors: [pinned_activities: {err, _}]}} -> {:error, err}
+      _ -> {:error, dgettext("errors", "Could not pin")}
     end
   end
 
   def unpin(id_or_ap_id, user) do
     with %Activity{} = activity <- get_by_id_or_ap_id(id_or_ap_id),
-         %{valid?: true} = info_changeset <-
-           User.Info.remove_pinnned_activity(user.info, activity),
-         changeset <-
-           Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_changeset),
-         {:ok, _user} <- User.update_and_set_cache(changeset) do
+         {:ok, _user} <- User.remove_pinnned_activity(user, activity) do
       {:ok, activity}
     else
-      %{errors: [pinned_activities: {err, _}]} ->
-        {:error, err}
-
-      _ ->
-        {:error, dgettext("errors", "Could not unpin")}
+      {:error, %{errors: [pinned_activities: {err, _}]}} -> {:error, err}
+      _ -> {:error, dgettext("errors", "Could not unpin")}
     end
   end
 
@@ -347,51 +343,53 @@ defmodule Pleroma.Web.CommonAPI do
   def thread_muted?(%{id: nil} = _user, _activity), do: false
 
   def thread_muted?(user, activity) do
-    with [] <- ThreadMute.check_muted(user.id, activity.data["context"]) do
-      false
-    else
-      _ -> true
+    ThreadMute.check_muted(user.id, activity.data["context"]) != []
+  end
+
+  def report(user, %{"account_id" => account_id} = data) do
+    with {:ok, account} <- get_reported_account(account_id),
+         {:ok, {content_html, _, _}} <- make_report_content_html(data["comment"]),
+         {:ok, statuses} <- get_report_statuses(account, data) do
+      ActivityPub.flag(%{
+        context: Utils.generate_context_id(),
+        actor: user,
+        account: account,
+        statuses: statuses,
+        content: content_html,
+        forward: data["forward"] || false
+      })
     end
   end
 
-  def report(user, data) do
-    with {:account_id, %{"account_id" => account_id}} <- {:account_id, data},
-         {:account, %User{} = account} <- {:account, User.get_cached_by_id(account_id)},
-         {:ok, {content_html, _, _}} <- make_report_content_html(data["comment"]),
-         {:ok, statuses} <- get_report_statuses(account, data),
-         {:ok, activity} <-
-           ActivityPub.flag(%{
-             context: Utils.generate_context_id(),
-             actor: user,
-             account: account,
-             statuses: statuses,
-             content: content_html,
-             forward: data["forward"] || false
-           }) do
-      {:ok, activity}
-    else
-      {:error, err} -> {:error, err}
-      {:account_id, %{}} -> {:error, dgettext("errors", "Valid `account_id` required")}
-      {:account, nil} -> {:error, dgettext("errors", "Account not found")}
+  def report(_user, _params), do: {:error, dgettext("errors", "Valid `account_id` required")}
+
+  defp get_reported_account(account_id) do
+    case User.get_cached_by_id(account_id) do
+      %User{} = account -> {:ok, account}
+      _ -> {:error, dgettext("errors", "Account not found")}
+    end
+  end
+
+  def update_report_state(activity_ids, state) when is_list(activity_ids) do
+    case Utils.update_report_state(activity_ids, state) do
+      :ok -> {:ok, activity_ids}
+      _ -> {:error, dgettext("errors", "Could not update state")}
     end
   end
 
   def update_report_state(activity_id, state) do
-    with %Activity{} = activity <- Activity.get_by_id(activity_id),
-         {:ok, activity} <- Utils.update_report_state(activity, state) do
-      {:ok, activity}
+    with %Activity{} = activity <- Activity.get_by_id(activity_id) do
+      Utils.update_report_state(activity, state)
     else
       nil -> {:error, :not_found}
-      {:error, reason} -> {:error, reason}
       _ -> {:error, dgettext("errors", "Could not update state")}
     end
   end
 
   def update_activity_scope(activity_id, opts \\ %{}) do
     with %Activity{} = activity <- Activity.get_by_id_with_object(activity_id),
-         {:ok, activity} <- toggle_sensitive(activity, opts),
-         {:ok, activity} <- set_visibility(activity, opts) do
-      {:ok, activity}
+         {:ok, activity} <- toggle_sensitive(activity, opts) do
+      set_visibility(activity, opts)
     else
       nil -> {:error, :not_found}
       {:error, reason} -> {:error, reason}
@@ -422,23 +420,15 @@ defmodule Pleroma.Web.CommonAPI do
 
   defp set_visibility(activity, _), do: {:ok, activity}
 
-  def hide_reblogs(user, muted) do
-    ap_id = muted.ap_id
-
-    if ap_id not in user.info.muted_reblogs do
-      info_changeset = User.Info.add_reblog_mute(user.info, ap_id)
-      changeset = Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_changeset)
-      User.update_and_set_cache(changeset)
+  def hide_reblogs(user, %{ap_id: ap_id} = _muted) do
+    if ap_id not in user.muted_reblogs do
+      User.add_reblog_mute(user, ap_id)
     end
   end
 
-  def show_reblogs(user, muted) do
-    ap_id = muted.ap_id
-
-    if ap_id in user.info.muted_reblogs do
-      info_changeset = User.Info.remove_reblog_mute(user.info, ap_id)
-      changeset = Ecto.Changeset.change(user) |> Ecto.Changeset.put_embed(:info, info_changeset)
-      User.update_and_set_cache(changeset)
+  def show_reblogs(user, %{ap_id: ap_id} = _muted) do
+    if ap_id in user.muted_reblogs do
+      User.remove_reblog_mute(user, ap_id)
     end
   end
 end

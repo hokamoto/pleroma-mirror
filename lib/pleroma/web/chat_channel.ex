@@ -22,7 +22,7 @@ defmodule Pleroma.Web.ChatChannel do
 
     if String.length(text) > 0 do
       author = User.get_cached_by_nickname(user_name)
-      author = Pleroma.Web.MastodonAPI.AccountView.render("account.json", user: author)
+      author = Pleroma.Web.MastodonAPI.AccountView.render("show.json", user: author)
       message = ChatChannelState.add_message(%{text: text, author: author})
 
       broadcast!(socket, "new_msg", message)
@@ -33,9 +33,11 @@ defmodule Pleroma.Web.ChatChannel do
 end
 
 defmodule Pleroma.Web.ChatChannel.ChatChannelState do
+  use Agent
+
   @max_messages 20
 
-  def start_link do
+  def start_link(_) do
     Agent.start_link(fn -> %{max_id: 1, messages: []} end, name: __MODULE__)
   end
 

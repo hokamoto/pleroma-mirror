@@ -15,6 +15,7 @@ defmodule Pleroma.ReverseProxy do
   @valid_resp_codes [200, 206, 304]
   @max_read_duration :timer.seconds(30)
   @max_body_length :infinity
+  @failed_request_ttl :timer.seconds(60)
   @methods ~w(GET HEAD)
 
   @moduledoc """
@@ -47,6 +48,8 @@ defmodule Pleroma.ReverseProxy do
 
   * `max_read_duration` (default `#{inspect(@max_read_duration)}` ms): the total time the connection is allowed to
   read from the remote upstream.
+
+  * `failed_request_ttl` (default `#{inspect(@failed_request_ttl)}` ms): the time the failed request is cached and cannot be retried.
 
   * `inline_content_types`:
     * `true` will not alter `content-disposition` (up to the upstream),
@@ -83,6 +86,7 @@ defmodule Pleroma.ReverseProxy do
           {:keep_user_agent, boolean}
           | {:max_read_duration, :timer.time() | :infinity}
           | {:max_body_length, non_neg_integer() | :infinity}
+          | {:failed_request_ttl, :timer.time() | :infinity}
           | {:http, []}
           | {:req_headers, [{String.t(), String.t()}]}
           | {:resp_headers, [{String.t(), String.t()}]}
@@ -108,16 +112,27 @@ defmodule Pleroma.ReverseProxy do
         opts
       end
 
-    with {:ok, code, headers, client} <- request(method, url, req_headers, hackney_opts),
-         :ok <- header_length_constraint(headers, Keyword.get(opts, :max_body_length)) do
+    with {:ok, nil} <- Cachex.get(:failed_proxy_url_cache, url),
+         {:ok, code, headers, client} <- request(method, url, req_headers, hackney_opts),
+         :ok <-
+           header_length_constraint(
+             headers,
+             Keyword.get(opts, :max_body_length, @max_body_length)
+           ) do
       response(conn, client, url, code, headers, opts)
     else
+      {:ok, true} ->
+        conn
+        |> error_or_redirect(url, 500, "Request failed", opts)
+        |> halt()
+
       {:ok, code, headers} ->
         head_response(conn, url, code, headers, opts)
         |> halt()
 
       {:error, {:invalid_http_response, code}} ->
         Logger.error("#{__MODULE__}: request to #{inspect(url)} failed with HTTP status #{code}")
+        track_failed_url(url, code, opts)
 
         conn
         |> error_or_redirect(
@@ -130,6 +145,7 @@ defmodule Pleroma.ReverseProxy do
 
       {:error, error} ->
         Logger.error("#{__MODULE__}: request to #{inspect(url)} failed: #{inspect(error)}")
+        track_failed_url(url, error, opts)
 
         conn
         |> error_or_redirect(url, 500, "Request failed", opts)
@@ -200,7 +216,11 @@ defmodule Pleroma.ReverseProxy do
          {:ok, data} <- client().stream_body(client),
          {:ok, duration} <- increase_read_duration(duration),
          sent_so_far = sent_so_far + byte_size(data),
-         :ok <- body_size_constraint(sent_so_far, Keyword.get(opts, :max_body_size)),
+         :ok <-
+           body_size_constraint(
+             sent_so_far,
+             Keyword.get(opts, :max_body_length, @max_body_length)
+           ),
          {:ok, conn} <- chunk(conn, data) do
       chunk_reply(conn, client, opts, sent_so_far, duration)
     else
@@ -380,4 +400,15 @@ defmodule Pleroma.ReverseProxy do
   end
 
   defp client, do: Pleroma.ReverseProxy.Client
+
+  defp track_failed_url(url, error, opts) do
+    ttl =
+      unless error in [:body_too_large, 400, 204] do
+        Keyword.get(opts, :failed_request_ttl, @failed_request_ttl)
+      else
+        nil
+      end
+
+    Cachex.put(:failed_proxy_url_cache, url, true, ttl: ttl)
+  end
 end

@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.OAuth.OAuthControllerTest do
@@ -8,27 +8,20 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
   import Mock
 
   alias Pleroma.Repo
+  alias Pleroma.User
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.OAuthController
   alias Pleroma.Web.OAuth.Token
 
-  @oauth_config_path [:oauth2, :issue_new_refresh_token]
   @session_opts [
     store: :cookie,
     key: "_test",
     signing_salt: "cooldude"
   ]
+  clear_config_all([:instance, :account_activation_required])
 
   describe "in OAuth consumer mode, " do
     setup do
-      oauth_consumer_strategies_path = [:auth, :oauth_consumer_strategies]
-      oauth_consumer_strategies = Pleroma.Config.get(oauth_consumer_strategies_path)
-      Pleroma.Config.put(oauth_consumer_strategies_path, ~w(twitter facebook))
-
-      on_exit(fn ->
-        Pleroma.Config.put(oauth_consumer_strategies_path, oauth_consumer_strategies)
-      end)
-
       [
         app: insert(:oauth_app),
         conn:
@@ -36,6 +29,13 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
           |> Plug.Session.call(Plug.Session.init(@session_opts))
           |> fetch_session()
       ]
+    end
+
+    clear_config([:auth, :oauth_consumer_strategies]) do
+      Pleroma.Config.put(
+        [:auth, :oauth_consumer_strategies],
+        ~w(twitter facebook)
+      )
     end
 
     test "GET /oauth/authorize renders auth forms, including OAuth consumer form", %{
@@ -470,6 +470,29 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert html_response(conn, 200) =~ ~s(type="submit")
     end
 
+    test "renders authentication page if user is already authenticated but user request with another client",
+         %{
+           app: app,
+           conn: conn
+         } do
+      token = insert(:oauth_token, app_id: app.id)
+
+      conn =
+        conn
+        |> put_session(:oauth_token, token.token)
+        |> get(
+          "/oauth/authorize",
+          %{
+            "response_type" => "code",
+            "client_id" => "another_client_id",
+            "redirect_uri" => OAuthController.default_redirect_uri(app),
+            "scope" => "read"
+          }
+        )
+
+      assert html_response(conn, 200) =~ ~s(type="submit")
+    end
+
     test "with existing authentication and non-OOB `redirect_uri`, redirects to app with `token` and `state` params",
          %{
            app: app,
@@ -558,7 +581,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
             "password" => "test",
             "client_id" => app.client_id,
             "redirect_uri" => redirect_uri,
-            "scope" => "read write",
+            "scope" => "read:subscope write",
             "state" => "statepassed"
           }
         })
@@ -571,7 +594,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert %{"state" => "statepassed", "code" => code} = query
       auth = Repo.get_by(Authorization, token: code)
       assert auth
-      assert auth.scopes == ["read", "write"]
+      assert auth.scopes == ["read:subscope", "write"]
     end
 
     test "returns 401 for wrong credentials", %{conn: conn} do
@@ -628,7 +651,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       assert result =~ "This action is outside the authorized scopes"
     end
 
-    test "returns 401 for scopes beyond app scopes", %{conn: conn} do
+    test "returns 401 for scopes beyond app scopes hierarchy", %{conn: conn} do
       user = insert(:user)
       app = insert(:oauth_app, scopes: ["read", "write"])
       redirect_uri = OAuthController.default_redirect_uri(app)
@@ -776,22 +799,13 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
     end
 
     test "rejects token exchange for valid credentials belonging to unconfirmed user and confirmation is required" do
-      setting = Pleroma.Config.get([:instance, :account_activation_required])
-
-      unless setting do
-        Pleroma.Config.put([:instance, :account_activation_required], true)
-        on_exit(fn -> Pleroma.Config.put([:instance, :account_activation_required], setting) end)
-      end
-
+      Pleroma.Config.put([:instance, :account_activation_required], true)
       password = "testpassword"
-      user = insert(:user, password_hash: Comeonin.Pbkdf2.hashpwsalt(password))
-      info_change = Pleroma.User.Info.confirmation_changeset(user.info, need_confirmation: true)
 
       {:ok, user} =
-        user
-        |> Ecto.Changeset.change()
-        |> Ecto.Changeset.put_embed(:info, info_change)
-        |> Repo.update()
+        insert(:user, password_hash: Comeonin.Pbkdf2.hashpwsalt(password))
+        |> User.confirmation_changeset(need_confirmation: true)
+        |> User.update_and_set_cache()
 
       refute Pleroma.User.auth_active?(user)
 
@@ -818,7 +832,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       user =
         insert(:user,
           password_hash: Comeonin.Pbkdf2.hashpwsalt(password),
-          info: %{deactivated: true}
+          deactivated: true
         )
 
       app = insert(:oauth_app)
@@ -835,6 +849,34 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
 
       assert resp = json_response(conn, 403)
       assert %{"error" => _} = resp
+      refute Map.has_key?(resp, "access_token")
+    end
+
+    test "rejects token exchange for user with password_reset_pending set to true" do
+      password = "testpassword"
+
+      user =
+        insert(:user,
+          password_hash: Comeonin.Pbkdf2.hashpwsalt(password),
+          password_reset_pending: true
+        )
+
+      app = insert(:oauth_app, scopes: ["read", "write"])
+
+      conn =
+        build_conn()
+        |> post("/oauth/token", %{
+          "grant_type" => "password",
+          "username" => user.nickname,
+          "password" => password,
+          "client_id" => app.client_id,
+          "client_secret" => app.client_secret
+        })
+
+      assert resp = json_response(conn, 403)
+
+      assert resp["error"] == "Password reset is required"
+      assert resp["identifier"] == "password_reset_required"
       refute Map.has_key?(resp, "access_token")
     end
 
@@ -858,16 +900,10 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
   end
 
   describe "POST /oauth/token - refresh token" do
-    setup do
-      oauth_token_config = Pleroma.Config.get(@oauth_config_path)
-
-      on_exit(fn ->
-        Pleroma.Config.get(@oauth_config_path, oauth_token_config)
-      end)
-    end
+    clear_config([:oauth2, :issue_new_refresh_token])
 
     test "issues a new access token with keep fresh token" do
-      Pleroma.Config.put(@oauth_config_path, true)
+      Pleroma.Config.put([:oauth2, :issue_new_refresh_token], true)
       user = insert(:user)
       app = insert(:oauth_app, scopes: ["read", "write"])
 
@@ -907,7 +943,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
     end
 
     test "issues a new access token with new fresh token" do
-      Pleroma.Config.put(@oauth_config_path, false)
+      Pleroma.Config.put([:oauth2, :issue_new_refresh_token], false)
       user = insert(:user)
       app = insert(:oauth_app, scopes: ["read", "write"])
 

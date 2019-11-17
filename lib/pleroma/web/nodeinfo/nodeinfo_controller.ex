@@ -34,64 +34,19 @@ defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
   def raw_nodeinfo do
     stats = Stats.get_stats()
 
-    exclusions = Config.get([:instance, :mrf_transparency_exclusions])
-
-    mrf_simple =
-      Config.get(:mrf_simple)
-      |> Enum.map(fn {k, v} -> {k, Enum.reject(v, fn v -> v in exclusions end)} end)
-      |> Enum.into(%{})
-
-    # This horror is needed to convert regex sigils to strings
-    mrf_keyword =
-      Config.get(:mrf_keyword, [])
-      |> Enum.map(fn {key, value} ->
-        {key,
-         Enum.map(value, fn
-           {pattern, replacement} ->
-             %{
-               "pattern" =>
-                 if not is_binary(pattern) do
-                   inspect(pattern)
-                 else
-                   pattern
-                 end,
-               "replacement" => replacement
-             }
-
-           pattern ->
-             if not is_binary(pattern) do
-               inspect(pattern)
-             else
-               pattern
-             end
-         end)}
-      end)
-      |> Enum.into(%{})
-
-    mrf_policies =
-      MRF.get_policies()
-      |> Enum.map(fn policy -> to_string(policy) |> String.split(".") |> List.last() end)
-
     quarantined = Config.get([:instance, :quarantined_instances], [])
 
     staff_accounts =
       User.all_superusers()
       |> Enum.map(fn u -> u.ap_id end)
 
-    mrf_user_allowlist =
-      Config.get([:mrf_user_allowlist], [])
-      |> Enum.into(%{}, fn {k, v} -> {k, length(v)} end)
-
     federation_response =
       if Config.get([:instance, :mrf_transparency]) do
-        %{
-          mrf_policies: mrf_policies,
-          mrf_simple: mrf_simple,
-          mrf_keyword: mrf_keyword,
-          mrf_user_allowlist: mrf_user_allowlist,
-          quarantined_instances: quarantined,
-          exclusions: length(exclusions) > 0
-        }
+        {:ok, data} = MRF.describe()
+
+        data
+        |> Map.merge(%{quarantined_instances: quarantined})
+        |> Map.put(:enabled, Config.get([:instance, :federating]))
       else
         %{}
       end
@@ -103,6 +58,8 @@ defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
         "mastodon_api_streaming",
         "polls",
         "pleroma_explicit_addressing",
+        "shareable_emoji_packs",
+        "multifetch",
         if Config.get([:media_proxy, :enabled]) do
           "media_proxy"
         end,
@@ -162,6 +119,12 @@ defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
           avatar: Config.get([:instance, :avatar_upload_limit]),
           banner: Config.get([:instance, :banner_upload_limit]),
           background: Config.get([:instance, :background_upload_limit])
+        },
+        fieldsLimits: %{
+          maxFields: Config.get([:instance, :max_account_fields]),
+          maxRemoteFields: Config.get([:instance, :max_remote_account_fields]),
+          nameLength: Config.get([:instance, :account_field_name_length]),
+          valueLength: Config.get([:instance, :account_field_value_length])
         },
         accountActivationRequired: Config.get([:instance, :account_activation_required], false),
         invitesEnabled: Config.get([:instance, :invites_enabled], false),

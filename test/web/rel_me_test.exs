@@ -5,33 +5,8 @@
 defmodule Pleroma.Web.RelMeTest do
   use ExUnit.Case, async: true
 
-  setup do
-    Tesla.Mock.mock(fn
-      %{
-        method: :get,
-        url: "http://example.com/rel_me/anchor"
-      } ->
-        %Tesla.Env{status: 200, body: File.read!("test/fixtures/rel_me_anchor.html")}
-
-      %{
-        method: :get,
-        url: "http://example.com/rel_me/anchor_nofollow"
-      } ->
-        %Tesla.Env{status: 200, body: File.read!("test/fixtures/rel_me_anchor_nofollow.html")}
-
-      %{
-        method: :get,
-        url: "http://example.com/rel_me/link"
-      } ->
-        %Tesla.Env{status: 200, body: File.read!("test/fixtures/rel_me_link.html")}
-
-      %{
-        method: :get,
-        url: "http://example.com/rel_me/null"
-      } ->
-        %Tesla.Env{status: 200, body: File.read!("test/fixtures/rel_me_null.html")}
-    end)
-
+  setup_all do
+    Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
     :ok
   end
 
@@ -39,7 +14,9 @@ defmodule Pleroma.Web.RelMeTest do
     hrefs = ["https://social.example.org/users/lain"]
 
     assert Pleroma.Web.RelMe.parse("http://example.com/rel_me/null") == {:ok, []}
-    assert {:error, _} = Pleroma.Web.RelMe.parse("http://example.com/rel_me/error")
+
+    assert {:ok, %Tesla.Env{status: 404}} =
+             Pleroma.Web.RelMe.parse("http://example.com/rel_me/error")
 
     assert Pleroma.Web.RelMe.parse("http://example.com/rel_me/link") == {:ok, hrefs}
     assert Pleroma.Web.RelMe.parse("http://example.com/rel_me/anchor") == {:ok, hrefs}

@@ -8,9 +8,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
   alias Pleroma.Config
   alias Pleroma.Web.ActivityPub.MRF.SimplePolicy
 
-  setup do
-    orig = Config.get!(:mrf_simple)
-
+  clear_config([:mrf_simple]) do
     Config.put(:mrf_simple,
       media_removal: [],
       media_nsfw: [],
@@ -21,10 +19,6 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
       avatar_removal: [],
       banner_removal: []
     )
-
-    on_exit(fn ->
-      Config.put(:mrf_simple, orig)
-    end)
   end
 
   describe "when :media_removal" do
@@ -242,7 +236,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
       assert SimplePolicy.filter(remote_message) == {:ok, remote_message}
     end
 
-    test "has a matching host" do
+    test "activity has a matching host" do
       Config.put([:mrf_simple, :reject], ["remote.instance"])
 
       remote_message = build_remote_message()
@@ -250,12 +244,20 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
       assert SimplePolicy.filter(remote_message) == {:reject, nil}
     end
 
-    test "match with wildcard domain" do
+    test "activity matches with wildcard domain" do
       Config.put([:mrf_simple, :reject], ["*.remote.instance"])
 
       remote_message = build_remote_message()
 
       assert SimplePolicy.filter(remote_message) == {:reject, nil}
+    end
+
+    test "actor has a matching host" do
+      Config.put([:mrf_simple, :reject], ["remote.instance"])
+
+      remote_user = build_remote_user()
+
+      assert SimplePolicy.filter(remote_user) == {:reject, nil}
     end
   end
 
@@ -270,7 +272,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
       assert SimplePolicy.filter(remote_message) == {:ok, remote_message}
     end
 
-    test "is not empty but it doesn't have a matching host" do
+    test "is not empty but activity doesn't have a matching host" do
       Config.put([:mrf_simple, :accept], ["non.matching.remote"])
 
       local_message = build_local_message()
@@ -280,7 +282,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
       assert SimplePolicy.filter(remote_message) == {:reject, nil}
     end
 
-    test "has a matching host" do
+    test "activity has a matching host" do
       Config.put([:mrf_simple, :accept], ["remote.instance"])
 
       local_message = build_local_message()
@@ -290,7 +292,7 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
       assert SimplePolicy.filter(remote_message) == {:ok, remote_message}
     end
 
-    test "match with wildcard domain" do
+    test "activity matches with wildcard domain" do
       Config.put([:mrf_simple, :accept], ["*.remote.instance"])
 
       local_message = build_local_message()
@@ -298,6 +300,14 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicyTest do
 
       assert SimplePolicy.filter(local_message) == {:ok, local_message}
       assert SimplePolicy.filter(remote_message) == {:ok, remote_message}
+    end
+
+    test "actor has a matching host" do
+      Config.put([:mrf_simple, :accept], ["remote.instance"])
+
+      remote_user = build_remote_user()
+
+      assert SimplePolicy.filter(remote_user) == {:ok, remote_user}
     end
   end
 

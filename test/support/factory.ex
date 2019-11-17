@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Factory do
@@ -31,15 +31,15 @@ defmodule Pleroma.Factory do
       nickname: sequence(:nickname, &"nick#{&1}"),
       password_hash: Comeonin.Pbkdf2.hashpwsalt("test"),
       bio: sequence(:bio, &"Tester Number #{&1}"),
-      info: %{}
+      info: %{},
+      last_digest_emailed_at: NaiveDateTime.utc_now()
     }
 
     %{
       user
       | ap_id: User.ap_id(user),
         follower_address: User.ap_followers(user),
-        following_address: User.ap_following(user),
-        following: [User.ap_id(user)]
+        following_address: User.ap_following(user)
     }
   end
 
@@ -67,6 +67,47 @@ defmodule Pleroma.Factory do
 
     %Pleroma.Object{
       data: merge_attributes(data, Map.get(attrs, :data, %{}))
+    }
+  end
+
+  def audio_factory(attrs \\ %{}) do
+    text = sequence(:text, &"lain radio episode #{&1}")
+
+    user = attrs[:user] || insert(:user)
+
+    data = %{
+      "type" => "Audio",
+      "id" => Pleroma.Web.ActivityPub.Utils.generate_object_id(),
+      "artist" => "lain",
+      "title" => text,
+      "album" => "lain radio",
+      "to" => ["https://www.w3.org/ns/activitystreams#Public"],
+      "published" => DateTime.utc_now() |> DateTime.to_iso8601(),
+      "actor" => user.ap_id,
+      "length" => 180_000
+    }
+
+    %Pleroma.Object{
+      data: merge_attributes(data, Map.get(attrs, :data, %{}))
+    }
+  end
+
+  def listen_factory do
+    audio = insert(:audio)
+
+    data = %{
+      "id" => Pleroma.Web.ActivityPub.Utils.generate_activity_id(),
+      "type" => "Listen",
+      "actor" => audio.data["actor"],
+      "to" => audio.data["to"],
+      "object" => audio.data,
+      "published" => audio.data["published"]
+    }
+
+    %Pleroma.Activity{
+      data: data,
+      actor: data["actor"],
+      recipients: data["to"]
     }
   end
 
@@ -142,6 +183,25 @@ defmodule Pleroma.Factory do
     |> Map.merge(attrs)
   end
 
+  defp expiration_offset_by_minutes(attrs, minutes) do
+    scheduled_at =
+      NaiveDateTime.utc_now()
+      |> NaiveDateTime.add(:timer.minutes(minutes), :millisecond)
+      |> NaiveDateTime.truncate(:second)
+
+    %Pleroma.ActivityExpiration{}
+    |> Map.merge(attrs)
+    |> Map.put(:scheduled_at, scheduled_at)
+  end
+
+  def expiration_in_the_past_factory(attrs \\ %{}) do
+    expiration_offset_by_minutes(attrs, -60)
+  end
+
+  def expiration_in_the_future_factory(attrs \\ %{}) do
+    expiration_offset_by_minutes(attrs, 61)
+  end
+
   def article_activity_factory do
     article = insert(:article)
 
@@ -182,18 +242,20 @@ defmodule Pleroma.Factory do
     }
   end
 
-  def like_activity_factory do
-    note_activity = insert(:note_activity)
+  def like_activity_factory(attrs \\ %{}) do
+    note_activity = attrs[:note_activity] || insert(:note_activity)
     object = Object.normalize(note_activity)
     user = insert(:user)
 
-    data = %{
-      "id" => Pleroma.Web.ActivityPub.Utils.generate_activity_id(),
-      "actor" => user.ap_id,
-      "type" => "Like",
-      "object" => object.data["id"],
-      "published_at" => DateTime.utc_now() |> DateTime.to_iso8601()
-    }
+    data =
+      %{
+        "id" => Pleroma.Web.ActivityPub.Utils.generate_activity_id(),
+        "actor" => user.ap_id,
+        "type" => "Like",
+        "object" => object.data["id"],
+        "published_at" => DateTime.utc_now() |> DateTime.to_iso8601()
+      }
+      |> Map.merge(attrs[:data_attrs] || %{})
 
     %Pleroma.Activity{
       data: data
@@ -215,26 +277,6 @@ defmodule Pleroma.Factory do
     %Pleroma.Activity{
       data: data,
       actor: follower.ap_id
-    }
-  end
-
-  def websub_subscription_factory do
-    %Pleroma.Web.Websub.WebsubServerSubscription{
-      topic: "http://example.org",
-      callback: "http://example.org/callback",
-      secret: "here's a secret",
-      valid_until: NaiveDateTime.add(NaiveDateTime.utc_now(), 100),
-      state: "requested"
-    }
-  end
-
-  def websub_client_subscription_factory do
-    %Pleroma.Web.Websub.WebsubClientSubscription{
-      topic: "http://example.org",
-      secret: "here's a secret",
-      valid_until: nil,
-      state: "requested",
-      subscribers: []
     }
   end
 
@@ -261,6 +303,7 @@ defmodule Pleroma.Factory do
 
     %Pleroma.Web.OAuth.Token{
       token: :crypto.strong_rand_bytes(32) |> Base.url_encode64(),
+      scopes: ["read"],
       refresh_token: :crypto.strong_rand_bytes(32) |> Base.url_encode64(),
       user: build(:user),
       app_id: oauth_app.id,
@@ -331,6 +374,15 @@ defmodule Pleroma.Factory do
             :erlang.term_to_binary(%{another_key: "#{key}somevalue", another: "#{key}somevalue"})
           end
         )
+    }
+  end
+
+  def marker_factory do
+    %Pleroma.Marker{
+      user: build(:user),
+      timeline: "notifications",
+      lock_version: 0,
+      last_read_id: "1"
     }
   end
 end

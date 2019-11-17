@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Mix.Tasks.Pleroma.Database do
@@ -13,30 +13,8 @@ defmodule Mix.Tasks.Pleroma.Database do
   use Mix.Task
 
   @shortdoc "A collection of database related tasks"
-  @moduledoc """
-   A collection of database related tasks
+  @moduledoc File.read!("docs/administration/CLI_tasks/database.md")
 
-   ## Replace embedded objects with their references
-
-   Replaces embedded objects with references to them in the `objects` table. Only needs to be ran once. The reason why this is not a migration is because it could significantly increase the database size after being ran, however after this `VACUUM FULL` will be able to reclaim about 20% (really depends on what is in the database, your mileage may vary) of the db size before the migration.
-
-       mix pleroma.database remove_embedded_objects
-
-    Options:
-    - `--vacuum` - run `VACUUM FULL` after the embedded objects are replaced with their references
-
-  ## Prune old objects from the database
-
-      mix pleroma.database prune_objects
-
-  ## Create a conversation for all existing DMs. Can be safely re-run.
-
-      mix pleroma.database bump_all_conversations
-
-  ## Remove duplicated items from following and update followers count for all users
-
-      mix pleroma.database update_users_following_followers_counts
-  """
   def run(["remove_embedded_objects" | args]) do
     {options, [], []} =
       OptionParser.parse(
@@ -50,7 +28,7 @@ defmodule Mix.Tasks.Pleroma.Database do
     Logger.info("Removing embedded objects")
 
     Repo.query!(
-      "update activities set data = jsonb_set(data, '{object}'::text[], data->'object'->'id') where data->'object'->>'id' is not null;",
+      "update activities set data = safe_jsonb_set(data, '{object}'::text[], data->'object'->'id') where data->'object'->>'id' is not null;",
       [],
       timeout: :infinity
     )
@@ -74,9 +52,9 @@ defmodule Mix.Tasks.Pleroma.Database do
   def run(["update_users_following_followers_counts"]) do
     start_pleroma()
 
-    users = Repo.all(User)
-    Enum.each(users, &User.remove_duplicated_following/1)
-    Enum.each(users, &User.update_follower_count/1)
+    User
+    |> Repo.all()
+    |> Enum.each(&User.update_follower_count/1)
   end
 
   def run(["prune_objects" | args]) do
@@ -124,5 +102,37 @@ defmodule Mix.Tasks.Pleroma.Database do
         timeout: :infinity
       )
     end
+  end
+
+  def run(["fix_likes_collections"]) do
+    import Ecto.Query
+
+    start_pleroma()
+
+    from(object in Object,
+      where: fragment("(?)->>'likes' is not null", object.data),
+      select: %{id: object.id, likes: fragment("(?)->>'likes'", object.data)}
+    )
+    |> Pleroma.RepoStreamer.chunk_stream(100)
+    |> Stream.each(fn objects ->
+      ids =
+        objects
+        |> Enum.filter(fn object -> object.likes |> Jason.decode!() |> is_map() end)
+        |> Enum.map(& &1.id)
+
+      Object
+      |> where([object], object.id in ^ids)
+      |> update([object],
+        set: [
+          data:
+            fragment(
+              "safe_jsonb_set(?, '{likes}', '[]'::jsonb, true)",
+              object.data
+            )
+        ]
+      )
+      |> Repo.update_all([], timeout: :infinity)
+    end)
+    |> Stream.run()
   end
 end

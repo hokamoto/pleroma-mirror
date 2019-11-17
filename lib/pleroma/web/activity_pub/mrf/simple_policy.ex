@@ -168,7 +168,9 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
       when obj_type in ["Application", "Group", "Organization", "Person", "Service"] do
     actor_info = URI.parse(actor)
 
-    with {:ok, object} <- check_avatar_removal(actor_info, object),
+    with {:ok, object} <- check_accept(actor_info, object),
+         {:ok, object} <- check_reject(actor_info, object),
+         {:ok, object} <- check_avatar_removal(actor_info, object),
          {:ok, object} <- check_banner_removal(actor_info, object) do
       {:ok, object}
     else
@@ -177,4 +179,16 @@ defmodule Pleroma.Web.ActivityPub.MRF.SimplePolicy do
   end
 
   def filter(object), do: {:ok, object}
+
+  @impl true
+  def describe do
+    exclusions = Pleroma.Config.get([:instance, :mrf_transparency_exclusions])
+
+    mrf_simple =
+      Pleroma.Config.get(:mrf_simple)
+      |> Enum.map(fn {k, v} -> {k, Enum.reject(v, fn v -> v in exclusions end)} end)
+      |> Enum.into(%{})
+
+    {:ok, %{mrf_simple: mrf_simple}}
+  end
 end

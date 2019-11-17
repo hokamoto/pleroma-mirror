@@ -8,6 +8,7 @@ defmodule Pleroma.SignatureTest do
   import ExUnit.CaptureLog
   import Pleroma.Factory
   import Tesla.Mock
+  import Mock
 
   alias Pleroma.Signature
 
@@ -41,7 +42,7 @@ defmodule Pleroma.SignatureTest do
     test "it returns key" do
       expected_result = {:ok, @rsa_public_key}
 
-      user = insert(:user, %{info: %{source_data: %{"publicKey" => @public_key}}})
+      user = insert(:user, source_data: %{"publicKey" => @public_key})
 
       assert Signature.fetch_public_key(make_fake_conn(user.ap_id)) == expected_result
     end
@@ -53,7 +54,7 @@ defmodule Pleroma.SignatureTest do
     end
 
     test "it returns error if public key is empty" do
-      user = insert(:user, %{info: %{source_data: %{"publicKey" => %{}}}})
+      user = insert(:user, source_data: %{"publicKey" => %{}})
 
       assert Signature.fetch_public_key(make_fake_conn(user.ap_id)) == {:error, :error}
     end
@@ -68,8 +69,7 @@ defmodule Pleroma.SignatureTest do
 
     test "it returns error when not found user" do
       assert capture_log(fn ->
-               assert Signature.refetch_public_key(make_fake_conn("test-ap_id")) ==
-                        {:error, {:error, :ok}}
+               {:error, _} = Signature.refetch_public_key(make_fake_conn("test-ap_id"))
              end) =~ "[error] Could not decode user"
     end
   end
@@ -79,7 +79,7 @@ defmodule Pleroma.SignatureTest do
       user =
         insert(:user, %{
           ap_id: "https://mastodon.social/users/lambadalambda",
-          info: %{keys: @private_key}
+          keys: @private_key
         })
 
       assert Signature.sign(
@@ -93,8 +93,7 @@ defmodule Pleroma.SignatureTest do
     end
 
     test "it returns error" do
-      user =
-        insert(:user, %{ap_id: "https://mastodon.social/users/lambadalambda", info: %{keys: ""}})
+      user = insert(:user, %{ap_id: "https://mastodon.social/users/lambadalambda", keys: ""})
 
       assert Signature.sign(
                user,
@@ -112,6 +111,19 @@ defmodule Pleroma.SignatureTest do
     test "it properly deduces the actor id for mastodon and pleroma" do
       assert Signature.key_id_to_actor_id("https://example.com/users/1234#main-key") ==
                "https://example.com/users/1234"
+    end
+  end
+
+  describe "signed_date" do
+    test "it returns formatted current date" do
+      with_mock(NaiveDateTime, utc_now: fn -> ~N[2019-08-23 18:11:24.822233] end) do
+        assert Signature.signed_date() == "Fri, 23 Aug 2019 18:11:24 GMT"
+      end
+    end
+
+    test "it returns formatted date" do
+      assert Signature.signed_date(~N[2019-08-23 08:11:24.822233]) ==
+               "Fri, 23 Aug 2019 08:11:24 GMT"
     end
   end
 end

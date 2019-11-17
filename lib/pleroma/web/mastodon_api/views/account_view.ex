@@ -11,15 +11,15 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MediaProxy
 
-  def render("accounts.json", %{users: users} = opts) do
+  def render("index.json", %{users: users} = opts) do
     users
-    |> render_many(AccountView, "account.json", opts)
+    |> render_many(AccountView, "show.json", opts)
     |> Enum.filter(&Enum.any?/1)
   end
 
-  def render("account.json", %{user: user} = opts) do
+  def render("show.json", %{user: user} = opts) do
     if User.visible_for?(user, opts[:for]),
-      do: do_render("account.json", opts),
+      do: do_render("show.json", opts),
       else: %{}
   end
 
@@ -28,7 +28,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       id: to_string(user.id),
       acct: user.nickname,
       username: username_from_nickname(user.nickname),
-      url: user.ap_id
+      url: User.profile_url(user)
     }
   end
 
@@ -37,11 +37,11 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
   end
 
   def render("relationship.json", %{user: %User{} = user, target: %User{} = target}) do
-    follow_activity = Pleroma.Web.ActivityPub.Utils.fetch_latest_follow(user, target)
+    follow_state = User.get_cached_follow_state(user, target)
 
     requested =
-      if follow_activity && !User.following?(target, user) do
-        follow_activity.data["state"] == "pending"
+      if follow_state && !User.following?(user, target) do
+        follow_state == "pending"
       else
         false
       end
@@ -66,16 +66,31 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     render_many(targets, AccountView, "relationship.json", user: user, as: :target)
   end
 
-  defp do_render("account.json", %{user: user} = opts) do
+  defp do_render("show.json", %{user: user} = opts) do
     display_name = HTML.strip_tags(user.name || user.nickname)
 
     image = User.avatar_url(user) |> MediaProxy.url()
     header = User.banner_url(user) |> MediaProxy.url()
     user_info = User.get_cached_user_info(user)
-    bot = (user.info.source_data["type"] || "Person") in ["Application", "Service"]
+
+    following_count =
+      if !user.hide_follows_count or !user.hide_follows or opts[:for] == user do
+        user_info.following_count
+      else
+        0
+      end
+
+    followers_count =
+      if !user.hide_followers_count or !user.hide_followers or opts[:for] == user do
+        user_info.follower_count
+      else
+        0
+      end
+
+    bot = (user.source_data["type"] || "Person") in ["Application", "Service"]
 
     emojis =
-      (user.info.source_data["tag"] || [])
+      (user.source_data["tag"] || [])
       |> Enum.filter(fn %{"type" => t} -> t == "Emoji" end)
       |> Enum.map(fn %{"icon" => %{"url" => url}, "name" => name} ->
         %{
@@ -87,12 +102,16 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       end)
 
     fields =
-      (user.info.source_data["attachment"] || [])
-      |> Enum.filter(fn %{"type" => t} -> t == "PropertyValue" end)
-      |> Enum.map(fn fields -> Map.take(fields, ["name", "value"]) end)
+      user
+      |> User.fields()
+      |> Enum.map(fn %{"name" => name, "value" => value} ->
+        %{
+          "name" => Pleroma.HTML.strip_tags(name),
+          "value" => Pleroma.HTML.filter_tags(value, Pleroma.HTML.Scrubber.LinksOnly)
+        }
+      end)
 
     bio = HTML.filter_tags(user.bio, User.html_filter_policy(opts[:for]))
-
     relationship = render("relationship.json", %{user: opts[:for], target: user})
 
     %{
@@ -100,13 +119,13 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       username: username_from_nickname(user.nickname),
       acct: user.nickname,
       display_name: display_name,
-      locked: user_info.locked,
+      locked: user.locked,
       created_at: Utils.to_masto_date(user.inserted_at),
-      followers_count: user_info.follower_count,
-      following_count: user_info.following_count,
-      statuses_count: user_info.note_count,
+      followers_count: followers_count,
+      following_count: following_count,
+      statuses_count: user.note_count,
       note: bio || "",
-      url: user.ap_id,
+      url: User.profile_url(user),
       avatar: image,
       avatar_static: image,
       header: header,
@@ -117,19 +136,24 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       source: %{
         note: HTML.strip_tags((user.bio || "") |> String.replace("<br>", "\n")),
         sensitive: false,
-        pleroma: %{}
+        fields: user.raw_fields,
+        pleroma: %{
+          discoverable: user.discoverable
+        }
       },
 
       # Pleroma extension
       pleroma: %{
         confirmation_pending: user_info.confirmation_pending,
         tags: user.tags,
-        hide_followers: user.info.hide_followers,
-        hide_follows: user.info.hide_follows,
-        hide_favorites: user.info.hide_favorites,
+        hide_followers_count: user.hide_followers_count,
+        hide_follows_count: user.hide_follows_count,
+        hide_followers: user.hide_followers,
+        hide_follows: user.hide_follows,
+        hide_favorites: user.hide_favorites,
         relationship: relationship,
-        skip_thread_containment: user.info.skip_thread_containment,
-        background_image: image_url(user.info.background) |> MediaProxy.url()
+        skip_thread_containment: user.skip_thread_containment,
+        background_image: image_url(user.background) |> MediaProxy.url()
       }
     }
     |> maybe_put_role(user, opts[:for])
@@ -138,6 +162,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     |> maybe_put_settings_store(user, opts[:for], opts)
     |> maybe_put_chat_token(user, opts[:for], opts)
     |> maybe_put_activation_status(user, opts[:for])
+    |> maybe_put_follow_requests_count(user, opts[:for])
+    |> maybe_put_unread_conversation_count(user, opts[:for])
   end
 
   defp username_from_nickname(string) when is_binary(string) do
@@ -146,25 +172,40 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
 
   defp username_from_nickname(_), do: nil
 
+  defp maybe_put_follow_requests_count(
+         data,
+         %User{id: user_id} = user,
+         %User{id: user_id}
+       ) do
+    count =
+      User.get_follow_requests(user)
+      |> length()
+
+    data
+    |> Kernel.put_in([:follow_requests_count], count)
+  end
+
+  defp maybe_put_follow_requests_count(data, _, _), do: data
+
   defp maybe_put_settings(
          data,
          %User{id: user_id} = user,
          %User{id: user_id},
-         user_info
+         _user_info
        ) do
     data
-    |> Kernel.put_in([:source, :privacy], user_info.default_scope)
-    |> Kernel.put_in([:source, :pleroma, :show_role], user.info.show_role)
-    |> Kernel.put_in([:source, :pleroma, :no_rich_text], user.info.no_rich_text)
+    |> Kernel.put_in([:source, :privacy], user.default_scope)
+    |> Kernel.put_in([:source, :pleroma, :show_role], user.show_role)
+    |> Kernel.put_in([:source, :pleroma, :no_rich_text], user.no_rich_text)
   end
 
   defp maybe_put_settings(data, _, _, _), do: data
 
-  defp maybe_put_settings_store(data, %User{info: info, id: id}, %User{id: id}, %{
+  defp maybe_put_settings_store(data, %User{} = user, %User{}, %{
          with_pleroma_settings: true
        }) do
     data
-    |> Kernel.put_in([:pleroma, :settings_store], info.pleroma_settings_store)
+    |> Kernel.put_in([:pleroma, :settings_store], user.pleroma_settings_store)
   end
 
   defp maybe_put_settings_store(data, _, _, _), do: data
@@ -178,31 +219,41 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
 
   defp maybe_put_chat_token(data, _, _, _), do: data
 
-  defp maybe_put_role(data, %User{info: %{show_role: true}} = user, _) do
+  defp maybe_put_role(data, %User{show_role: true} = user, _) do
     data
-    |> Kernel.put_in([:pleroma, :is_admin], user.info.is_admin)
-    |> Kernel.put_in([:pleroma, :is_moderator], user.info.is_moderator)
+    |> Kernel.put_in([:pleroma, :is_admin], user.is_admin)
+    |> Kernel.put_in([:pleroma, :is_moderator], user.is_moderator)
   end
 
   defp maybe_put_role(data, %User{id: user_id} = user, %User{id: user_id}) do
     data
-    |> Kernel.put_in([:pleroma, :is_admin], user.info.is_admin)
-    |> Kernel.put_in([:pleroma, :is_moderator], user.info.is_moderator)
+    |> Kernel.put_in([:pleroma, :is_admin], user.is_admin)
+    |> Kernel.put_in([:pleroma, :is_moderator], user.is_moderator)
   end
 
   defp maybe_put_role(data, _, _), do: data
 
   defp maybe_put_notification_settings(data, %User{id: user_id} = user, %User{id: user_id}) do
-    Kernel.put_in(data, [:pleroma, :notification_settings], user.info.notification_settings)
+    Kernel.put_in(data, [:pleroma, :notification_settings], user.notification_settings)
   end
 
   defp maybe_put_notification_settings(data, _, _), do: data
 
-  defp maybe_put_activation_status(data, user, %User{info: %{is_admin: true}}) do
-    Kernel.put_in(data, [:pleroma, :deactivated], user.info.deactivated)
+  defp maybe_put_activation_status(data, user, %User{is_admin: true}) do
+    Kernel.put_in(data, [:pleroma, :deactivated], user.deactivated)
   end
 
   defp maybe_put_activation_status(data, _, _), do: data
+
+  defp maybe_put_unread_conversation_count(data, %User{id: user_id} = user, %User{id: user_id}) do
+    data
+    |> Kernel.put_in(
+      [:pleroma, :unread_conversation_count],
+      user.unread_conversation_count
+    )
+  end
+
+  defp maybe_put_unread_conversation_count(data, _, _), do: data
 
   defp image_url(%{"url" => [%{"href" => href} | _]}), do: href
   defp image_url(_), do: nil

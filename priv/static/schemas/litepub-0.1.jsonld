@@ -11,14 +11,15 @@
                 "@id": "ostatus:conversation",
                 "@type": "@id"
             },
+            "discoverable": "toot:discoverable",
             "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
             "ostatus": "http://ostatus.org#",
-            "schema": "http://schema.org",
+            "schema": "http://schema.org#",
             "toot": "http://joinmastodon.org/ns#",
-            "totalItems": "as:totalItems",
             "value": "schema:value",
             "sensitive": "as:sensitive",
             "litepub": "http://litepub.social/ns#",
+            "invisible": "litepub:invisible",
             "directMessage": "litepub:directMessage",
             "listMessage": {
                 "@id": "litepub:listMessage",
@@ -27,7 +28,8 @@
             "oauthRegistrationEndpoint": {
                 "@id": "litepub:oauthRegistrationEndpoint",
                 "@type": "@id"
-            }
+            },
+            "EmojiReaction": "litepub:EmojiReaction"
         }
     ]
 }

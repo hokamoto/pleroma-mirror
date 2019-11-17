@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Mix.Tasks.Pleroma.Instance do
@@ -7,36 +7,7 @@ defmodule Mix.Tasks.Pleroma.Instance do
   import Mix.Pleroma
 
   @shortdoc "Manages Pleroma instance"
-  @moduledoc """
-  Manages Pleroma instance.
-
-  ## Generate a new instance config.
-
-    mix pleroma.instance gen [OPTION...]
-
-  If any options are left unspecified, you will be prompted interactively
-
-  ## Options
-
-  - `-f`, `--force` - overwrite any output files
-  - `-o PATH`, `--output PATH` - the output file for the generated configuration
-  - `--output-psql PATH` - the output file for the generated PostgreSQL setup
-  - `--domain DOMAIN` - the domain of your instance
-  - `--instance-name INSTANCE_NAME` - the name of your instance
-  - `--admin-email ADMIN_EMAIL` - the email address of the instance admin
-  - `--notify-email NOTIFY_EMAIL` - email address for notifications
-  - `--dbhost HOSTNAME` - the hostname of the PostgreSQL database to use
-  - `--dbname DBNAME` - the name of the database to use
-  - `--dbuser DBUSER` - the user (aka role) to use for the database connection
-  - `--dbpass DBPASS` - the password to use for the database connection
-  - `--rum Y/N` - Whether to enable RUM indexes
-  - `--indexable Y/N` - Allow/disallow indexing site by search engines
-  - `--db-configurable Y/N` - Allow/disallow configuring instance from admin part
-  - `--uploads-dir` - the directory uploads go in when using a local uploader
-  - `--static-dir` - the directory custom public files should be read from (custom emojis, frontend bundle overrides, robots.txt, etc.)
-  - `--listen-ip` - the ip the app should listen to, defaults to 127.0.0.1
-  - `--listen-port` - the port the app should listen to, defaults to 4000
-  """
+  @moduledoc File.read!("docs/administration/CLI_tasks/instance.md")
 
   def run(["gen" | rest]) do
     {options, [], []} =
@@ -203,6 +174,7 @@ defmodule Mix.Tasks.Pleroma.Instance do
         end
 
       secret = :crypto.strong_rand_bytes(64) |> Base.encode64() |> binary_part(0, 64)
+      jwt_secret = :crypto.strong_rand_bytes(64) |> Base.encode64() |> binary_part(0, 64)
       signing_salt = :crypto.strong_rand_bytes(8) |> Base.encode64() |> binary_part(0, 8)
       {web_push_public_key, web_push_private_key} = :crypto.generate_key(:ecdh, :prime256v1)
       template_dir = Application.app_dir(:pleroma, "priv") <> "/templates"
@@ -220,6 +192,7 @@ defmodule Mix.Tasks.Pleroma.Instance do
           dbuser: dbuser,
           dbpass: dbpass,
           secret: secret,
+          jwt_secret: jwt_secret,
           signing_salt: signing_salt,
           web_push_public_key: Base.url_encode64(web_push_public_key, padding: false),
           web_push_private_key: Base.url_encode64(web_push_private_key, padding: false),

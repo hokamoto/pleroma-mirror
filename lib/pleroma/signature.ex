@@ -48,9 +48,15 @@ defmodule Pleroma.Signature do
   end
 
   def sign(%User{} = user, headers) do
-    with {:ok, %{info: %{keys: keys}}} <- User.ensure_keys_present(user),
+    with {:ok, %{keys: keys}} <- User.ensure_keys_present(user),
          {:ok, private_key, _} <- Keys.keys_from_pem(keys) do
       HTTPSignatures.sign(private_key, user.ap_id <> "#main-key", headers)
     end
+  end
+
+  def signed_date, do: signed_date(NaiveDateTime.utc_now())
+
+  def signed_date(%NaiveDateTime{} = date) do
+    Timex.format!(date, "{WDshort}, {0D} {Mshort} {YYYY} {h24}:{m}:{s} GMT")
   end
 end

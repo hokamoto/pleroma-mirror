@@ -1,17 +1,14 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MediaProxyTest do
   use ExUnit.Case
+  use Pleroma.Tests.Helpers
   import Pleroma.Web.MediaProxy
   alias Pleroma.Web.MediaProxy.MediaProxyController
 
-  setup do
-    enabled = Pleroma.Config.get([:media_proxy, :enabled])
-    on_exit(fn -> Pleroma.Config.put([:media_proxy, :enabled], enabled) end)
-    :ok
-  end
+  clear_config([:media_proxy, :enabled])
 
   describe "when enabled" do
     setup do

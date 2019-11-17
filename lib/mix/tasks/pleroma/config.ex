@@ -8,18 +8,7 @@ defmodule Mix.Tasks.Pleroma.Config do
   alias Pleroma.Repo
   alias Pleroma.Web.AdminAPI.Config
   @shortdoc "Manages the location of the config"
-  @moduledoc """
-  Manages the location of the config.
-
-  ## Transfers config from file to DB.
-
-      mix pleroma.config migrate_to_db
-
-  ## Transfers config from DB to file `config/env.exported_from_db.secret.exs`
-
-      mix pleroma.config migrate_from_db ENV
-  """
-
+  @moduledoc File.read!("docs/administration/CLI_tasks/config.md")
   def run(["migrate_to_db"]) do
     start_pleroma()
 
@@ -56,7 +45,7 @@ defmodule Mix.Tasks.Pleroma.Config do
     if Pleroma.Config.get([:instance, :dynamic_configuration]) do
       config_path = "config/#{env}.exported_from_db.secret.exs"
 
-      {:ok, file} = File.open(config_path, [:write])
+      {:ok, file} = File.open(config_path, [:write, :utf8])
       IO.write(file, "use Mix.Config\r\n")
 
       Repo.all(Config)

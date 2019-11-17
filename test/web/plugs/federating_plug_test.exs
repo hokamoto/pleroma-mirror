@@ -1,18 +1,10 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.FederatingPlugTest do
   use Pleroma.Web.ConnCase
-
-  setup_all do
-    config_path = [:instance, :federating]
-    initial_setting = Pleroma.Config.get(config_path)
-
-    on_exit(fn -> Pleroma.Config.put(config_path, initial_setting) end)
-
-    :ok
-  end
+  clear_config_all([:instance, :federating])
 
   test "returns and halt the conn when federating is disabled" do
     Pleroma.Config.put([:instance, :federating], false)

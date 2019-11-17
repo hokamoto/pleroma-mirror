@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2018 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Emails.MailerTest do
@@ -15,11 +15,7 @@ defmodule Pleroma.Emails.MailerTest do
     to: [{"Test User", "user1@example.com"}]
   }
 
-  setup do
-    value = Pleroma.Config.get([Pleroma.Emails.Mailer, :enabled])
-    on_exit(fn -> Pleroma.Config.put([Pleroma.Emails.Mailer, :enabled], value) end)
-    :ok
-  end
+  clear_config([Pleroma.Emails.Mailer, :enabled])
 
   test "not send email when mailer is disabled" do
     Pleroma.Config.put([Pleroma.Emails.Mailer, :enabled], false)

@@ -51,6 +51,20 @@ config :pleroma, Pleroma.Repo,
   telemetry_event: [Pleroma.Repo.Instrumenter],
   migration_lock: nil
 
+scheduled_jobs =
+  with digest_config <- Application.get_env(:pleroma, :email_notifications)[:digest],
+       true <- digest_config[:active] do
+    [{digest_config[:schedule], {Pleroma.Daemons.DigestEmailDaemon, :perform, []}}]
+  else
+    _ -> []
+  end
+
+config :pleroma, Pleroma.Scheduler,
+  global: true,
+  overlap: true,
+  timezone: :utc,
+  jobs: scheduled_jobs
+
 config :pleroma, Pleroma.Captcha,
   enabled: false,
   seconds_valid: 60,
@@ -76,7 +90,7 @@ config :pleroma, Pleroma.Captcha.Kocaptcha, endpoint: "https://captcha.kotobank.
 config :pleroma, Pleroma.Upload,
   uploader: Pleroma.Uploaders.Local,
   filters: [Pleroma.Upload.Filter.Dedupe],
-  link_name: true,
+  link_name: false,
   proxy_remote: false,
   proxy_opts: [
     redirect_on_failure: false,
@@ -91,6 +105,7 @@ config :pleroma, Pleroma.Uploaders.Local, uploads: "uploads"
 
 config :pleroma, Pleroma.Uploaders.S3,
   bucket: nil,
+  streaming_enabled: true,
   public_endpoint: "https://s3.amazonaws.com"
 
 config :pleroma, Pleroma.Uploaders.MDII,
@@ -104,7 +119,8 @@ config :pleroma, :emoji,
     # Put groups that have higher priority than defaults here. Example in `docs/config/custom_emoji.md`
     Custom: ["/emoji/*.png", "/emoji/**/*.png"]
   ],
-  default_manifest: "https://git.pleroma.social/pleroma/emoji-index/raw/master/index.json"
+  default_manifest: "https://git.pleroma.social/pleroma/emoji-index/raw/master/index.json",
+  shared_pack_cache_seconds_per_file: 60
 
 config :pleroma, :uri_schemes,
   valid_schemes: [
@@ -223,9 +239,7 @@ config :pleroma, :instance,
   federation_incoming_replies_max_depth: 100,
   federation_reachability_timeout_days: 7,
   federation_publisher_modules: [
-    Pleroma.Web.ActivityPub.Publisher,
-    Pleroma.Web.Websub,
-    Pleroma.Web.Salmon
+    Pleroma.Web.ActivityPub.Publisher
   ],
   allow_relay: true,
   rewrite_policy: Pleroma.Web.ActivityPub.MRF.NoOpPolicy,
@@ -243,7 +257,7 @@ config :pleroma, :instance,
   mrf_transparency_exclusions: [],
   autofollowed_nicknames: [],
   max_pinned_statuses: 1,
-  no_attachment_links: false,
+  no_attachment_links: true,
   welcome_user_nickname: nil,
   welcome_message: nil,
   max_report_comment_size: 1000,
@@ -253,7 +267,20 @@ config :pleroma, :instance,
   skip_thread_containment: true,
   limit_to_local_content: :unauthenticated,
   dynamic_configuration: false,
-  external_user_synchronization: true
+  user_bio_length: 5000,
+  user_name_length: 100,
+  max_account_fields: 10,
+  max_remote_account_fields: 20,
+  account_field_name_length: 512,
+  account_field_value_length: 2048,
+  external_user_synchronization: true,
+  extended_nickname_format: true
+
+config :pleroma, :feed,
+  post_title: %{
+    max_length: 100,
+    omission: "..."
+  }
 
 config :pleroma, :markup,
   # XXX - unfortunately, inline images must be enabled by default right now, because
@@ -263,8 +290,8 @@ config :pleroma, :markup,
   allow_tables: false,
   allow_fonts: false,
   scrub_policy: [
-    Pleroma.HTML.Transform.MediaProxy,
-    Pleroma.HTML.Scrubber.Default
+    Pleroma.HTML.Scrubber.Default,
+    Pleroma.HTML.Transform.MediaProxy
   ]
 
 config :pleroma, :frontend_configurations,
@@ -301,12 +328,25 @@ config :pleroma, :assets,
   ],
   default_mascot: :pleroma_fox_tan
 
+config :pleroma, :manifest,
+  icons: [
+    %{
+      src: "/static/logo.png",
+      type: "image/png"
+    }
+  ],
+  theme_color: "#282c37",
+  background_color: "#191b22"
+
 config :pleroma, :activitypub,
-  accept_blocks: true,
   unfollow_blocked: true,
   outgoing_blocks: true,
   follow_handshake_timeout: 500,
   sign_object_fetches: true
+
+config :pleroma, :streamer,
+  workers: 3,
+  overflow_workers: 2
 
 config :pleroma, :user, deny_follow_blocked: true
 
@@ -337,6 +377,14 @@ config :pleroma, :mrf_keyword,
 
 config :pleroma, :mrf_subchain, match_actor: %{}
 
+config :pleroma, :mrf_vocabulary,
+  accept: [],
+  reject: []
+
+config :pleroma, :mrf_object_age,
+  threshold: 172_800,
+  actions: [:delist, :strip_followers]
+
 config :pleroma, :rich_media,
   enabled: true,
   ignore_hosts: [],
@@ -364,6 +412,8 @@ config :pleroma, :chat, enabled: true
 
 config :phoenix, :format_encoders, json: Jason
 
+config :phoenix, :json_library, Jason
+
 config :pleroma, :gopher,
   enabled: false,
   ip: {0, 0, 0, 0},
@@ -373,7 +423,8 @@ config :pleroma, Pleroma.Web.Metadata,
   providers: [
     Pleroma.Web.Metadata.Providers.OpenGraph,
     Pleroma.Web.Metadata.Providers.TwitterCard,
-    Pleroma.Web.Metadata.Providers.RelMe
+    Pleroma.Web.Metadata.Providers.RelMe,
+    Pleroma.Web.Metadata.Providers.Feed
   ],
   unfurl_nsfw: false
 
@@ -440,20 +491,26 @@ config :pleroma, Pleroma.User,
     "web"
   ]
 
-config :pleroma, Pleroma.Web.Federator.RetryQueue,
-  enabled: false,
-  max_jobs: 20,
-  initial_timeout: 30,
-  max_retries: 5
+config :pleroma, Oban,
+  repo: Pleroma.Repo,
+  verbose: false,
+  prune: {:maxlen, 1500},
+  queues: [
+    activity_expiration: 10,
+    federator_incoming: 50,
+    federator_outgoing: 50,
+    web_push: 50,
+    mailer: 10,
+    transmogrifier: 20,
+    scheduled_activities: 10,
+    background: 5
+  ]
 
-config :pleroma_job_queue, :queues,
-  federator_incoming: 50,
-  federator_outgoing: 50,
-  web_push: 50,
-  mailer: 10,
-  transmogrifier: 20,
-  scheduled_activities: 10,
-  background: 5
+config :pleroma, :workers,
+  retries: [
+    federator_incoming: 5,
+    federator_outgoing: 5
+  ]
 
 config :pleroma, :fetch_initial_posts,
   enabled: false,
@@ -468,7 +525,7 @@ config :auto_linker,
     class: false,
     strip_prefix: false,
     new_window: false,
-    rel: false
+    rel: "ugc"
   ]
 
 config :pleroma, :ldap,
@@ -507,12 +564,31 @@ config :pleroma, :auth, oauth_consumer_strategies: oauth_consumer_strategies
 
 config :pleroma, Pleroma.Emails.Mailer, adapter: Swoosh.Adapters.Sendmail, enabled: false
 
+config :pleroma, Pleroma.Emails.UserEmail,
+  logo: nil,
+  styling: %{
+    link_color: "#d8a070",
+    background_color: "#2C3645",
+    content_background_color: "#1B2635",
+    header_color: "#d8a070",
+    text_color: "#b9b9ba",
+    text_muted_color: "#b9b9ba"
+  }
+
 config :prometheus, Pleroma.Web.Endpoint.MetricsExporter, path: "/api/pleroma/app_metrics"
 
 config :pleroma, Pleroma.ScheduledActivity,
   daily_user_limit: 25,
   total_user_limit: 300,
   enabled: true
+
+config :pleroma, :email_notifications,
+  digest: %{
+    active: false,
+    schedule: "0 0 * * 0",
+    interval: 7,
+    inactivity_threshold: 7
+  }
 
 config :pleroma, :oauth2,
   token_expires_in: 600,
@@ -527,16 +603,19 @@ config :pleroma, :env, Mix.env()
 config :http_signatures,
   adapter: Pleroma.Signature
 
-config :pleroma, :rate_limit,
-  search: [{1000, 10}, {1000, 30}],
-  app_account_creation: {1_800_000, 25},
-  relations_actions: {10_000, 10},
-  relation_id_action: {60_000, 2},
-  statuses_actions: {10_000, 15},
-  status_id_action: {60_000, 3},
-  password_reset: {1_800_000, 5},
-  account_confirmation_resend: {8_640_000, 5}
+config :pleroma, :rate_limit, authentication: {60_000, 15}
 
+config :pleroma, Pleroma.ActivityExpiration, enabled: true
+
+config :pleroma, Pleroma.Plugs.RemoteIp, enabled: false
+
+config :pleroma, :static_fe, enabled: false
+
+config :pleroma, :web_cache_ttl,
+  activity_pub: nil,
+  activity_pub_question: 30_000
+
+config :swarm, node_blacklist: [~r/myhtml_.*$/]
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"
