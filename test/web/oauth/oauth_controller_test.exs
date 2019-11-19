@@ -5,6 +5,7 @@
 defmodule Pleroma.Web.OAuth.OAuthControllerTest do
   use Pleroma.Web.ConnCase
   import Pleroma.Factory
+  import Mock
 
   alias Pleroma.Repo
   alias Pleroma.User
@@ -1084,6 +1085,72 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
         |> json_response(500)
 
       assert %{"error" => "Bad request"} == response
+    end
+  end
+
+  describe "XMPP integration" do
+    setup do
+      xmpp_config = Application.get_env(:pleroma, :xmpp)
+      Application.put_env(:pleroma, :xmpp, enabled: true, host: "http://xmpp.tld")
+      on_exit(fn -> Application.put_env(:pleroma, :xmpp, xmpp_config) end)
+
+      password = "testpassword"
+      local_user = insert(:user, password_hash: Comeonin.Pbkdf2.hashpwsalt(password), local: true)
+
+      remote_user =
+        insert(:user, password_hash: Comeonin.Pbkdf2.hashpwsalt(password), local: false)
+
+      app = insert(:oauth_app, scopes: ["read", "write"])
+
+      local_user_params = %{
+        "grant_type" => "password",
+        "username" => local_user.nickname,
+        "password" => password,
+        "client_id" => app.client_id,
+        "client_secret" => app.client_secret
+      }
+
+      remote_user_params = %{local_user_params | "username" => remote_user.nickname}
+
+      {:ok,
+       conn: build_conn(),
+       local_user_params: local_user_params,
+       remote_user_params: remote_user_params}
+    end
+
+    test "Authenticates local user on XMPP server if integration is enabled", %{
+      conn: conn,
+      local_user_params: params
+    } do
+      sid = "TestSessionID"
+
+      with_mock Pleroma.XMPP,
+        prebind: fn _username, _password -> {:ok, sid} end do
+        conn = post(conn, "/oauth/token", params)
+
+        xmpp = get_session(conn, :xmpp)
+        assert xmpp.jid == params["username"] <> "@" <> Pleroma.Web.Endpoint.host()
+        assert xmpp.sid == sid
+      end
+    end
+
+    test "Does not authenticate remote users", %{conn: conn, remote_user_params: params} do
+      conn = post(conn, "/oauth/token", params)
+
+      xmpp = get_session(conn, :xmpp)
+      assert xmpp == %{}
+    end
+
+    test "Does not authenticate local user when integration is disabled", %{
+      conn: conn,
+      local_user_params: params
+    } do
+      Application.put_env(:pleroma, :xmpp, enabled: false)
+
+      conn = post(conn, "/oauth/token", params)
+
+      xmpp = get_session(conn, :xmpp)
+      assert xmpp == %{}
     end
   end
 end

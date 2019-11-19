@@ -219,6 +219,7 @@ curl -Lo ./bin/pleroma_ctl 'https://git.pleroma.social/pleroma/pleroma/raw/devel
 - Admin API: Added moderation log
 - Web response cache (currently, enabled for ActivityPub)
 - Reverse Proxy: Do not retry failed requests to limit pressure on the peer
+- Support for XMPP integration
 
 ### Changed
 - Configuration: Filter.AnonymizeFilename added ability to retain file extension with custom text

@@ -50,6 +50,10 @@ config :pleroma, Pleroma.Uploaders.Local, uploads: "<%= uploads_dir %>"
 # config :pleroma, :http_security,
 #   sts: true
 
+config :pleroma, :xmpp,
+  enabled: <%= xmpp_enabled? %><%= if xmpp_enabled? do %>,
+  host: "<%= xmpp_host %>"<% end %>
+
 # Configure S3 support if desired.
 # The public S3 endpoint is different depending on region and provider,
 # consult your S3 provider's documentation for details on what to use.

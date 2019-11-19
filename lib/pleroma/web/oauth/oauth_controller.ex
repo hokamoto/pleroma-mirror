@@ -225,7 +225,19 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          {:ok, scopes} <- validate_scopes(app, params),
          {:ok, auth} <- Authorization.create_authorization(app, user, scopes),
          {:ok, token} <- Token.exchange_token(app, auth) do
-      json(conn, Token.Response.build(user, token))
+      xmpp_data =
+        with true <- Pleroma.Config.get([:xmpp, :enabled], false),
+             true <- user.local,
+             {:ok, sid} <- Pleroma.XMPP.prebind(params["username"], params["password"]) do
+          %{sid: to_string(sid), jid: "#{user.nickname}@#{Pleroma.Web.Endpoint.host()}"}
+        else
+          _ ->
+            %{}
+        end
+
+      conn
+      |> put_session(:xmpp, xmpp_data)
+      |> json(Token.Response.build(user, token))
     else
       {:auth_active, false} ->
         # Per https://github.com/tootsuite/mastodon/blob/

@@ -554,6 +554,13 @@ defmodule Pleroma.Web.Router do
     plug(Pleroma.Plugs.EnsureUserKeyPlug)
   end
 
+  pipeline :conversejs_auth do
+    plug(:fetch_session)
+    plug(Pleroma.Plugs.SessionAuthenticationNocheckPlug)
+    plug(Pleroma.Plugs.UserEnabledPlug)
+    plug(Pleroma.Plugs.SetUserSessionIdPlug)
+  end
+
   scope "/", Pleroma.Web.ActivityPub do
     pipe_through([:activitypub_client])
 
@@ -644,6 +651,13 @@ defmodule Pleroma.Web.Router do
   scope "/", Pleroma.Web.MongooseIM do
     get("/user_exists", MongooseIMController, :user_exists)
     get("/check_password", MongooseIMController, :check_password)
+
+    scope "/xmpp/" do
+      pipe_through([:conversejs_auth])
+
+      get("/:jid/prebind", MongooseIMController, :prebind)
+      get("/conndata", MongooseIMController, :conndata)
+    end
   end
 
   scope "/", Fallback do

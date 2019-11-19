@@ -61,7 +61,11 @@ defmodule Pleroma.InstanceTest do
         "--uploads-dir",
         "test/uploads",
         "--static-dir",
-        "instance/static/"
+        "instance/static/",
+        "--xmpp-enabled",
+        "y",
+        "--xmpp-host",
+        "xmpp.localhost"
       ])
     end
 
@@ -80,6 +84,7 @@ defmodule Pleroma.InstanceTest do
     assert generated_config =~ "password: \"dbpass\""
     assert generated_config =~ "dynamic_configuration: true"
     assert generated_config =~ "http: [ip: {127, 0, 0, 1}, port: 4000]"
+    assert generated_config =~ "host: \"xmpp.localhost\""
     assert File.read!(tmp_path() <> "setup.psql") == generated_setup_psql()
   end
 

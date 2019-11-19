@@ -50,7 +50,8 @@ defmodule Pleroma.Plugs.OAuthPlug do
               |> assign(:token, token_record)
               |> assign(:app, app)
             else
-              _ -> conn
+              _ ->
+                conn
             end
         end
 

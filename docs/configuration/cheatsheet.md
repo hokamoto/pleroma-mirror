@@ -819,3 +819,10 @@ config :auto_linker,
     rel: "ugc"
   ]
 ```
+
+## :xmpp
+
+Config for XMPP integration (i.e. chat window). Requires XMPP server with BOSH support.
+
+* `enabled` enables XMPP integration. When enabled, an authenticated XMPP session is created upon user login
+* `host` XMPP server host
