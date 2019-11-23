@@ -138,7 +138,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         sensitive: false,
         fields: user.raw_fields,
         pleroma: %{
-          discoverable: user.discoverable
+          discoverable: user.discoverable,
+          actor_type: user.actor_type
         }
       },
 

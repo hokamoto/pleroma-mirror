@@ -152,7 +152,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
         :hide_favorites,
         :show_role,
         :skip_thread_containment,
-        :discoverable
+        :discoverable,
+        :actor_type
       ]
       |> Enum.reduce(%{}, fn key, acc ->
         add_if_present(acc, params, to_string(key), key, &{:ok, truthy_param?(&1)})
