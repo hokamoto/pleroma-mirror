@@ -1131,6 +1131,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     data = Transmogrifier.maybe_fix_user_object(data)
     discoverable = data["discoverable"] || false
     invisible = data["invisible"] || false
+    actor_type = data["type"] || "Person"
 
     user_data = %{
       ap_id: data["id"],
@@ -1145,7 +1146,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       name: data["name"],
       follower_address: data["followers"],
       following_address: data["following"],
-      bio: data["summary"]
+      bio: data["summary"],
+      actor_type: actor_type
     }
 
     # nickname can be nil because of virtual actors
