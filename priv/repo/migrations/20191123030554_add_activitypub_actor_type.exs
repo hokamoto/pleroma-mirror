@@ -3,7 +3,7 @@ defmodule Pleroma.Repo.Migrations.AddActivitypubActorType do
 
   def change do
     alter table("users") do
-      add :actor_type, :string, default: "Person"
+      add(:actor_type, :string, default: "Person")
     end
   end
 end
