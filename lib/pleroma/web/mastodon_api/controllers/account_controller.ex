@@ -152,8 +152,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
         :hide_favorites,
         :show_role,
         :skip_thread_containment,
-        :discoverable,
-        :actor_type
+        :discoverable
       ]
       |> Enum.reduce(%{}, fn key, acc ->
         add_if_present(acc, params, to_string(key), key, &{:ok, truthy_param?(&1)})
@@ -188,6 +187,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
         {:ok, Map.merge(user.pleroma_settings_store, value)}
       end)
       |> add_if_present(params, "default_scope", :default_scope)
+      |> add_if_present(params, "actor_type", :actor_type)
 
     emojis_text = (user_params["display_name"] || "") <> (user_params["note"] || "")
 
