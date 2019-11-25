@@ -138,15 +138,6 @@ defmodule Pleroma.ActivityTest do
       }
     end
 
-    test "finds utf8 text in statuses", %{
-      japanese_activity: japanese_activity,
-      user: user
-    } do
-      activities = Activity.search(user, "更新情報")
-
-      assert [^japanese_activity] = activities
-    end
-
     test "find local and remote statuses for authenticated users", %{
       local_activity: local_activity,
       remote_activity: remote_activity,
