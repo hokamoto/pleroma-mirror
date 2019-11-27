@@ -79,6 +79,7 @@ defmodule Pleroma.User do
     field(:muted_reblogs, {:array, :string}, default: [])
     field(:muted_notifications, {:array, :string}, default: [])
     field(:subscribers, {:array, :string}, default: [])
+    field(:whitelist, {:array, :string}, default: [])
     field(:deactivated, :boolean, default: false)
     field(:no_rich_text, :boolean, default: false)
     field(:ap_enabled, :boolean, default: false)
@@ -994,6 +995,14 @@ defmodule Pleroma.User do
         blocker
       end
 
+    blocker =
+      if whitelists?(blocker, blocked) do
+        {:ok, blocker} = unwhitelist(blocker, blocked)
+        blocker
+      else
+        blocker
+      end
+
     if following?(blocked, blocker), do: unfollow(blocked, blocker)
 
     {:ok, blocker} = update_follower_count(blocker)
@@ -1010,6 +1019,22 @@ defmodule Pleroma.User do
     remove_from_block(blocker, ap_id)
   end
 
+  def whitelist(whitelister, %User{ap_id: ap_id} = whitelisted) do
+    whitelister =
+      if blocks?(whitelister, whitelisted) do
+        {:ok, whitelister} = unblock(whitelister, whitelisted)
+        whitelister
+      else
+        whitelister
+      end
+
+    add_to_whitelist(whitelister, ap_id)
+  end
+
+  def unwhitelist(whitelister, %{ap_id: ap_id}) do
+    remove_from_whitelist(whitelister, ap_id)
+  end
+
   def mutes?(nil, _), do: false
   def mutes?(user, %{ap_id: ap_id}), do: Enum.member?(user.mutes, ap_id)
 
@@ -1020,7 +1045,8 @@ defmodule Pleroma.User do
     do: Enum.member?(user.muted_notifications, ap_id)
 
   def blocks?(%User{} = user, %User{} = target) do
-    blocks_ap_id?(user, target) || blocks_domain?(user, target)
+    blocks_ap_id?(user, target) ||
+      (blocks_domain?(user, target) && !whitelists?(user, target))
   end
 
   def blocks?(nil, _), do: false
@@ -1038,6 +1064,12 @@ defmodule Pleroma.User do
   end
 
   def blocks_domain?(_, _), do: false
+
+  def whitelists?(%User{} = user, %User{} = target) do
+    Enum.member?(user.whitelist, target.ap_id)
+  end
+
+  def whitelists?(_, _), do: false
 
   def subscribed_to?(user, %{ap_id: ap_id}) do
     with %User{} = target <- get_cached_by_ap_id(ap_id) do
@@ -1821,6 +1853,14 @@ defmodule Pleroma.User do
     set_subscribers(user, List.delete(user.subscribers, subscribed))
   end
 
+  def add_to_whitelist(user, whitelisted) do
+    set_whitelist(user, Enum.uniq([whitelisted | user.whitelist]))
+  end
+
+  def remove_from_whitelist(user, whitelisted) do
+    set_whitelist(user, List.delete(user.whitelist, whitelisted))
+  end
+
   defp set_domain_blocks(user, domain_blocks) do
     params = %{domain_blocks: domain_blocks}
 
@@ -1844,6 +1884,15 @@ defmodule Pleroma.User do
     user
     |> cast(params, [:blocks])
     |> validate_required([:blocks])
+    |> update_and_set_cache()
+  end
+
+  defp set_whitelist(user, whitelist) do
+    params = %{whitelist: whitelist}
+
+    user
+    |> cast(params, [:whitelist])
+    |> validate_required([:whitelist])
     |> update_and_set_cache()
   end
 
