@@ -32,7 +32,7 @@ defmodule Pleroma.Activity.Queries do
   @spec by_object_id(query, String.t() | [String.t()]) :: query
   def by_object_id(query \\ Activity, object_id)
 
-  def by_object_id(query, object_ids) when is_list(object_ids) do
+  def by_object_id(query, object_ap_ids) when is_list(object_ap_ids) do
     from(
       activity in query,
       where:
@@ -40,21 +40,13 @@ defmodule Pleroma.Activity.Queries do
           "coalesce((?)->'object'->>'id', (?)->>'object') = ANY(?)",
           activity.data,
           activity.data,
-          ^object_ids
+          ^object_ap_ids
         )
     )
   end
 
-  def by_object_id(query, object_id) when is_binary(object_id) do
-    from(activity in query,
-      where:
-        fragment(
-          "coalesce((?)->'object'->>'id', (?)->>'object') = ?",
-          activity.data,
-          activity.data,
-          ^object_id
-        )
-    )
+  def by_object_id(query, object_ap_id) when is_binary(object_ap_id) do
+    by_object_id(query, [object_ap_id])
   end
 
   @spec by_type(query, String.t()) :: query

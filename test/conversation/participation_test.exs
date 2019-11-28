@@ -184,6 +184,13 @@ defmodule Pleroma.Conversation.ParticipationTest do
     assert participation_one.last_activity_id == activity_three.id
   end
 
+  test "TESTME" do
+    user = insert(:user)
+
+    {:ok, activity} = CommonAPI.post(user, %{"status" => ".", "visibility" => "direct"})
+    {:ok, _} = CommonAPI.delete(activity.id, user)
+  end
+
   test "Doesn't die when the conversation gets empty" do
     user = insert(:user)
 

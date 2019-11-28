@@ -106,6 +106,7 @@ defmodule Pleroma.Factory do
 
     %Pleroma.Activity{
       data: data,
+      object_id: audio.id,
       actor: data["actor"],
       recipients: data["to"]
     }
@@ -151,6 +152,7 @@ defmodule Pleroma.Factory do
 
     %Pleroma.Activity{
       data: data,
+      object_id: dm.id,
       actor: data["actor"],
       recipients: data["to"]
     }
@@ -177,6 +179,7 @@ defmodule Pleroma.Factory do
 
     %Pleroma.Activity{
       data: data,
+      object_id: note.id,
       actor: data["actor"],
       recipients: data["to"]
     }
@@ -217,6 +220,7 @@ defmodule Pleroma.Factory do
 
     %Pleroma.Activity{
       data: data,
+      object_id: article.id,
       actor: data["actor"],
       recipients: data["to"]
     }
@@ -237,6 +241,7 @@ defmodule Pleroma.Factory do
 
     %Pleroma.Activity{
       data: data,
+      object_id: note_activity.object_id,
       actor: user.ap_id,
       recipients: data["to"]
     }
@@ -258,7 +263,8 @@ defmodule Pleroma.Factory do
       |> Map.merge(attrs[:data_attrs] || %{})
 
     %Pleroma.Activity{
-      data: data
+      data: data,
+      object_id: object.id
     }
   end
 

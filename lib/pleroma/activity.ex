@@ -49,21 +49,7 @@ defmodule Pleroma.Activity do
     has_one(:bookmark, Bookmark)
     has_many(:notifications, Notification, on_delete: :delete_all)
 
-    # Attention: this is a fake relation, don't try to preload it blindly and expect it to work!
-    # The foreign key is embedded in a jsonb field.
-    #
-    # To use it, you probably want to do an inner join and a preload:
-    #
-    # ```
-    # |> join(:inner, [activity], o in Object,
-    #      on: fragment("(?->>'id') = COALESCE((?)->'object'->> 'id', (?)->>'object')",
-    #        o.data, activity.data, activity.data))
-    # |> preload([activity, object], [object: object])
-    # ```
-    #
-    # As a convenience, Activity.with_preloaded_object() sets up an inner join and preload for the
-    # typical case.
-    has_one(:object, Object, on_delete: :nothing, foreign_key: :id)
+    belongs_to(:object, Object)
 
     has_one(:expiration, ActivityExpiration, on_delete: :delete_all)
 
@@ -71,14 +57,11 @@ defmodule Pleroma.Activity do
   end
 
   def with_joined_object(query, join_type \\ :inner) do
-    join(query, join_type, [activity], o in Object,
-      on:
-        fragment(
-          "(?->>'id') = COALESCE(?->'object'->>'id', ?->>'object')",
-          o.data,
-          activity.data,
-          activity.data
-        ),
+    join(
+      query,
+      join_type,
+      [activity],
+      object in assoc(activity, :object),
       as: :object
     )
   end
