@@ -87,7 +87,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         0
       end
 
-    bot = (user.actor_type || "Person") in ["Application", "Service"]
+    bot = user.actor_type in ["Application", "Service"]
 
     emojis =
       (user.source_data["tag"] || [])
