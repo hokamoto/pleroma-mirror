@@ -10,6 +10,7 @@ defmodule Pleroma.Uploaders.S3 do
 
   # The file name is re-encoded with S3's constraints here to comply with previous
   # links with less strict filenames
+  @impl true
   def get_file(file) do
     config = Config.get([__MODULE__])
     bucket = Keyword.fetch!(config, :bucket)
@@ -35,6 +36,7 @@ defmodule Pleroma.Uploaders.S3 do
       ])}}
   end
 
+  @impl true
   def put_file(%Pleroma.Upload{} = upload) do
     config = Config.get([__MODULE__])
     bucket = Keyword.get(config, :bucket)
@@ -67,6 +69,11 @@ defmodule Pleroma.Uploaders.S3 do
         Logger.error("#{__MODULE__}: #{inspect(error)}")
         {:error, "S3 Upload failed"}
     end
+  end
+
+  @impl true
+  def delete_file(_file) do
+    :ok
   end
 
   @regex Regex.compile!("[^0-9a-zA-Z!.*/'()_-]")

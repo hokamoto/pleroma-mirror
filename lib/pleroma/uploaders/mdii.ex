@@ -12,10 +12,12 @@ defmodule Pleroma.Uploaders.MDII do
 
   # MDII-hosted images are never passed through the MediaPlug; only local media.
   # Delegate to Pleroma.Uploaders.Local
+  @impl true
   def get_file(file) do
     Pleroma.Uploaders.Local.get_file(file)
   end
 
+  @impl true
   def put_file(upload) do
     cgi = Config.get([Pleroma.Uploaders.MDII, :cgi])
     files = Config.get([Pleroma.Uploaders.MDII, :files])
@@ -33,5 +35,10 @@ defmodule Pleroma.Uploaders.MDII do
     else
       _ -> Pleroma.Uploaders.Local.put_file(upload)
     end
+  end
+
+  @impl true
+  def delete_file(_file) do
+    :ok
   end
 end

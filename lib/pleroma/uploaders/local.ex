@@ -5,10 +5,12 @@
 defmodule Pleroma.Uploaders.Local do
   @behaviour Pleroma.Uploaders.Uploader
 
+  @impl true
   def get_file(_) do
     {:ok, {:static_dir, upload_path()}}
   end
 
+  @impl true
   def put_file(upload) do
     {local_path, file} =
       case Enum.reverse(Path.split(upload.path)) do
@@ -34,10 +36,14 @@ defmodule Pleroma.Uploaders.Local do
     Pleroma.Config.get!([__MODULE__, :uploads])
   end
 
-  @spec delete_file(String.t()) :: :ok | {:error, File.posix()}
+  @impl true
   def delete_file(name) do
     upload_path()
     |> Path.join(name)
     |> File.rm()
+    |> case do
+      :ok -> :ok
+      {:error, posix_error} -> {:error, to_string(posix_error)}
+    end
   end
 end

@@ -177,9 +177,12 @@ defmodule Pleroma.Object do
         Enum.map(attachment["url"], & &1["href"])
       end)
 
+    uploader = Pleroma.Config.get([Pleroma.Upload, :uploader])
+
     Enum.each(hrefs, fn href ->
       href
       |> Path.basename()
+      |> uploader.delete_file()
       |> Pleroma.Uploaders.Local.delete_file()
     end)
 
@@ -196,7 +199,7 @@ defmodule Pleroma.Object do
           )
       )
 
-    Repo.delete_all(query) |> IO.inspect(label: :DELETEDOBJECTS)
+    Repo.delete_all(query)
     :ok
   end
 
