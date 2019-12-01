@@ -172,13 +172,28 @@ defmodule Pleroma.Object do
   end
 
   defp delete_attachments(%{data: %{"attachment" => [_ | _] = attachments}}) do
-    hrefs = Enum.map(attachments, & &1["url"]["href"])
+    hrefs =
+      Enum.flat_map(attachments, fn attachment ->
+        Enum.map(attachment["url"], & &1["href"])
+      end)
+
+    Enum.each(hrefs, fn href ->
+      href
+      |> Path.basename()
+      |> Pleroma.Uploaders.Local.delete_file()
+    end)
+
     names = Enum.map(attachments, & &1["name"])
 
     query =
       from(o in Object,
-        where: fragment("(?)->>'name' = ANY(?)", o.data, ^names),
-        where: fragment("(?)->>'href' = ANY(?)", o.data, ^hrefs)
+        where: fragment("(?)->'name' \\?| (?)", o.data, ^names),
+        where:
+          fragment(
+            "to_jsonb(array(select jsonb_array_elements((?)#>'{url}') ->> 'href'))::jsonb \\?| (?)",
+            o.data,
+            ^hrefs
+          )
       )
 
     Repo.delete_all(query) |> IO.inspect(label: :DELETEDOBJECTS)

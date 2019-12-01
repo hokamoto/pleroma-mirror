@@ -33,4 +33,11 @@ defmodule Pleroma.Uploaders.Local do
   def upload_path do
     Pleroma.Config.get!([__MODULE__, :uploads])
   end
+
+  @spec delete_file(String.t()) :: :ok | {:error, File.posix()}
+  def delete_file(name) do
+    upload_path()
+    |> Path.join(name)
+    |> File.rm()
+  end
 end
