@@ -449,6 +449,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   end
 
   def delete(%Object{data: %{"id" => id, "actor" => actor}} = object, options \\ []) do
+    IO.inspect(object)
     local = Keyword.get(options, :local, true)
     activity_id = Keyword.get(options, :activity_id, nil)
     actor = Keyword.get(options, :actor, actor)
