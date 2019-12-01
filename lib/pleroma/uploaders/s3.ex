@@ -72,8 +72,15 @@ defmodule Pleroma.Uploaders.S3 do
   end
 
   @impl true
-  def delete_file(_file) do
-    :ok
+  def delete_file(file) do
+    [__MODULE__, :bucket]
+    |> Config.get()
+    |> ExAws.S3.delete_object(file)
+    |> ExAws.request()
+    |> case do
+      {:ok, %{status_code: 204}} -> :ok
+      error -> {:error, inspect(error)}
+    end
   end
 
   @regex Regex.compile!("[^0-9a-zA-Z!.*/'()_-]")

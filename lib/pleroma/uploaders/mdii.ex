@@ -37,8 +37,10 @@ defmodule Pleroma.Uploaders.MDII do
     end
   end
 
+  @doc """
+  This will not delete files from mdii host since there's no API for such an operation,
+  but it will try to delete local file with the given name.
+  """
   @impl true
-  def delete_file(_file) do
-    :ok
-  end
+  defdelegate delete_file(file), to: Pleroma.Uploaders.Local
 end
