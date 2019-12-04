@@ -103,8 +103,10 @@ defmodule Pleroma.User do
     field(:raw_fields, {:array, :map}, default: [])
     field(:discoverable, :boolean, default: false)
     field(:invisible, :boolean, default: false)
+    field(:allow_following_move, :boolean, default: true)
     field(:skip_thread_containment, :boolean, default: false)
     field(:actor_type, :string, default: "Person")
+    field(:also_known_as, {:array, :string}, default: [])
 
     field(:notification_settings, :map,
       default: %{
@@ -118,8 +120,6 @@ defmodule Pleroma.User do
     has_many(:notifications, Notification)
     has_many(:registrations, Registration)
     has_many(:deliveries, Delivery)
-
-    field(:info, :map, default: %{})
 
     timestamps()
   end
@@ -178,20 +178,6 @@ defmodule Pleroma.User do
   def ap_following(%User{following_address: fa}) when is_binary(fa), do: fa
   def ap_following(%User{} = user), do: "#{ap_id(user)}/following"
 
-  def user_info(%User{} = user, args \\ %{}) do
-    following_count = Map.get(args, :following_count, user.following_count)
-    follower_count = Map.get(args, :follower_count, user.follower_count)
-
-    %{
-      note_count: user.note_count,
-      locked: user.locked,
-      confirmation_pending: user.confirmation_pending,
-      default_scope: user.default_scope,
-      follower_count: follower_count,
-      following_count: following_count
-    }
-  end
-
   def follow_state(%User{} = user, %User{} = target) do
     case Utils.fetch_latest_follow(user, target) do
       %{data: %{"state" => state}} -> state
@@ -208,10 +194,6 @@ defmodule Pleroma.User do
   @spec set_follow_state_cache(String.t(), String.t(), String.t()) :: {:ok | :error, boolean()}
   def set_follow_state_cache(user_ap_id, target_ap_id, state) do
     Cachex.put(:user_cache, "follow_state:#{user_ap_id}|#{target_ap_id}", state)
-  end
-
-  def set_info_cache(user, args) do
-    Cachex.put(:user_cache, "user_info:#{user.id}", user_info(user, args))
   end
 
   @spec restrict_deactivated(Ecto.Query.t()) :: Ecto.Query.t()
@@ -244,7 +226,6 @@ defmodule Pleroma.User do
 
     params =
       params
-      |> Map.put(:info, params[:info] || %{})
       |> truncate_if_exists(:name, name_limit)
       |> truncate_if_exists(:bio, bio_limit)
       |> truncate_fields_param()
@@ -274,7 +255,8 @@ defmodule Pleroma.User do
           :following_count,
           :discoverable,
           :invisible,
-          :actor_type
+          :actor_type,
+          :also_known_as
         ]
       )
       |> validate_required([:name, :ap_id])
@@ -316,6 +298,7 @@ defmodule Pleroma.User do
         :hide_followers_count,
         :hide_follows_count,
         :hide_favorites,
+        :allow_following_move,
         :background,
         :show_role,
         :skip_thread_containment,
@@ -323,7 +306,8 @@ defmodule Pleroma.User do
         :raw_fields,
         :pleroma_settings_store,
         :discoverable,
-        :actor_type
+        :actor_type,
+        :also_known_as
       ]
     )
     |> unique_constraint(:nickname)
@@ -361,10 +345,12 @@ defmodule Pleroma.User do
         :hide_follows,
         :fields,
         :hide_followers,
+        :allow_following_move,
         :discoverable,
         :hide_followers_count,
         :hide_follows_count,
-        :actor_type
+        :actor_type,
+        :also_known_as
       ]
     )
     |> unique_constraint(:nickname)
@@ -618,7 +604,6 @@ defmodule Pleroma.User do
   def set_cache(%User{} = user) do
     Cachex.put(:user_cache, "ap_id:#{user.ap_id}", user)
     Cachex.put(:user_cache, "nickname:#{user.nickname}", user)
-    Cachex.put(:user_cache, "user_info:#{user.id}", user_info(user))
     {:ok, user}
   end
 
@@ -637,7 +622,6 @@ defmodule Pleroma.User do
   def invalidate_cache(user) do
     Cachex.del(:user_cache, "ap_id:#{user.ap_id}")
     Cachex.del(:user_cache, "nickname:#{user.nickname}")
-    Cachex.del(:user_cache, "user_info:#{user.id}")
   end
 
   def get_cached_by_ap_id(ap_id) do
@@ -703,11 +687,6 @@ defmodule Pleroma.User do
 
   def get_by_nickname_or_email(nickname_or_email) do
     get_by_nickname(nickname_or_email) || get_by_email(nickname_or_email)
-  end
-
-  def get_cached_user_info(user) do
-    key = "user_info:#{user.id}"
-    Cachex.fetch!(:user_cache, key, fn -> user_info(user) end)
   end
 
   def fetch_by_nickname(nickname), do: ActivityPub.make_user_from_nickname(nickname)
@@ -1240,7 +1219,7 @@ defmodule Pleroma.User do
   def external_users(opts \\ []) do
     query =
       external_users_query()
-      |> select([u], struct(u, [:id, :ap_id, :info]))
+      |> select([u], struct(u, [:id, :ap_id]))
 
     query =
       if opts[:max_id],

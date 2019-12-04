@@ -66,10 +66,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `DELETE /api/pleroma/admin/users` (`nickname` query param or `nickname` sent in JSON body) is deprecated in favor of: `DELETE /api/pleroma/admin/users` (`nicknames` query array param or `nicknames` sent in JSON body)
 - Admin API: Add `GET /api/pleroma/admin/relay` endpoint - lists all followed relays
 - Pleroma API: `POST /api/v1/pleroma/conversations/read` to mark all conversations as read
+- ActivityPub: Support `Move` activities
 - Mastodon API: Add `/api/v1/markers` for managing timeline read markers
 - Mastodon API: Add the `recipients` parameter to `GET /api/v1/conversations`
 - Configuration: `feed` option for user atom feed.
 - Pleroma API: Add Emoji reactions
+- Admin API: Add `/api/pleroma/admin/instances/:instance/statuses` - lists all statuses from a given instance
 - Admin API: `PATCH /api/pleroma/users/confirm_email` to confirm email for multiple users, `PATCH /api/pleroma/users/resend_confirmation_email` to resend confirmation email for multiple users
 </details>
 
@@ -81,6 +83,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Mastodon API: Fix private and direct statuses not being filtered out from the public timeline for an authenticated user (`GET /api/v1/timelines/public`)
 - Mastodon API: Inability to get some local users by nickname in `/api/v1/accounts/:id_or_nickname`
+- Admin API: Error when trying to update reports in the "old" format
 </details>
 
 ## [1.1.6] - 2019-11-19
