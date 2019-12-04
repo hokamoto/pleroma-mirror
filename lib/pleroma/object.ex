@@ -183,7 +183,6 @@ defmodule Pleroma.Object do
       href
       |> Path.basename()
       |> uploader.delete_file()
-      |> Pleroma.Uploaders.Local.delete_file()
     end)
 
     names = Enum.map(attachments, & &1["name"])
