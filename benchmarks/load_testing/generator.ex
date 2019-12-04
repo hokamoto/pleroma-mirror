@@ -371,9 +371,9 @@ defmodule Pleroma.LoadTesting.Generator do
   end
 
   def generate_replies(user, followers) do
-    IO.puts("Starting generating thread with 100 replies")
+    IO.puts("Starting generating thread with 150 replies")
     {time, _} = :timer.tc(fn -> do_generate_replies(user, followers) end)
-    IO.puts("Inserting thread with 100 replies take #{to_sec(time)} sec.\n")
+    IO.puts("Inserting thread with 150 replies take #{to_sec(time)} sec.\n")
   end
 
   defp do_generate_replies(user, [f1, f2, f3]) do
