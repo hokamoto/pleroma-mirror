@@ -124,7 +124,15 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   def increase_poll_votes_if_vote(_create_data), do: :noop
 
-  def insert(map, local \\ true, fake \\ false, bypass_actor_check \\ false) when is_map(map) do
+  def insert(map, opts \\ []) when is_map(map) and is_list(opts) do
+    local = Keyword.get(opts, :local, true)
+    fake = Keyword.get(opts, :fake, false)
+    bypass_actor_check = Keyword.get(opts, :bypass_actor_check, false)
+    existing_object = Keyword.get(opts, :object)
+
+    existing_object =
+      with %Object{id: _} <- existing_object, do: existing_object, else: (_ -> nil)
+
     with nil <- Activity.normalize(map),
          map <- lazy_put_activity_defaults(map, fake),
          true <- bypass_actor_check || check_actor_is_active(map["actor"]),
@@ -133,10 +141,11 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
          {recipients, _, _} = get_recipients(map),
          {:fake, false, map, recipients} <- {:fake, fake, map, recipients},
          {:containment, :ok} <- {:containment, Containment.contain_child(map)},
-         {:ok, map, object} <- insert_full_object(map) do
+         {:ok, map, inserted_object} <- insert_full_object(map) do
       {:ok, activity} =
         Repo.insert(%Activity{
           data: map,
+          object_id: (inserted_object || existing_object || %{id: nil}).id,
           local: local,
           actor: map["actor"],
           recipients: recipients
@@ -144,8 +153,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
       # Splice in the child object if we have one.
       activity =
-        if not is_nil(object) do
-          Map.put(activity, :object, object)
+        if not is_nil(inserted_object) do
+          Map.put(activity, :object, inserted_object)
         else
           activity
         end
@@ -243,7 +252,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
              %{to: to, actor: actor, published: published, context: context, object: object},
              additional
            ),
-         {:ok, activity} <- insert(create_data, local, fake),
+         {:ok, activity} <- insert(create_data, local: local, fake: fake, object: object),
          {:fake, false, activity} <- {:fake, fake, activity},
          _ <- increase_replies_count_if_reply(create_data),
          _ <- increase_poll_votes_if_vote(create_data),
@@ -274,7 +283,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
              %{to: to, actor: actor, published: published, context: context, object: object},
              additional
            ),
-         {:ok, activity} <- insert(listen_data, local),
+         {:ok, activity} <- insert(listen_data, local: local, object: object),
          :ok <- maybe_federate(activity) do
       {:ok, activity}
     else
@@ -298,7 +307,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     with data <-
            %{"to" => to, "type" => type, "actor" => actor.ap_id, "object" => object}
            |> Utils.maybe_put("id", activity_id),
-         {:ok, activity} <- insert(data, local),
+         {:ok, activity} <- insert(data, local: local, object: object),
          :ok <- maybe_federate(activity) do
       {:ok, activity}
     end
@@ -316,7 +325,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
            "object" => object
          },
          data <- Utils.maybe_put(data, "id", activity_id),
-         {:ok, activity} <- insert(data, local),
+         {:ok, activity} <- insert(data, local: local, object: object),
          :ok <- maybe_federate(activity) do
       {:ok, activity}
     end
@@ -327,7 +336,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
          activity_id <- Keyword.get(options, :activity_id, nil),
          Pleroma.Emoji.is_unicode_emoji?(emoji),
          reaction_data <- make_emoji_reaction_data(user, object, emoji, activity_id),
-         {:ok, activity} <- insert(reaction_data, local),
+         {:ok, activity} <- insert(reaction_data, local: local, object: object),
          {:ok, object} <- add_emoji_reaction_to_object(activity, object),
          :ok <- maybe_federate(activity) do
       {:ok, activity, object}
@@ -341,7 +350,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
          %Activity{actor: ^user_ap_id} = reaction_activity <- Activity.get_by_ap_id(reaction_id),
          object <- Object.normalize(reaction_activity),
          unreact_data <- make_undo_data(user, reaction_activity, activity_id),
-         {:ok, activity} <- insert(unreact_data, local),
+         {:ok, activity} <- insert(unreact_data, local: local, object: object),
          {:ok, object} <- remove_emoji_reaction_from_object(reaction_activity, object),
          :ok <- maybe_federate(activity) do
       {:ok, activity, object}
@@ -357,7 +366,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       ) do
     with nil <- get_existing_like(ap_id, object),
          like_data <- make_like_data(user, object, activity_id),
-         {:ok, activity} <- insert(like_data, local),
+         {:ok, activity} <- insert(like_data, local: local, object: object),
          {:ok, object} <- add_like_to_object(activity, object),
          :ok <- maybe_federate(activity) do
       {:ok, activity, object}
@@ -370,7 +379,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   def unlike(%User{} = actor, %Object{} = object, activity_id \\ nil, local \\ true) do
     with %Activity{} = like_activity <- get_existing_like(actor.ap_id, object),
          unlike_data <- make_unlike_data(actor, like_activity, activity_id),
-         {:ok, unlike_activity} <- insert(unlike_data, local),
+         {:ok, unlike_activity} <- insert(unlike_data, local: local, object: object),
          {:ok, _activity} <- Repo.delete(like_activity),
          {:ok, object} <- remove_like_from_object(like_activity, object),
          :ok <- maybe_federate(unlike_activity) do
@@ -389,7 +398,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       ) do
     with true <- is_announceable?(object, user, public),
          announce_data <- make_announce_data(user, object, activity_id, public),
-         {:ok, activity} <- insert(announce_data, local),
+         {:ok, activity} <- insert(announce_data, local: local, object: object),
          {:ok, object} <- add_announce_to_object(activity, object),
          :ok <- maybe_federate(activity) do
       {:ok, activity, object}
@@ -406,7 +415,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       ) do
     with %Activity{} = announce_activity <- get_existing_announce(actor.ap_id, object),
          unannounce_data <- make_unannounce_data(actor, announce_activity, activity_id),
-         {:ok, unannounce_activity} <- insert(unannounce_data, local),
+         {:ok, unannounce_activity} <- insert(unannounce_data, local: local, object: object),
          :ok <- maybe_federate(unannounce_activity),
          {:ok, _activity} <- Repo.delete(announce_activity),
          {:ok, object} <- remove_announce_from_object(announce_activity, object) do
@@ -418,7 +427,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   def follow(follower, followed, activity_id \\ nil, local \\ true) do
     with data <- make_follow_data(follower, followed, activity_id),
-         {:ok, activity} <- insert(data, local),
+         {:ok, activity} <- insert(data, local: local),
          :ok <- maybe_federate(activity),
          _ <- User.set_follow_state_cache(follower.ap_id, followed.ap_id, activity.data["state"]) do
       {:ok, activity}
@@ -429,7 +438,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     with %Activity{} = follow_activity <- fetch_latest_follow(follower, followed),
          {:ok, follow_activity} <- update_follow_state(follow_activity, "cancelled"),
          unfollow_data <- make_unfollow_data(follower, followed, follow_activity, activity_id),
-         {:ok, activity} <- insert(unfollow_data, local),
+         {:ok, activity} <- insert(unfollow_data, local: local),
          :ok <- maybe_federate(activity) do
       {:ok, activity}
     end
@@ -442,7 +451,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
            "actor" => ap_id,
            "object" => %{"type" => "Person", "id" => ap_id}
          },
-         {:ok, activity} <- insert(data, true, true, true),
+         {:ok, activity} <- insert(data, local: true, fake: true, bypass_actor_check: true),
          :ok <- maybe_federate(activity) do
       {:ok, user}
     end
@@ -466,7 +475,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
              "deleted_activity_id" => activity && activity.id
            }
            |> maybe_put("id", activity_id),
-         {:ok, activity} <- insert(data, local, false),
+         {:ok, activity} <- insert(data, local: local, fake: false, object: object),
          stream_out_participations(object, user),
          _ <- decrease_replies_count_if_reply(object),
          {:ok, _actor} <- decrease_note_count_if_public(user, object),
@@ -487,7 +496,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
     with true <- outgoing_blocks,
          block_data <- make_block_data(blocker, blocked, activity_id),
-         {:ok, activity} <- insert(block_data, local),
+         {:ok, activity} <- insert(block_data, local: local),
          :ok <- maybe_federate(activity) do
       {:ok, activity}
     else
@@ -498,7 +507,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   def unblock(blocker, blocked, activity_id \\ nil, local \\ true) do
     with %Activity{} = block_activity <- fetch_latest_block(blocker, blocked),
          unblock_data <- make_unblock_data(blocker, blocked, block_activity, activity_id),
-         {:ok, activity} <- insert(unblock_data, local),
+         {:ok, activity} <- insert(unblock_data, local: local),
          :ok <- maybe_federate(activity) do
       {:ok, activity}
     end
@@ -528,7 +537,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       end
 
     with flag_data <- make_flag_data(params, additional),
-         {:ok, activity} <- insert(flag_data, local),
+         {:ok, activity} <- insert(flag_data, local: local),
          {:ok, stripped_activity} <- strip_report_status_data(activity),
          :ok <- maybe_federate(stripped_activity) do
       Enum.each(User.all_superusers(), fn superuser ->
