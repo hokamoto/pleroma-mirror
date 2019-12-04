@@ -14,8 +14,6 @@ defmodule Pleroma.LoadTesting.Fetcher do
 
   def query_timelines(user) do
     Pleroma.Config.put([:instance, :skip_thread_containment], false)
-    user = Map.put(user, :skip_thread_containment, true)
-
     following = User.following(user)
 
     Benchee.run(
@@ -62,7 +60,7 @@ defmodule Pleroma.LoadTesting.Fetcher do
         end
       },
       inputs: %{
-        "without thread containment" => user,
+        "without thread containment" => Map.put(user, :skip_thread_containment, true),
         "with thread containment" => Map.put(user, :skip_thread_containment, false)
       }
     )
