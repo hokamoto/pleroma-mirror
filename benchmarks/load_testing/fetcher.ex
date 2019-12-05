@@ -98,33 +98,35 @@ defmodule Pleroma.LoadTesting.Fetcher do
       end,
       "Rendering favorites timeline" => fn ->
         conn = Phoenix.ConnTest.build_conn(:get, "http://localhost:4001/api/v1/favourites", nil)
-        Pleroma.Web.MastodonAPI.StatusController.favourites(
-          %Plug.Conn{conn |
-                     assigns: %{user: user},
-                     query_params:  %{"limit" => "0"},
-                     body_params: %{},
-                     cookies: %{},
-                     params: %{},
-                     path_params: %{},
-                     private: %{
-                       Pleroma.Web.Router => {[], %{}},
-                       phoenix_router: Pleroma.Web.Router,
-                       phoenix_action: :favourites,
-                       phoenix_controller: Pleroma.Web.MastodonAPI.StatusController,
-                       phoenix_endpoint: Pleroma.Web.Endpoint,
-                       phoenix_format: "json",
-                       phoenix_layout: {Pleroma.Web.LayoutView, "app.html"},
-                       phoenix_recycled: true,
 
-                       phoenix_view: Pleroma.Web.MastodonAPI.StatusView,
-                       plug_session: %{"user_id" => user.id},
-                       plug_session_fetch: :done,
-                       plug_session_info: :write,
-                       plug_skip_csrf_protection: true
-                     }
+        Pleroma.Web.MastodonAPI.StatusController.favourites(
+          %Plug.Conn{
+            conn
+            | assigns: %{user: user},
+              query_params: %{"limit" => "0"},
+              body_params: %{},
+              cookies: %{},
+              params: %{},
+              path_params: %{},
+              private: %{
+                Pleroma.Web.Router => {[], %{}},
+                phoenix_router: Pleroma.Web.Router,
+                phoenix_action: :favourites,
+                phoenix_controller: Pleroma.Web.MastodonAPI.StatusController,
+                phoenix_endpoint: Pleroma.Web.Endpoint,
+                phoenix_format: "json",
+                phoenix_layout: {Pleroma.Web.LayoutView, "app.html"},
+                phoenix_recycled: true,
+                phoenix_view: Pleroma.Web.MastodonAPI.StatusView,
+                plug_session: %{"user_id" => user.id},
+                plug_session_fetch: :done,
+                plug_session_info: :write,
+                plug_skip_csrf_protection: true
+              }
           },
-          %{})
-      end,
+          %{}
+        )
+      end
     })
   end
 
@@ -256,5 +258,82 @@ defmodule Pleroma.LoadTesting.Fetcher do
         |> Enum.reverse()
       end
     })
+  end
+
+  def query_broken_thread(u1, [u2, u3], thread1, thread2) do
+    Pleroma.Config.put([:instance, :skip_thread_containment], false)
+    params = %{"type" => ["Create", "Announce"], "count" => 20}
+
+    Benchee.run(
+      %{
+        "Without thread_containment" => fn {recipients, user} ->
+          user = %{user | skip_thread_containment: true}
+
+          Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
+            recipients,
+            add_filters(params, user)
+          )
+        end,
+        "With thread_containment" => fn {recipients, user} ->
+          user = %{user | skip_thread_containment: false}
+
+          Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
+            recipients,
+            add_filters(params, user)
+          )
+        end,
+        "Filtering thread recipients" => fn {recipients, user} ->
+          Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
+            recipients,
+            params
+            |> add_filters(user)
+            |> Map.put("run", :thread_recipients)
+          )
+        end
+      },
+      inputs: %{
+        "First user" => {[u1.ap_id | User.following(u1)], u1},
+        "Second user" => {[u2.ap_id | User.following(u2)], u2},
+        "Third user" => {[u3.ap_id | User.following(u3)], u3}
+      }
+    )
+
+    thread1 = Pleroma.Activity.get_by_id(thread1)
+    thread2 = Pleroma.Activity.get_by_id(thread2)
+
+    Benchee.run(
+      %{
+        "Postgres check visibility thread 1" => fn user ->
+          Pleroma.Web.ActivityPub.Visibility.entire_thread_visible_for_user?(thread1, user)
+        end,
+        "Postgres check visibility thread 2" => fn user ->
+          Pleroma.Web.ActivityPub.Visibility.entire_thread_visible_for_user?(thread2, user)
+        end,
+        "Thread recipients check visibility thread 1" => fn user ->
+          Pleroma.Web.ActivityPub.Visibility.entire_thread_visible_for_user?(
+            thread1,
+            user,
+            :thread_recipients
+          )
+        end,
+        "Thread recipients check visibility thread 2" => fn user ->
+          Pleroma.Web.ActivityPub.Visibility.entire_thread_visible_for_user?(
+            thread2,
+            user,
+            :thread_recipients
+          )
+        end
+      },
+      inputs: %{"First user" => u1, "Second user" => u2, "Third user" => u3}
+    )
+
+    Pleroma.Config.put([:instance, :skip_thread_containment], true)
+  end
+
+  defp add_filters(params, u) do
+    params
+    |> Map.put("blocking_user", u)
+    |> Map.put("muting_user", u)
+    |> Map.put("user", u)
   end
 end

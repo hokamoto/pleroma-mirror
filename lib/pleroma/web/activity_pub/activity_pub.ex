@@ -6,6 +6,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   alias Pleroma.Activity
   alias Pleroma.Activity.Ir.Topics
   alias Pleroma.Config
+  alias Pleroma.Constants
   alias Pleroma.Conversation
   alias Pleroma.Conversation.Participation
   alias Pleroma.Notification
@@ -124,13 +125,50 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   def increase_poll_votes_if_vote(_create_data), do: :noop
 
+  @spec get_thread_recipients([String.t()], Activity.t() | nil) :: [String.t()]
+  def get_thread_recipients(recipients, %Activity{thread_recipients: thread_recipients}) do
+    public = Constants.as_public()
+
+    parent_public? = public in thread_recipients
+    current_public? = public in recipients
+
+    cond do
+      parent_public? and current_public? ->
+        [public]
+
+      parent_public? and not current_public? ->
+        Enum.filter(recipients, &String.ends_with?(&1, "/followers"))
+
+      not parent_public? and current_public? ->
+        thread_recipients
+
+      not parent_public? and not current_public? ->
+        [thread_recipients | Enum.filter(recipients, &String.ends_with?(&1, "/followers"))]
+        |> List.flatten()
+        |> Enum.uniq()
+    end
+  end
+
+  def get_thread_recipients(recipients, _in_reply_to) do
+    public = Constants.as_public()
+
+    if public in recipients do
+      [public]
+    else
+      Enum.filter(recipients, &String.ends_with?(&1, "/followers"))
+    end
+  end
+
   def insert(map, local \\ true, fake \\ false, bypass_actor_check \\ false) when is_map(map) do
+    {in_reply_to, map} = Map.pop(map, "in_reply_to")
+
     with nil <- Activity.normalize(map),
          map <- lazy_put_activity_defaults(map, fake),
          true <- bypass_actor_check || check_actor_is_active(map["actor"]),
          {_, true} <- {:remote_limit_error, check_remote_limit(map)},
          {:ok, map} <- MRF.filter(map),
          {recipients, _, _} = get_recipients(map),
+         thread_recipients <- get_thread_recipients(recipients, in_reply_to),
          {:fake, false, map, recipients} <- {:fake, fake, map, recipients},
          {:containment, :ok} <- {:containment, Containment.contain_child(map)},
          {:ok, map, object} <- insert_full_object(map) do
@@ -139,7 +177,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
           data: map,
           local: local,
           actor: map["actor"],
-          recipients: recipients
+          recipients: recipients,
+          thread_recipients: thread_recipients
         })
 
       # Splice in the child object if we have one.
@@ -240,7 +279,14 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
     with create_data <-
            make_create_data(
-             %{to: to, actor: actor, published: published, context: context, object: object},
+             %{
+               to: to,
+               actor: actor,
+               published: published,
+               context: context,
+               object: object,
+               in_reply_to: params[:in_reply_to]
+             },
              additional
            ),
          {:ok, activity} <- insert(create_data, local, fake),
@@ -613,7 +659,10 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   end
 
   def fetch_public_activities(opts \\ %{}, pagination \\ :keyset) do
-    opts = Map.drop(opts, ["user"])
+    opts =
+      opts
+      |> Map.put("reply_user", opts["user"])
+      |> Map.delete("user")
 
     [Pleroma.Constants.as_public()]
     |> fetch_activities_query(opts)
@@ -704,8 +753,10 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp exclude_visibility(query, _visibility), do: query
 
-  defp restrict_thread_visibility(query, _, %{skip_thread_containment: true} = _),
-    do: query
+  # TODO: remove after benchmarks on code clean up
+  defp restrict_thread_visibility(query, %{"run" => _}, _), do: query
+
+  defp restrict_thread_visibility(query, _, %{skip_thread_containment: true} = _), do: query
 
   defp restrict_thread_visibility(
          query,
@@ -847,18 +898,55 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp restrict_tag(query, _), do: query
 
-  defp restrict_recipients(query, [], _user), do: query
+  defp query_for_thread_recipients(query, recipients, user) do
+    public = [Constants.as_public()]
+    user_mention = [user.ap_id]
+    user_following = User.get_cached_following(user)
 
-  defp restrict_recipients(query, recipients, nil) do
-    from(activity in query, where: fragment("? && ?", ^recipients, activity.recipients))
+    from(
+      activity in query,
+      where:
+        fragment(
+          "? && ? AND (? && ? OR ? && ? OR ? @> ?)",
+          ^recipients,
+          activity.recipients,
+          ^user_mention,
+          activity.recipients,
+          ^public,
+          activity.thread_recipients,
+          ^user_following,
+          activity.thread_recipients
+        )
+    )
   end
 
-  defp restrict_recipients(query, recipients, user) do
+  defp restrict_recipients(query, [], _user), do: query
+
+  # TODO: "run" parameter change on skip_thread_containment after benchmarks
+  defp restrict_recipients(query, recipients, %{
+         "user" => nil,
+         "reply_user" => user,
+         "run" => :thread_recipients
+       })
+       when not is_nil(user) do
+    query_for_thread_recipients(query, recipients, user)
+  end
+
+  defp restrict_recipients(query, recipients, %{"user" => user, "run" => :thread_recipients})
+       when not is_nil(user) do
+    query_for_thread_recipients(query, recipients, user)
+  end
+
+  defp restrict_recipients(query, recipients, %{"user" => user}) when not is_nil(user) do
     from(
       activity in query,
       where: fragment("? && ?", ^recipients, activity.recipients),
       or_where: activity.actor == ^user.ap_id
     )
+  end
+
+  defp restrict_recipients(query, recipients, _) do
+    from(activity in query, where: fragment("? && ?", ^recipients, activity.recipients))
   end
 
   defp restrict_local(query, %{"local_only" => true}) do
@@ -1121,9 +1209,19 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     {restrict_blocked_opts, restrict_muted_opts, restrict_muted_reblogs_opts} =
       fetch_activities_query_ap_ids_ops(opts)
 
+    # TODO: remove after benchmarks
+    skip =
+      if Map.has_key?(opts, :skip_thread_containment) do
+        opts[:skip_thread_containment]
+      else
+        Config.get([:instance, :skip_thread_containment])
+      end
+
     config = %{
-      skip_thread_containment: Config.get([:instance, :skip_thread_containment])
+      skip_thread_containment: skip
     }
+
+    opts = Map.put(opts, "user", opts["user"])
 
     Activity
     |> maybe_preload_objects(opts)
@@ -1131,7 +1229,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> maybe_preload_report_notes(opts)
     |> maybe_set_thread_muted_field(opts)
     |> maybe_order(opts)
-    |> restrict_recipients(recipients, opts["user"])
+    |> restrict_recipients(recipients, opts)
     |> restrict_tag(opts)
     |> restrict_tag_reject(opts)
     |> restrict_tag_all(opts)
@@ -1395,14 +1493,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     end
   end
 
-  # filter out broken threads
-  def contain_broken_threads(%Activity{} = activity, %User{} = user) do
-    entire_thread_visible_for_user?(activity, user)
-  end
-
   # do post-processing on a specific activity
   def contain_activity(%Activity{} = activity, %User{} = user) do
-    contain_broken_threads(activity, user)
+    entire_thread_visible_for_user?(activity, user)
   end
 
   def fetch_direct_messages_query do
