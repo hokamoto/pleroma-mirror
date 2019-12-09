@@ -63,4 +63,13 @@ defmodule Pleroma.Web.ActivityPub.ObjectViewTest do
     assert result["object"] == object.data["id"]
     assert result["type"] == "Announce"
   end
+
+  test "renders an activity with a user as an object/nonexistent object" do
+    user = insert(:user)
+    other_user = insert(:user)
+
+    {:ok, _user, other_user, activity} = CommonAPI.follow(user, other_user)
+    result = ObjectView.render("object.json", %{object: activity})
+    assert result["object"] == other_user.ap_id
+  end
 end
