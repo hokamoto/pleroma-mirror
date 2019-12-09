@@ -9,7 +9,7 @@ defmodule Pleroma.LoadTesting.Generator do
     {time, _} =
       :timer.tc(fn ->
         Task.async_stream(
-           Enum.take_random(posts, count_likes),
+          Enum.take_random(posts, count_likes),
           fn post -> {:ok, _, _} = CommonAPI.favorite(post.id, user) end,
           max_concurrency: 10,
           timeout: 30_000
@@ -78,18 +78,14 @@ defmodule Pleroma.LoadTesting.Generator do
   end
 
   def generate_activities(user, users) do
-    do_generate_activities(user, users)
-  end
-
-  defp do_generate_activities(user, users) do
     IO.puts("Starting generating 20000 common activities...")
 
     {time, _} =
       :timer.tc(fn ->
         Task.async_stream(
           1..20_000,
-          fn _ ->
-            do_generate_activity([user | users])
+          fn i ->
+            do_generate_activity([user | users], i)
           end,
           max_concurrency: 10,
           timeout: 30_000
@@ -98,7 +94,9 @@ defmodule Pleroma.LoadTesting.Generator do
       end)
 
     IO.puts("Inserting common activities take #{to_sec(time)} sec.\n")
+  end
 
+  def generate_activities_with_mentions(user, users) do
     IO.puts("Starting generating 20000 activities with mentions...")
 
     {time, _} =
@@ -115,7 +113,9 @@ defmodule Pleroma.LoadTesting.Generator do
       end)
 
     IO.puts("Inserting activities with menthions take #{to_sec(time)} sec.\n")
+  end
 
+  def generate_activities_with_thread(user, users) do
     IO.puts("Starting generating 10000 activities with threads...")
 
     {time, _} =
@@ -134,7 +134,34 @@ defmodule Pleroma.LoadTesting.Generator do
     IO.puts("Inserting activities with threads take #{to_sec(time)} sec.\n")
   end
 
-  defp do_generate_activity(users) do
+  defp do_generate_activity(users, i) when i > 19_900 and i < 19_951 and rem(i, 2) == 0 do
+    user = Enum.random(users)
+
+    obj_data = %{
+      "actor" => user.ap_id,
+      "name" => "4467-11.jpg",
+      "type" => "Document",
+      "url" => [
+        %{
+          "href" =>
+            "http://#{Pleroma.Web.base_url()}/media/b1b873552422a07bf53af01f3c231c841db4dfc42c35efde681abaf0f2a4eab7.jpg",
+          "mediaType" => "image/jpeg",
+          "type" => "Link"
+        }
+      ]
+    }
+
+    {:ok, object} = Repo.insert(%Pleroma.Object{data: obj_data})
+
+    post = %{
+      "status" => "Some status without mention with random user",
+      "media_ids" => [object.id]
+    }
+
+    CommonAPI.post(user, post)
+  end
+
+  defp do_generate_activity(users, _i) do
     post = %{
       "status" => "Some status without mention with random user"
     }

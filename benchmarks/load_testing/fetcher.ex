@@ -10,6 +10,68 @@ defmodule Pleroma.LoadTesting.Fetcher do
     })
   end
 
+  def query_only_media_timelines(user) do
+    home_timeline_params = %{
+      "count" => 20,
+      "with_muted" => "true",
+      "type" => ["Create", "Announce"],
+      "blocking_user" => user,
+      "muting_user" => user,
+      "user" => user,
+      "only_media" => true
+    }
+
+    mastodon_federated_timeline_params = %{
+      "count" => 20,
+      "only_media" => "true",
+      "type" => ["Create", "Announce"],
+      "with_muted" => "true",
+      "blocking_user" => user,
+      "muting_user" => user
+    }
+
+    following = User.following(user)
+
+    Benchee.run(%{
+      "Home timeline with only_media flag" => fn ->
+        Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
+          [user.ap_id | following],
+          home_timeline_params
+        )
+      end,
+      "Home timeline with only_media not null" => fn ->
+        Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
+          [user.ap_id | following],
+          Map.put(home_timeline_params, "only_media", :is_not_null)
+        )
+      end,
+      "Home timeline" => fn ->
+        Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
+          [user.ap_id | following],
+          Map.put(home_timeline_params, "only_media", "false")
+        )
+      end
+    })
+
+    Benchee.run(%{
+      "Public timeline with only_media flag" => fn ->
+        Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
+          mastodon_federated_timeline_params
+        )
+      end,
+      "Public timeline" => fn ->
+        Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
+          Map.put(mastodon_federated_timeline_params, "only_media", "false")
+        )
+      end,
+      "Public timeline  with only_media not null" => fn ->
+        Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
+          Map.put(mastodon_federated_timeline_params, "only_media", :is_not_null)
+        )
+      end
+    })
+  end
+
   def query_timelines(user) do
     home_timeline_params = %{
       "count" => 20,
@@ -98,33 +160,35 @@ defmodule Pleroma.LoadTesting.Fetcher do
       end,
       "Rendering favorites timeline" => fn ->
         conn = Phoenix.ConnTest.build_conn(:get, "http://localhost:4001/api/v1/favourites", nil)
-        Pleroma.Web.MastodonAPI.StatusController.favourites(
-          %Plug.Conn{conn |
-                     assigns: %{user: user},
-                     query_params:  %{"limit" => "0"},
-                     body_params: %{},
-                     cookies: %{},
-                     params: %{},
-                     path_params: %{},
-                     private: %{
-                       Pleroma.Web.Router => {[], %{}},
-                       phoenix_router: Pleroma.Web.Router,
-                       phoenix_action: :favourites,
-                       phoenix_controller: Pleroma.Web.MastodonAPI.StatusController,
-                       phoenix_endpoint: Pleroma.Web.Endpoint,
-                       phoenix_format: "json",
-                       phoenix_layout: {Pleroma.Web.LayoutView, "app.html"},
-                       phoenix_recycled: true,
 
-                       phoenix_view: Pleroma.Web.MastodonAPI.StatusView,
-                       plug_session: %{"user_id" => user.id},
-                       plug_session_fetch: :done,
-                       plug_session_info: :write,
-                       plug_skip_csrf_protection: true
-                     }
+        Pleroma.Web.MastodonAPI.StatusController.favourites(
+          %Plug.Conn{
+            conn
+            | assigns: %{user: user},
+              query_params: %{"limit" => "0"},
+              body_params: %{},
+              cookies: %{},
+              params: %{},
+              path_params: %{},
+              private: %{
+                Pleroma.Web.Router => {[], %{}},
+                phoenix_router: Pleroma.Web.Router,
+                phoenix_action: :favourites,
+                phoenix_controller: Pleroma.Web.MastodonAPI.StatusController,
+                phoenix_endpoint: Pleroma.Web.Endpoint,
+                phoenix_format: "json",
+                phoenix_layout: {Pleroma.Web.LayoutView, "app.html"},
+                phoenix_recycled: true,
+                phoenix_view: Pleroma.Web.MastodonAPI.StatusView,
+                plug_session: %{"user_id" => user.id},
+                plug_session_fetch: :done,
+                plug_session_info: :write,
+                plug_skip_csrf_protection: true
+              }
           },
-          %{})
-      end,
+          %{}
+        )
+      end
     })
   end
 

@@ -909,6 +909,13 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     )
   end
 
+  defp restrict_media(query, %{"only_media" => :is_not_null}) do
+    from(
+      [_activity, object] in query,
+      where: fragment("(?)->'attachment' IS NOT NULL", object.data)
+    )
+  end
+
   defp restrict_media(query, _), do: query
 
   defp restrict_replies(query, %{"exclude_replies" => val}) when val == "true" or val == "1" do

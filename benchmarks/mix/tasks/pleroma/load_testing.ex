@@ -98,10 +98,17 @@ defmodule Mix.Tasks.Pleroma.LoadTesting do
 
     generate_activities(user, users)
 
+    query_only_media_timelines(user)
+
+    generate_activities_with_mentions(user, users)
+
+    generate_activities_with_thread(user, users)
+
     generate_remote_activities(user, remote_users)
 
     generate_like_activities(
-      user, Pleroma.Repo.all(Pleroma.Activity.Queries.by_type("Create"))
+      user,
+      Pleroma.Repo.all(Pleroma.Activity.Queries.by_type("Create"))
     )
 
     generate_dms(user, users, opts)
@@ -131,6 +138,7 @@ defmodule Mix.Tasks.Pleroma.LoadTesting do
 
   defp clean_tables do
     IO.puts("Deleting old data...\n")
+    Ecto.Adapters.SQL.query!(Repo, "TRUNCATE oban_jobs CASCADE;")
     Ecto.Adapters.SQL.query!(Repo, "TRUNCATE users CASCADE;")
     Ecto.Adapters.SQL.query!(Repo, "TRUNCATE activities CASCADE;")
     Ecto.Adapters.SQL.query!(Repo, "TRUNCATE objects CASCADE;")
