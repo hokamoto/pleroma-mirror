@@ -98,6 +98,8 @@ defmodule Mix.Tasks.Pleroma.LoadTesting do
 
     generate_activities(user, users)
 
+    generate_activities_with_media(user, users)
+
     query_only_media_timelines(user)
 
     generate_activities_with_mentions(user, users)

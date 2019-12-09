@@ -84,8 +84,44 @@ defmodule Pleroma.LoadTesting.Generator do
       :timer.tc(fn ->
         Task.async_stream(
           1..20_000,
+          fn _ ->
+            do_generate_activity([user | users])
+          end,
+          max_concurrency: 10,
+          timeout: 30_000
+        )
+        |> Stream.run()
+      end)
+
+    IO.puts("Inserting common activities take #{to_sec(time)} sec.\n")
+  end
+
+  def generate_activities_with_media(user, users) do
+    IO.puts("Starting generating 1000 activities with media...")
+
+    {time, _} =
+      :timer.tc(fn ->
+        Task.async_stream(
+          1..1_000,
           fn i ->
-            do_generate_activity([user | users], i)
+            do_generate_activity_with_media(user, users, i)
+          end,
+          max_concurrency: 10,
+          timeout: 30_000
+        )
+        |> Stream.run()
+      end)
+
+    IO.puts("Inserting activities with media take #{to_sec(time)} sec.\n")
+
+    IO.puts("Starting generating 50 common activities...")
+
+    {time, _} =
+      :timer.tc(fn ->
+        Task.async_stream(
+          1..50,
+          fn _ ->
+            do_generate_activity([user | users])
           end,
           max_concurrency: 10,
           timeout: 30_000
@@ -134,9 +170,7 @@ defmodule Pleroma.LoadTesting.Generator do
     IO.puts("Inserting activities with threads take #{to_sec(time)} sec.\n")
   end
 
-  defp do_generate_activity(users, i) when i > 19_900 and i < 19_951 and rem(i, 2) == 0 do
-    user = Enum.random(users)
-
+  defp do_generate_activity_with_media(user, _users, i) when rem(i, 2) == 0 do
     obj_data = %{
       "actor" => user.ap_id,
       "name" => "4467-11.jpg",
@@ -161,7 +195,15 @@ defmodule Pleroma.LoadTesting.Generator do
     CommonAPI.post(user, post)
   end
 
-  defp do_generate_activity(users, _i) do
+  defp do_generate_activity_with_media(_user, users, _i) do
+    post = %{
+      "status" => "Some status without mention with random user"
+    }
+
+    CommonAPI.post(Enum.random(users), post)
+  end
+
+  defp do_generate_activity(users) do
     post = %{
       "status" => "Some status without mention with random user"
     }
