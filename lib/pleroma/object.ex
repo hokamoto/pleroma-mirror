@@ -63,7 +63,7 @@ defmodule Pleroma.Object do
   end
 
   defp warn_on_no_object_preloaded(ap_id) do
-    "Object.normalize() called without preloaded object (#{ap_id}). Consider preloading the object"
+    "Object.normalize() called without preloaded object (#{inspect(ap_id)}). Consider preloading the object"
     |> Logger.debug()
 
     Logger.debug("Backtrace: #{inspect(Process.info(:erlang.self(), :current_stacktrace))}")
@@ -147,7 +147,7 @@ defmodule Pleroma.Object do
 
   def delete(%Object{data: %{"id" => id}} = object) do
     with {:ok, _obj} = swap_object_with_tombstone(object),
-         deleted_activity = Activity.delete_by_ap_id(id),
+         deleted_activity = Activity.delete_all_by_object_ap_id(id),
          {:ok, true} <- Cachex.del(:object_cache, "object:#{id}"),
          {:ok, _} <- Cachex.del(:web_resp_cache, URI.parse(id).path) do
       {:ok, object, deleted_activity}
@@ -254,5 +254,9 @@ defmodule Pleroma.Object do
     object
     |> Object.change(%{data: Map.merge(data || %{}, attrs)})
     |> Repo.update()
+  end
+
+  def local?(%Object{data: %{"id" => id}}) do
+    String.starts_with?(id, Pleroma.Web.base_url() <> "/")
   end
 end

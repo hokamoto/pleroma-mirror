@@ -25,6 +25,75 @@ defmodule Pleroma.UserTest do
 
   clear_config([:instance, :account_activation_required])
 
+  describe "service actors" do
+    test "returns invisible actor" do
+      uri = "#{Pleroma.Web.Endpoint.url()}/internal/fetch-test"
+      followers_uri = "#{uri}/followers"
+      user = User.get_or_create_service_actor_by_ap_id(uri, "internal.fetch-test")
+
+      assert %User{
+               nickname: "internal.fetch-test",
+               invisible: true,
+               local: true,
+               ap_id: ^uri,
+               follower_address: ^followers_uri
+             } = user
+
+      user2 = User.get_or_create_service_actor_by_ap_id(uri, "internal.fetch-test")
+      assert user.id == user2.id
+    end
+  end
+
+  describe "AP ID user relationships" do
+    setup do
+      {:ok, user: insert(:user)}
+    end
+
+    test "outgoing_relations_ap_ids/1", %{user: user} do
+      rel_types = [:block, :mute, :notification_mute, :reblog_mute, :inverse_subscription]
+
+      ap_ids_by_rel =
+        Enum.into(
+          rel_types,
+          %{},
+          fn rel_type ->
+            rel_records =
+              insert_list(2, :user_relationship, %{source: user, relationship_type: rel_type})
+
+            ap_ids = Enum.map(rel_records, fn rr -> Repo.preload(rr, :target).target.ap_id end)
+            {rel_type, Enum.sort(ap_ids)}
+          end
+        )
+
+      assert ap_ids_by_rel[:block] == Enum.sort(User.blocked_users_ap_ids(user))
+      assert ap_ids_by_rel[:block] == Enum.sort(Enum.map(User.blocked_users(user), & &1.ap_id))
+
+      assert ap_ids_by_rel[:mute] == Enum.sort(User.muted_users_ap_ids(user))
+      assert ap_ids_by_rel[:mute] == Enum.sort(Enum.map(User.muted_users(user), & &1.ap_id))
+
+      assert ap_ids_by_rel[:notification_mute] ==
+               Enum.sort(User.notification_muted_users_ap_ids(user))
+
+      assert ap_ids_by_rel[:notification_mute] ==
+               Enum.sort(Enum.map(User.notification_muted_users(user), & &1.ap_id))
+
+      assert ap_ids_by_rel[:reblog_mute] == Enum.sort(User.reblog_muted_users_ap_ids(user))
+
+      assert ap_ids_by_rel[:reblog_mute] ==
+               Enum.sort(Enum.map(User.reblog_muted_users(user), & &1.ap_id))
+
+      assert ap_ids_by_rel[:inverse_subscription] == Enum.sort(User.subscriber_users_ap_ids(user))
+
+      assert ap_ids_by_rel[:inverse_subscription] ==
+               Enum.sort(Enum.map(User.subscriber_users(user), & &1.ap_id))
+
+      outgoing_relations_ap_ids = User.outgoing_relations_ap_ids(user, rel_types)
+
+      assert ap_ids_by_rel ==
+               Enum.into(outgoing_relations_ap_ids, %{}, fn {k, v} -> {k, Enum.sort(v)} end)
+    end
+  end
+
   describe "when tags are nil" do
     test "tagging a user" do
       user = insert(:user, %{tags: nil})
@@ -100,7 +169,7 @@ defmodule Pleroma.UserTest do
     CommonAPI.follow(follower, followed)
     assert [_activity] = User.get_follow_requests(followed)
 
-    {:ok, _follower} = User.block(followed, follower)
+    {:ok, _user_relationship} = User.block(followed, follower)
     assert [] = User.get_follow_requests(followed)
   end
 
@@ -113,8 +182,8 @@ defmodule Pleroma.UserTest do
     not_followed = insert(:user)
     reverse_blocked = insert(:user)
 
-    {:ok, user} = User.block(user, blocked)
-    {:ok, reverse_blocked} = User.block(reverse_blocked, user)
+    {:ok, _user_relationship} = User.block(user, blocked)
+    {:ok, _user_relationship} = User.block(reverse_blocked, user)
 
     {:ok, user} = User.follow(user, followed_zero)
 
@@ -148,9 +217,10 @@ defmodule Pleroma.UserTest do
     {:ok, user} = User.follow(user, followed)
 
     user = User.get_cached_by_id(user.id)
-
     followed = User.get_cached_by_ap_id(followed.ap_id)
+
     assert followed.follower_count == 1
+    assert user.following_count == 1
 
     assert User.ap_followers(followed) in User.following(user)
   end
@@ -166,7 +236,7 @@ defmodule Pleroma.UserTest do
     blocker = insert(:user)
     blockee = insert(:user)
 
-    {:ok, blocker} = User.block(blocker, blockee)
+    {:ok, _user_relationship} = User.block(blocker, blockee)
 
     {:error, _} = User.follow(blockee, blocker)
   end
@@ -175,7 +245,7 @@ defmodule Pleroma.UserTest do
     blocker = insert(:user)
     blocked = insert(:user)
 
-    {:ok, blocker} = User.block(blocker, blocked)
+    {:ok, _user_relationship} = User.block(blocker, blocked)
 
     {:error, _} = User.subscribe(blocked, blocker)
   end
@@ -347,18 +417,6 @@ defmodule Pleroma.UserTest do
 
       assert changeset.changes.follower_address == "#{changeset.changes.ap_id}/followers"
     end
-
-    test "it ensures info is not nil" do
-      changeset = User.register_changeset(%User{}, @full_user_data)
-
-      assert changeset.valid?
-
-      {:ok, user} =
-        changeset
-        |> Repo.insert()
-
-      refute is_nil(user.info)
-    end
   end
 
   describe "user registration, with :account_activation_required" do
@@ -412,8 +470,7 @@ defmodule Pleroma.UserTest do
           :user,
           local: false,
           nickname: "admin@mastodon.example.org",
-          ap_id: ap_id,
-          info: %{}
+          ap_id: ap_id
         )
 
       {:ok, fetched_user} = User.get_or_fetch(ap_id)
@@ -474,8 +531,7 @@ defmodule Pleroma.UserTest do
           local: false,
           nickname: "admin@mastodon.example.org",
           ap_id: "http://mastodon.example.org/users/admin",
-          last_refreshed_at: a_week_ago,
-          info: %{}
+          last_refreshed_at: a_week_ago
         )
 
       assert orig_user.last_refreshed_at == a_week_ago
@@ -516,7 +572,6 @@ defmodule Pleroma.UserTest do
       name: "Someone",
       nickname: "a@b.de",
       ap_id: "http...",
-      info: %{some: "info"},
       avatar: %{some: "avatar"}
     }
 
@@ -673,7 +728,7 @@ defmodule Pleroma.UserTest do
       refute User.mutes?(user, muted_user)
       refute User.muted_notifications?(user, muted_user)
 
-      {:ok, user} = User.mute(user, muted_user)
+      {:ok, _user_relationships} = User.mute(user, muted_user)
 
       assert User.mutes?(user, muted_user)
       assert User.muted_notifications?(user, muted_user)
@@ -683,8 +738,8 @@ defmodule Pleroma.UserTest do
       user = insert(:user)
       muted_user = insert(:user)
 
-      {:ok, user} = User.mute(user, muted_user)
-      {:ok, user} = User.unmute(user, muted_user)
+      {:ok, _user_relationships} = User.mute(user, muted_user)
+      {:ok, _user_mute} = User.unmute(user, muted_user)
 
       refute User.mutes?(user, muted_user)
       refute User.muted_notifications?(user, muted_user)
@@ -697,7 +752,7 @@ defmodule Pleroma.UserTest do
       refute User.mutes?(user, muted_user)
       refute User.muted_notifications?(user, muted_user)
 
-      {:ok, user} = User.mute(user, muted_user, false)
+      {:ok, _user_relationships} = User.mute(user, muted_user, false)
 
       assert User.mutes?(user, muted_user)
       refute User.muted_notifications?(user, muted_user)
@@ -711,7 +766,7 @@ defmodule Pleroma.UserTest do
 
       refute User.blocks?(user, blocked_user)
 
-      {:ok, user} = User.block(user, blocked_user)
+      {:ok, _user_relationship} = User.block(user, blocked_user)
 
       assert User.blocks?(user, blocked_user)
     end
@@ -720,8 +775,8 @@ defmodule Pleroma.UserTest do
       user = insert(:user)
       blocked_user = insert(:user)
 
-      {:ok, user} = User.block(user, blocked_user)
-      {:ok, user} = User.unblock(user, blocked_user)
+      {:ok, _user_relationship} = User.block(user, blocked_user)
+      {:ok, _user_block} = User.unblock(user, blocked_user)
 
       refute User.blocks?(user, blocked_user)
     end
@@ -736,7 +791,7 @@ defmodule Pleroma.UserTest do
       assert User.following?(blocker, blocked)
       assert User.following?(blocked, blocker)
 
-      {:ok, blocker} = User.block(blocker, blocked)
+      {:ok, _user_relationship} = User.block(blocker, blocked)
       blocked = User.get_cached_by_id(blocked.id)
 
       assert User.blocks?(blocker, blocked)
@@ -754,7 +809,7 @@ defmodule Pleroma.UserTest do
       assert User.following?(blocker, blocked)
       refute User.following?(blocked, blocker)
 
-      {:ok, blocker} = User.block(blocker, blocked)
+      {:ok, _user_relationship} = User.block(blocker, blocked)
       blocked = User.get_cached_by_id(blocked.id)
 
       assert User.blocks?(blocker, blocked)
@@ -772,7 +827,7 @@ defmodule Pleroma.UserTest do
       refute User.following?(blocker, blocked)
       assert User.following?(blocked, blocker)
 
-      {:ok, blocker} = User.block(blocker, blocked)
+      {:ok, _user_relationship} = User.block(blocker, blocked)
       blocked = User.get_cached_by_id(blocked.id)
 
       assert User.blocks?(blocker, blocked)
@@ -785,12 +840,12 @@ defmodule Pleroma.UserTest do
       blocker = insert(:user)
       blocked = insert(:user)
 
-      {:ok, blocker} = User.subscribe(blocked, blocker)
+      {:ok, _subscription} = User.subscribe(blocked, blocker)
 
       assert User.subscribed_to?(blocked, blocker)
       refute User.subscribed_to?(blocker, blocked)
 
-      {:ok, blocker} = User.block(blocker, blocked)
+      {:ok, _user_relationship} = User.block(blocker, blocked)
 
       assert User.blocks?(blocker, blocked)
       refute User.subscribed_to?(blocker, blocked)
@@ -941,9 +996,9 @@ defmodule Pleroma.UserTest do
       {:ok, user} = User.follow(user, user2)
       {:ok, _user} = User.deactivate(user)
 
-      info = User.get_cached_user_info(user2)
+      user2 = User.get_cached_by_id(user2.id)
 
-      assert info.follower_count == 0
+      assert user2.follower_count == 0
       assert [] = User.get_followers(user2)
     end
 
@@ -952,13 +1007,15 @@ defmodule Pleroma.UserTest do
       user2 = insert(:user)
 
       {:ok, user2} = User.follow(user2, user)
+      assert user2.following_count == 1
       assert User.following_count(user2) == 1
 
       {:ok, _user} = User.deactivate(user)
 
-      info = User.get_cached_user_info(user2)
+      user2 = User.get_cached_by_id(user2.id)
 
-      assert info.following_count == 0
+      assert refresh_record(user2).following_count == 0
+      assert user2.following_count == 0
       assert User.following_count(user2) == 0
       assert [] = User.get_friends(user2)
     end
@@ -1121,8 +1178,7 @@ defmodule Pleroma.UserTest do
         ap_id: user.ap_id,
         name: user.name,
         nickname: user.nickname,
-        bio: String.duplicate("h", current_max_length + 1),
-        info: %{}
+        bio: String.duplicate("h", current_max_length + 1)
       }
 
       assert {:ok, %User{}} = User.insert_or_update_user(data)
@@ -1135,8 +1191,7 @@ defmodule Pleroma.UserTest do
       data = %{
         ap_id: user.ap_id,
         name: String.duplicate("h", current_max_length + 1),
-        nickname: user.nickname,
-        info: %{}
+        nickname: user.nickname
       }
 
       assert {:ok, %User{}} = User.insert_or_update_user(data)
@@ -1160,13 +1215,12 @@ defmodule Pleroma.UserTest do
   describe "caching" do
     test "invalidate_cache works" do
       user = insert(:user)
-      _user_info = User.get_cached_user_info(user)
 
+      User.set_cache(user)
       User.invalidate_cache(user)
 
       {:ok, nil} = Cachex.get(:user_cache, "ap_id:#{user.ap_id}")
       {:ok, nil} = Cachex.get(:user_cache, "nickname:#{user.nickname}")
-      {:ok, nil} = Cachex.get(:user_cache, "user_info:#{user.id}")
     end
 
     test "User.delete() plugs any possible zombie objects" do
@@ -1320,9 +1374,10 @@ defmodule Pleroma.UserTest do
     {:ok, _follower2} = User.follow(follower2, user)
     {:ok, _follower3} = User.follow(follower3, user)
 
-    {:ok, user} = User.block(user, follower)
+    {:ok, _user_relationship} = User.block(user, follower)
+    user = refresh_record(user)
 
-    assert User.user_info(user).follower_count == 2
+    assert user.follower_count == 2
   end
 
   describe "list_inactive_users_query/1" do
@@ -1499,51 +1554,6 @@ defmodule Pleroma.UserTest do
     end
   end
 
-  describe "set_info_cache/2" do
-    setup do
-      user = insert(:user)
-      {:ok, user: user}
-    end
-
-    test "update from args", %{user: user} do
-      User.set_info_cache(user, %{following_count: 15, follower_count: 18})
-
-      %{follower_count: followers, following_count: following} = User.get_cached_user_info(user)
-      assert followers == 18
-      assert following == 15
-    end
-
-    test "without args", %{user: user} do
-      User.set_info_cache(user, %{})
-
-      %{follower_count: followers, following_count: following} = User.get_cached_user_info(user)
-      assert followers == 0
-      assert following == 0
-    end
-  end
-
-  describe "user_info/2" do
-    setup do
-      user = insert(:user)
-      {:ok, user: user}
-    end
-
-    test "update from args", %{user: user} do
-      %{follower_count: followers, following_count: following} =
-        User.user_info(user, %{following_count: 15, follower_count: 18})
-
-      assert followers == 18
-      assert following == 15
-    end
-
-    test "without args", %{user: user} do
-      %{follower_count: followers, following_count: following} = User.user_info(user)
-
-      assert followers == 0
-      assert following == 0
-    end
-  end
-
   describe "is_internal_user?/1" do
     test "non-internal user returns false" do
       user = insert(:user)
@@ -1600,14 +1610,14 @@ defmodule Pleroma.UserTest do
           ap_enabled: true
         )
 
-      assert User.user_info(other_user).following_count == 0
-      assert User.user_info(other_user).follower_count == 0
+      assert other_user.following_count == 0
+      assert other_user.follower_count == 0
 
       {:ok, user} = Pleroma.User.follow(user, other_user)
       other_user = Pleroma.User.get_by_id(other_user.id)
 
-      assert User.user_info(user).following_count == 1
-      assert User.user_info(other_user).follower_count == 1
+      assert user.following_count == 1
+      assert other_user.follower_count == 1
     end
 
     test "syncronizes the counters with the remote instance for the followed when enabled" do
@@ -1623,14 +1633,14 @@ defmodule Pleroma.UserTest do
           ap_enabled: true
         )
 
-      assert User.user_info(other_user).following_count == 0
-      assert User.user_info(other_user).follower_count == 0
+      assert other_user.following_count == 0
+      assert other_user.follower_count == 0
 
       Pleroma.Config.put([:instance, :external_user_synchronization], true)
       {:ok, _user} = User.follow(user, other_user)
       other_user = User.get_by_id(other_user.id)
 
-      assert User.user_info(other_user).follower_count == 437
+      assert other_user.follower_count == 437
     end
 
     test "syncronizes the counters with the remote instance for the follower when enabled" do
@@ -1646,13 +1656,13 @@ defmodule Pleroma.UserTest do
           ap_enabled: true
         )
 
-      assert User.user_info(other_user).following_count == 0
-      assert User.user_info(other_user).follower_count == 0
+      assert other_user.following_count == 0
+      assert other_user.follower_count == 0
 
       Pleroma.Config.put([:instance, :external_user_synchronization], true)
       {:ok, other_user} = User.follow(other_user, user)
 
-      assert User.user_info(other_user).following_count == 152
+      assert other_user.following_count == 152
     end
   end
 

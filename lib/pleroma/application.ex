@@ -17,13 +17,20 @@ defmodule Pleroma.Application do
   def repository, do: @repository
 
   def user_agent do
-    info = "#{Pleroma.Web.base_url()} <#{Pleroma.Config.get([:instance, :email], "")}>"
-    named_version() <> "; " <> info
+    case Pleroma.Config.get([:http, :user_agent], :default) do
+      :default ->
+        info = "#{Pleroma.Web.base_url()} <#{Pleroma.Config.get([:instance, :email], "")}>"
+        named_version() <> "; " <> info
+
+      custom ->
+        custom
+    end
   end
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
+    Pleroma.HTML.compile_scrubbers()
     Pleroma.Config.DeprecationWarnings.warn()
     setup_instrumenters()
 
@@ -140,8 +147,6 @@ defmodule Pleroma.Application do
     do: [Pleroma.Web.OAuth.Token.CleanWorker]
 
   defp oauth_cleanup_child(_), do: []
-
-  defp chat_child(:test, _), do: []
 
   defp chat_child(_env, true) do
     [Pleroma.Web.ChatChannel.ChatChannelState]

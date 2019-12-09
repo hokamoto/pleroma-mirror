@@ -45,6 +45,7 @@ defmodule Pleroma.User.Search do
     for_user
     |> base_query(following)
     |> filter_blocked_user(for_user)
+    |> filter_invisible_users()
     |> filter_blocked_domains(for_user)
     |> fts_search(query_string)
     |> trigram_rank(query_string)
@@ -98,9 +99,17 @@ defmodule Pleroma.User.Search do
   defp base_query(_user, false), do: User
   defp base_query(user, true), do: User.get_followers_query(user)
 
-  defp filter_blocked_user(query, %User{blocks: blocks})
-       when length(blocks) > 0 do
-    from(q in query, where: not (q.ap_id in ^blocks))
+  defp filter_invisible_users(query) do
+    from(q in query, where: q.invisible == false)
+  end
+
+  defp filter_blocked_user(query, %User{} = blocker) do
+    query
+    |> join(:left, [u], b in Pleroma.UserRelationship,
+      as: :blocks,
+      on: b.relationship_type == ^:block and b.source_id == ^blocker.id and u.id == b.target_id
+    )
+    |> where([blocks: b], is_nil(b.target_id))
   end
 
   defp filter_blocked_user(query, _), do: query

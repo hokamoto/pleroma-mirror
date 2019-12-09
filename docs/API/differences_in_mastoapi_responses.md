@@ -57,6 +57,7 @@ Has these additional fields under the `pleroma` object:
 - `settings_store`: A generic map of settings for frontends. Opaque to the backend. Only returned in `verify_credentials` and `update_credentials`
 - `chat_token`: The token needed for Pleroma chat. Only returned in `verify_credentials`
 - `deactivated`: boolean, true when the user is deactivated
+- `allow_following_move`: boolean, true when the user allows automatically follow moved following accounts
 - `unread_conversation_count`: The count of unread conversations. Only returned to the account owner.
 
 ### Source
@@ -91,11 +92,18 @@ Has these additional fields under the `pleroma` object:
 
 - `is_seen`: true if the notification was read by the user
 
+### Move Notification
+
+The `type` value is `move`. Has an additional field:
+
+- `target`: new account
+
 ## GET `/api/v1/notifications`
 
 Accepts additional parameters:
 
 - `exclude_visibilities`: will exclude the notifications for activities with the given visibilities. The parameter accepts an array of visibility types (`public`, `unlisted`, `private`, `direct`). Usage example: `GET /api/v1/notifications?exclude_visibilities[]=direct&exclude_visibilities[]=private`.
+- `with_move`: boolean, when set to `true` will include Move notifications. `false` by default.
 
 ## POST `/api/v1/statuses`
 
@@ -136,6 +144,7 @@ Additional parameters can be added to the JSON body/Form data:
 - `default_scope` - the scope returned under `privacy` key in Source subentity
 - `pleroma_settings_store` - Opaque user settings to be saved on the backend.
 - `skip_thread_containment` - if true, skip filtering out broken threads
+- `allow_following_move` - if true, allows automatically follow moved following accounts
 - `pleroma_background_image` - sets the background image of the user.
 
 ### Pleroma Settings Store
