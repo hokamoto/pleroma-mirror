@@ -12,8 +12,6 @@ defmodule Pleroma.LoadTesting.Fetcher do
 
   def query_only_media_timelines(user) do
     home_timeline_params = %{
-      "count" => 20,
-      "with_muted" => "true",
       "type" => ["Create", "Announce"],
       "blocking_user" => user,
       "muting_user" => user,
@@ -21,13 +19,12 @@ defmodule Pleroma.LoadTesting.Fetcher do
       "only_media" => "true"
     }
 
-    mastodon_federated_timeline_params = %{
-      "count" => 20,
-      "only_media" => "true",
+    public_timeline_params = %{
+      "local_only" => false,
       "type" => ["Create", "Announce"],
-      "with_muted" => "true",
       "blocking_user" => user,
-      "muting_user" => user
+      "muting_user" => user,
+      "only_media" => "true"
     }
 
     following = User.following(user)
@@ -55,18 +52,16 @@ defmodule Pleroma.LoadTesting.Fetcher do
 
     Benchee.run(%{
       "Public timeline with only_media flag" => fn ->
-        Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
-          mastodon_federated_timeline_params
-        )
+        Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(public_timeline_params)
       end,
       "Public timeline" => fn ->
         Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
-          Map.delete(mastodon_federated_timeline_params, "only_media")
+          Map.delete(public_timeline_params, "only_media")
         )
       end,
       "Public timeline with only_media not null" => fn ->
         Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
-          Map.put(mastodon_federated_timeline_params, "only_media", :is_not_null)
+          Map.put(public_timeline_params, "only_media", :is_not_null)
         )
       end
     })
