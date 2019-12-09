@@ -18,7 +18,7 @@ defmodule Pleroma.LoadTesting.Fetcher do
       "blocking_user" => user,
       "muting_user" => user,
       "user" => user,
-      "only_media" => true
+      "only_media" => "true"
     }
 
     mastodon_federated_timeline_params = %{
@@ -48,7 +48,7 @@ defmodule Pleroma.LoadTesting.Fetcher do
       "Home timeline" => fn ->
         Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
           [user.ap_id | following],
-          Map.put(home_timeline_params, "only_media", "false")
+          Map.delete(home_timeline_params, "only_media")
         )
       end
     })
@@ -61,10 +61,10 @@ defmodule Pleroma.LoadTesting.Fetcher do
       end,
       "Public timeline" => fn ->
         Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
-          Map.put(mastodon_federated_timeline_params, "only_media", "false")
+          Map.delete(mastodon_federated_timeline_params, "only_media")
         )
       end,
-      "Public timeline  with only_media not null" => fn ->
+      "Public timeline with only_media not null" => fn ->
         Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
           Map.put(mastodon_federated_timeline_params, "only_media", :is_not_null)
         )
