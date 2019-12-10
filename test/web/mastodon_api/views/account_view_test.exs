@@ -93,13 +93,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
   test "Represent the user account for the account owner" do
     user = insert(:user)
 
-    notification_settings = %{
-      "followers" => true,
-      "follows" => true,
-      "non_follows" => true,
-      "non_followers" => true
-    }
-
+    notification_settings = %Pleroma.User.NotificationSetting{}
     privacy = user.default_scope
 
     assert %{
@@ -193,9 +187,9 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
 
       {:ok, user} = User.follow(user, other_user)
       {:ok, other_user} = User.follow(other_user, user)
-      {:ok, other_user} = User.subscribe(user, other_user)
-      {:ok, user} = User.mute(user, other_user, true)
-      {:ok, user} = CommonAPI.hide_reblogs(user, other_user)
+      {:ok, _subscription} = User.subscribe(user, other_user)
+      {:ok, _user_relationships} = User.mute(user, other_user, true)
+      {:ok, _reblog_mute} = CommonAPI.hide_reblogs(user, other_user)
 
       expected = %{
         id: to_string(other_user.id),
@@ -221,9 +215,9 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
       other_user = insert(:user)
 
       {:ok, user} = User.follow(user, other_user)
-      {:ok, other_user} = User.subscribe(user, other_user)
-      {:ok, user} = User.block(user, other_user)
-      {:ok, other_user} = User.block(other_user, user)
+      {:ok, _subscription} = User.subscribe(user, other_user)
+      {:ok, _user_relationship} = User.block(user, other_user)
+      {:ok, _user_relationship} = User.block(other_user, user)
 
       expected = %{
         id: to_string(other_user.id),
@@ -295,7 +289,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountViewTest do
 
     other_user = insert(:user)
     {:ok, other_user} = User.follow(other_user, user)
-    {:ok, other_user} = User.block(other_user, user)
+    {:ok, _user_relationship} = User.block(other_user, user)
     {:ok, _} = User.follow(insert(:user), user)
 
     expected = %{
