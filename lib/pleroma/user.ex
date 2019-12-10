@@ -128,6 +128,7 @@ defmodule Pleroma.User do
     field(:invisible, :boolean, default: false)
     field(:allow_following_move, :boolean, default: true)
     field(:skip_thread_containment, :boolean, default: false)
+    field(:actor_type, :string, default: "Person")
     field(:also_known_as, {:array, :string}, default: [])
 
     embeds_one(
@@ -353,6 +354,7 @@ defmodule Pleroma.User do
           :following_count,
           :discoverable,
           :invisible,
+          :actor_type,
           :also_known_as
         ]
       )
@@ -403,6 +405,7 @@ defmodule Pleroma.User do
         :raw_fields,
         :pleroma_settings_store,
         :discoverable,
+        :actor_type,
         :also_known_as
       ]
     )
@@ -445,6 +448,7 @@ defmodule Pleroma.User do
         :discoverable,
         :hide_followers_count,
         :hide_follows_count,
+        :actor_type,
         :also_known_as
       ]
     )
@@ -1843,13 +1847,28 @@ defmodule Pleroma.User do
   end
 
   def admin_api_update(user, params) do
-    user
-    |> cast(params, [
-      :is_moderator,
-      :is_admin,
-      :show_role
-    ])
-    |> update_and_set_cache()
+    changeset =
+      cast(user, params, [
+        :is_moderator,
+        :is_admin,
+        :show_role
+      ])
+
+    with {:ok, updated_user} <- update_and_set_cache(changeset) do
+      if user.is_admin && !updated_user.is_admin do
+        # Tokens & authorizations containing any admin scopes must be revoked (revoking all).
+        # This is an extra safety measure (tokens' admin scopes won't be accepted for non-admins).
+        global_sign_out(user)
+      end
+
+      {:ok, updated_user}
+    end
+  end
+
+  @doc "Signs user out of all applications"
+  def global_sign_out(user) do
+    OAuth.Authorization.delete_user_authorizations(user)
+    OAuth.Token.delete_user_tokens(user)
   end
 
   def mascot_update(user, url) do
