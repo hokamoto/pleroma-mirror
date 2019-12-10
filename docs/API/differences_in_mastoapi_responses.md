@@ -67,7 +67,7 @@ Has these additional fields under the `pleroma` object:
 - `show_role`: boolean, nullable, true when the user wants his role (e.g admin, moderator) to be shown
 - `no_rich_text` - boolean, nullable, true when html tags are stripped from all statuses requested from the API
 - `discoverable`: boolean, true when the user allows discovery of the account in search results and other services.
-- `type`: string, the type of this account.
+- `actor_type`: string, the type of this account.
 
 ## Conversations
 
@@ -149,7 +149,7 @@ Additional parameters can be added to the JSON body/Form data:
 - `allow_following_move` - if true, allows automatically follow moved following accounts
 - `pleroma_background_image` - sets the background image of the user.
 - `discoverable` - if true, discovery of this account in search results and other services is allowed.
-- `type` - the type of this account.
+- `actor_type` - the type of this account.
 
 ### Pleroma Settings Store
 Pleroma has mechanism that allows frontends to save blobs of json for each user on the backend. This can be used to save frontend-specific settings for a user that the backend does not need to know about.
