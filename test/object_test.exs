@@ -69,6 +69,32 @@ defmodule Pleroma.ObjectTest do
 
       assert cached_object.data["type"] == "Tombstone"
     end
+
+    test "deletes attachments" do
+      file = %Plug.Upload{
+        content_type: "image/jpg",
+        path: Path.absname("test/fixtures/image.jpg"),
+        filename: "an_image.jpg"
+      }
+
+      user = insert(:user)
+
+      {:ok, %Object{} = attachment} =
+        Pleroma.Web.ActivityPub.ActivityPub.upload(file, actor: user.ap_id)
+
+      %{data: %{"attachment" => [%{"url" => [%{"href" => href}]}]}} =
+        note = insert(:note, %{user: user, data: %{"attachment" => [attachment.data]}})
+
+      path = href |> Path.dirname() |> Path.basename()
+
+      assert {:ok, ["an_image.jpg"]} == File.ls("test/uploads/#{path}")
+
+      Object.delete(note)
+
+      assert Object.get_by_id(attachment.id) == nil
+
+      assert {:ok, ["an_image.jpg"]} == File.ls("test/uploads/#{path}")
+    end
   end
 
   describe "normalizer" do

@@ -171,25 +171,19 @@ defmodule Pleroma.Object do
     end
   end
 
-  defp delete_attachments(%{data: %{"attachment" => [_ | _] = attachments}}) do
+  defp delete_attachments(%{data: %{"attachment" => [_ | _] = attachments, "actor" => actor}}) do
     hrefs =
       Enum.flat_map(attachments, fn attachment ->
         Enum.map(attachment["url"], & &1["href"])
       end)
 
-    uploader = Pleroma.Config.get([Pleroma.Upload, :uploader])
-
-    Enum.each(hrefs, fn href ->
-      href
-      |> Path.basename()
-      |> uploader.delete_file()
-    end)
-
     names = Enum.map(attachments, & &1["name"])
 
-    query =
+    uploader = Pleroma.Config.get([Pleroma.Upload, :uploader])
+
+    # find all objects for copies of the attachments, name and actor doesn't matter here
+    delete_ids =
       from(o in Object,
-        where: fragment("(?)->'name' \\?| (?)", o.data, ^names),
         where:
           fragment(
             "to_jsonb(array(select jsonb_array_elements((?)#>'{url}') ->> 'href'))::jsonb \\?| (?)",
@@ -197,14 +191,48 @@ defmodule Pleroma.Object do
             ^hrefs
           )
       )
+      |> Repo.all()
+      # we should delete 1 object for any given attachment, but don't delete files if
+      # there are more than 1 object for it
+      |> Enum.reduce(%{}, fn %{
+                               id: id,
+                               data: %{
+                                 "url" => [%{"href" => href}],
+                                 "actor" => obj_actor,
+                                 "name" => name
+                               }
+                             },
+                             acc ->
+        Map.update(acc, href, %{id: id, count: 1}, fn val ->
+          case obj_actor == actor and name in names do
+            true ->
+              # set id of the actor's object that will be deleted
+              %{val | id: id, count: val.count + 1}
 
-    Repo.delete_all(query)
+            false ->
+              # another actor's object, just increase count to not delete file
+              %{val | count: val.count + 1}
+          end
+        end)
+      end)
+      |> Enum.map(fn {href, %{id: id, count: count}} ->
+        # only delete files that have a single instance
+        with 1 <- count do
+          href
+          |> Path.basename()
+          |> uploader.delete_file()
+        end
+
+        id
+      end)
+
+    from(o in Object, where: o.id in ^delete_ids)
+    |> Repo.delete_all()
+
     :ok
   end
 
-  defp delete_attachments(%{data: _data}) do
-    :ok
-  end
+  defp delete_attachments(%{data: _data}), do: :ok
 
   def prune(%Object{data: %{"id" => id}} = object) do
     with {:ok, object} <- Repo.delete(object),
