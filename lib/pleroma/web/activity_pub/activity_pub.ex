@@ -125,7 +125,13 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   def increase_poll_votes_if_vote(_create_data), do: :noop
 
+  defp filter_followers_address(recipients) do
+    Enum.filter(recipients, &String.ends_with?(&1, "/followers"))
+  end
+
   @spec get_thread_recipients([String.t()], Activity.t() | nil) :: [String.t()]
+  def get_thread_recipients(recipients, in_reply_to \\ nil)
+
   def get_thread_recipients(recipients, %Activity{thread_recipients: thread_recipients}) do
     public = Constants.as_public()
 
@@ -137,13 +143,13 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         [public]
 
       parent_public? and not current_public? ->
-        Enum.filter(recipients, &String.ends_with?(&1, "/followers"))
+        filter_followers_address(recipients)
 
       not parent_public? and current_public? ->
         thread_recipients
 
       not parent_public? and not current_public? ->
-        [thread_recipients | Enum.filter(recipients, &String.ends_with?(&1, "/followers"))]
+        [thread_recipients | filter_followers_address(recipients)]
         |> List.flatten()
         |> Enum.uniq()
     end
@@ -155,7 +161,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     if public in recipients do
       [public]
     else
-      Enum.filter(recipients, &String.ends_with?(&1, "/followers"))
+      filter_followers_address(recipients)
     end
   end
 
@@ -661,7 +667,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   def fetch_public_activities(opts \\ %{}, pagination \\ :keyset) do
     opts =
       opts
-      |> Map.put("reply_user", opts["user"])
+      |> Map.put("for_user", opts["user"])
       |> Map.delete("user")
 
     [Pleroma.Constants.as_public()]
@@ -752,27 +758,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   end
 
   defp exclude_visibility(query, _visibility), do: query
-
-  # TODO: remove after benchmarks on code clean up
-  defp restrict_thread_visibility(query, %{"run" => _}, _), do: query
-
-  defp restrict_thread_visibility(query, _, %{skip_thread_containment: true} = _), do: query
-
-  defp restrict_thread_visibility(
-         query,
-         %{"user" => %User{skip_thread_containment: true}},
-         _
-       ),
-       do: query
-
-  defp restrict_thread_visibility(query, %{"user" => %User{ap_id: ap_id}}, _) do
-    from(
-      a in query,
-      where: fragment("thread_visibility(?, (?)->>'id') = true", ^ap_id, a.data)
-    )
-  end
-
-  defp restrict_thread_visibility(query, _, _), do: query
 
   def fetch_user_abstract_activities(user, reading_user, params \\ %{}) do
     params =
@@ -922,17 +907,17 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp restrict_recipients(query, [], _user), do: query
 
-  # TODO: "run" parameter change on skip_thread_containment after benchmarks
   defp restrict_recipients(query, recipients, %{
          "user" => nil,
-         "reply_user" => user,
-         "run" => :thread_recipients
+         "for_user" => %{skip_thread_containment: false} = user
        })
        when not is_nil(user) do
     query_for_thread_recipients(query, recipients, user)
   end
 
-  defp restrict_recipients(query, recipients, %{"user" => user, "run" => :thread_recipients})
+  defp restrict_recipients(query, recipients, %{
+         "user" => %{skip_thread_containment: false} = user
+       })
        when not is_nil(user) do
     query_for_thread_recipients(query, recipients, user)
   end
@@ -1209,18 +1194,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     {restrict_blocked_opts, restrict_muted_opts, restrict_muted_reblogs_opts} =
       fetch_activities_query_ap_ids_ops(opts)
 
-    # TODO: remove after benchmarks
-    skip =
-      if Map.has_key?(opts, :skip_thread_containment) do
-        opts[:skip_thread_containment]
-      else
-        Config.get([:instance, :skip_thread_containment])
-      end
-
-    config = %{
-      skip_thread_containment: skip
-    }
-
     opts = Map.put(opts, "user", opts["user"])
 
     Activity
@@ -1243,7 +1216,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> restrict_muted(restrict_muted_opts)
     |> restrict_media(opts)
     |> restrict_visibility(opts)
-    |> restrict_thread_visibility(opts, config)
     |> restrict_replies(opts)
     |> restrict_reblogs(opts)
     |> restrict_pinned(opts)

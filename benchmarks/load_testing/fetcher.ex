@@ -261,7 +261,6 @@ defmodule Pleroma.LoadTesting.Fetcher do
   end
 
   def query_broken_thread(u1, [u2, u3], thread1, thread2) do
-    Pleroma.Config.put([:instance, :skip_thread_containment], false)
     params = %{"type" => ["Create", "Announce"], "count" => 20}
 
     Benchee.run(
@@ -280,14 +279,6 @@ defmodule Pleroma.LoadTesting.Fetcher do
           Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
             recipients,
             add_filters(params, user)
-          )
-        end,
-        "Filtering thread recipients" => fn {recipients, user} ->
-          Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
-            recipients,
-            params
-            |> add_filters(user)
-            |> Map.put("run", :thread_recipients)
           )
         end
       },
@@ -326,8 +317,6 @@ defmodule Pleroma.LoadTesting.Fetcher do
       },
       inputs: %{"First user" => u1, "Second user" => u2, "Third user" => u3}
     )
-
-    Pleroma.Config.put([:instance, :skip_thread_containment], true)
   end
 
   defp add_filters(params, u) do

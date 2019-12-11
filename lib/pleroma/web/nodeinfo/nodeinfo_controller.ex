@@ -130,8 +130,7 @@ defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
         invitesEnabled: Config.get([:instance, :invites_enabled], false),
         mailerEnabled: Config.get([Pleroma.Emails.Mailer, :enabled], false),
         features: features,
-        restrictedNicknames: Config.get([Pleroma.User, :restricted_nicknames]),
-        skipThreadContainment: Config.get([:instance, :skip_thread_containment], false)
+        restrictedNicknames: Config.get([Pleroma.User, :restricted_nicknames])
       }
     }
   end

@@ -5,7 +5,6 @@
 defmodule Pleroma.Web.ActivityPub.Visibility do
   alias Pleroma.Activity
   alias Pleroma.Object
-  alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.Utils
 
@@ -65,20 +64,11 @@ defmodule Pleroma.Web.ActivityPub.Visibility do
     visible_for_user?(activity, nil) || Enum.any?(x, &(&1 in y))
   end
 
-  # TODO: remove after benchmarks
+  def entire_thread_visible_for_user?(%Activity{data: %{"type" => type}}, _)
+      when type != "Create",
+      do: true
+
   def entire_thread_visible_for_user?(%Activity{} = activity, %User{} = user) do
-    # TODO: remove psql function after benchmarks
-    {:ok, %{rows: [[result]]}} =
-      Ecto.Adapters.SQL.query(Repo, "SELECT thread_visibility($1, $2)", [
-        user.ap_id,
-        activity.data["id"]
-      ])
-
-    result
-  end
-
-  # TODO: remove parameter after benchmarks
-  def entire_thread_visible_for_user?(%Activity{} = activity, %User{} = user, :thread_recipients) do
     public = Pleroma.Constants.as_public()
     user_mention = user.ap_id
     following = User.get_cached_following(user)

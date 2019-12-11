@@ -36,7 +36,6 @@ defmodule Mix.Tasks.Pleroma.LoadTesting do
 
   def run(args) do
     start_pleroma()
-    Pleroma.Config.put([:instance, :skip_thread_containment], true)
     {opts, _} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
 
     users_max = Keyword.get(opts, :users, @users_default)
@@ -126,7 +125,6 @@ defmodule Mix.Tasks.Pleroma.LoadTesting do
     query_notifications(user)
     query_dms(user)
     query_long_thread(user, activity)
-    Pleroma.Config.put([:instance, :skip_thread_containment], false)
     query_timelines(user)
     query_broken_thread(user, followers, thread1, thread2)
   end

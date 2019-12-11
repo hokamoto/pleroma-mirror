@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: AGPL-3.0-onl
 
 defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
-  # TODO: rewite tests to use :skip_thread_containment parameter after benchmarks (without run)
   use Pleroma.DataCase
 
   import Pleroma.Factory
@@ -37,25 +36,25 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
       public: public
     } do
       assert_timelines(
-        users[:u1],
+        Map.put(users[:u1], :skip_thread_containment, true),
         Map.values(public) ++ Map.values(private) ++ [a],
         Map.values(public) ++ [a]
       )
 
       assert_timelines(
-        users[:u2],
+        Map.put(users[:u2], :skip_thread_containment, true),
         Map.values(private) ++ [a, public[:r2]],
         Map.values(public) ++ [a]
       )
 
       assert_timelines(
-        users[:u3],
+        Map.put(users[:u3], :skip_thread_containment, true),
         [private[:r1], private[:r3]],
         Map.values(public) ++ [a]
       )
 
       assert_timelines(
-        users[:u4],
+        Map.put(users[:u4], :skip_thread_containment, true),
         Map.values(public) ++ [a, private[:r2]],
         Map.values(public) ++ [a]
       )
@@ -70,76 +69,25 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
       assert_timelines(
         users[:u1],
         Map.values(public) ++ Map.values(private) ++ [a],
-        Map.values(public) ++ [a],
-        [],
-        false
+        Map.values(public) ++ [a]
       )
 
       assert_timelines(
         users[:u2],
         Map.values(private) ++ [a, public[:r2]],
-        Map.values(public) ++ [a],
-        [],
-        false
+        Map.values(public) ++ [a]
       )
 
       assert_timelines(
         users[:u3],
         [private[:r1]],
-        Map.values(public) ++ [a],
-        [],
-        false
+        Map.values(public) ++ [a]
       )
 
       assert_timelines(
         users[:u4],
         Map.values(public) ++ [a],
-        Map.values(public) ++ [a],
-        [],
-        false
-      )
-    end
-
-    test "using thread_recipients", %{
-      users: users,
-      a: a,
-      private: private,
-      public: public
-    } do
-      assert_timelines(
-        users[:u1],
-        Map.values(public) ++ Map.values(private) ++ [a],
-        Map.values(public) ++ [a],
-        [],
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u2],
-        Map.values(private) ++ [a, public[:r2]],
-        Map.values(public) ++ [a],
-        [],
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u3],
-        [private[:r1]],
-        Map.values(public) ++ [a],
-        [],
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u4],
-        Map.values(public) ++ [a],
-        Map.values(public) ++ [a],
-        [],
-        true,
-        true
+        Map.values(public) ++ [a]
       )
     end
   end
@@ -166,25 +114,25 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
       public: public
     } do
       assert_timelines(
-        users[:u1],
+        Map.put(users[:u1], :skip_thread_containment, true),
         Map.values(public) ++ Map.values(private) ++ [a],
         Map.values(public)
       )
 
       assert_timelines(
-        users[:u2],
+        Map.put(users[:u2], :skip_thread_containment, true),
         Map.values(private) ++ [a, public[:r2]],
         Map.values(public)
       )
 
       assert_timelines(
-        users[:u3],
+        Map.put(users[:u3], :skip_thread_containment, true),
         [private[:r1], private[:r3]],
         Map.values(public)
       )
 
       assert_timelines(
-        users[:u4],
+        Map.put(users[:u4], :skip_thread_containment, true),
         Map.values(public) ++ [a, private[:r2]],
         Map.values(public)
       )
@@ -199,76 +147,25 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
       assert_timelines(
         users[:u1],
         Map.values(public) ++ Map.values(private) ++ [a],
-        Map.values(public),
-        [],
-        false
+        Map.values(public)
       )
 
       assert_timelines(
         users[:u2],
         Map.values(private) ++ [a, public[:r2]],
-        Map.values(public),
-        [],
-        false
+        Map.values(public)
       )
 
       assert_timelines(
         users[:u3],
         [],
-        Map.values(public),
-        [],
-        false
+        Map.values(public)
       )
 
       assert_timelines(
         users[:u4],
         Map.values(public) ++ [a],
-        Map.values(public),
-        [],
-        false
-      )
-    end
-
-    test "using thread_recipients", %{
-      users: users,
-      a: a,
-      private: private,
-      public: public
-    } do
-      assert_timelines(
-        users[:u1],
-        Map.values(public) ++ Map.values(private) ++ [a],
-        Map.values(public),
-        [],
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u2],
-        Map.values(private) ++ [a, public[:r2]],
-        Map.values(public),
-        [],
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u3],
-        [],
-        Map.values(public),
-        [],
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u4],
-        Map.values(public) ++ [a],
-        Map.values(public),
-        [],
-        true,
-        true
+        Map.values(public)
       )
     end
   end
@@ -295,25 +192,25 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
       public: public
     } do
       assert_timelines(
-        users[:u1],
+        Map.put(users[:u1], :skip_thread_containment, true),
         Map.values(public) ++ Map.values(private) ++ [a],
         Map.values(public)
       )
 
       assert_timelines(
-        users[:u2],
+        Map.put(users[:u2], :skip_thread_containment, true),
         Map.values(private) ++ [a, public[:r2]],
         Map.values(public)
       )
 
       assert_timelines(
-        users[:u3],
+        Map.put(users[:u3], :skip_thread_containment, true),
         [private[:r1], private[:r3]],
         Map.values(public)
       )
 
       assert_timelines(
-        users[:u4],
+        Map.put(users[:u4], :skip_thread_containment, true),
         Map.values(public) ++ [a, private[:r2]],
         Map.values(public)
       )
@@ -328,76 +225,25 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
       assert_timelines(
         users[:u1],
         Map.values(public) ++ Map.values(private) ++ [a],
-        Map.values(public),
-        [],
-        false
+        Map.values(public)
       )
 
       assert_timelines(
         users[:u2],
         Map.values(private) ++ [a, public[:r2]],
-        Map.values(public),
-        [],
-        false
+        Map.values(public)
       )
 
       assert_timelines(
         users[:u3],
         [private[:r1]],
-        Map.values(public),
-        [],
-        false
+        Map.values(public)
       )
 
       assert_timelines(
         users[:u4],
         Map.values(public) ++ [a],
-        Map.values(public),
-        [],
-        false
-      )
-    end
-
-    test "using thread_recipients", %{
-      users: users,
-      a: a,
-      private: private,
-      public: public
-    } do
-      assert_timelines(
-        users[:u1],
-        Map.values(public) ++ Map.values(private) ++ [a],
-        Map.values(public),
-        [],
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u2],
-        Map.values(private) ++ [a, public[:r2]],
-        Map.values(public),
-        [],
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u3],
-        [private[:r1]],
-        Map.values(public),
-        [],
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u4],
-        Map.values(public) ++ [a],
-        Map.values(public),
-        [],
-        true,
-        true
+        Map.values(public)
       )
     end
   end
@@ -418,27 +264,27 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
       private: private
     } do
       assert_timelines(
-        users[:u1],
+        Map.put(users[:u1], :skip_thread_containment, true),
         Map.values(private) ++ [a],
         [],
         Map.values(private) ++ [a]
       )
 
       assert_timelines(
-        users[:u2],
+        Map.put(users[:u2], :skip_thread_containment, true),
         Map.values(private) ++ [a],
         [],
         Map.values(private) ++ [a]
       )
 
       assert_timelines(
-        users[:u3],
+        Map.put(users[:u3], :skip_thread_containment, true),
         [],
         []
       )
 
       assert_timelines(
-        users[:u4],
+        Map.put(users[:u4], :skip_thread_containment, true),
         [],
         []
       )
@@ -453,76 +299,26 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
         users[:u1],
         Map.values(private) ++ [a],
         [],
-        Map.values(private) ++ [a],
-        [],
-        false
+        Map.values(private) ++ [a]
       )
 
       assert_timelines(
         users[:u2],
         Map.values(private) ++ [a],
         [],
-        Map.values(private) ++ [a],
-        [],
-        false
+        Map.values(private) ++ [a]
       )
 
       assert_timelines(
         users[:u3],
         [],
-        [],
-        [],
-        false
+        []
       )
 
       assert_timelines(
         users[:u4],
         [],
-        [],
-        [],
-        false
-      )
-    end
-
-    test "using thread_recipients", %{
-      users: users,
-      a: a,
-      private: private
-    } do
-      assert_timelines(
-        users[:u1],
-        Map.values(private) ++ [a],
-        [],
-        Map.values(private) ++ [a],
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u2],
-        Map.values(private) ++ [a],
-        [],
-        Map.values(private) ++ [a],
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u3],
-        [],
-        [],
-        [],
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u4],
-        [],
-        [],
-        [],
-        true,
-        true
+        []
       )
     end
   end
@@ -549,25 +345,25 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
       public: public
     } do
       assert_timelines(
-        users[:u1],
+        Map.put(users[:u1], :skip_thread_containment, true),
         Map.values(public) ++ Map.values(private) ++ [a],
         Map.values(public) ++ [a]
       )
 
       assert_timelines(
-        users[:u2],
+        Map.put(users[:u2], :skip_thread_containment, true),
         Map.values(private) ++ [a, public[:r2]],
         Map.values(public) ++ [a]
       )
 
       assert_timelines(
-        users[:u3],
+        Map.put(users[:u3], :skip_thread_containment, true),
         [private[:r1], private[:r3]],
         Map.values(public) ++ [a]
       )
 
       assert_timelines(
-        users[:u4],
+        Map.put(users[:u4], :skip_thread_containment, true),
         Map.values(public) ++ [a, private[:r2]],
         Map.values(public) ++ [a]
       )
@@ -582,76 +378,25 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
       assert_timelines(
         users[:u1],
         Map.values(public) ++ Map.values(private) ++ [a],
-        Map.values(public) ++ [a],
-        [],
-        false
+        Map.values(public) ++ [a]
       )
 
       assert_timelines(
         users[:u2],
         Map.values(private) ++ [a, public[:r2]],
-        Map.values(public) ++ [a],
-        [],
-        false
+        Map.values(public) ++ [a]
       )
 
       assert_timelines(
         users[:u3],
         [private[:r1], private[:r3]],
-        Map.values(public) ++ [a],
-        [],
-        false
+        Map.values(public) ++ [a]
       )
 
       assert_timelines(
         users[:u4],
         Map.values(public) ++ [a, private[:r2]],
-        Map.values(public) ++ [a],
-        [],
-        false
-      )
-    end
-
-    test "using thread_recipients", %{
-      users: users,
-      a: a,
-      private: private,
-      public: public
-    } do
-      assert_timelines(
-        users[:u1],
-        Map.values(public) ++ Map.values(private) ++ [a],
-        Map.values(public) ++ [a],
-        [],
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u2],
-        Map.values(private) ++ [a, public[:r2]],
-        Map.values(public) ++ [a],
-        [],
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u3],
-        [private[:r1], private[:r3]],
-        Map.values(public) ++ [a],
-        [],
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u4],
-        Map.values(public) ++ [a, private[:r2]],
-        Map.values(public) ++ [a],
-        [],
-        true,
-        true
+        Map.values(public) ++ [a]
       )
     end
   end
@@ -678,27 +423,27 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
       public: public
     } do
       assert_timelines(
-        users[:u1],
+        Map.put(users[:u1], :skip_thread_containment, true),
         Map.values(public) ++ Map.values(private) ++ [a],
         Map.values(public) ++ [a],
         Map.values(private)
       )
 
       assert_timelines(
-        users[:u2],
+        Map.put(users[:u2], :skip_thread_containment, true),
         Map.values(private) ++ [a, public[:r2]],
         Map.values(public) ++ [a],
         Map.values(private)
       )
 
       assert_timelines(
-        users[:u3],
+        Map.put(users[:u3], :skip_thread_containment, true),
         [],
         Map.values(public) ++ [a]
       )
 
       assert_timelines(
-        users[:u4],
+        Map.put(users[:u4], :skip_thread_containment, true),
         Map.values(public) ++ [a],
         Map.values(public) ++ [a]
       )
@@ -714,75 +459,26 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
         users[:u1],
         Map.values(public) ++ Map.values(private) ++ [a],
         Map.values(public) ++ [a],
-        Map.values(private),
-        false
+        Map.values(private)
       )
 
       assert_timelines(
         users[:u2],
         Map.values(private) ++ [a, public[:r2]],
         Map.values(public) ++ [a],
-        Map.values(private),
-        false
+        Map.values(private)
       )
 
       assert_timelines(
         users[:u3],
         [],
-        Map.values(public) ++ [a],
-        [],
-        false
+        Map.values(public) ++ [a]
       )
 
       assert_timelines(
         users[:u4],
         Map.values(public) ++ [a],
-        Map.values(public) ++ [a],
-        [],
-        false
-      )
-    end
-
-    test "using thread_recipients", %{
-      users: users,
-      a: a,
-      private: private,
-      public: public
-    } do
-      assert_timelines(
-        users[:u1],
-        Map.values(public) ++ Map.values(private) ++ [a],
-        Map.values(public) ++ [a],
-        Map.values(private),
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u2],
-        Map.values(private) ++ [a, public[:r2]],
-        Map.values(public) ++ [a],
-        Map.values(private),
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u3],
-        [],
-        Map.values(public) ++ [a],
-        [],
-        true,
-        true
-      )
-
-      assert_timelines(
-        users[:u4],
-        Map.values(public) ++ [a],
-        Map.values(public) ++ [a],
-        [],
-        true,
-        true
+        Map.values(public) ++ [a]
       )
     end
   end
@@ -847,45 +543,34 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
     %{"blocking_user" => user}
   end
 
-  defp public_timeline_opts(user, skip_thread_containment, thread_recipients) do
-    opts =
-      user
-      |> default_opts()
-      |> Map.put("type", ["Create", "Announce"])
-      |> Map.put("muting_user", user)
-      |> with_skip_thread_containment(skip_thread_containment)
-
-    if thread_recipients, do: Map.put(opts, "run", :thread_recipients), else: opts
+  defp public_timeline_opts(user) do
+    user
+    |> default_opts()
+    |> Map.put("type", ["Create", "Announce"])
+    |> Map.put("muting_user", user)
   end
 
-  defp home_timeline_opts(user, skip_thread_containment, thread_recipients) do
+  defp home_timeline_opts(user) do
     opts =
       user
-      |> public_timeline_opts(skip_thread_containment, thread_recipients)
+      |> public_timeline_opts()
       |> with_user(user)
-      |> with_skip_thread_containment(skip_thread_containment)
 
-    opts = if thread_recipients, do: Map.put(opts, "run", :thread_recipients), else: opts
     {[user.ap_id | User.following(user)], opts}
   end
 
-  defp direct_timeline_opts(user, skip_thread_containment, thread_recipients) do
+  defp direct_timeline_opts(user) do
     opts =
       user
       |> default_opts()
       |> Map.put("type", "Create")
       |> with_user(user)
       |> Map.put(:visibility, "direct")
-      |> with_skip_thread_containment(skip_thread_containment)
 
-    opts = if thread_recipients, do: Map.put(opts, "run", :thread_recipients), else: opts
     {[user.ap_id], opts}
   end
 
   defp with_user(opts, user), do: Map.put(opts, "user", user)
-
-  defp with_skip_thread_containment(opts, value),
-    do: Map.put(opts, :skip_thread_containment, value)
 
   defp fetch_activities({recipients, opts}) do
     ActivityPub.fetch_activities(recipients, opts) |> Enum.map(& &1.id)
@@ -899,13 +584,11 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
          user,
          home_activities,
          public_activities,
-         direct_activities \\ [],
-         skip_thread_containment \\ true,
-         thread_recipients \\ false
+         direct_activities \\ []
        ) do
     home_ids =
       user
-      |> home_timeline_opts(skip_thread_containment, thread_recipients)
+      |> home_timeline_opts()
       |> fetch_activities()
 
     assert length(home_ids) == length(home_activities)
@@ -914,7 +597,7 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
 
     public_ids =
       user
-      |> public_timeline_opts(skip_thread_containment, thread_recipients)
+      |> public_timeline_opts()
       |> fetch_public_activities()
 
     assert length(public_ids) == length(public_activities)
@@ -923,7 +606,7 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
 
     direct_ids =
       user
-      |> direct_timeline_opts(skip_thread_containment, thread_recipients)
+      |> direct_timeline_opts()
       |> fetch_activities()
 
     assert length(direct_ids) == length(direct_activities)
@@ -1098,23 +781,31 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
 
       recipients = [u3.ap_id | User.following(u3)]
 
+      assert ActivityPub.fetch_activities(
+               recipients,
+               params
+             ) == []
+
+      assert ActivityPub.fetch_public_activities(params) == []
+
+      u3 = Map.put(u3, :skip_thread_containment, true)
+
+      params =
+        params
+        |> Map.put("blocking_user", u3)
+        |> Map.put("muting_user", u3)
+        |> Map.put("user", u3)
+
       [result] =
         ActivityPub.fetch_activities(
           recipients,
-          Map.put(params, :skip_thread_containment, true)
+          params
         )
 
       assert reply.id == result.id
 
-      assert ActivityPub.fetch_activities(
-               recipients,
-               Map.put(params, "run", :thread_recipients)
-             ) == []
-
       [result] = ActivityPub.fetch_public_activities(params)
       assert reply.id == result.id
-
-      assert ActivityPub.fetch_public_activities(Map.put(params, "run", :thread_recipients)) == []
     end
 
     test "private reply to public post", %{u1: u1, u2: u2, u3: u3} do
@@ -1143,30 +834,38 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
 
       recipients = [u3.ap_id | User.following(u3)]
 
+      [result] =
+        ActivityPub.fetch_activities(
+          recipients,
+          params
+        )
+
+      assert result.id == activity.id
+
+      [result] = ActivityPub.fetch_public_activities(params)
+      assert result.id == activity.id
+
+      u3 = Map.put(u3, :skip_thread_containment, true)
+
+      params =
+        params
+        |> Map.put("blocking_user", u3)
+        |> Map.put("muting_user", u3)
+        |> Map.put("user", u3)
+
       result =
         ActivityPub.fetch_activities(
           recipients,
-          Map.put(params, :skip_thread_containment, true)
+          params
         )
         |> Enum.map(& &1.id)
 
       assert activity.id in result
       assert public_reply.id in result
 
-      [result] =
-        ActivityPub.fetch_activities(
-          recipients,
-          Map.put(params, "run", :thread_recipients)
-        )
-
-      assert result.id == activity.id
-
       result = ActivityPub.fetch_public_activities(params) |> Enum.map(& &1.id)
       assert activity.id in result
       assert public_reply.id in result
-
-      [result] = ActivityPub.fetch_public_activities(Map.put(params, "run", :thread_recipients))
-      assert result.id == activity.id
     end
   end
 end

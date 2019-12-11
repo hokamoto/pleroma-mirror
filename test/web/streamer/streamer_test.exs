@@ -20,8 +20,6 @@ defmodule Pleroma.Web.StreamerTest do
   @streamer_timeout 150
   @streamer_start_wait 10
 
-  clear_config_all([:instance, :skip_thread_containment])
-
   describe "user streams" do
     setup do
       user = insert(:user)
@@ -192,7 +190,6 @@ defmodule Pleroma.Web.StreamerTest do
 
   describe "thread_containment" do
     test "it doesn't send to user if recipients invalid and thread containment is enabled" do
-      Pleroma.Config.put([:instance, :skip_thread_containment], false)
       author = insert(:user)
       user = insert(:user)
       User.follow(user, author, "accept")
@@ -215,32 +212,8 @@ defmodule Pleroma.Web.StreamerTest do
     end
 
     test "it sends message if recipients invalid and thread containment is disabled" do
-      Pleroma.Config.put([:instance, :skip_thread_containment], true)
       author = insert(:user)
-      user = insert(:user)
-      User.follow(user, author, "accept")
-
-      activity =
-        insert(:note_activity,
-          note:
-            insert(:note,
-              user: author,
-              data: %{"to" => ["TEST-FFF"]}
-            )
-        )
-
-      task = Task.async(fn -> assert_receive {:text, _}, 1_000 end)
-      fake_socket = %StreamerSocket{transport_pid: task.pid, user: user}
-      topics = %{"public" => [fake_socket]}
-      Worker.push_to_socket(topics, "public", activity)
-
-      Task.await(task)
-    end
-
-    test "it sends message if recipients invalid and thread containment is enabled but user's thread containment is disabled" do
-      Pleroma.Config.put([:instance, :skip_thread_containment], false)
-      author = insert(:user)
-      user = insert(:user, skip_thread_containment: true)
+      user = insert(:user, %{skip_thread_containment: true})
       User.follow(user, author, "accept")
 
       activity =

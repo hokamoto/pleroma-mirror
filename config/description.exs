@@ -758,11 +758,6 @@ config :pleroma, :config_description, [
         ]
       },
       %{
-        key: :skip_thread_containment,
-        type: :boolean,
-        description: "Skip filter out broken threads. The default is true"
-      },
-      %{
         key: :limit_to_local_content,
         type: [:atom, false],
         description:
