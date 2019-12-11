@@ -19,20 +19,28 @@ defmodule Pleroma.Object do
 
   schema "objects" do
     field(:data, :map)
+    # This is set by a database side trigger on insert and update
+    field(:ap_id, :string)
 
     timestamps()
   end
 
+  # Add the default 'returning' options, so we get the generated ap_id column
+  def insert(cng, options \\ []) do
+    cng
+    |> Repo.insert(Keyword.put(options, :returning, true))
+  end
+
   def create(data) do
     Object.change(%Object{}, %{data: data})
-    |> Repo.insert()
+    |> insert()
   end
 
   def change(struct, params \\ %{}) do
     struct
     |> cast(params, [:data])
     |> validate_required([:data])
-    |> unique_constraint(:ap_id, name: :objects_unique_apid_index)
+    |> unique_constraint(:ap_id, name: :objects_ap_id_index)
   end
 
   def get_by_id(nil), do: nil
@@ -59,7 +67,7 @@ defmodule Pleroma.Object do
   def get_by_ap_id(nil), do: nil
 
   def get_by_ap_id(ap_id) do
-    Repo.one(from(object in Object, where: fragment("(?)->>'id' = ?", object.data, ^ap_id)))
+    Repo.one(from(object in Object, where: object.ap_id == ^ap_id))
   end
 
   defp warn_on_no_object_preloaded(ap_id) do
@@ -175,7 +183,7 @@ defmodule Pleroma.Object do
 
   def increase_replies_count(ap_id) do
     Object
-    |> where([o], fragment("?->>'id' = ?::text", o.data, ^to_string(ap_id)))
+    |> where([o], fragment("? = ?", o.ap_id, ^to_string(ap_id)))
     |> update([o],
       set: [
         data:
@@ -198,7 +206,7 @@ defmodule Pleroma.Object do
 
   def decrease_replies_count(ap_id) do
     Object
-    |> where([o], fragment("?->>'id' = ?::text", o.data, ^to_string(ap_id)))
+    |> where([o], fragment("? = ?", o.ap_id, ^ap_id))
     |> update([o],
       set: [
         data:

@@ -20,7 +20,7 @@ defmodule Pleroma.Activity.Search do
     author = Keyword.get(options, :author)
 
     Activity
-    |> Activity.with_preloaded_object()
+    |> Activity.with_joined_object()
     |> Activity.restrict_deactivated_users()
     |> restrict_public()
     |> query_with(index_type, search_query)
@@ -39,14 +39,14 @@ defmodule Pleroma.Activity.Search do
   def maybe_restrict_author(query, _), do: query
 
   defp restrict_public(q) do
-    from([a, o] in q,
+    from([a, object: o] in q,
       where: fragment("?->>'type' = 'Create'", a.data),
       where: ^Pleroma.Constants.as_public() in a.recipients
     )
   end
 
   defp query_with(q, :gin, search_query) do
-    from([a, o] in q,
+    from([a, object: o] in q,
       where:
         fragment(
           "to_tsvector('english', ?->>'content') @@ plainto_tsquery('english', ?)",
@@ -57,7 +57,7 @@ defmodule Pleroma.Activity.Search do
   end
 
   defp query_with(q, :rum, search_query) do
-    from([a, o] in q,
+    from([a, object: o] in q,
       where:
         fragment(
           "? @@ plainto_tsquery('english', ?)",

@@ -28,6 +28,7 @@ defmodule Pleroma.Web.ActivityPub.TransmogrifierTest do
   describe "handle_incoming" do
     test "it ignores an incoming notice if we already have it" do
       activity = insert(:note_activity)
+      activity = Activity.get_by_id(activity.id)
 
       data =
         File.read!("test/fixtures/mastodon-post-activity.json")

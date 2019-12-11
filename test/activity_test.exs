@@ -11,8 +11,15 @@ defmodule Pleroma.ActivityTest do
   alias Pleroma.ThreadMute
   import Pleroma.Factory
 
+  test "sets the object_ap_id" do
+    activity = insert(:note_activity)
+    activity = Activity.get_by_id(activity.id)
+    assert activity.object_ap_id
+  end
+
   test "returns an activity by it's AP id" do
     activity = insert(:note_activity)
+    activity = Activity.get_by_id(activity.id)
     found_activity = Activity.get_by_ap_id(activity.data["id"])
 
     assert activity == found_activity
@@ -20,6 +27,7 @@ defmodule Pleroma.ActivityTest do
 
   test "returns activities by it's objects AP ids" do
     activity = insert(:note_activity)
+    activity = Activity.get_by_id(activity.id)
     object_data = Object.normalize(activity).data
 
     [found_activity] = Activity.get_all_create_by_object_ap_id(object_data["id"])
@@ -29,6 +37,7 @@ defmodule Pleroma.ActivityTest do
 
   test "returns the activity that created an object" do
     activity = insert(:note_activity)
+    activity = Activity.get_by_id(activity.id)
     object_data = Object.normalize(activity).data
 
     found_activity = Activity.get_create_by_object_ap_id(object_data["id"])

@@ -37,9 +37,8 @@ defmodule Pleroma.Activity.Queries do
       activity in query,
       where:
         fragment(
-          "coalesce((?)->'object'->>'id', (?)->>'object') = ANY(?)",
-          activity.data,
-          activity.data,
+          "? = ANY(?)",
+          activity.object_ap_id,
           ^object_ids
         )
     )
@@ -49,9 +48,8 @@ defmodule Pleroma.Activity.Queries do
     from(activity in query,
       where:
         fragment(
-          "coalesce((?)->'object'->>'id', (?)->>'object') = ?",
-          activity.data,
-          activity.data,
+          "? = ?",
+          activity.object_ap_id,
           ^object_id
         )
     )

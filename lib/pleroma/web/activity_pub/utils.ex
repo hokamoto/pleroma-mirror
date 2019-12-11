@@ -148,7 +148,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
 
     with true <- is_nil(object),
          changeset <- Object.context_mapping(context),
-         {:ok, inserted_object} <- Repo.insert(changeset) do
+         {:ok, inserted_object} <- Object.insert(changeset) do
       inserted_object
     else
       _ ->
@@ -1005,7 +1005,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
     actor
     |> Activity.Queries.by_actor()
     |> Activity.Queries.by_type("Create")
-    |> Activity.with_preloaded_object()
+    |> Activity.with_joined_object()
     |> where([a, object: o], fragment("(?)->>'inReplyTo' = ?", o.data, ^to_string(id)))
     |> where([a, object: o], fragment("(?)->>'type' = 'Answer'", o.data))
     |> Repo.all()

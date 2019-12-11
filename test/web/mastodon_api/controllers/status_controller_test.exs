@@ -543,6 +543,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
 
     test "when you didn't create it", %{conn: conn} do
       activity = insert(:note_activity)
+      activity = Activity.get_by_id(activity.id)
       user = insert(:user)
 
       conn =

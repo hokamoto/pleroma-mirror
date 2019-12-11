@@ -135,7 +135,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
          {:containment, :ok} <- {:containment, Containment.contain_child(map)},
          {:ok, map, object} <- insert_full_object(map) do
       {:ok, activity} =
-        Repo.insert(%Activity{
+        Activity.insert(%Activity{
           data: map,
           local: local,
           actor: map["actor"],
@@ -1204,7 +1204,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
           data
         end
 
-      Repo.insert(%Object{data: obj_data})
+      Object.insert(%Object{data: obj_data})
     end
   end
 

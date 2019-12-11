@@ -20,6 +20,7 @@ defmodule Pleroma.Web.ActivityPub.UtilsTest do
   describe "fetch the latest Follow" do
     test "fetches the latest Follow activity" do
       %Activity{data: %{"type" => "Follow"}} = activity = insert(:follow_activity)
+      activity = Activity.get_by_id(activity.id)
       follower = User.get_cached_by_ap_id(activity.data["actor"])
       followed = User.get_cached_by_ap_id(activity.data["object"])
 
