@@ -294,24 +294,16 @@ defmodule Pleroma.LoadTesting.Fetcher do
 
     Benchee.run(
       %{
-        "Postgres check visibility thread 1" => fn user ->
-          Pleroma.Web.ActivityPub.Visibility.entire_thread_visible_for_user?(thread1, user)
-        end,
-        "Postgres check visibility thread 2" => fn user ->
-          Pleroma.Web.ActivityPub.Visibility.entire_thread_visible_for_user?(thread2, user)
-        end,
-        "Thread recipients check visibility thread 1" => fn user ->
+        "Check visibility thread 1" => fn user ->
           Pleroma.Web.ActivityPub.Visibility.entire_thread_visible_for_user?(
             thread1,
-            user,
-            :thread_recipients
+            user
           )
         end,
-        "Thread recipients check visibility thread 2" => fn user ->
+        "Check visibility thread 2" => fn user ->
           Pleroma.Web.ActivityPub.Visibility.entire_thread_visible_for_user?(
             thread2,
-            user,
-            :thread_recipients
+            user
           )
         end
       },
