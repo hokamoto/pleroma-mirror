@@ -132,7 +132,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   @spec get_thread_recipients([String.t()], Activity.t() | nil) :: [String.t()]
   def get_thread_recipients(recipients, in_reply_to \\ nil)
 
-  def get_thread_recipients(recipients, %Activity{thread_recipients: thread_recipients}) do
+  def get_thread_recipients(recipients, %Activity{thread_recipients: thread_recipients})
+      when is_list(thread_recipients) and length(thread_recipients) > 0 do
     public = Constants.as_public()
 
     parent_public? = public in thread_recipients

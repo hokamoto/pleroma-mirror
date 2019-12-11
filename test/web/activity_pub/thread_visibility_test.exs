@@ -747,6 +747,56 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
                u3.follower_address
              ]
     end
+
+    test "public for public reply if thread recipients of root post is nil or empty list" do
+      [u1, u2] = insert_list(2, :user)
+
+      {:ok, post} = CommonAPI.post(u1, %{"status" => "Yeah!"})
+      {:ok, post} = Repo.update(Ecto.Changeset.change(post, thread_recipients: nil))
+
+      {:ok, reply} =
+        CommonAPI.post(u2, %{"status" => "Yeah!", "in_reply_to_status_id" => post.id})
+
+      assert post.thread_recipients == nil
+      assert reply.thread_recipients == [Constants.as_public()]
+
+      {:ok, post} = Repo.update(Ecto.Changeset.change(post, thread_recipients: []))
+
+      {:ok, reply2} =
+        CommonAPI.post(u2, %{"status" => "Yeah!", "in_reply_to_status_id" => post.id})
+
+      assert post.thread_recipients == []
+      assert reply2.thread_recipients == [Constants.as_public()]
+    end
+
+    test "user follower address for private reply if thread recipients of root post is nil or empty list" do
+      [u1, u2] = insert_list(2, :user)
+
+      {:ok, post} = CommonAPI.post(u1, %{"status" => "Yeah!"})
+      {:ok, post} = Repo.update(Ecto.Changeset.change(post, thread_recipients: nil))
+
+      {:ok, reply} =
+        CommonAPI.post(u2, %{
+          "status" => "Yeah!",
+          "in_reply_to_status_id" => post.id,
+          "visibility" => "private"
+        })
+
+      assert post.thread_recipients == nil
+      assert reply.thread_recipients == [u2.follower_address]
+
+      {:ok, post} = Repo.update(Ecto.Changeset.change(post, thread_recipients: []))
+
+      {:ok, reply2} =
+        CommonAPI.post(u2, %{
+          "status" => "Yeah!",
+          "in_reply_to_status_id" => post.id,
+          "visibility" => "private"
+        })
+
+      assert post.thread_recipients == []
+      assert reply2.thread_recipients == [u2.follower_address]
+    end
   end
 
   describe "thread visibility" do
