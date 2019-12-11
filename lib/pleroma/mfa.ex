@@ -15,8 +15,6 @@ defmodule Pleroma.MFA do
   alias Pleroma.MFA.Settings
   alias Pleroma.MFA.TOTP
 
-  alias Pleroma.Repo
-
   @doc """
   Returns MFA methods the user has enabled.
 
@@ -67,7 +65,7 @@ defmodule Pleroma.MFA do
 
     user
     |> Changeset.cast_backup_codes(codes -- [hash_code])
-    |> Repo.update()
+    |> User.update_and_set_cache()
   end
 
   @doc "generates backup codes"
@@ -76,7 +74,7 @@ defmodule Pleroma.MFA do
     with codes <- BackupCodes.generate(),
          hashed_codes <- Enum.map(codes, &Pbkdf2.hashpwsalt/1),
          changeset <- Changeset.cast_backup_codes(user, hashed_codes),
-         {:ok, _} <- Repo.update(changeset) do
+         {:ok, _} <- User.update_and_set_cache(changeset) do
       {:ok, codes}
     else
       {:error, msg} ->
@@ -107,7 +105,7 @@ defmodule Pleroma.MFA do
          {:ok, :pass} <- TOTP.validate_token(settings.secret, attrs["code"]) do
       user
       |> Changeset.confirm_totp()
-      |> Repo.update()
+      |> User.update_and_set_cache()
     end
   end
 
@@ -122,7 +120,7 @@ defmodule Pleroma.MFA do
     user
     |> Changeset.disable_totp()
     |> Changeset.disable()
-    |> Repo.update()
+    |> User.update_and_set_cache()
   end
 
   @doc """
@@ -133,7 +131,7 @@ defmodule Pleroma.MFA do
     user
     |> Changeset.disable_totp()
     |> Changeset.disable(true)
-    |> Repo.update()
+    |> User.update_and_set_cache()
   end
 
   @doc """
