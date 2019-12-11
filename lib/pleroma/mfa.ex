@@ -91,7 +91,7 @@ defmodule Pleroma.MFA do
   def setup_totp(user) do
     user
     |> Changeset.setup_totp(%{secret: TOTP.generate_secret(), delivery_type: "app"})
-    |> Repo.update()
+    |> User.update_and_set_cache()
   end
 
   @doc """

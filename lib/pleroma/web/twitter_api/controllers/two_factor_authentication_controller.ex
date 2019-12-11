@@ -8,13 +8,16 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
 
   alias Pleroma.MFA
   alias Pleroma.MFA.TOTP
+  alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.Web.CommonAPI.Utils
+
+  plug(OAuthScopesPlug, %{scopes: ["write:accounts"]})
 
   @doc """
   Gets user multi factor authentication settings
 
   ## Endpoint
-  GET /api/pleroma/profile/mfa
+  GET /api/pleroma/account/mfa
 
   """
   def settings(%{assigns: %{user: user}} = conn, _params) do
@@ -25,7 +28,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
   Prepare setup mfa method
 
   ## Endpoint
-  GET /api/pleroma/profile/mfa/setup/[:method]
+  GET /api/pleroma/account/mfa/setup/[:method]
 
   """
   def setup(%{assigns: %{user: user}} = conn, %{"method" => "totp"} = _params) do
@@ -49,7 +52,7 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
   Confirms setup and enable mfa method
 
   ## Endpoint
-  POST /api/pleroma/profile/mfa/confirm/:method
+  POST /api/pleroma/account/mfa/confirm/:method
 
   - params:
   `code` - confirmation code

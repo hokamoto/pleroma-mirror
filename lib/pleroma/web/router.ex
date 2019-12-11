@@ -122,12 +122,6 @@ defmodule Pleroma.Web.Router do
     get("/emoji", UtilController, :emoji)
     get("/captcha", UtilController, :captcha)
     get("/healthcheck", UtilController, :healthcheck)
-
-    get("/accounts/mfa", TwoFactorAuthenticationController, :settings)
-    get("/accounts/mfa/backup_codes", TwoFactorAuthenticationController, :backup_codes)
-    get("/accounts/mfa/setup/:method", TwoFactorAuthenticationController, :setup)
-    post("/accounts/mfa/confirm/:method", TwoFactorAuthenticationController, :confirm)
-    delete("/accounts/mfa/:method", TwoFactorAuthenticationController, :disable)
   end
 
   scope "/api/pleroma", Pleroma.Web do
@@ -251,6 +245,12 @@ defmodule Pleroma.Web.Router do
 
     post("/blocks_import", UtilController, :blocks_import)
     post("/follow_import", UtilController, :follow_import)
+
+    get("/accounts/mfa", TwoFactorAuthenticationController, :settings)
+    get("/accounts/mfa/backup_codes", TwoFactorAuthenticationController, :backup_codes)
+    get("/accounts/mfa/setup/:method", TwoFactorAuthenticationController, :setup)
+    post("/accounts/mfa/confirm/:method", TwoFactorAuthenticationController, :confirm)
+    delete("/accounts/mfa/:method", TwoFactorAuthenticationController, :disable)
   end
 
   scope "/oauth", Pleroma.Web.OAuth do

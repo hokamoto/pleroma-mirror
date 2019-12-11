@@ -7,16 +7,21 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
 
   describe "GET /api/pleroma/accounts/mfa/settings" do
     test "returns user mfa settings for new user", %{conn: conn} do
-      user = insert(:user)
+      token = insert(:oauth_token, scopes: ["write", "follow"])
+      token2 = insert(:oauth_token, scopes: ["read"])
 
-      response =
-        conn
-        |> assign(:user, user)
-        |> get("/api/pleroma/accounts/mfa")
-        |> json_response(:ok)
-
-      assert response == %{
+      assert conn
+             |> put_req_header("authorization", "Bearer #{token.token}")
+             |> get("/api/pleroma/accounts/mfa")
+             |> json_response(:ok) == %{
                "settings" => %{"enabled" => false, "totp" => false}
+             }
+
+      assert conn
+             |> put_req_header("authorization", "Bearer #{token2.token}")
+             |> get("/api/pleroma/accounts/mfa")
+             |> json_response(403) == %{
+               "error" => "Insufficient permissions: write:accounts."
              }
     end
 
@@ -29,13 +34,12 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
           }
         )
 
-      response =
-        conn
-        |> assign(:user, user)
-        |> get("/api/pleroma/accounts/mfa")
-        |> json_response(:ok)
+      token = insert(:oauth_token, scopes: ["write", "follow"], user: user)
 
-      assert response == %{
+      assert conn
+             |> put_req_header("authorization", "Bearer #{token.token}")
+             |> get("/api/pleroma/accounts/mfa")
+             |> json_response(:ok) == %{
                "settings" => %{"enabled" => true, "totp" => true}
              }
     end
@@ -51,9 +55,12 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
           }
         )
 
+      token = insert(:oauth_token, scopes: ["write", "follow"], user: user)
+      token2 = insert(:oauth_token, scopes: ["read"])
+
       response =
         conn
-        |> assign(:user, user)
+        |> put_req_header("authorization", "Bearer #{token.token}")
         |> get("/api/pleroma/accounts/mfa/backup_codes")
         |> json_response(:ok)
 
@@ -64,16 +71,24 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
       assert mfa_settings.totp.secret == "secret"
       refute mfa_settings.backup_codes == ["1", "2", "3"]
       refute mfa_settings.backup_codes == []
+
+      assert conn
+             |> put_req_header("authorization", "Bearer #{token2.token}")
+             |> get("/api/pleroma/accounts/mfa/backup_codes")
+             |> json_response(403) == %{
+               "error" => "Insufficient permissions: write:accounts."
+             }
     end
   end
 
   describe "GET /api/pleroma/accounts/mfa/setup/totp" do
     test "return errors when method is invalid", %{conn: conn} do
       user = insert(:user)
+      token = insert(:oauth_token, scopes: ["write", "follow"], user: user)
 
       response =
         conn
-        |> assign(:user, user)
+        |> put_req_header("authorization", "Bearer #{token.token}")
         |> get("/api/pleroma/accounts/mfa/setup/torf")
         |> json_response(:ok)
 
@@ -86,9 +101,12 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
           multi_factor_authentication_settings: %Settings{backup_codes: ["1", "2", "3"]}
         )
 
+      token = insert(:oauth_token, scopes: ["write", "follow"], user: user)
+      token2 = insert(:oauth_token, scopes: ["read"])
+
       response =
         conn
-        |> assign(:user, user)
+        |> put_req_header("authorization", "Bearer #{token.token}")
         |> get("/api/pleroma/accounts/mfa/setup/totp")
         |> json_response(:ok)
 
@@ -102,6 +120,13 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
                "key" => secret,
                "provisioning_uri" => TOTP.provisioning_uri(secret, "#{user.email}"),
                "status" => "success"
+             }
+
+      assert conn
+             |> put_req_header("authorization", "Bearer #{token2.token}")
+             |> get("/api/pleroma/accounts/mfa/setup/totp")
+             |> json_response(403) == %{
+               "error" => "Insufficient permissions: write:accounts."
              }
     end
   end
@@ -119,9 +144,12 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
           }
         )
 
+      token = insert(:oauth_token, scopes: ["write", "follow"], user: user)
+      token2 = insert(:oauth_token, scopes: ["read"])
+
       response =
         conn
-        |> assign(:user, user)
+        |> put_req_header("authorization", "Bearer #{token.token}")
         |> post("/api/pleroma/accounts/mfa/confirm/totp", %{password: "test", code: code})
         |> json_response(:ok)
 
@@ -131,6 +159,13 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
       assert settings.totp.confirmed
       assert settings.backup_codes == ["1", "2", "3"]
       assert response == %{"status" => "success"}
+
+      assert conn
+             |> put_req_header("authorization", "Bearer #{token2.token}")
+             |> post("/api/pleroma/accounts/mfa/confirm/totp", %{password: "test", code: code})
+             |> json_response(403) == %{
+               "error" => "Insufficient permissions: write:accounts."
+             }
     end
 
     test "returns error if password incorrect", %{conn: conn} do
@@ -145,9 +180,11 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
           }
         )
 
+      token = insert(:oauth_token, scopes: ["write", "follow"], user: user)
+
       response =
         conn
-        |> assign(:user, user)
+        |> put_req_header("authorization", "Bearer #{token.token}")
         |> post("/api/pleroma/accounts/mfa/confirm/totp", %{password: "xxx", code: code})
         |> json_response(:ok)
 
@@ -169,9 +206,12 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
           }
         )
 
+      token = insert(:oauth_token, scopes: ["write", "follow"], user: user)
+      token2 = insert(:oauth_token, scopes: ["read"])
+
       response =
         conn
-        |> assign(:user, user)
+        |> put_req_header("authorization", "Bearer #{token.token}")
         |> post("/api/pleroma/accounts/mfa/confirm/totp", %{password: "test", code: "code"})
         |> json_response(:ok)
 
@@ -180,6 +220,13 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
       refute settings.totp.confirmed
       assert settings.backup_codes == ["1", "2", "3"]
       assert response == %{"status" => "error", "error" => "invalid_token"}
+
+      assert conn
+             |> put_req_header("authorization", "Bearer #{token2.token}")
+             |> post("/api/pleroma/accounts/mfa/confirm/totp", %{password: "test", code: "code"})
+             |> json_response(403) == %{
+               "error" => "Insufficient permissions: write:accounts."
+             }
     end
   end
 
@@ -193,9 +240,12 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
           }
         )
 
+      token = insert(:oauth_token, scopes: ["write", "follow"], user: user)
+      token2 = insert(:oauth_token, scopes: ["read"])
+
       response =
         conn
-        |> assign(:user, user)
+        |> put_req_header("authorization", "Bearer #{token.token}")
         |> delete("/api/pleroma/accounts/mfa/totp", %{password: "test"})
         |> json_response(:ok)
 
@@ -204,6 +254,13 @@ defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
       assert settings.totp.secret == nil
       refute settings.totp.confirmed
       assert response == %{"status" => "success"}
+
+      assert conn
+             |> put_req_header("authorization", "Bearer #{token2.token}")
+             |> delete("/api/pleroma/accounts/mfa/totp", %{password: "test"})
+             |> json_response(403) == %{
+               "error" => "Insufficient permissions: write:accounts."
+             }
     end
   end
 end

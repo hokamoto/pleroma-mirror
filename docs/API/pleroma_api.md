@@ -122,19 +122,19 @@ Request parameters can be passed via [query strings](https://en.wikipedia.org/wi
 	"statusnet_profile_url": "https://pleroma.soykaf.com/users/lain"
 }
 
-## `/api/pleroma/profile/mfa`
+## `/api/pleroma/accounts/mfa`
 #### Gets current MFA settings
 * method: `GET`
 * Authentication: required
 * Response: JSON. Returns `{"enabed": "false", "totp": false }`
 
-## `/api/pleroma/profile/mfa/setup/totp`
+## `/api/pleroma/accounts/mfa/setup/totp`
 #### Pre-setup the MFA/TOTP method
 * method: `GET`
 * Authentication: required
 * Response: JSON. Returns `{"status": "success", "key": [secret_key], "provisioning_uri": "[qr code uri]"  }`
 
-## `/api/pleroma/profile/mfa/confirm/totp`
+## `/api/pleroma/accounts/mfa/confirm/totp`
 #### Confirms & enables MFA/TOTP support for user account.
 * method: `POST`
 * Authentication: required
@@ -144,7 +144,7 @@ Request parameters can be passed via [query strings](https://en.wikipedia.org/wi
 * Response: JSON. Returns `{"status": "success"}` if the enable was successful, `{"error": "[error message]", "status": "error"}` otherwise
 
 
-## `/api/pleroma/profile/mfa/totp`
+## `/api/pleroma/accounts/mfa/totp`
 ####  Disables MFA/TOTP method for user account.
 * method: `DELETE`
 * Authentication: required
@@ -153,7 +153,7 @@ Request parameters can be passed via [query strings](https://en.wikipedia.org/wi
 * Response: JSON. Returns `{"status": "success"}` if the disable was successful, `{"error": "[error message]"}` otherwise
 * Example response: `{"error": "Invalid password."}`
 
-## `/api/pleroma/profile/mfa/backup_codes`
+## `/api/pleroma/accounts/mfa/backup_codes`
 ####  Generstes backup codes MFA for user account.
 * method: `GET`
 * Authentication: required
@@ -548,6 +548,6 @@ Emoji reactions work a lot like favourites do. They make it possible to react to
 ```json
 {
   "😀" => [{"id" => "xyz.."...}, {"id" => "zyx..."}],
-  "🗡" => [{"id" => "abc..."}] 
+  "🗡" => [{"id" => "abc..."}]
 }
 ```
