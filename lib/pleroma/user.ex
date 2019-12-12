@@ -870,6 +870,13 @@ defmodule Pleroma.User do
     |> Repo.all()
   end
 
+  def get_friends_ap_ids(user) do
+    user
+    |> get_friends_query(nil)
+    |> select([u], u.ap_id)
+    |> Repo.all()
+  end
+
   def get_friends_ids(user, page \\ nil) do
     user
     |> get_friends_query(page)
@@ -1144,7 +1151,8 @@ defmodule Pleroma.User do
   def blocks?(nil, _), do: false
 
   def blocks?(%User{} = user, %User{} = target) do
-    blocks_user?(user, target) || blocks_domain?(user, target)
+    blocks_user?(user, target) ||
+      (!User.following?(user, target) && blocks_domain?(user, target))
   end
 
   def blocks_user?(%User{} = user, %User{} = target) do
