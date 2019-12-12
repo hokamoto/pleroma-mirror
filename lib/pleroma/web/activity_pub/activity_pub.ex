@@ -911,19 +911,17 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   defp restrict_recipients(query, recipients, %{
          "user" => nil,
          "for_user" => %{skip_thread_containment: false} = user
-       })
-       when not is_nil(user) do
+       }) do
     query_for_thread_recipients(query, recipients, user)
   end
 
   defp restrict_recipients(query, recipients, %{
          "user" => %{skip_thread_containment: false} = user
-       })
-       when not is_nil(user) do
+       }) do
     query_for_thread_recipients(query, recipients, user)
   end
 
-  defp restrict_recipients(query, recipients, %{"user" => user}) when not is_nil(user) do
+  defp restrict_recipients(query, recipients, %{"user" => %User{} = user}) do
     from(
       activity in query,
       where: fragment("? && ?", ^recipients, activity.recipients),
