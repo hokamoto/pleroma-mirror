@@ -119,7 +119,7 @@ defmodule Pleroma.LoadTesting.Generator do
     {time, _} =
       :timer.tc(fn ->
         Task.async_stream(
-          1..50,
+          1..500,
           fn _ ->
             do_generate_activity([user | users])
           end,
