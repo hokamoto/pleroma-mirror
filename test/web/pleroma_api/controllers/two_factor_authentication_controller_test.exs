@@ -89,7 +89,7 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationControllerTest do
         conn
         |> put_req_header("authorization", "Bearer #{token.token}")
         |> get("/api/pleroma/accounts/mfa/setup/torf")
-        |> json_response(:ok)
+        |> json_response(400)
 
       assert response == %{"error" => "undefined method"}
     end
@@ -182,7 +182,7 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationControllerTest do
         conn
         |> put_req_header("authorization", "Bearer #{token.token}")
         |> post("/api/pleroma/accounts/mfa/confirm/totp", %{password: "xxx", code: code})
-        |> json_response(:ok)
+        |> json_response(422)
 
       settings = refresh_record(user).multi_factor_authentication_settings
       refute settings.enabled
@@ -209,7 +209,7 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationControllerTest do
         conn
         |> put_req_header("authorization", "Bearer #{token.token}")
         |> post("/api/pleroma/accounts/mfa/confirm/totp", %{password: "test", code: "code"})
-        |> json_response(:ok)
+        |> json_response(422)
 
       settings = refresh_record(user).multi_factor_authentication_settings
       refute settings.enabled

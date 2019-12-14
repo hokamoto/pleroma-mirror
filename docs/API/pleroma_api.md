@@ -132,7 +132,7 @@ Request parameters can be passed via [query strings](https://en.wikipedia.org/wi
 #### Pre-setup the MFA/TOTP method
 * method: `GET`
 * Authentication: required
-* Response: JSON. Returns `{"status": "success", "key": [secret_key], "provisioning_uri": "[qr code uri]"  }`
+* Response: JSON. Returns `{"key": [secret_key], "provisioning_uri": "[qr code uri]"  }` when successful, otherwise returns HTTP 422 `{"error": "error_msg"}`
 
 ## `/api/pleroma/accounts/mfa/confirm/totp`
 #### Confirms & enables MFA/TOTP support for user account.
@@ -141,7 +141,7 @@ Request parameters can be passed via [query strings](https://en.wikipedia.org/wi
 * Params:
     * `password`: user's password
     * `code`: token from TOTP App
-* Response: JSON. Returns `{"status": "success"}` if the enable was successful, `{"error": "[error message]", "status": "error"}` otherwise
+* Response: JSON. Returns `{}` if the enable was successful, HTTP 422 `{"error": "[error message]"}` otherwise
 
 
 ## `/api/pleroma/accounts/mfa/totp`
@@ -150,14 +150,14 @@ Request parameters can be passed via [query strings](https://en.wikipedia.org/wi
 * Authentication: required
 * Params:
     * `password`: user's password
-* Response: JSON. Returns `{"status": "success"}` if the disable was successful, `{"error": "[error message]"}` otherwise
+* Response: JSON. Returns `{}` if the disable was successful, HTTP 422 `{"error": "[error message]"}` otherwise
 * Example response: `{"error": "Invalid password."}`
 
 ## `/api/pleroma/accounts/mfa/backup_codes`
 ####  Generstes backup codes MFA for user account.
 * method: `GET`
 * Authentication: required
-* Response: JSON. Returns `{"status": "success", "codes": codes}`, `{"error": "[error message]"}` otherwise
+* Response: JSON. Returns `{"codes": codes}`when successful, otherwise HTTP 422 `{"error": "[error message]"}`
 
 
 ```

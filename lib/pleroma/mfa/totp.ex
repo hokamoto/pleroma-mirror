@@ -38,8 +38,7 @@ defmodule Pleroma.MFA.TOTP do
 
   @doc "Creates a random Base 32 encoded string"
   def generate_secret do
-    :crypto.strong_rand_bytes(10)
-    |> Base.encode32()
+    Base.encode32(:crypto.strong_rand_bytes(10))
   end
 
   @doc "Generates a valid token based on a secret"

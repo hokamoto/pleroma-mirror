@@ -6,6 +6,8 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
   @moduledoc "The module represents actions to manage MFA"
   use Pleroma.Web, :controller
 
+  import Pleroma.Web.ControllerHelper, only: [json_response: 3]
+
   alias Pleroma.MFA
   alias Pleroma.MFA.TOTP
   alias Pleroma.Plugs.OAuthScopesPlug
@@ -38,12 +40,14 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
 
       json(conn, %{provisioning_uri: provisioning_uri, key: secret})
     else
-      {:error, msg} ->
-        json(conn, %{error: msg})
+      {:error, message} ->
+        json_response(conn, :unprocessable_entity, %{error: message})
     end
   end
 
-  def setup(conn, _params), do: json(conn, %{error: "undefined method"})
+  def setup(conn, _params) do
+    json_response(conn, :bad_request, %{error: "undefined method"})
+  end
 
   @doc """
   Confirms setup and enable mfa method
@@ -63,12 +67,14 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
          {:ok, _user} <- MFA.confirm_totp(user, params) do
       json(conn, %{})
     else
-      {:error, msg} ->
-        json(conn, %{error: msg})
+      {:error, message} ->
+        json_response(conn, :unprocessable_entity, %{error: message})
     end
   end
 
-  def confirm(conn, _params), do: json(conn, %{error: "undefined mfa method"})
+  def confirm(conn, _) do
+    json_response(conn, :bad_request, %{error: "undefined mfa method"})
+  end
 
   @doc """
   Disable mfa method and disable mfa if need.
@@ -78,8 +84,8 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
          {:ok, _user} <- MFA.disable_totp(user) do
       json(conn, %{})
     else
-      {:error, msg} ->
-        json(conn, %{error: msg})
+      {:error, message} ->
+        json_response(conn, :unprocessable_entity, %{error: message})
     end
   end
 
@@ -88,12 +94,14 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
          {:ok, _user} <- MFA.disable(user) do
       json(conn, %{})
     else
-      {:error, msg} ->
-        json(conn, %{error: msg})
+      {:error, message} ->
+        json_response(conn, :unprocessable_entity, %{error: message})
     end
   end
 
-  def disable(conn, _params), do: json(conn, %{error: "undefined mfa method"})
+  def disable(conn, _) do
+    json_response(conn, :bad_request, %{error: "undefined mfa method"})
+  end
 
   @doc """
   Generates backup codes.
@@ -113,8 +121,8 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
     with {:ok, codes} <- MFA.generate_backup_codes(user) do
       json(conn, %{codes: codes})
     else
-      {:error, msg} ->
-        json(conn, %{error: msg})
+      {:error, message} ->
+        json_response(conn, :unprocessable_entity, %{error: message})
     end
   end
 end
