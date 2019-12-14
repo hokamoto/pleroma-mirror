@@ -1,4 +1,4 @@
-defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationControllerTest do
+defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationControllerTest do
   use Pleroma.Web.ConnCase
 
   import Pleroma.Factory

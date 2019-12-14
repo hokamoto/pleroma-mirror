@@ -247,6 +247,11 @@ defmodule Pleroma.Web.Router do
     post("/blocks_import", UtilController, :blocks_import)
     post("/follow_import", UtilController, :follow_import)
 
+  end
+
+  scope "/api/pleroma", Pleroma.Web.PleromaAPI do
+    pipe_through(:authenticated_api)
+
     get("/accounts/mfa", TwoFactorAuthenticationController, :settings)
     get("/accounts/mfa/backup_codes", TwoFactorAuthenticationController, :backup_codes)
     get("/accounts/mfa/setup/:method", TwoFactorAuthenticationController, :setup)
@@ -292,6 +297,7 @@ defmodule Pleroma.Web.Router do
       get("/conversations/:id/statuses", PleromaAPIController, :conversation_statuses)
       get("/conversations/:id", PleromaAPIController, :conversation)
       post("/conversations/read", PleromaAPIController, :read_conversations)
+
     end
 
     scope [] do

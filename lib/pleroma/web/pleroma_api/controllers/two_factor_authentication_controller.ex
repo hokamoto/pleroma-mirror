@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Web.TwitterAPI.TwoFactorAuthenticationController do
+defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
   @moduledoc "The module represents actions to manage MFA"
   use Pleroma.Web, :controller
 
