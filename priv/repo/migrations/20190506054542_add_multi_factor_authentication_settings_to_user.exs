@@ -3,7 +3,7 @@ defmodule Pleroma.Repo.Migrations.AddMultiFactorAuthenticationSettingsToUser do
 
   def change do
     alter table(:users) do
-      add(:multi_factor_authentication_settings, :map, default: "{}")
+      add(:multi_factor_authentication_settings, :map, default: %{})
     end
   end
 end
