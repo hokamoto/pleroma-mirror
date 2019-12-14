@@ -246,7 +246,6 @@ defmodule Pleroma.Web.Router do
 
     post("/blocks_import", UtilController, :blocks_import)
     post("/follow_import", UtilController, :follow_import)
-
   end
 
   scope "/api/pleroma", Pleroma.Web.PleromaAPI do
@@ -297,7 +296,6 @@ defmodule Pleroma.Web.Router do
       get("/conversations/:id/statuses", PleromaAPIController, :conversation_statuses)
       get("/conversations/:id", PleromaAPIController, :conversation)
       post("/conversations/read", PleromaAPIController, :read_conversations)
-
     end
 
     scope [] do

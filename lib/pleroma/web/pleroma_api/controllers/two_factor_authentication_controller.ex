@@ -17,7 +17,7 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
   Gets user multi factor authentication settings
 
   ## Endpoint
-  GET /api/pleroma/account/mfa
+  GET /api/pleroma/accounts/mfa
 
   """
   def settings(%{assigns: %{user: user}} = conn, _params) do
@@ -28,7 +28,7 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
   Prepare setup mfa method
 
   ## Endpoint
-  GET /api/pleroma/account/mfa/setup/[:method]
+  GET /api/pleroma/accounts/mfa/setup/[:method]
 
   """
   def setup(%{assigns: %{user: user}} = conn, %{"method" => "totp"} = _params) do
@@ -36,13 +36,10 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
          %{secret: secret} = _ <- user.multi_factor_authentication_settings.totp do
       provisioning_uri = TOTP.provisioning_uri(secret, "#{user.email}")
 
-      json(
-        conn,
-        %{status: "success", provisioning_uri: provisioning_uri, key: secret}
-      )
+      json(conn, %{provisioning_uri: provisioning_uri, key: secret})
     else
       {:error, msg} ->
-        json(conn, %{error: msg, status: "error"})
+        json(conn, %{error: msg})
     end
   end
 
@@ -52,7 +49,7 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
   Confirms setup and enable mfa method
 
   ## Endpoint
-  POST /api/pleroma/account/mfa/confirm/:method
+  POST /api/pleroma/accounts/mfa/confirm/:method
 
   - params:
   `code` - confirmation code
@@ -64,11 +61,10 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
       ) do
     with {:ok, _user} <- Utils.confirm_current_password(user, params["password"]),
          {:ok, _user} <- MFA.confirm_totp(user, params) do
-      json(conn, %{status: "success"})
+      json(conn, %{})
     else
       {:error, msg} ->
-        conn
-        |> json(%{error: msg, status: "error"})
+        json(conn, %{error: msg})
     end
   end
 
@@ -80,7 +76,7 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
   def disable(%{assigns: %{user: user}} = conn, %{"method" => "totp"} = params) do
     with {:ok, user} <- Utils.confirm_current_password(user, params["password"]),
          {:ok, _user} <- MFA.disable_totp(user) do
-      json(conn, %{status: "success"})
+      json(conn, %{})
     else
       {:error, msg} ->
         json(conn, %{error: msg})
@@ -90,7 +86,7 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
   def disable(%{assigns: %{user: user}} = conn, %{"method" => "mfa"} = params) do
     with {:ok, user} <- Utils.confirm_current_password(user, params["password"]),
          {:ok, _user} <- MFA.disable(user) do
-      json(conn, %{status: "success"})
+      json(conn, %{})
     else
       {:error, msg} ->
         json(conn, %{error: msg})
@@ -103,11 +99,11 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
   Generates backup codes.
 
   ## Endpoint
-  GET /api/pleroma/mfa/backup_codes
+  GET /api/pleroma/accounts/mfa/backup_codes
 
   ## Response
   ### Success
-  `{status: 'success', codes: [codes]}`
+  `{codes: [codes]}`
 
   ### Error
   `{error: [error_message]}`
@@ -115,7 +111,7 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
   """
   def backup_codes(%{assigns: %{user: user}} = conn, _params) do
     with {:ok, codes} <- MFA.generate_backup_codes(user) do
-      json(conn, %{status: "success", codes: codes})
+      json(conn, %{codes: codes})
     else
       {:error, msg} ->
         json(conn, %{error: msg})
