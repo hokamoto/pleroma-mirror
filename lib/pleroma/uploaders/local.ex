@@ -37,9 +37,9 @@ defmodule Pleroma.Uploaders.Local do
   end
 
   @impl true
-  def delete_file(name) do
+  def delete_file(path) do
     upload_path()
-    |> Path.join(name)
+    |> Path.join(path)
     |> File.rm()
     |> case do
       :ok -> :ok

@@ -57,7 +57,6 @@ defmodule Pleroma.Upload do
 
   @spec store(source, options :: [option()]) :: {:ok, Map.t()} | {:error, any()}
   def store(upload, opts \\ []) do
-    IO.inspect(upload)
     opts = get_opts(opts)
 
     with {:ok, upload} <- prepare_upload(upload, opts),

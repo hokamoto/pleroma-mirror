@@ -49,22 +49,18 @@ defmodule Pleroma.Uploaders.MDIITest do
   end
 
   describe "delete_file/1" do
-    setup do
-      file_upload = %Pleroma.Upload{
-        name: "mdii-image.jpg",
-        content_type: "image/jpg",
-        path: "test_folder/mdii-image.jpg",
-        tempfile: Path.absname("test/fixtures/image_tmp.jpg")
-      }
-
-      [file_upload: file_upload]
-    end
-
-    test "locally stored file", %{file_upload: file_upload} do
+    test "locally stored file" do
       mock(fn
         %{method: :post, url: "https://mdii.sakura.ne.jp/mdii-post.cgi?jpg"} ->
           %Tesla.Env{status: 500}
       end)
+
+      file_upload = %Pleroma.Upload{
+        name: "mdii-image.jpg",
+        content_type: "image/jpg",
+        path: "test_folder/mdii-image1.jpg",
+        tempfile: Path.absname("test/fixtures/image_tmp.jpg")
+      }
 
       :ok = MDII.put_file(file_upload)
 
@@ -74,13 +70,21 @@ defmodule Pleroma.Uploaders.MDIITest do
       refute File.exists?(local_path)
     end
 
-    test "file not stored locally", %{file_upload: file_upload} do
+    test "file not stored locally" do
       mock(fn
         %{method: :post, url: "https://mdii.sakura.ne.jp/mdii-post.cgi?jpg"} ->
           %Tesla.Env{status: 200, body: "mdii-image"}
       end)
 
-      MDII.put_file(file_upload)
+      file_upload = %Pleroma.Upload{
+        name: "mdii-image.jpg",
+        content_type: "image/jpg",
+        path: "test_folder/mdii-image2.jpg",
+        tempfile: Path.absname("test/fixtures/image_tmp.jpg")
+      }
+
+      {:ok, {:url, _}} = MDII.put_file(file_upload)
+
       assert {:error, "enoent"} = MDII.delete_file(file_upload.path)
     end
   end

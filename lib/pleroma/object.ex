@@ -233,11 +233,19 @@ defmodule Pleroma.Object do
         end)
       end)
       |> Enum.map(fn {href, %{id: id, count: count}} ->
-        # only delete files that have a single instance
+        # only delete files that have single instance
         with 1 <- count do
-          href
-          |> Path.basename()
-          |> uploader.delete_file()
+          prefix =
+            case Pleroma.Config.get([Pleroma.Upload, :base_url]) do
+              nil -> "media"
+              _ -> ""
+            end
+
+          base_url = Pleroma.Config.get([__MODULE__, :base_url], Pleroma.Web.base_url())
+
+          file_path = String.trim_leading(href, "#{base_url}/#{prefix}")
+
+          uploader.delete_file(file_path)
         end
 
         id
