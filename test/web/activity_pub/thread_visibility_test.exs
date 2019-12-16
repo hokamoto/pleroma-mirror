@@ -3,16 +3,30 @@
 # SPDX-License-Identifier: AGPL-3.0-onl
 
 defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
-  use Pleroma.DataCase
+  use Pleroma.Web.ConnCase
+  use Oban.Testing, repo: Pleroma.Repo
 
   import Pleroma.Factory
 
+  alias Pleroma.Activity
   alias Pleroma.Constants
+  alias Pleroma.Repo
+  alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
+  alias Pleroma.Workers.ReceiverWorker
 
   require Pleroma.Constants
+
+  clear_config_all([:instance, :federating],
+    do: Pleroma.Config.put([:instance, :federating], true)
+  )
+
+  setup_all do
+    Tesla.Mock.mock_global(fn env -> apply(HttpRequestMock, :request, [env]) end)
+    :ok
+  end
 
   describe "public root post" do
     setup do
@@ -898,5 +912,131 @@ defmodule Pleroma.Web.ActivityPub.ThreadVisibilityTest do
       assert activity.id in result
       assert public_reply.id in result
     end
+  end
+
+  @tag capture_log: true
+  test "regenerate thread_recipients if activities come in different order" do
+    local = insert(:user)
+    remote1 = remote_user("remote1")
+
+    private_reply2_id =
+      remote_activity("private_thread_reply2.json", remote1.nickname, local.ap_id)
+
+    ObanHelpers.perform(all_enqueued(worker: ReceiverWorker))
+    activity = Activity.get_by_ap_id(private_reply2_id)
+    assert activity.thread_recipients == [remote1.follower_address]
+
+    remote2 = remote_user("remote2")
+
+    private_reply1_id =
+      remote_activity("private_thread_reply1.json", remote2.nickname, local.ap_id)
+
+    ObanHelpers.perform(all_enqueued(worker: ReceiverWorker))
+    activity = Activity.get_by_ap_id(private_reply1_id)
+    assert activity.thread_recipients == [remote2.follower_address]
+
+    remote3 = remote_user("remote3")
+
+    public_reply2_id = remote_activity("public_thread_reply2.json", remote3.nickname, local.ap_id)
+
+    ObanHelpers.perform(all_enqueued(worker: ReceiverWorker))
+    public_reply2 = Activity.get_by_ap_id(public_reply2_id)
+    assert public_reply2.thread_recipients == [Constants.as_public()]
+
+    remote4 = remote_user("remote4")
+
+    public_reply1_id = remote_activity("public_thread_reply1.json", remote4.nickname, local.ap_id)
+
+    ObanHelpers.perform(all_enqueued(worker: ReceiverWorker))
+    public_reply1 = Activity.get_by_ap_id(public_reply1_id)
+    assert public_reply1.thread_recipients == [Constants.as_public()]
+
+    remote5 = remote_user("remote5")
+
+    root_post_id = remote_activity("root_post.json", remote5.nickname, local.ap_id)
+
+    ObanHelpers.perform(all_enqueued(worker: ReceiverWorker))
+    root_post = Activity.get_by_ap_id(root_post_id)
+    assert root_post.thread_recipients == [Constants.as_public()]
+  end
+
+  test "thread recipients in right order" do
+    local = insert(:user)
+    remote5 = remote_user("remote5")
+
+    root_post_id = remote_activity("root_post.json", remote5.nickname, local.ap_id)
+
+    ObanHelpers.perform(all_enqueued(worker: ReceiverWorker))
+    root_post = Activity.get_by_ap_id(root_post_id)
+    assert root_post.thread_recipients == [Constants.as_public()]
+
+    remote4 = remote_user("remote4")
+
+    public_reply1_id = remote_activity("public_thread_reply1.json", remote4.nickname, local.ap_id)
+
+    ObanHelpers.perform(all_enqueued(worker: ReceiverWorker))
+    public_reply = Activity.get_by_ap_id(public_reply1_id)
+    assert public_reply.thread_recipients == [Constants.as_public()]
+
+    remote3 = remote_user("remote3")
+
+    public_reply2_id = remote_activity("public_thread_reply2.json", remote3.nickname, local.ap_id)
+
+    ObanHelpers.perform(all_enqueued(worker: ReceiverWorker))
+    public_reply2 = Activity.get_by_ap_id(public_reply2_id)
+    assert public_reply2.thread_recipients == [Constants.as_public()]
+
+    remote2 = remote_user("remote2")
+
+    private_reply1_id =
+      remote_activity("private_thread_reply1.json", remote2.nickname, local.ap_id)
+
+    ObanHelpers.perform(all_enqueued(worker: ReceiverWorker))
+    private_reply1 = Activity.get_by_ap_id(private_reply1_id)
+    assert private_reply1.thread_recipients == [remote2.follower_address]
+
+    remote1 = remote_user("remote1")
+
+    private_reply2_id =
+      remote_activity("private_thread_reply2.json", remote1.nickname, local.ap_id)
+
+    ObanHelpers.perform(all_enqueued(worker: ReceiverWorker))
+    private_reply2 = Activity.get_by_ap_id(private_reply2_id)
+
+    assert private_reply2.thread_recipients == [
+             remote2.follower_address,
+             remote1.follower_address
+           ]
+  end
+
+  defp remote_user(nickname) do
+    remote_domain = "http://pleroma.test:4000"
+    ap_id = remote_domain <> "/users/" <> nickname
+
+    insert(:user,
+      nickname: nickname,
+      ap_id: ap_id,
+      follower_address: ap_id <> "/followers",
+      following_address: ap_id <> "/following",
+      local: false
+    )
+  end
+
+  defp remote_activity(file, nickname, local_ap_id) do
+    data =
+      ("test/fixtures/thread_visibility/" <> file)
+      |> File.read!()
+      |> String.replace("{{local_user_ap_id}}", local_ap_id)
+      |> String.replace("{{nickname}}", nickname)
+      |> Jason.decode!()
+
+    conn =
+      build_conn()
+      |> assign(:valid_signature, true)
+      |> put_req_header("content-type", "application/activity+json")
+      |> post("/inbox", data)
+
+    assert "ok" == json_response(conn, 200)
+    data["id"]
   end
 end
