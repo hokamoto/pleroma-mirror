@@ -31,5 +31,5 @@
   "summary": "debugerrr 👹👻",
   "tag": [],
   "type": "Person",
-  "url": "http://pleroma.test:4000/users/debug"
+  "url": "http://pleroma.test:4000/users/{{nickname}}"
 }
