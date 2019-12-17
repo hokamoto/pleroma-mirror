@@ -397,7 +397,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
         %{"type" => "Create", "object" => %{"type" => objtype} = object} = data,
         options
       )
-      when objtype in ["Article", "Note", "Video", "Page", "Question", "Answer"] do
+      when objtype in ["Article", "Note", "Video", "Page", "Question", "Answer", "Story"] do
     actor = Containment.get_actor(data)
 
     data =

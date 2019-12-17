@@ -347,10 +347,11 @@ defmodule Pleroma.Web.CommonAPI.Utils do
         summary \\ nil,
         cc \\ [],
         sensitive \\ false,
-        extra_params \\ %{}
+        extra_params \\ %{},
+        type \\ "Note"
       ) do
     %{
-      "type" => "Note",
+      "type" => type,
       "to" => to,
       "cc" => cc,
       "content" => content_html,

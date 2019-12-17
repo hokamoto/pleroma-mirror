@@ -299,6 +299,9 @@ defmodule Pleroma.Web.Router do
       put("/mascot", MascotController, :update)
 
       post("/scrobble", ScrobbleController, :new_scrobble)
+
+      post("/stories", StoryController, :create)
+      get("/stories", StoryController, :list)
     end
 
     scope [] do
@@ -463,6 +466,7 @@ defmodule Pleroma.Web.Router do
     get("/polls/:id", PollController, :show)
 
     get("/accounts/:id/statuses", AccountController, :statuses)
+    get("/accounts/:id/stories", AccountController, :stories)
     get("/accounts/:id/followers", AccountController, :followers)
     get("/accounts/:id/following", AccountController, :following)
     get("/accounts/:id", AccountController, :show)

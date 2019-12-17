@@ -960,4 +960,39 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     other_user_id = to_string(other_user.id)
     assert [%{"id" => ^other_user_id}] = json_response(conn, 200)
   end
+
+  describe "Stories" do
+    setup do
+      user1 = insert(:user)
+      user2 = insert(:user)
+
+      conn1 =
+        build_conn()
+        |> assign(:user, user1)
+
+      conn2 =
+        build_conn()
+        |> assign(:user, user2)
+
+      [conn1: conn1, conn2: conn2]
+    end
+
+    test "reading a user stories", %{conn1: conn1, conn2: conn2} do
+      content = "HELO stories"
+      # Create a story by user1
+      post(conn1, story_path(conn1, :create), %{"status" => content})
+      # Create a regular status by user1
+      post(conn1, status_path(conn1, :create), %{"status" => "cofe"})
+
+      conn2 = get(conn2, account_path(conn2, :stories, conn1.assigns.user.id))
+
+      assert response = json_response(conn2, 200)
+
+      assert length(response) == 1
+
+      [story] = response
+
+      assert story["content"] == content
+    end
+  end
 end

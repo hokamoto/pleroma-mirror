@@ -131,6 +131,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
          {_, true} <- {:remote_limit_error, check_remote_limit(map)},
          {:ok, map} <- MRF.filter(map),
          {recipients, _, _} = get_recipients(map),
+         {map, recipients} <- maybe_unlist_story(map, recipients),
          {:fake, false, map, recipients} <- {:fake, fake, map, recipients},
          {:containment, :ok} <- {:containment, Containment.contain_child(map)},
          {:ok, map, object} <- insert_full_object(map) do
@@ -179,6 +180,26 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
         {:error, error}
     end
   end
+
+  defp maybe_unlist_story(%{"object" => %{"type" => "Story"}} = data, recipients) do
+    cc = data["cc"]
+    to = data["to"]
+    follower_address = User.get_cached_by_ap_id(data["actor"]).follower_address
+    public = Pleroma.Constants.as_public()
+
+    to = [follower_address | List.delete(to, public)] |> Enum.uniq()
+    cc = [public | List.delete(cc, follower_address)] |> Enum.uniq()
+    recipients = (recipients ++ [follower_address, public]) |> Enum.uniq()
+
+    data =
+      data
+      |> Map.put("to", to)
+      |> Map.put("cc", cc)
+
+    {data, recipients}
+  end
+
+  defp maybe_unlist_story(data, recipients), do: {data, recipients}
 
   defp create_or_bump_conversation(activity, actor) do
     with {:ok, conversation} <- Conversation.create_or_bump_for(activity),
@@ -768,6 +789,36 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> Enum.reverse()
   end
 
+  def fetch_user_stories(user, reading_user, params \\ %{}) do
+    params =
+      params
+      |> Map.put("type", ["Create", "Announce"])
+      |> Map.put("user", reading_user)
+      |> Map.put("actor_id", user.ap_id)
+      |> Map.put("whole_db", true)
+      |> Map.put("pinned_activity_ids", Map.get(user.info, :pinned_activities))
+      |> Map.put("object_data_type", "Story")
+
+    %{
+      "godmode" => params["godmode"],
+      "reading_user" => reading_user
+    }
+    |> user_activities_recipients()
+    |> fetch_activities(params)
+    |> Enum.reverse()
+  end
+
+  def fetch_stories(recipients, opts \\ %{}, pagination \\ :keyset) do
+    opts = Map.put(opts, "object_data_type", "Story")
+
+    list_memberships = Pleroma.List.memberships(opts["user"])
+
+    fetch_activities_query(recipients ++ list_memberships, opts)
+    |> Pagination.fetch_paginated(opts, pagination)
+    |> Enum.reverse()
+    |> maybe_update_cc(list_memberships, opts["user"])
+  end
+
   def fetch_instance_activities(params) do
     params =
       params
@@ -1154,7 +1205,17 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> Activity.restrict_deactivated_users()
     |> exclude_poll_votes(opts)
     |> exclude_visibility(opts)
+    |> maybe_restrict_object_type(opts)
   end
+
+  defp maybe_restrict_object_type(query, %{"object_data_type" => type}) do
+    from(
+      [_activity, object] in query,
+      where: fragment("(?)->'type' = (?)", object.data, ^type)
+    )
+  end
+
+  defp maybe_restrict_object_type(query, _), do: query
 
   def fetch_activities(recipients, opts \\ %{}, pagination \\ :keyset) do
     list_memberships = Pleroma.List.memberships(opts["user"])
