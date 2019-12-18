@@ -86,4 +86,12 @@ defmodule Pleroma.MFA.Token do
   end
 
   def is_expired?(_), do: false
+
+  def delete_expired_tokens do
+    from(
+      q in __MODULE__,
+      where: fragment("?", q.valid_until) < ^Timex.now()
+    )
+    |> Repo.delete_all()
+  end
 end

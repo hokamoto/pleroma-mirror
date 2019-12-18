@@ -4,14 +4,15 @@
 
 defmodule Pleroma.Web.OAuth.Token.CleanWorker do
   @moduledoc """
-  The module represents functions to clean an expired oauth tokens.
+  The module represents functions to clean an expired oauth && MFA tokens.
   """
   use GenServer
 
   @ten_seconds 10_000
   @one_day 86_400_000
 
-  alias Pleroma.Web.OAuth.Token
+  alias Pleroma.MFA
+  alias Pleroma.Web.OAuth
   alias Pleroma.Workers.BackgroundWorker
 
   def start_link(_), do: GenServer.start_link(__MODULE__, %{})
@@ -30,5 +31,8 @@ defmodule Pleroma.Web.OAuth.Token.CleanWorker do
     {:noreply, state}
   end
 
-  def perform(:clean), do: Token.delete_expired_tokens()
+  def perform(:clean) do
+    OAuth.Token.delete_expired_tokens()
+    MFA.Token.delete_expired_tokens()
+  end
 end
