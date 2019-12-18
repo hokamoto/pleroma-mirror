@@ -13,7 +13,12 @@ defmodule Pleroma.Web.PleromaAPI.TwoFactorAuthenticationController do
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.Web.CommonAPI.Utils
 
-  plug(OAuthScopesPlug, %{scopes: ["write:accounts"]})
+  plug(OAuthScopesPlug, %{scopes: ["read:security"]} when action in [:settings])
+
+  plug(
+    OAuthScopesPlug,
+    %{scopes: ["write:security"]} when action in [:setup, :confirm, :disable, :backup_codes]
+  )
 
   @doc """
   Gets user multi factor authentication settings
