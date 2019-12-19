@@ -10,61 +10,141 @@ defmodule Pleroma.LoadTesting.Fetcher do
     })
   end
 
-  def query_only_media_timelines(user) do
-    home_timeline_params = %{
+  def query_public_media_timeline do
+    opts = %{
+      "blocking_user" => nil,
+      "count" => "20",
+      "local" => nil,
+      "local_only" => true,
+      "muting_user" => nil,
+      "only_media" => "false",
       "type" => ["Create", "Announce"],
+      "with_muted" => "true"
+    }
+
+    first_page_max =
+      opts
+      |> Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities()
+      |> List.last()
+
+    second_page_max =
+      opts
+      |> Map.put("max_id", first_page_max.id)
+      |> Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities()
+      |> List.last()
+
+    third_page_max =
+      opts
+      |> Map.put("max_id", second_page_max.id)
+      |> Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities()
+      |> List.last()
+
+    forth_page_max =
+      opts
+      |> Map.put("max_id", third_page_max.id)
+      |> Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities()
+      |> List.last()
+
+    Benchee.run(
+      %{
+        "all posts" => fn opts ->
+          Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(opts)
+        end,
+        "only_media -> 'true'" => fn opts ->
+          Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
+            Map.put(opts, "only_media", "true")
+          )
+        end,
+        "only_media -> :with_media index" => fn opts ->
+          Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
+            Map.put(opts, "only_media", :with_media)
+          )
+        end
+      },
+      inputs: %{
+        "public timeline -> 1 page" => opts,
+        "public timeline -> 2 page" => Map.put(opts, "max_id", first_page_max.id),
+        "public timeline -> 3 page" => Map.put(opts, "max_id", second_page_max.id),
+        "public timeline -> 4 page" => Map.put(opts, "max_id", third_page_max.id),
+        "public timeline -> 5 page" => Map.put(opts, "max_id", forth_page_max.id)
+      }
+    )
+  end
+
+  def query_private_media_timeline(user) do
+    user = Pleroma.User.get_by_id(user.id)
+
+    opts = %{
       "blocking_user" => user,
+      "count" => "20",
       "muting_user" => user,
+      "type" => ["Create", "Announce"],
       "user" => user,
+      "with_muted" => "true",
       "only_media" => "true"
     }
 
-    public_timeline_params = %{
-      "local_only" => false,
-      "type" => ["Create", "Announce"],
-      "blocking_user" => user,
-      "muting_user" => user,
-      "only_media" => "true"
-    }
+    recipients = [user.ap_id | User.following(user)]
 
-    following = User.following(user)
+    first_page_max =
+      recipients
+      |> Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(opts)
+      |> Enum.reverse()
+      |> List.last()
 
-    Benchee.run(%{
-      "Home timeline with only_media flag" => fn ->
-        Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
-          [user.ap_id | following],
-          home_timeline_params
-        )
-      end,
-      "Home timeline with only_media not null" => fn ->
-        Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
-          [user.ap_id | following],
-          Map.put(home_timeline_params, "only_media", :is_not_null)
-        )
-      end,
-      "Home timeline" => fn ->
-        Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
-          [user.ap_id | following],
-          Map.delete(home_timeline_params, "only_media")
-        )
-      end
-    })
+    second_page_max =
+      recipients
+      |> Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
+        Map.put(opts, "max_id", first_page_max.id)
+      )
+      |> Enum.reverse()
+      |> List.last()
 
-    Benchee.run(%{
-      "Public timeline with only_media flag" => fn ->
-        Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(public_timeline_params)
-      end,
-      "Public timeline" => fn ->
-        Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
-          Map.delete(public_timeline_params, "only_media")
-        )
-      end,
-      "Public timeline with only_media not null" => fn ->
-        Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
-          Map.put(public_timeline_params, "only_media", :is_not_null)
-        )
-      end
-    })
+    third_page_max =
+      recipients
+      |> Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
+        Map.put(opts, "max_id", second_page_max.id)
+      )
+      |> Enum.reverse()
+      |> List.last()
+
+    forth_page_max =
+      recipients
+      |> Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
+        Map.put(opts, "max_id", third_page_max.id)
+      )
+      |> Enum.reverse()
+      |> List.last()
+
+    Benchee.run(
+      %{
+        "all posts" => fn opts ->
+          Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
+            recipients,
+            Map.put(opts, "only_media", "false")
+          )
+        end,
+        "only_media -> 'true'" => fn opts ->
+          Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
+            recipients,
+            Map.put(opts, "only_media", "true")
+          )
+        end,
+        "only_media -> :with_media index" => fn opts ->
+          Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
+            recipients,
+            Map.put(opts, "only_media", :with_media)
+          )
+        end
+      },
+      inputs: %{
+        "public timeline -> 1 page" => opts,
+        "public timeline -> 2 page" => Map.put(opts, "max_id", first_page_max.id),
+        "public timeline -> 3 page" => Map.put(opts, "max_id", second_page_max.id),
+        "public timeline -> 4 page" => Map.put(opts, "max_id", third_page_max.id),
+        "public timeline -> 5 page" => Map.put(opts, "max_id", forth_page_max.id)
+      }
+    )
   end
 
   def query_timelines(user) do

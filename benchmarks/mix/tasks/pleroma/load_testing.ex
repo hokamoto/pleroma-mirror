@@ -98,9 +98,25 @@ defmodule Mix.Tasks.Pleroma.LoadTesting do
 
     generate_activities(user, users)
 
-    generate_activities_with_media(user, users)
+    generate_public_activities_with_media([user | users])
 
-    query_only_media_timelines(user)
+    query_public_media_timeline()
+
+    user_ids = [user.id | Enum.map(users, & &1.id)]
+
+    not_friends =
+      Repo.all(
+        from(u in User,
+          where: u.id not in ^user_ids,
+          where: u.local == true,
+          order_by: fragment("RANDOM()"),
+          limit: 10
+        )
+      )
+
+    generate_private_activities_with_media(user, users, not_friends)
+
+    query_private_media_timeline(user)
 
     generate_activities_with_mentions(user, users)
 

@@ -1,0 +1,53 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "http://pleroma.test:4000/schemas/litepub-0.1.jsonld",
+    {
+      "@language": "und"
+    }
+  ],
+  "actor": "http://pleroma.test:4000/users/user",
+  "attachment": [],
+  "attributedTo": "http://pleroma.test:4000/users/user",
+  "cc": [
+    "http://pleroma.test:4000/users/user/followers"
+  ],
+  "context": "http://pleroma.test:4000/contexts/1463c4f4-9ca2-4d96-ab52-105bf7c61286",
+  "conversation": "http://pleroma.test:4000/contexts/1463c4f4-9ca2-4d96-ab52-105bf7c61286",
+  "directMessage": false,
+  "id": "http://pleroma.test:4000/activities/baf6d57c-6005-448a-8391-c87869cf01d2",
+  "object": {
+    "actor": "http://pleroma.test:4000/users/user",
+    "attachment": [
+      {
+        "mediaType": "image/jpeg",
+        "name": "3134-11.jpg",
+        "type": "Document",
+        "url": "http://pleroma.test:4000/media/069c16a2804119b33188fe1872b549b686161522b3f8976b1cd624dfc7161668.jpg"
+      }
+    ],
+    "attributedTo": "http://pleroma.test:4000/users/user",
+    "cc": [
+      "http://pleroma.test:4000/users/user/followers"
+    ],
+    "content": "​",
+    "context": "http://pleroma.test:4000/contexts/1463c4f4-9ca2-4d96-ab52-105bf7c61286",
+    "conversation": "http://pleroma.test:4000/contexts/1463c4f4-9ca2-4d96-ab52-105bf7c61286",
+    "id": "http://pleroma.test:4000/objects/602c1b4b-8931-4771-962c-6c251addf459",
+    "published": "2019-12-18T13:21:53.859174Z",
+    "sensitive": false,
+    "summary": "",
+    "tag": [],
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "type": "Note"
+  },
+  "published": "2019-12-18T13:21:53.796274Z",
+  "sensitive": false,
+  "tag": [],
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "type": "Create"
+}

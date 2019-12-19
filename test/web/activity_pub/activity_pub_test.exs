@@ -346,6 +346,32 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       assert object = Object.normalize(activity)
       assert is_binary(object.data["id"])
     end
+
+    test "inserts map with attachment" do
+      user = insert(:user)
+
+      data = %{
+        "actor" => user.ap_id,
+        "to" => [],
+        "object" => %{
+          "actor" => user.ap_id,
+          "to" => [],
+          "type" => "Note",
+          "content" => nil,
+          "attachment" => [
+            %{
+              "mediaType" => "image/jpeg",
+              "name" => "file.jpg",
+              "type" => "Document",
+              "url" => "file.jpg"
+            }
+          ]
+        }
+      }
+
+      assert {:ok, activity} = ActivityPub.insert(data)
+      assert activity.with_media
+    end
   end
 
   describe "listen activities" do

@@ -311,7 +311,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
 
   describe "/inbox" do
     test "it inserts an incoming activity into the database", %{conn: conn} do
-      data = File.read!("test/fixtures/mastodon-post-activity.json") |> Poison.decode!()
+      data = File.read!("test/fixtures/mastodon-post-activity.json") |> Jason.decode!()
 
       conn =
         conn
@@ -326,7 +326,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
     end
 
     test "it clears `unreachable` federation status of the sender", %{conn: conn} do
-      data = File.read!("test/fixtures/mastodon-post-activity.json") |> Poison.decode!()
+      data = File.read!("test/fixtures/mastodon-post-activity.json") |> Jason.decode!()
 
       sender_url = data["actor"]
       Instances.set_consistently_unreachable(sender_url)
@@ -341,13 +341,40 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
       assert "ok" == json_response(conn, 200)
       assert Instances.reachable?(sender_url)
     end
+
+    test "it inserts an incoming activity with attachment", %{conn: conn} do
+      ap_id = "http://pleroma.test:4000/users/user"
+
+      insert(:user,
+        nickname: "user",
+        ap_id: ap_id,
+        follower_address: ap_id <> "/followers",
+        following_address: ap_id <> "/following",
+        local: false
+      )
+
+      data = File.read!("test/fixtures/with_attachment.json") |> Jason.decode!()
+
+      conn =
+        conn
+        |> assign(:valid_signature, true)
+        |> put_req_header("content-type", "application/activity+json")
+        |> post("/inbox", data)
+
+      assert "ok" == json_response(conn, 200)
+
+      ObanHelpers.perform(all_enqueued(worker: ReceiverWorker))
+      activity = Activity.get_by_ap_id(data["id"])
+      assert activity
+      assert activity.with_media
+    end
   end
 
   describe "/users/:nickname/inbox" do
     setup do
       data =
         File.read!("test/fixtures/mastodon-post-activity.json")
-        |> Poison.decode!()
+        |> Jason.decode!()
 
       [data: data]
     end
@@ -538,7 +565,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
 
       data =
         File.read!("test/fixtures/activitypub-client-post-activity.json")
-        |> Poison.decode!()
+        |> Jason.decode!()
 
       object = Map.put(data["object"], "attributedTo", actor.ap_id)
 
@@ -616,7 +643,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
     end
 
     test "it rejects posts from other users", %{conn: conn} do
-      data = File.read!("test/fixtures/activitypub-client-post-activity.json") |> Poison.decode!()
+      data = File.read!("test/fixtures/activitypub-client-post-activity.json") |> Jason.decode!()
       user = insert(:user)
       otheruser = insert(:user)
 
@@ -630,7 +657,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
     end
 
     test "it inserts an incoming create activity into the database", %{conn: conn} do
-      data = File.read!("test/fixtures/activitypub-client-post-activity.json") |> Poison.decode!()
+      data = File.read!("test/fixtures/activitypub-client-post-activity.json") |> Jason.decode!()
       user = insert(:user)
 
       conn =
@@ -645,7 +672,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
     end
 
     test "it rejects an incoming activity with bogus type", %{conn: conn} do
-      data = File.read!("test/fixtures/activitypub-client-post-activity.json") |> Poison.decode!()
+      data = File.read!("test/fixtures/activitypub-client-post-activity.json") |> Jason.decode!()
       user = insert(:user)
 
       data =
