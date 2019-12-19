@@ -47,26 +47,26 @@ defmodule Pleroma.LoadTesting.Fetcher do
 
     Benchee.run(
       %{
-        "all posts" => fn opts ->
+        "public timeline -> all posts" => fn opts ->
           Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(opts)
         end,
-        "only_media -> 'true'" => fn opts ->
+        "public timeline -> only_media -> 'true'" => fn opts ->
           Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
             Map.put(opts, "only_media", "true")
           )
         end,
-        "only_media -> :with_media index" => fn opts ->
+        "public timeline -> only_media -> :with_media index" => fn opts ->
           Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
             Map.put(opts, "only_media", :with_media)
           )
         end
       },
       inputs: %{
-        "public timeline -> 1 page" => opts,
-        "public timeline -> 2 page" => Map.put(opts, "max_id", first_page_max.id),
-        "public timeline -> 3 page" => Map.put(opts, "max_id", second_page_max.id),
-        "public timeline -> 4 page" => Map.put(opts, "max_id", third_page_max.id),
-        "public timeline -> 5 page" => Map.put(opts, "max_id", forth_page_max.id)
+        "1 page" => opts,
+        "2 page" => Map.put(opts, "max_id", first_page_max.id),
+        "3 page" => Map.put(opts, "max_id", second_page_max.id),
+        "4 page" => Map.put(opts, "max_id", third_page_max.id),
+        "5 page" => Map.put(opts, "max_id", forth_page_max.id)
       }
     )
   end
@@ -118,19 +118,19 @@ defmodule Pleroma.LoadTesting.Fetcher do
 
     Benchee.run(
       %{
-        "all posts" => fn opts ->
+        "home timeline -> all posts" => fn opts ->
           Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
             recipients,
             Map.put(opts, "only_media", "false")
           )
         end,
-        "only_media -> 'true'" => fn opts ->
+        "home timeline -> only_media -> 'true'" => fn opts ->
           Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
             recipients,
             Map.put(opts, "only_media", "true")
           )
         end,
-        "only_media -> :with_media index" => fn opts ->
+        "home timeline -> only_media -> :with_media index" => fn opts ->
           Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
             recipients,
             Map.put(opts, "only_media", :with_media)
@@ -138,11 +138,11 @@ defmodule Pleroma.LoadTesting.Fetcher do
         end
       },
       inputs: %{
-        "public timeline -> 1 page" => opts,
-        "public timeline -> 2 page" => Map.put(opts, "max_id", first_page_max.id),
-        "public timeline -> 3 page" => Map.put(opts, "max_id", second_page_max.id),
-        "public timeline -> 4 page" => Map.put(opts, "max_id", third_page_max.id),
-        "public timeline -> 5 page" => Map.put(opts, "max_id", forth_page_max.id)
+        "1 page" => opts,
+        "2 page" => Map.put(opts, "max_id", first_page_max.id),
+        "3 page" => Map.put(opts, "max_id", second_page_max.id),
+        "4 page" => Map.put(opts, "max_id", third_page_max.id),
+        "5 page" => Map.put(opts, "max_id", forth_page_max.id)
       }
     )
   end
