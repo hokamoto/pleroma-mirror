@@ -3,14 +3,19 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Mix.Tasks.Pleroma.Database do
+  use Mix.Task
+
+  import Mix.Pleroma
+
+  alias Pleroma.Activity
   alias Pleroma.Conversation
   alias Pleroma.Object
   alias Pleroma.Repo
+  alias Pleroma.RepoStreamer
   alias Pleroma.User
+
   require Logger
   require Pleroma.Constants
-  import Mix.Pleroma
-  use Mix.Task
 
   @shortdoc "A collection of database related tasks"
   @moduledoc File.read!("docs/administration/CLI_tasks/database.md")
@@ -113,7 +118,7 @@ defmodule Mix.Tasks.Pleroma.Database do
       where: fragment("(?)->>'likes' is not null", object.data),
       select: %{id: object.id, likes: fragment("(?)->>'likes'", object.data)}
     )
-    |> Pleroma.RepoStreamer.chunk_stream(100)
+    |> RepoStreamer.chunk_stream(100)
     |> Stream.each(fn objects ->
       ids =
         objects
@@ -132,6 +137,119 @@ defmodule Mix.Tasks.Pleroma.Database do
         ]
       )
       |> Repo.update_all([], timeout: :infinity)
+    end)
+    |> Stream.run()
+  end
+
+  def run(["fix_thread_recipients" | args]) do
+    import Ecto.Query
+
+    start_pleroma()
+
+    {options, [], []} =
+      OptionParser.parse(
+        args,
+        strict: [
+          period: :string
+        ]
+      )
+
+    start =
+      if options[:period] do
+        date =
+          case options[:period] do
+            "w" -> Date.utc_today() |> Date.add(-7)
+            "m" -> Date.utc_today() |> Date.add(-30)
+            "all" -> nil
+            _ -> Date.utc_today()
+          end
+
+        if date do
+          {:ok, start} = NaiveDateTime.new(date, ~T[00:00:00])
+          start
+        end
+      end
+
+    # update root activities
+    query = from(a in Activity)
+
+    query =
+      if start do
+        where(query, [a], a.inserted_at >= ^start)
+      else
+        query
+      end
+
+    query
+    |> join(:inner, [activity], o in Object,
+      on:
+        fragment(
+          "(?->>'id') = COALESCE((?)->'object'->> 'id', (?)->>'object')",
+          o.data,
+          activity.data,
+          activity.data
+        )
+    )
+    |> preload([activity, object], object: object)
+    |> where(
+      [a, o],
+      fragment(
+        "?->>'inReplyTo' IS NULL",
+        o.data
+      )
+    )
+    |> RepoStreamer.chunk_stream(512)
+    |> Stream.each(fn chunk ->
+      Enum.each(chunk, fn %Activity{} = activity ->
+        thread_recipients =
+          Pleroma.Web.ActivityPub.ActivityPub.get_thread_recipients(activity.recipients)
+
+        Repo.update!(Ecto.Changeset.change(activity, thread_recipients: thread_recipients))
+      end)
+    end)
+    |> Stream.run()
+
+    # update activities with in_reply_to
+    query = from(a in Activity)
+
+    query =
+      if start do
+        where(query, [a], a.inserted_at >= ^start)
+      else
+        query
+      end
+
+    query
+    |> join(:inner, [activity], o in Object,
+      on:
+        fragment(
+          "(?->>'id') = COALESCE((?)->'object'->> 'id', (?)->>'object')",
+          o.data,
+          activity.data,
+          activity.data
+        )
+    )
+    |> preload([activity, object], object: object)
+    |> where(
+      [a, o],
+      fragment(
+        "?->>'inReplyTo' IS NOT NULL",
+        o.data
+      )
+    )
+    |> RepoStreamer.chunk_stream(512)
+    |> Stream.each(fn chunk ->
+      Enum.each(chunk, fn %Activity{} = activity ->
+        in_reply_to = Activity.get_in_reply_to_activity(activity)
+
+        thread_recipients =
+          Pleroma.Web.ActivityPub.ActivityPub.get_thread_recipients(
+            activity.recipients,
+            in_reply_to
+          )
+
+        Repo.update!(Ecto.Changeset.change(activity, thread_recipients: thread_recipients))
+      end)
     end)
     |> Stream.run()
   end
