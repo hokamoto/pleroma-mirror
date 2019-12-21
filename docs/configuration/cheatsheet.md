@@ -837,6 +837,10 @@ config :auto_linker,
   ]
 ```
 
+## Custom Runtime Modules (`:modules`)
+
+* `runtime_dir`: A path to custom Elixir modules (such as MRF policies).
+
 ### Multi-factor authentication -  :two_factor_authentication
 * `totp` - a list containing TOTP configuration
   - `digits` - Determines the length of a one-time pass-code in characters. Defaults to 6 characters.

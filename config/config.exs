@@ -70,6 +70,8 @@ config :pleroma, Pleroma.Captcha,
   seconds_valid: 60,
   method: Pleroma.Captcha.Native
 
+config :pleroma, Pleroma.Captcha.Kocaptcha, endpoint: "https://captcha.kotobank.ch"
+
 config :pleroma, :hackney_pools,
   federation: [
     max_connections: 50,
@@ -629,6 +631,8 @@ config :pleroma, :static_fe, enabled: false
 config :pleroma, :web_cache_ttl,
   activity_pub: nil,
   activity_pub_question: 30_000
+
+config :pleroma, :modules, runtime_dir: "instance/modules"
 
 config :swarm, node_blacklist: [~r/myhtml_.*$/]
 # Import environment specific config. This must remain at the bottom
