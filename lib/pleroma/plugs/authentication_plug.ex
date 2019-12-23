@@ -35,8 +35,7 @@ defmodule Pleroma.Plugs.AuthenticationPlug do
         _
       ) do
     if Pbkdf2.checkpw(password, password_hash) do
-      conn
-      |> assign(:user, auth_user)
+      assign(conn, :user, auth_user)
     else
       conn
     end
