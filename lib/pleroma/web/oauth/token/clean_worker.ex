@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Web.OAuth.Token.CleanWorker do
   @moduledoc """
-  The module represents functions to clean an expired oauth && MFA tokens.
+  The module represents functions to clean an expired OAuth and MFA tokens.
   """
   use GenServer
 
