@@ -27,7 +27,8 @@ defmodule Pleroma.Plugs.EnsureAuthenticatedPlugTest do
     assert conn.status == 403
     assert conn.halted == true
 
-    assert conn.resp_body == "{\"error\":\"Two-factor authentication enabled, you must use a access token.\"}"
+    assert conn.resp_body ==
+             "{\"error\":\"Two-factor authentication enabled, you must use a access token.\"}"
   end
 
   test "it continues if user is assigned and MFA disabled", %{conn: conn} do
@@ -40,7 +41,6 @@ defmodule Pleroma.Plugs.EnsureAuthenticatedPlugTest do
     refute conn.status == 403
     refute conn.halted
   end
-
 
   test "it continues if a user is assigned", %{conn: conn} do
     conn =
