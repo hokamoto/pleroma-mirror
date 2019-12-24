@@ -45,7 +45,9 @@ defmodule Pleroma.Plugs.ModerationLogPlugTest do
                "id" => follower.id,
                "nickname" => follower.nickname,
                "type" => "user"
-             }
+             },
+             "message" =>
+               "@#{user.nickname} made @#{follower.nickname} follow @#{followed.nickname}"
            }
   end
 end

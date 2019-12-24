@@ -21,15 +21,16 @@ defmodule Pleroma.Web.AdminAPI.ReportViewTest do
       content: nil,
       actor:
         Map.merge(
-          AccountView.render("account.json", %{user: user}),
+          AccountView.render("show.json", %{user: user}),
           Pleroma.Web.AdminAPI.AccountView.render("show.json", %{user: user})
         ),
       account:
         Map.merge(
-          AccountView.render("account.json", %{user: other_user}),
+          AccountView.render("show.json", %{user: other_user}),
           Pleroma.Web.AdminAPI.AccountView.render("show.json", %{user: other_user})
         ),
       statuses: [],
+      notes: [],
       state: "open",
       id: activity.id
     }
@@ -49,20 +50,23 @@ defmodule Pleroma.Web.AdminAPI.ReportViewTest do
     {:ok, report_activity} =
       CommonAPI.report(user, %{"account_id" => other_user.id, "status_ids" => [activity.id]})
 
+    other_user = Pleroma.User.get_by_id(other_user.id)
+
     expected = %{
       content: nil,
       actor:
         Map.merge(
-          AccountView.render("account.json", %{user: user}),
+          AccountView.render("show.json", %{user: user}),
           Pleroma.Web.AdminAPI.AccountView.render("show.json", %{user: user})
         ),
       account:
         Map.merge(
-          AccountView.render("account.json", %{user: other_user}),
+          AccountView.render("show.json", %{user: other_user}),
           Pleroma.Web.AdminAPI.AccountView.render("show.json", %{user: other_user})
         ),
-      statuses: [StatusView.render("status.json", %{activity: activity})],
+      statuses: [StatusView.render("show.json", %{activity: activity})],
       state: "open",
+      notes: [],
       id: report_activity.id
     }
 

@@ -81,19 +81,21 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
       assert response == "job started"
     end
 
-    test "requires 'follow' permission", %{conn: conn} do
+    test "requires 'follow' or 'write:follows' permissions", %{conn: conn} do
       token1 = insert(:oauth_token, scopes: ["read", "write"])
       token2 = insert(:oauth_token, scopes: ["follow"])
+      token3 = insert(:oauth_token, scopes: ["something"])
       another_user = insert(:user)
 
-      for token <- [token1, token2] do
+      for token <- [token1, token2, token3] do
         conn =
           conn
           |> put_req_header("authorization", "Bearer #{token.token}")
           |> post("/api/pleroma/follow_import", %{"list" => "#{another_user.ap_id}"})
 
-        if token == token1 do
-          assert %{"error" => "Insufficient permissions: follow."} == json_response(conn, 403)
+        if token == token3 do
+          assert %{"error" => "Insufficient permissions: follow | write:follows."} ==
+                   json_response(conn, 403)
         else
           assert json_response(conn, 200)
         end
@@ -157,12 +159,32 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
 
       user = Repo.get(User, user.id)
 
-      assert %{
-               "followers" => false,
-               "follows" => true,
-               "non_follows" => true,
-               "non_followers" => true
-             } == user.info.notification_settings
+      assert %Pleroma.User.NotificationSetting{
+               followers: false,
+               follows: true,
+               non_follows: true,
+               non_followers: true,
+               privacy_option: false
+             } == user.notification_settings
+    end
+
+    test "it update notificatin privacy option", %{conn: conn} do
+      user = insert(:user)
+
+      conn
+      |> assign(:user, user)
+      |> put("/api/pleroma/notification_settings", %{"privacy_option" => "1"})
+      |> json_response(:ok)
+
+      user = refresh_record(user)
+
+      assert %Pleroma.User.NotificationSetting{
+               followers: true,
+               follows: true,
+               non_follows: true,
+               non_followers: true,
+               privacy_option: true
+             } == user.notification_settings
     end
   end
 
@@ -364,11 +386,11 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
         |> response(200)
 
       assert response =~ "Account followed!"
-      assert user2.follower_address in refresh_record(user).following
+      assert user2.follower_address in User.following(user)
     end
 
     test "returns error when user is deactivated", %{conn: conn} do
-      user = insert(:user, info: %{deactivated: true})
+      user = insert(:user, deactivated: true)
       user2 = insert(:user)
 
       response =
@@ -385,7 +407,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
       user = insert(:user)
       user2 = insert(:user)
 
-      {:ok, _user} = Pleroma.User.block(user2, user)
+      {:ok, _user_block} = Pleroma.User.block(user2, user)
 
       response =
         conn
@@ -436,7 +458,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
         |> response(200)
 
       assert response =~ "Account followed!"
-      assert user2.follower_address in refresh_record(user).following
+      assert user2.follower_address in User.following(user)
     end
 
     test "returns error when followee not found", %{conn: conn} do
@@ -483,7 +505,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
       Pleroma.Config.put([:user, :deny_follow_blocked], true)
       user = insert(:user)
       user2 = insert(:user)
-      {:ok, _user} = Pleroma.User.block(user2, user)
+      {:ok, _user_block} = Pleroma.User.block(user2, user)
 
       response =
         conn
@@ -566,7 +588,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
 
       user = User.get_cached_by_id(user.id)
 
-      assert user.info.deactivated == true
+      assert user.deactivated == true
     end
 
     test "it returns returns when password invalid", %{conn: conn} do
@@ -581,7 +603,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
       assert response == %{"error" => "Invalid password."}
       user = User.get_cached_by_id(user.id)
 
-      refute user.info.deactivated
+      refute user.deactivated
     end
   end
 
@@ -876,8 +898,6 @@ defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
         |> post("/api/pleroma/delete_account", %{"password" => "test"})
 
       assert json_response(conn, 200) == %{"status" => "success"}
-      # Wait a second for the started task to end
-      :timer.sleep(1000)
     end
   end
 end

@@ -24,19 +24,16 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPI do
 
     with {:ok, follower, _followed, _} <- result do
       options = cast_params(params)
-
-      case reblogs_visibility(options[:reblogs], result) do
-        {:ok, follower} -> {:ok, follower}
-        _ -> {:ok, follower}
-      end
+      set_reblogs_visibility(options[:reblogs], result)
+      {:ok, follower}
     end
   end
 
-  defp reblogs_visibility(false, {:ok, follower, followed, _}) do
+  defp set_reblogs_visibility(false, {:ok, follower, followed, _}) do
     CommonAPI.hide_reblogs(follower, followed)
   end
 
-  defp reblogs_visibility(_, {:ok, follower, followed, _}) do
+  defp set_reblogs_visibility(_, {:ok, follower, followed, _}) do
     CommonAPI.show_reblogs(follower, followed)
   end
 
@@ -71,8 +68,10 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPI do
   defp cast_params(params) do
     param_types = %{
       exclude_types: {:array, :string},
+      exclude_visibilities: {:array, :string},
       reblogs: :boolean,
-      with_muted: :boolean
+      with_muted: :boolean,
+      with_move: :boolean
     }
 
     changeset = cast({%{}, param_types}, params, Map.keys(param_types))

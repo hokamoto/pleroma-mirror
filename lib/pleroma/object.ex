@@ -23,6 +23,23 @@ defmodule Pleroma.Object do
     timestamps()
   end
 
+  def with_joined_activity(query, activity_type \\ "Create", join_type \\ :inner) do
+    object_position = Map.get(query.aliases, :object, 0)
+
+    join(query, join_type, [{object, object_position}], a in Activity,
+      on:
+        fragment(
+          "COALESCE(?->'object'->>'id', ?->>'object') = (? ->> 'id') AND (?->>'type' = ?) ",
+          a.data,
+          a.data,
+          object.data,
+          a.data,
+          ^activity_type
+        ),
+      as: :object_activity
+    )
+  end
+
   def create(data) do
     Object.change(%Object{}, %{data: data})
     |> Repo.insert()
@@ -63,7 +80,7 @@ defmodule Pleroma.Object do
   end
 
   defp warn_on_no_object_preloaded(ap_id) do
-    "Object.normalize() called without preloaded object (#{ap_id}). Consider preloading the object"
+    "Object.normalize() called without preloaded object (#{inspect(ap_id)}). Consider preloading the object"
     |> Logger.debug()
 
     Logger.debug("Backtrace: #{inspect(Process.info(:erlang.self(), :current_stacktrace))}")
@@ -147,7 +164,7 @@ defmodule Pleroma.Object do
 
   def delete(%Object{data: %{"id" => id}} = object) do
     with {:ok, _obj} = swap_object_with_tombstone(object),
-         deleted_activity = Activity.delete_by_ap_id(id),
+         deleted_activity = Activity.delete_all_by_object_ap_id(id),
          {:ok, true} <- Cachex.del(:object_cache, "object:#{id}"),
          {:ok, _} <- Cachex.del(:web_resp_cache, URI.parse(id).path) do
       {:ok, object, deleted_activity}
@@ -181,7 +198,7 @@ defmodule Pleroma.Object do
         data:
           fragment(
             """
-            jsonb_set(?, '{repliesCount}',
+            safe_jsonb_set(?, '{repliesCount}',
               (coalesce((?->>'repliesCount')::int, 0) + 1)::varchar::jsonb, true)
             """,
             o.data,
@@ -204,7 +221,7 @@ defmodule Pleroma.Object do
         data:
           fragment(
             """
-            jsonb_set(?, '{repliesCount}',
+            safe_jsonb_set(?, '{repliesCount}',
               (greatest(0, (?->>'repliesCount')::int - 1))::varchar::jsonb, true)
             """,
             o.data,
@@ -247,5 +264,16 @@ defmodule Pleroma.Object do
     else
       _ -> :noop
     end
+  end
+
+  @doc "Updates data field of an object"
+  def update_data(%Object{data: data} = object, attrs \\ %{}) do
+    object
+    |> Object.change(%{data: Map.merge(data || %{}, attrs)})
+    |> Repo.update()
+  end
+
+  def local?(%Object{data: %{"id" => id}}) do
+    String.starts_with?(id, Pleroma.Web.base_url() <> "/")
   end
 end

@@ -6,6 +6,7 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
   use Pleroma.Web, :controller
 
   alias Pleroma.Activity
+  alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.Plugs.RateLimiter
   alias Pleroma.Repo
   alias Pleroma.User
@@ -15,14 +16,20 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
   alias Pleroma.Web.MastodonAPI.StatusView
 
   require Logger
-  plug(RateLimiter, :search when action in [:search, :search2, :account_search])
+
+  # Note: Mastodon doesn't allow unauthenticated access (requires read:accounts / read:search)
+  plug(OAuthScopesPlug, %{scopes: ["read:search"], fallback: :proceed_unauthenticated})
+
+  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
+
+  plug(RateLimiter, [name: :search] when action in [:search, :search2, :account_search])
 
   def account_search(%{assigns: %{user: user}} = conn, %{"q" => query} = params) do
     accounts = User.search(query, search_options(params, user))
 
     conn
     |> put_view(AccountView)
-    |> render("accounts.json", users: accounts, for: user, as: :user)
+    |> render("index.json", users: accounts, for: user, as: :user)
   end
 
   def search2(conn, params), do: do_search(:v2, conn, params)
@@ -72,7 +79,7 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
 
   defp resource_search(_, "accounts", query, options) do
     accounts = with_fallback(fn -> User.search(query, options) end)
-    AccountView.render("accounts.json", users: accounts, for: options[:for_user], as: :user)
+    AccountView.render("index.json", users: accounts, for: options[:for_user], as: :user)
   end
 
   defp resource_search(_, "statuses", query, options) do

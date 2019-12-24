@@ -581,9 +581,7 @@ config :pleroma, :config_description, [
         type: [:list, :module],
         description: "List of modules for federation publishing",
         suggestions: [
-          Pleroma.Web.ActivityPub.Publisher,
-          Pleroma.Web.Websub,
-          Pleroma.Web.Salmo
+          Pleroma.Web.ActivityPub.Publisher
         ]
       },
       %{
@@ -1097,6 +1095,45 @@ config :pleroma, :config_description, [
         suggestions: [
           :pleroma_fox_tan
         ]
+      }
+    ]
+  },
+  %{
+    group: :pleroma,
+    key: :manifest,
+    type: :group,
+    description:
+      "This section describe PWA manifest instance-specific values. Currently this option relate only for MastoFE",
+    children: [
+      %{
+        key: :icons,
+        type: {:list, :map},
+        description: "Describe the icons of the app",
+        suggestion: [
+          %{
+            src: "/static/logo.png"
+          },
+          %{
+            src: "/static/icon.png",
+            type: "image/png"
+          },
+          %{
+            src: "/static/icon.ico",
+            sizes: "72x72 96x96 128x128 256x256"
+          }
+        ]
+      },
+      %{
+        key: :theme_color,
+        type: :string,
+        description: "Describe the theme color of the app",
+        suggestions: ["#282c37", "mediumpurple"]
+      },
+      %{
+        key: :background_color,
+        type: :string,
+        description: "Describe the background color of the app",
+        suggestions: ["#191b22", "aliceblue"]
       }
     ]
   },
@@ -2058,6 +2095,15 @@ config :pleroma, :config_description, [
     description: "Authentication / authorization settings",
     children: [
       %{
+        key: :enforce_oauth_admin_scope_usage,
+        type: :boolean,
+        description:
+          "OAuth admin scope requirement toggle. " <>
+            "If `true`, admin actions explicitly demand admin OAuth scope(s) presence in OAuth token " <>
+            "(client app must support admin scopes). If `false` and token doesn't have admin scope(s)," <>
+            "`is_admin` user flag grants access to admin-specific actions."
+      },
+      %{
         key: :auth_template,
         type: :string,
         description:
@@ -2290,7 +2336,8 @@ config :pleroma, :config_description, [
     group: :pleroma,
     key: :rate_limit,
     type: :group,
-    description: "Rate limit settings. This is an advanced feature and disabled by default.",
+    description:
+      "Rate limit settings. This is an advanced feature enabled only for :authentication by default.",
     children: [
       %{
         key: :search,
@@ -2329,6 +2376,12 @@ config :pleroma, :config_description, [
         description:
           "for fav / unfav or reblog / unreblog actions on the same status by the same user",
         suggestions: [{1000, 10}, [{10_000, 10}, {10_000, 50}]]
+      },
+      %{
+        key: :authentication,
+        type: [:tuple, {:list, :tuple}],
+        description: "for authentication create / password check / user existence check requests",
+        suggestions: [{60_000, 15}]
       }
     ]
   },
@@ -2684,6 +2737,42 @@ config :pleroma, :config_description, [
         key: :headers,
         type: {:list, :string},
         suggestions: [["Authorization", "Content-Type", "Idempotency-Key"]]
+      }
+    ]
+  },
+  %{
+    group: :pleroma,
+    key: Pleroma.Plugs.RemoteIp,
+    type: :group,
+    description: """
+    **If your instance is not behind at least one reverse proxy, you should not enable this plug.**
+
+    `Pleroma.Plugs.RemoteIp` is a shim to call [`RemoteIp`](https://git.pleroma.social/pleroma/remote_ip) but with runtime configuration.
+    """,
+    children: [
+      %{
+        key: :enabled,
+        type: :boolean,
+        description: "Enable/disable the plug. Defaults to `false`.",
+        suggestions: [true, false]
+      },
+      %{
+        key: :headers,
+        type: {:list, :string},
+        description:
+          "A list of strings naming the `req_headers` to use when deriving the `remote_ip`. Order does not matter. Defaults to `~w[forwarded x-forwarded-for x-client-ip x-real-ip]`."
+      },
+      %{
+        key: :proxies,
+        type: {:list, :string},
+        description:
+          "A list of strings in [CIDR](https://en.wikipedia.org/wiki/CIDR) notation specifying the IPs of known proxies. Defaults to `[]`."
+      },
+      %{
+        key: :reserved,
+        type: {:list, :string},
+        description:
+          "Defaults to [localhost](https://en.wikipedia.org/wiki/Localhost) and [private network](https://en.wikipedia.org/wiki/Private_network)."
       }
     ]
   },

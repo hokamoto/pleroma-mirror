@@ -68,7 +68,7 @@ sudo useradd -r -s /bin/false -m -d /var/lib/pleroma -U pleroma
 ```shell
 sudo mkdir -p /opt/pleroma
 sudo chown -R pleroma:pleroma /opt/pleroma
-sudo -Hu pleroma git clone -b master https://git.pleroma.social/pleroma/pleroma /opt/pleroma
+sudo -Hu pleroma git clone -b stable https://git.pleroma.social/pleroma/pleroma /opt/pleroma
 ```
 
 * Change to the new directory:
@@ -190,12 +190,10 @@ sudo -Hu pleroma MIX_ENV=prod mix pleroma.user new <username> <your@emailaddress
 
 #### Further reading
 
-* [Backup your instance](backup.html)
-* [Configuration tips](general-tips-for-customizing-pleroma-fe.html)
-* [Hardening your instance](hardening.html)
-* [How to activate mediaproxy](howto_mediaproxy.html)
-* [Small Pleroma-FE customizations](small_customizations.html)
-* [Updating your instance](updating.html)
+* [Backup your instance](../administration/backup.md)
+* [Hardening your instance](../configuration/hardening.md)
+* [How to activate mediaproxy](../configuration/howto_mediaproxy.md)
+* [Updating your instance](../administration/updating.md)
 
 ## Questions
 

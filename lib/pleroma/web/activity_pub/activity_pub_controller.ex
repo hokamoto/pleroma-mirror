@@ -45,7 +45,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
   end
 
   def user(conn, %{"nickname" => nickname}) do
-    with %User{} = user <- User.get_cached_by_nickname(nickname),
+    with %User{local: true} = user <- User.get_cached_by_nickname(nickname),
          {:ok, user} <- User.ensure_keys_present(user) do
       conn
       |> put_resp_content_type("application/activity+json")
@@ -53,6 +53,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
       |> render("user.json", %{user: user})
     else
       nil -> {:error, :not_found}
+      %{local: false} -> {:error, :not_found}
     end
   end
 
@@ -80,38 +81,6 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     end
 
     conn
-  end
-
-  def object_likes(conn, %{"uuid" => uuid, "page" => page}) do
-    with ap_id <- o_status_url(conn, :object, uuid),
-         %Object{} = object <- Object.get_cached_by_ap_id(ap_id),
-         {_, true} <- {:public?, Visibility.is_public?(object)},
-         likes <- Utils.get_object_likes(object) do
-      {page, _} = Integer.parse(page)
-
-      conn
-      |> put_resp_content_type("application/activity+json")
-      |> put_view(ObjectView)
-      |> render("likes.json", %{ap_id: ap_id, likes: likes, page: page})
-    else
-      {:public?, false} ->
-        {:error, :not_found}
-    end
-  end
-
-  def object_likes(conn, %{"uuid" => uuid}) do
-    with ap_id <- o_status_url(conn, :object, uuid),
-         %Object{} = object <- Object.get_cached_by_ap_id(ap_id),
-         {_, true} <- {:public?, Visibility.is_public?(object)},
-         likes <- Utils.get_object_likes(object) do
-      conn
-      |> put_resp_content_type("application/activity+json")
-      |> put_view(ObjectView)
-      |> render("likes.json", %{ap_id: ap_id, likes: likes})
-    else
-      {:public?, false} ->
-        {:error, :not_found}
-    end
   end
 
   def activity(conn, %{"uuid" => uuid}) do
@@ -169,7 +138,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     with %User{} = user <- User.get_cached_by_nickname(nickname),
          {user, for_user} <- ensure_user_keys_present_and_maybe_refresh_for_user(user, for_user),
          {:show_follows, true} <-
-           {:show_follows, (for_user && for_user == user) || !user.info.hide_follows} do
+           {:show_follows, (for_user && for_user == user) || !user.hide_follows} do
       {page, _} = Integer.parse(page)
 
       conn
@@ -206,7 +175,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     with %User{} = user <- User.get_cached_by_nickname(nickname),
          {user, for_user} <- ensure_user_keys_present_and_maybe_refresh_for_user(user, for_user),
          {:show_followers, true} <-
-           {:show_followers, (for_user && for_user == user) || !user.info.hide_followers} do
+           {:show_followers, (for_user && for_user == user) || !user.hide_followers} do
       {page, _} = Integer.parse(page)
 
       conn
@@ -288,7 +257,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
 
   # only accept relayed Creates
   def inbox(conn, %{"type" => "Create"} = params) do
-    Logger.info(
+    Logger.debug(
       "Signature missing or not from author, relayed Create message, fetching object from source"
     )
 
@@ -301,11 +270,11 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     headers = Enum.into(conn.req_headers, %{})
 
     if String.contains?(headers["signature"], params["actor"]) do
-      Logger.info(
+      Logger.debug(
         "Signature validation error for: #{params["actor"]}, make sure you are forwarding the HTTP Host header!"
       )
 
-      Logger.info(inspect(conn.req_headers))
+      Logger.debug(inspect(conn.req_headers))
     end
 
     json(conn, dgettext("errors", "error"))
@@ -334,6 +303,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     |> represent_service_actor(conn)
   end
 
+  @doc "Returns the authenticated user's ActivityPub User object or a 404 Not Found if non-authenticated"
   def whoami(%{assigns: %{user: %User{} = user}} = conn, _params) do
     conn
     |> put_resp_content_type("application/activity+json")
@@ -350,12 +320,12 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
       when page? in [true, "true"] do
     activities =
       if params["max_id"] do
-        ActivityPub.fetch_activities([user.ap_id | user.following], %{
+        ActivityPub.fetch_activities([user.ap_id | User.following(user)], %{
           "max_id" => params["max_id"],
           "limit" => 10
         })
       else
-        ActivityPub.fetch_activities([user.ap_id | user.following], %{"limit" => 10})
+        ActivityPub.fetch_activities([user.ap_id | User.following(user)], %{"limit" => 10})
       end
 
     conn
@@ -418,7 +388,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
 
   def handle_user_activity(user, %{"type" => "Delete"} = params) do
     with %Object{} = object <- Object.normalize(params["object"]),
-         true <- user.info.is_moderator || user.ap_id == object.data["actor"],
+         true <- user.is_moderator || user.ap_id == object.data["actor"],
          {:ok, delete} <- ActivityPub.delete(object) do
       {:ok, delete}
     else
@@ -508,5 +478,32 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
       end
 
     {new_user, for_user}
+  end
+
+  # TODO: Add support for "object" field
+  @doc """
+  Endpoint based on <https://www.w3.org/wiki/SocialCG/ActivityPub/MediaUpload>
+
+  Parameters:
+  - (required) `file`: data of the media
+  - (optionnal) `description`: description of the media, intended for accessibility
+
+  Response:
+  - HTTP Code: 201 Created
+  - HTTP Body: ActivityPub object to be inserted into another's `attachment` field
+  """
+  def upload_media(%{assigns: %{user: user}} = conn, %{"file" => file} = data) do
+    with {:ok, object} <-
+           ActivityPub.upload(
+             file,
+             actor: User.ap_id(user),
+             description: Map.get(data, "description")
+           ) do
+      Logger.debug(inspect(object))
+
+      conn
+      |> put_status(:created)
+      |> json(object.data)
+    end
   end
 end

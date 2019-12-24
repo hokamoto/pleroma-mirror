@@ -42,7 +42,11 @@ apk add curl unzip ncurses postgresql postgresql-contrib nginx certbot
 ## Setup
 ### Configuring PostgreSQL
 #### (Optional) Installing RUM indexes
-RUM indexes are an alternative indexing scheme that is not included in PostgreSQL by default. You can read more about them on the [Configuration page](config.html#rum-indexing-for-full-text-search). They are completely optional and most of the time are not worth it, especially if you are running a single user instance (unless you absolutely need ordered search results).
+
+!!! warning
+    It is recommended to use PostgreSQL v11 or newer. We have seen some minor issues with lower PostgreSQL versions.
+
+RUM indexes are an alternative indexing scheme that is not included in PostgreSQL by default. You can read more about them on the [Configuration page](../configuration/cheatsheet.md#rum-indexing-for-full-text-search). They are completely optional and most of the time are not worth it, especially if you are running a single user instance (unless you absolutely need ordered search results).
 
 Debian/Ubuntu (available only on Buster/19.04):
 ```sh
@@ -74,13 +78,13 @@ rc-service postgresql restart
 # Create the Pleroma user
 adduser --system --shell  /bin/false --home /opt/pleroma pleroma
 
-# Set the flavour environment variable to the string you got in Detecting flavour section. 
+# Set the flavour environment variable to the string you got in Detecting flavour section.
 # For example if the flavour is `arm64-musl` the command will be
 export FLAVOUR="arm64-musl"
 
 # Clone the release build into a temporary directory and unpack it
 su pleroma -s $SHELL -lc "
-curl 'https://git.pleroma.social/api/v4/projects/2/jobs/artifacts/master/download?job=$FLAVOUR' -o /tmp/pleroma.zip
+curl 'https://git.pleroma.social/api/v4/projects/2/jobs/artifacts/stable/download?job=$FLAVOUR' -o /tmp/pleroma.zip
 unzip /tmp/pleroma.zip -d /tmp/
 "
 
@@ -180,7 +184,7 @@ rc-service pleroma start
 rc-update add pleroma
 ```
 
-If everything worked, you should see Pleroma-FE when visiting your domain. If that didn't happen, try reviewing the installation steps, starting Pleroma in the foreground and seeing if there are any errrors. 
+If everything worked, you should see Pleroma-FE when visiting your domain. If that didn't happen, try reviewing the installation steps, starting Pleroma in the foreground and seeing if there are any errrors.
 
 Still doesn't work? Feel free to contact us on [#pleroma on freenode](https://webchat.freenode.net/?channels=%23pleroma) or via matrix at <https://matrix.heldscal.la/#/room/#freenode_#pleroma:matrix.org>, you can also [file an issue on our Gitlab](https://git.pleroma.social/pleroma/pleroma/issues/new)
 
@@ -262,8 +266,8 @@ su pleroma -s $SHELL -lc "./bin/pleroma_ctl migrate"
 But you should **always check the release notes/changelog** in case there are config deprecations, special update steps, etc.
 
 ## Further reading
-* [Configuration](config.html)
-* [Pleroma's base config.exs](https://git.pleroma.social/pleroma/pleroma/blob/master/config/config.exs)
-* [Hardening your instance](hardening.html)
-* [Pleroma Clients](clients.html)
-* [Emoji pack manager](Mix.Tasks.Pleroma.Emoji.html)
+
+* [Backup your instance](../administration/backup.md)
+* [Hardening your instance](../configuration/hardening.md)
+* [How to activate mediaproxy](../configuration/howto_mediaproxy.md)
+* [Updating your instance](../administration/updating.md)

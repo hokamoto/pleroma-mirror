@@ -6,20 +6,26 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   use Pleroma.Web, :controller
 
   alias Pleroma.Notification
+  alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.User
   alias Pleroma.Web.OAuth.Token
   alias Pleroma.Web.TwitterAPI.TokenView
 
   require Logger
 
+  plug(OAuthScopesPlug, %{scopes: ["write:notifications"]} when action == :notifications_read)
+
+  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
+
   action_fallback(:errors)
 
   def confirm_email(conn, %{"user_id" => uid, "token" => token}) do
-    new_info = [need_confirmation: false]
-
-    with %User{info: info} = user <- User.get_cached_by_id(uid),
-         true <- user.local and info.confirmation_pending and info.confirmation_token == token,
-         {:ok, _} <- User.update_info(user, &User.Info.confirmation_changeset(&1, new_info)) do
+    with %User{} = user <- User.get_cached_by_id(uid),
+         true <- user.local and user.confirmation_pending and user.confirmation_token == token,
+         {:ok, _} <-
+           user
+           |> User.confirmation_changeset(need_confirmation: false)
+           |> User.update_and_set_cache() do
       redirect(conn, to: "/")
     end
   end

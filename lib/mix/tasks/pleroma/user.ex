@@ -5,91 +5,13 @@
 defmodule Mix.Tasks.Pleroma.User do
   use Mix.Task
   import Mix.Pleroma
+  alias Ecto.Changeset
   alias Pleroma.User
   alias Pleroma.UserInviteToken
-  alias Pleroma.Web.OAuth
 
   @shortdoc "Manages Pleroma users"
-  @moduledoc """
-  Manages Pleroma users.
+  @moduledoc File.read!("docs/administration/CLI_tasks/user.md")
 
-  ## Create a new user.
-
-      mix pleroma.user new NICKNAME EMAIL [OPTION...]
-
-  Options:
-  - `--name NAME` - the user's name (i.e., "Lain Iwakura")
-  - `--bio BIO` - the user's bio
-  - `--password PASSWORD` - the user's password
-  - `--moderator`/`--no-moderator` - whether the user is a moderator
-  - `--admin`/`--no-admin` - whether the user is an admin
-  - `-y`, `--assume-yes`/`--no-assume-yes` - whether to assume yes to all questions
-
-  ## Generate an invite link.
-
-      mix pleroma.user invite [OPTION...]
-
-    Options:
-    - `--expires-at DATE` - last day on which token is active (e.g. "2019-04-05")
-    - `--max-use NUMBER` - maximum numbers of token uses
-
-  ## List generated invites
-
-      mix pleroma.user invites
-
-  ## Revoke invite
-
-      mix pleroma.user revoke_invite TOKEN OR TOKEN_ID
-
-  ## Delete the user's account.
-
-      mix pleroma.user rm NICKNAME
-
-  ## Delete the user's activities.
-
-      mix pleroma.user delete_activities NICKNAME
-
-  ## Sign user out from all applications (delete user's OAuth tokens and authorizations).
-
-      mix pleroma.user sign_out NICKNAME
-
-  ## Deactivate or activate the user's account.
-
-      mix pleroma.user toggle_activated NICKNAME
-
-  ## Unsubscribe local users from user's account and deactivate it
-
-      mix pleroma.user unsubscribe NICKNAME
-
-  ## Unsubscribe local users from an entire instance and deactivate all accounts
-
-      mix pleroma.user unsubscribe_all_from_instance INSTANCE
-
-  ## Create a password reset link.
-
-      mix pleroma.user reset_password NICKNAME
-
-  ## Set the value of the given user's settings.
-
-      mix pleroma.user set NICKNAME [OPTION...]
-
-  Options:
-  - `--locked`/`--no-locked` - whether the user's account is locked
-  - `--moderator`/`--no-moderator` - whether the user is a moderator
-  - `--admin`/`--no-admin` - whether the user is an admin
-
-  ## Add tags to a user.
-
-      mix pleroma.user tag NICKNAME TAGS
-
-  ## Delete tags from a user.
-
-      mix pleroma.user untag NICKNAME TAGS
-
-  ## Toggle confirmation of the user's account.
-
-      mix pleroma.user toggle_confirmed NICKNAME
-  """
   def run(["new", nickname, email | rest]) do
     {options, [], []} =
       OptionParser.parse(
@@ -187,10 +109,10 @@ defmodule Mix.Tasks.Pleroma.User do
     start_pleroma()
 
     with %User{} = user <- User.get_cached_by_nickname(nickname) do
-      {:ok, user} = User.deactivate(user, !user.info.deactivated)
+      {:ok, user} = User.deactivate(user, !user.deactivated)
 
       shell_info(
-        "Activation status of #{nickname}: #{if(user.info.deactivated, do: "de", else: "")}activated"
+        "Activation status of #{nickname}: #{if(user.deactivated, do: "de", else: "")}activated"
       )
     else
       _ ->
@@ -240,7 +162,7 @@ defmodule Mix.Tasks.Pleroma.User do
 
       user = User.get_cached_by_id(user.id)
 
-      if Enum.empty?(user.following) do
+      if Enum.empty?(User.get_friends(user)) do
         shell_info("Successfully unsubscribed all followers from #{user.nickname}")
       end
     else
@@ -418,7 +340,7 @@ defmodule Mix.Tasks.Pleroma.User do
     with %User{} = user <- User.get_cached_by_nickname(nickname) do
       {:ok, user} = User.toggle_confirmation(user)
 
-      message = if user.info.confirmation_pending, do: "needs", else: "doesn't need"
+      message = if user.confirmation_pending, do: "needs", else: "doesn't need"
 
       shell_info("#{nickname} #{message} confirmation.")
     else
@@ -431,8 +353,7 @@ defmodule Mix.Tasks.Pleroma.User do
     start_pleroma()
 
     with %User{local: true} = user <- User.get_cached_by_nickname(nickname) do
-      OAuth.Token.delete_user_tokens(user)
-      OAuth.Authorization.delete_user_authorizations(user)
+      User.global_sign_out(user)
 
       shell_info("#{nickname} signed out from all apps.")
     else
@@ -441,24 +362,48 @@ defmodule Mix.Tasks.Pleroma.User do
     end
   end
 
-  defp set_moderator(user, value) do
-    {:ok, user} = User.update_info(user, &User.Info.admin_api_update(&1, %{is_moderator: value}))
+  def run(["list"]) do
+    start_pleroma()
 
-    shell_info("Moderator status of #{user.nickname}: #{user.info.is_moderator}")
+    Pleroma.User.Query.build(%{local: true})
+    |> Pleroma.RepoStreamer.chunk_stream(500)
+    |> Stream.each(fn users ->
+      users
+      |> Enum.each(fn user ->
+        shell_info(
+          "#{user.nickname} moderator: #{user.is_moderator}, admin: #{user.is_admin}, locked: #{
+            user.locked
+          }, deactivated: #{user.deactivated}"
+        )
+      end)
+    end)
+    |> Stream.run()
+  end
+
+  defp set_moderator(user, value) do
+    {:ok, user} =
+      user
+      |> Changeset.change(%{is_moderator: value})
+      |> User.update_and_set_cache()
+
+    shell_info("Moderator status of #{user.nickname}: #{user.is_moderator}")
     user
   end
 
   defp set_admin(user, value) do
-    {:ok, user} = User.update_info(user, &User.Info.admin_api_update(&1, %{is_admin: value}))
+    {:ok, user} = User.admin_api_update(user, %{is_admin: value})
 
-    shell_info("Admin status of #{user.nickname}: #{user.info.is_admin}")
+    shell_info("Admin status of #{user.nickname}: #{user.is_admin}")
     user
   end
 
   defp set_locked(user, value) do
-    {:ok, user} = User.update_info(user, &User.Info.user_upgrade(&1, %{locked: value}))
+    {:ok, user} =
+      user
+      |> Changeset.change(%{locked: value})
+      |> User.update_and_set_cache()
 
-    shell_info("Locked status of #{user.nickname}: #{user.info.locked}")
+    shell_info("Locked status of #{user.nickname}: #{user.locked}")
     user
   end
 end

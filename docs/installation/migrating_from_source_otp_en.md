@@ -11,7 +11,7 @@ Benefits of OTP releases over from-source installs include:
 * **Faster and less bug-prone mix tasks.** On a from-source install one has to wait untill a new Pleroma node is started for each mix task and they execute outside of the instance context (for example if a user was deleted via a mix task, the instance will have no knowledge of that and continue to display status count and follows before the cache expires). Mix tasks in OTP releases are executed by calling into a running instance via RPC, which solves both of these problems.
 
 ### Sounds great, how do I switch?
-Currently we support Linux machines with GNU (e.g. Debian, Ubuntu) or musl (e.g. Alpine) libc and `x86_64`, `aarch64` or `armv7l` CPUs. If you are unsure, check the [Detecting flavour](otp_en.html#detecting-flavour) section in OTP install guide. If your platform is supported, proceed with the guide, if not check the [My platform is not supported](#my-platform-is-not-supported) section.
+Currently we support Linux machines with GNU (e.g. Debian, Ubuntu) or musl (e.g. Alpine) libc and `x86_64`, `aarch64` or `armv7l` CPUs. If you are unsure, check the [Detecting flavour](otp_en.md#detecting-flavour) section in OTP install guide. If your platform is supported, proceed with the guide, if not check the [My platform is not supported](#my-platform-is-not-supported) section.
 ### I don't think it is worth the effort, can I stay on a from-source install?
 Yes, currently there are no plans to deprecate them.
 
@@ -70,7 +70,7 @@ and then copy custom emojis to `/var/lib/pleroma/static/emoji/custom`.
 
 This is needed because storing custom emojis in the root directory is deprecated, but if you just move them to `/var/lib/pleroma/static/emoji/custom` it will break emoji urls on old posts.
 
-Note that globs have been replaced with `pack_extensions`, so if your emojis are not in png/gif you should [modify the default value](config.html#emoji).
+Note that globs have been replaced with `pack_extensions`, so if your emojis are not in png/gif you should [modify the default value](../configuration/cheatsheet.md#emoji).
 
 ### Moving the config
 ```sh
@@ -86,7 +86,7 @@ mv ~pleroma/config/prod.secret.exs /etc/pleroma/config.exs
 $EDITOR /etc/pleroma/config.exs
 ```
 ## Installing the release
-Before proceeding, get the flavour from [Detecting flavour](otp_en.html#detecting-flavour) section in OTP installation guide.
+Before proceeding, get the flavour from [Detecting flavour](otp_en.md#detecting-flavour) section in OTP installation guide.
 ```sh
 # Delete all files in pleroma user's directory
 rm -r ~pleroma/*
@@ -96,9 +96,9 @@ rm -r ~pleroma/*
 export FLAVOUR="arm64-musl"
 
 # Clone the release build into a temporary directory and unpack it
-# Replace `master` with `develop` if you want to run the develop branch
+# Replace `stable` with `unstable` if you want to run the unstable branch
 su pleroma -s $SHELL -lc "
-curl 'https://git.pleroma.social/api/v4/projects/2/jobs/artifacts/master/download?job=$FLAVOUR' -o /tmp/pleroma.zip
+curl 'https://git.pleroma.social/api/v4/projects/2/jobs/artifacts/stable/download?job=$FLAVOUR' -o /tmp/pleroma.zip
 unzip /tmp/pleroma.zip -d /tmp/
 "
 
@@ -148,6 +148,6 @@ cp -f ~pleroma/installation/init.d/pleroma /etc/init.d/pleroma
 rc-service pleroma start
 ```
 ## Running mix tasks
-Refer to [Running mix tasks](otp_en.html#running-mix-tasks) section from OTP release installation guide.
+Refer to [Running mix tasks](otp_en.md#running-mix-tasks) section from OTP release installation guide.
 ## Updating
-Refer to [Updating](otp_en.html#updating) section from OTP release installation guide.
+Refer to [Updating](otp_en.md#updating) section from OTP release installation guide.

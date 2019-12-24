@@ -5,6 +5,7 @@
 defmodule Pleroma.Application do
   import Cachex.Spec
   use Application
+  require Logger
 
   @name Mix.Project.config()[:name]
   @version Mix.Project.config()[:version]
@@ -17,15 +18,23 @@ defmodule Pleroma.Application do
   def repository, do: @repository
 
   def user_agent do
-    info = "#{Pleroma.Web.base_url()} <#{Pleroma.Config.get([:instance, :email], "")}>"
-    named_version() <> "; " <> info
+    case Pleroma.Config.get([:http, :user_agent], :default) do
+      :default ->
+        info = "#{Pleroma.Web.base_url()} <#{Pleroma.Config.get([:instance, :email], "")}>"
+        named_version() <> "; " <> info
+
+      custom ->
+        custom
+    end
   end
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
+    Pleroma.HTML.compile_scrubbers()
     Pleroma.Config.DeprecationWarnings.warn()
     setup_instrumenters()
+    load_custom_modules()
 
     # Define workers and child supervisors to be supervised
     children =
@@ -36,12 +45,14 @@ defmodule Pleroma.Application do
         Pleroma.Emoji,
         Pleroma.Captcha,
         Pleroma.Daemons.ScheduledActivityDaemon,
-        Pleroma.Daemons.ActivityExpirationDaemon
+        Pleroma.Daemons.ActivityExpirationDaemon,
+        Pleroma.Plugs.RateLimiter.Supervisor
       ] ++
         cachex_children() ++
         hackney_pool_children() ++
         [
           Pleroma.Stats,
+          Pleroma.JobQueueMonitor,
           {Oban, Pleroma.Config.get(Oban)}
         ] ++
         task_children(@env) ++
@@ -57,6 +68,28 @@ defmodule Pleroma.Application do
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Pleroma.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  def load_custom_modules do
+    dir = Pleroma.Config.get([:modules, :runtime_dir])
+
+    if dir && File.exists?(dir) do
+      dir
+      |> Pleroma.Utils.compile_dir()
+      |> case do
+        {:error, _errors, _warnings} ->
+          raise "Invalid custom modules"
+
+        {:ok, modules, _warnings} ->
+          if @env != :test do
+            Enum.each(modules, fn mod ->
+              Logger.info("Custom module loaded: #{inspect(mod)}")
+            end)
+          end
+
+          :ok
+      end
+    end
   end
 
   defp setup_instrumenters do
@@ -102,7 +135,8 @@ defmodule Pleroma.Application do
       build_cachex("scrubber", limit: 2500),
       build_cachex("idempotency", expiration: idempotency_expiration(), limit: 2500),
       build_cachex("web_resp", limit: 2500),
-      build_cachex("emoji_packs", expiration: emoji_packs_expiration(), limit: 10)
+      build_cachex("emoji_packs", expiration: emoji_packs_expiration(), limit: 10),
+      build_cachex("failed_proxy_url", limit: 2500)
     ]
   end
 
@@ -138,8 +172,6 @@ defmodule Pleroma.Application do
 
   defp oauth_cleanup_child(_), do: []
 
-  defp chat_child(:test, _), do: []
-
   defp chat_child(_env, true) do
     [Pleroma.Web.ChatChannel.ChatChannelState]
   end
@@ -159,11 +191,6 @@ defmodule Pleroma.Application do
         id: :web_push_init,
         start: {Task, :start_link, [&Pleroma.Web.Push.init/0]},
         restart: :temporary
-      },
-      %{
-        id: :federator_init,
-        start: {Task, :start_link, [&Pleroma.Web.Federator.init/0]},
-        restart: :temporary
       }
     ]
   end
@@ -173,11 +200,6 @@ defmodule Pleroma.Application do
       %{
         id: :web_push_init,
         start: {Task, :start_link, [&Pleroma.Web.Push.init/0]},
-        restart: :temporary
-      },
-      %{
-        id: :federator_init,
-        start: {Task, :start_link, [&Pleroma.Web.Federator.init/0]},
         restart: :temporary
       },
       %{

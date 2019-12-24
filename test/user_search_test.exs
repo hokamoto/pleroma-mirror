@@ -15,6 +15,14 @@ defmodule Pleroma.UserSearchTest do
   end
 
   describe "User.search" do
+    test "excluded invisible users from results" do
+      user = insert(:user, %{nickname: "john t1000"})
+      insert(:user, %{invisible: true, nickname: "john t800"})
+
+      [found_user] = User.search("john")
+      assert found_user.id == user.id
+    end
+
     test "accepts limit parameter" do
       Enum.each(0..4, &insert(:user, %{nickname: "john#{&1}"}))
       assert length(User.search("john", limit: 3)) == 3
@@ -51,33 +59,11 @@ defmodule Pleroma.UserSearchTest do
       end)
     end
 
-    test "finds users, preferring nickname matches over name matches" do
-      u1 = insert(:user, %{name: "lain", nickname: "nick1"})
-      u2 = insert(:user, %{nickname: "lain", name: "nick1"})
-
-      assert [u2.id, u1.id] == Enum.map(User.search("lain"), & &1.id)
-    end
-
     test "finds users, considering density of matched tokens" do
       u1 = insert(:user, %{name: "Bar Bar plus Word Word"})
       u2 = insert(:user, %{name: "Word Word Bar Bar Bar"})
 
       assert [u2.id, u1.id] == Enum.map(User.search("bar word"), & &1.id)
-    end
-
-    test "finds users, ranking by similarity" do
-      u1 = insert(:user, %{name: "lain"})
-      _u2 = insert(:user, %{name: "ean"})
-      u3 = insert(:user, %{name: "ebn", nickname: "lain@mastodon.social"})
-      u4 = insert(:user, %{nickname: "lain@pleroma.soykaf.com"})
-
-      assert [u4.id, u3.id, u1.id] == Enum.map(User.search("lain@ple", for_user: u1), & &1.id)
-    end
-
-    test "finds users, handling misspelled requests" do
-      u1 = insert(:user, %{name: "lain"})
-
-      assert [u1.id] == Enum.map(User.search("laiin"), & &1.id)
     end
 
     test "finds users, boosting ranks of friends and followers" do
@@ -163,17 +149,6 @@ defmodule Pleroma.UserSearchTest do
       Pleroma.Config.put([:instance, :limit_to_local_content], :unauthenticated)
     end
 
-    test "finds a user whose name is nil" do
-      _user = insert(:user, %{name: "notamatch", nickname: "testuser@pleroma.amplifie.red"})
-      user_two = insert(:user, %{name: nil, nickname: "lain@pleroma.soykaf.com"})
-
-      assert user_two ==
-               User.search("lain@pleroma.soykaf.com")
-               |> List.first()
-               |> Map.put(:search_rank, nil)
-               |> Map.put(:search_type, nil)
-    end
-
     test "does not yield false-positive matches" do
       insert(:user, %{name: "John Doe"})
 
@@ -199,6 +174,7 @@ defmodule Pleroma.UserSearchTest do
         |> Map.put(:search_rank, nil)
         |> Map.put(:search_type, nil)
         |> Map.put(:last_digest_emailed_at, nil)
+        |> Map.put(:notification_settings, nil)
 
       assert user == expected
     end

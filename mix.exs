@@ -4,7 +4,7 @@ defmodule Pleroma.Mixfile do
   def project do
     [
       app: :pleroma,
-      version: version("1.0.0"),
+      version: version("1.1.50"),
       elixir: "~> 1.8",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
@@ -63,12 +63,13 @@ defmodule Pleroma.Mixfile do
   def application do
     [
       mod: {Pleroma.Application, []},
-      extra_applications: [:logger, :runtime_tools, :comeonin, :quack],
+      extra_applications: [:logger, :runtime_tools, :comeonin, :quack, :fast_sanitize, :swarm],
       included_applications: [:ex_syslogger]
     ]
   end
 
   # Specifies which paths to compile per environment.
+  defp elixirc_paths(:benchmark), do: ["lib", "benchmarks"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
@@ -99,16 +100,17 @@ defmodule Pleroma.Mixfile do
       {:plug_cowboy, "~> 2.0"},
       {:phoenix_pubsub, "~> 1.1"},
       {:phoenix_ecto, "~> 4.0"},
+      {:ecto_enum, "~> 1.4"},
       {:ecto_sql, "~> 3.2"},
       {:postgrex, ">= 0.13.5"},
-      {:oban, "~> 0.8.1"},
+      {:oban, "~> 0.12.0"},
       {:quantum, "~> 2.3"},
       {:gettext, "~> 0.15"},
       {:comeonin, "~> 4.1.1"},
       {:pbkdf2_elixir, "~> 0.12.3"},
       {:trailing_format_plug, "~> 0.0.7"},
-      {:html_sanitize_ex, "~> 1.3.0"},
-      {:html_entities, "~> 0.4"},
+      {:fast_sanitize, "~> 0.1"},
+      {:html_entities, "~> 0.5", override: true},
       {:phoenix_html, "~> 2.10"},
       {:calendar, "~> 0.17.4"},
       {:cachex, "~> 3.0.2"},
@@ -154,11 +156,16 @@ defmodule Pleroma.Mixfile do
       {:joken, "~> 2.0"},
       {:benchee, "~> 1.0"},
       {:esshd, "~> 0.1.0", runtime: Application.get_env(:esshd, :enabled, false)},
-      {:ex_rated, "~> 1.3"},
       {:ex_const, "~> 0.2"},
       {:plug_static_index_html, "~> 1.0.0"},
       {:excoveralls, "~> 0.11.1", only: :test},
       {:flake_id, "~> 0.1.0"},
+      {:remote_ip,
+       git: "https://git.pleroma.social/pleroma/remote_ip.git",
+       ref: "825dc00aaba5a1b7c4202a532b696b595dd3bcb3"},
+      {:captcha,
+       git: "https://git.pleroma.social/pleroma/elixir-libraries/elixir-captcha.git",
+       ref: "c3c795c55f6b49d79d6ac70a0f91e525099fc3e2"},
       {:mox, "~> 0.5", only: :test}
     ] ++ oauth_deps()
   end
@@ -191,33 +198,30 @@ defmodule Pleroma.Mixfile do
     identifier_filter = ~r/[^0-9a-z\-]+/i
 
     # Pre-release version, denoted from patch version with a hyphen
-    {git_tag, git_pre_release} =
+    git_pre_release =
       with {tag, 0} <-
              System.cmd("git", ["describe", "--tags", "--abbrev=0"], stderr_to_stdout: true),
-           tag = String.trim(tag),
-           {describe, 0} <- System.cmd("git", ["describe", "--tags", "--abbrev=8"]),
-           describe = String.trim(describe),
-           ahead <- String.replace(describe, tag, ""),
-           ahead <- String.trim_leading(ahead, "-") do
-        {String.replace_prefix(tag, "v", ""), if(ahead != "", do: String.trim(ahead))}
+           {describe, 0} <- System.cmd("git", ["describe", "--tags", "--abbrev=8"]) do
+        describe
+        |> String.trim()
+        |> String.replace(String.trim(tag), "")
+        |> String.trim_leading("-")
+        |> String.trim()
       else
         _ ->
           {commit_hash, 0} = System.cmd("git", ["rev-parse", "--short", "HEAD"])
-          {nil, "0-g" <> String.trim(commit_hash)}
+          "0-g" <> String.trim(commit_hash)
       end
-
-    if git_tag && version != git_tag do
-      Mix.shell().error(
-        "Application version #{inspect(version)} does not match git tag #{inspect(git_tag)}"
-      )
-    end
 
     # Branch name as pre-release version component, denoted with a dot
     branch_name =
       with {branch_name, 0} <- System.cmd("git", ["rev-parse", "--abbrev-ref", "HEAD"]),
            branch_name <- String.trim(branch_name),
            branch_name <- System.get_env("PLEROMA_BUILD_BRANCH") || branch_name,
-           true <- branch_name not in ["master", "HEAD"] do
+           true <-
+             !Enum.any?(["master", "HEAD", "release/", "stable"], fn name ->
+               String.starts_with?(name, branch_name)
+             end) do
         branch_name =
           branch_name
           |> String.trim()
