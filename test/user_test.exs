@@ -498,14 +498,18 @@ defmodule Pleroma.UserTest do
       user = insert(:user)
 
       {:ok, fetched_user} =
-        User.get_or_fetch_by_nickname(user.nickname <> "@" <> Pleroma.Web.Endpoint.host())
+        User.get_or_fetch_by_nickname(
+          user.nickname <> "@" <> Pleroma.Web.Endpoint.webfinger_domain()
+        )
 
       assert user == fetched_user
     end
 
     test "gets an existing user by fully qualified nickname, case insensitive" do
       user = insert(:user, nickname: "nick")
-      casing_altered_fqn = String.upcase(user.nickname <> "@" <> Pleroma.Web.Endpoint.host())
+
+      casing_altered_fqn =
+        String.upcase(user.nickname <> "@" <> Pleroma.Web.Endpoint.webfinger_domain())
 
       {:ok, fetched_user} = User.get_or_fetch_by_nickname(casing_altered_fqn)
 

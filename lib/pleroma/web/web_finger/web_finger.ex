@@ -31,7 +31,7 @@ defmodule Pleroma.Web.WebFinger do
   end
 
   def webfinger(resource, fmt) when fmt in ["XML", "JSON"] do
-    host = Pleroma.Web.Endpoint.host()
+    host = Pleroma.Web.Endpoint.webfinger_domain()
     regex = ~r/(acct:)?(?<username>[a-z0-9A-Z_\.-]+)@#{host}/
 
     with %{"username" => username} <- Regex.named_captures(regex, resource),
@@ -62,7 +62,7 @@ defmodule Pleroma.Web.WebFinger do
     {:ok, user} = User.ensure_keys_present(user)
 
     %{
-      "subject" => "acct:#{user.nickname}@#{Pleroma.Web.Endpoint.host()}",
+      "subject" => "acct:#{user.nickname}@#{Pleroma.Web.Endpoint.webfinger_domain()}",
       "aliases" => [user.ap_id],
       "links" => gather_links(user)
     }
@@ -79,7 +79,7 @@ defmodule Pleroma.Web.WebFinger do
       :XRD,
       %{xmlns: "http://docs.oasis-open.org/ns/xri/xrd-1.0"},
       [
-        {:Subject, "acct:#{user.nickname}@#{Pleroma.Web.Endpoint.host()}"},
+        {:Subject, "acct:#{user.nickname}@#{Pleroma.Web.Endpoint.webfinger_domain()}"},
         {:Alias, user.ap_id}
       ] ++ links
     }

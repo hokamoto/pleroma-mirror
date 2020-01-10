@@ -124,4 +124,8 @@ defmodule Pleroma.Web.Endpoint do
   def websocket_url do
     String.replace_leading(url(), "http", "ws")
   end
+
+  def webfinger_domain do
+    Pleroma.Config.get([__MODULE__, :webfinger_domain], host())
+  end
 end
