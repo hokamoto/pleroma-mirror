@@ -35,7 +35,7 @@ defmodule Pleroma.Web.Metadata.Utils do
   def user_name_string(user) do
     "#{user.name} " <>
       if user.local do
-        "(@#{user.nickname}@#{Pleroma.Web.Endpoint.host()})"
+        "(@#{user.nickname}@#{Pleroma.Web.Endpoint.webfinger_domain()})"
       else
         "(@#{user.nickname})"
       end

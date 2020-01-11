@@ -26,7 +26,7 @@ defmodule Pleroma.Web.WebFingerTest do
       user = insert(:user)
 
       {:ok, result} =
-        WebFinger.webfinger("#{user.nickname}@#{Pleroma.Web.Endpoint.host()}", "XML")
+        WebFinger.webfinger("#{user.nickname}@#{Pleroma.Web.Endpoint.webfinger_domain()}", "XML")
 
       assert is_binary(result)
     end

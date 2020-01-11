@@ -56,6 +56,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Support for custom Elixir modules (such as MRF policies)
 - User settings: Add _This account is a_ option.
 - OAuth: admin scopes support (relevant setting: `[:auth, :enforce_oauth_admin_scope_usage]`).
+- Support for different webfinger domain than HTTP serving hostname (`[Pleroma.Web.Endpoint, :webfinger_domain]`; you are responsible for handling/routing the WebFinger requests)
 <details>
   <summary>API Changes</summary>
 
