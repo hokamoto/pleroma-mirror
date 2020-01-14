@@ -114,12 +114,16 @@ defmodule Pleroma.Web.TwitterAPI.RemoteFollowController do
   end
 
   defp handle_follow_error(conn, {:verify_mfa_code, followee, token, _} = _) do
-    render(conn, "follow_mfa.html", %{error: "Wrong token", followee: followee, mfa_token: token})
+    render(conn, "follow_mfa.html", %{
+      error: "Wrong authentication code",
+      followee: followee,
+      mfa_token: token
+    })
   end
 
   defp handle_follow_error(conn, {:mfa_required, followee, user, _} = _) do
     {:ok, %{token: token}} = MFA.Token.create_token(user)
-    render(conn, "follow_mfa.html", %{followee: followee, mfa_token: token})
+    render(conn, "follow_mfa.html", %{followee: followee, mfa_token: token, error: false})
   end
 
   defp handle_follow_error(conn, {:auth, _, followee} = _) do

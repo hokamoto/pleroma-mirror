@@ -5,10 +5,14 @@
 defmodule Pleroma.Web.TwitterAPI.RemoteFollowControllerTest do
   use Pleroma.Web.ConnCase
 
+  alias Pleroma.MFA
+  alias Pleroma.MFA.TOTP
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
+
   import ExUnit.CaptureLog
   import Pleroma.Factory
+  import Ecto.Query
 
   setup do
     Tesla.Mock.mock(fn env -> apply(HttpRequestMock, :request, [env]) end)
@@ -157,6 +161,120 @@ defmodule Pleroma.Web.TwitterAPI.RemoteFollowControllerTest do
         |> response(200)
 
       assert response =~ "Account followed!"
+    end
+  end
+
+  describe "POST /ostatus_subscribe - follow/2 with enabled Two-Factor Auth " do
+    test "redirect to MFA login form", %{conn: conn} do
+      otp_secret = TOTP.generate_secret()
+
+      user =
+        insert(:user,
+          multi_factor_authentication_settings: %MFA.Settings{
+            enabled: true,
+            totp: %MFA.Settings.TOTP{secret: otp_secret, confirmed: true}
+          }
+        )
+
+      user2 = insert(:user)
+
+      response =
+        conn
+        |> post(remote_follow_path(conn, :do_follow), %{
+          "authorization" => %{"name" => user.nickname, "password" => "test", "id" => user2.id}
+        })
+        |> response(200)
+
+      mfa_token = Pleroma.Repo.one(from(q in Pleroma.MFA.Token, where: q.user_id == ^user.id))
+
+      assert response =~ "Two-factor authentication"
+      assert response =~ "Authentication code"
+      assert response =~ mfa_token.token
+      refute user2.follower_address in User.following(user)
+    end
+
+    test "returns error when password is incorrect", %{conn: conn} do
+      otp_secret = TOTP.generate_secret()
+
+      user =
+        insert(:user,
+          multi_factor_authentication_settings: %MFA.Settings{
+            enabled: true,
+            totp: %MFA.Settings.TOTP{secret: otp_secret, confirmed: true}
+          }
+        )
+
+      user2 = insert(:user)
+
+      response =
+        conn
+        |> post(remote_follow_path(conn, :do_follow), %{
+          "authorization" => %{"name" => user.nickname, "password" => "test1", "id" => user2.id}
+        })
+        |> response(200)
+
+      assert response =~ "Wrong username or password"
+      refute user2.follower_address in User.following(user)
+    end
+
+    test "follows", %{conn: conn} do
+      otp_secret = TOTP.generate_secret()
+
+      user =
+        insert(:user,
+          multi_factor_authentication_settings: %MFA.Settings{
+            enabled: true,
+            totp: %MFA.Settings.TOTP{secret: otp_secret, confirmed: true}
+          }
+        )
+
+      {:ok, %{token: token}} = MFA.Token.create_token(user)
+
+      user2 = insert(:user)
+      otp_token = TOTP.generate_token(otp_secret)
+
+      response =
+        conn
+        |> post(
+          remote_follow_path(conn, :do_follow),
+          %{
+            "mfa" => %{"code" => otp_token, "token" => token, "id" => user2.id}
+          }
+        )
+        |> response(200)
+
+      assert response =~ "Account followed!"
+      assert user2.follower_address in User.following(user)
+    end
+
+    test "returns error when auth code is incorrect", %{conn: conn} do
+      otp_secret = TOTP.generate_secret()
+
+      user =
+        insert(:user,
+          multi_factor_authentication_settings: %MFA.Settings{
+            enabled: true,
+            totp: %MFA.Settings.TOTP{secret: otp_secret, confirmed: true}
+          }
+        )
+
+      {:ok, %{token: token}} = MFA.Token.create_token(user)
+
+      user2 = insert(:user)
+      otp_token = TOTP.generate_token(TOTP.generate_secret())
+
+      response =
+        conn
+        |> post(
+          remote_follow_path(conn, :do_follow),
+          %{
+            "mfa" => %{"code" => otp_token, "token" => token, "id" => user2.id}
+          }
+        )
+        |> response(200)
+
+      assert response =~ "Wrong authentication code"
+      refute user2.follower_address in User.following(user)
     end
   end
 
