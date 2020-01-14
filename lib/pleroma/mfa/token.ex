@@ -44,6 +44,15 @@ defmodule Pleroma.MFA.Token do
     end
   end
 
+  def create_token(%User{} = user) do
+    %__MODULE__{}
+    |> change
+    |> assign_user(user)
+    |> put_token
+    |> put_valid_until
+    |> Repo.insert()
+  end
+
   def create_token(user, authorization) do
     %__MODULE__{}
     |> change
