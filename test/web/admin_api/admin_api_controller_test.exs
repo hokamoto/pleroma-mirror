@@ -1208,11 +1208,6 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
   end
 
   describe "PUT disable_mfa" do
-    setup do
-      admin = insert(:user, is_admin: true)
-      [conn: assign(build_conn(), :user, admin)]
-    end
-
     test "returns 200 and disable 2fa", %{conn: conn} do
       user =
         insert(:user,

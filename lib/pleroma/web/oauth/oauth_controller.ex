@@ -242,7 +242,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          {:password_reset_pending, false} <-
            {:password_reset_pending, user.password_reset_pending},
          {:ok, app} <- Token.Utils.fetch_app(conn),
-         {:ok, scopes} <- validate_scopes(app, params, user),
+         {:ok, scopes} <- validate_scopes(app, params),
          {:ok, auth} <- Authorization.create_authorization(app, user, scopes),
          {:mfa_required, _, _, false} <- {:mfa_required, user, auth, MFA.require?(user)},
          {:ok, token} <- Token.exchange_token(app, auth) do
@@ -507,7 +507,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
            {:get_user, (user && {:ok, user}) || Authenticator.get_user(conn)},
          %App{} = app <- Repo.get_by(App, client_id: client_id),
          true <- redirect_uri in String.split(app.redirect_uris),
-         {:ok, scopes} <- validate_scopes(app, auth_attrs, user),
+         {:ok, scopes} <- validate_scopes(app, auth_attrs),
          {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
          {:ok, auth} <- Authorization.create_authorization(app, user, scopes) do
       {:ok, auth, user}
@@ -530,12 +530,12 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     end
   end
 
-  @spec validate_scopes(App.t(), map(), User.t()) ::
+  @spec validate_scopes(App.t(), map()) ::
           {:ok, list()} | {:error, :missing_scopes | :unsupported_scopes}
-  defp validate_scopes(%App{} = app, params, %User{} = user) do
+  defp validate_scopes(%App{} = app, params) do
     params
     |> Scopes.fetch_scopes(app.scopes)
-    |> Scopes.validate(app.scopes, user)
+    |> Scopes.validate(app.scopes)
   end
 
   def default_redirect_uri(%App{} = app) do
