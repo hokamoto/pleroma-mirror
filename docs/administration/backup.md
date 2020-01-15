@@ -16,4 +16,7 @@
 4. Copy the above mentioned files back to their original position.
 5. Drop the existing database and recreate an empty one `sudo -Hu postgres psql -c DROP DATABASE <pleroma_db>` `sudo -Hu postgres psql -c CREATE DATABASE <pleroma_db>`
 6. Run `sudo -Hu postgres pg_restore -d <pleroma_db> -v -1 </path/to/backup_location/pleroma.pgdump>`
-7. Restart the Pleroma service.
+7. If you installed a newer Pleroma version, you should run `mix ecto.migrate`[^1]. This task performs database migrations, if there were any.
+8. Restart the Pleroma service.
+
+[^1]: Prefix with `MIX_ENV=prod` to run it using the production config file.
