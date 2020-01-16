@@ -48,19 +48,19 @@ defmodule Pleroma.User.Query do
             followers: User.t(),
             friends: User.t(),
             recipients_from_activity: [String.t()],
-            nickname: [String.t()],
+            nickname: String.t() | [String.t()],
             ap_id: [String.t()],
             order_by: term(),
             select: term(),
             limit: pos_integer()
           }
-          | %{}
+          | map()
 
   @ilike_criteria [:nickname, :name, :query]
   @equal_criteria [:email]
   @contains_criteria [:ap_id, :nickname]
 
-  @spec build(criteria()) :: Query.t()
+  @spec build(Query.t(), criteria()) :: Query.t()
   def build(query \\ base_query(), criteria) do
     prepare_query(query, criteria)
   end

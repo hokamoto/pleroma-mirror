@@ -1,6 +1,8 @@
 defmodule Pleroma.LoadTesting.Fetcher do
   use Pleroma.LoadTesting.Helper
 
+  alias Pleroma.Web.ActivityPub.ActivityPub
+
   def fetch_user(user) do
     Benchee.run(%{
       "By id" => fn -> Repo.get_by(User, id: user.id) end,
@@ -11,68 +13,93 @@ defmodule Pleroma.LoadTesting.Fetcher do
   end
 
   def query_timelines(user) do
-    home_timeline_params = %{
-      "count" => 20,
-      "with_muted" => true,
-      "type" => ["Create", "Announce"],
-      "blocking_user" => user,
-      "muting_user" => user,
-      "user" => user
-    }
-
-    mastodon_public_timeline_params = %{
-      "count" => 20,
-      "local_only" => true,
-      "only_media" => "false",
-      "type" => ["Create", "Announce"],
-      "with_muted" => "true",
-      "blocking_user" => user,
-      "muting_user" => user
-    }
-
-    mastodon_federated_timeline_params = %{
-      "count" => 20,
-      "only_media" => "false",
-      "type" => ["Create", "Announce"],
-      "with_muted" => "true",
-      "blocking_user" => user,
-      "muting_user" => user
-    }
-
+    Pleroma.Config.put([:instance, :skip_thread_containment], false)
     following = User.following(user)
 
-    Benchee.run(%{
-      "User home timeline" => fn ->
-        Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
-          following,
-          home_timeline_params
-        )
-      end,
-      "User mastodon public timeline" => fn ->
-        Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
-          mastodon_public_timeline_params
-        )
-      end,
-      "User mastodon federated public timeline" => fn ->
-        Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
-          mastodon_federated_timeline_params
-        )
-      end
-    })
+    Benchee.run(
+      %{
+        "User home timeline" => fn user ->
+          params = %{
+            "count" => 20,
+            "with_muted" => true,
+            "type" => ["Create", "Announce"],
+            "blocking_user" => user,
+            "muting_user" => user,
+            "user" => user
+          }
+
+          Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
+            [user.ap_id | following],
+            params
+          )
+        end,
+        "User mastodon public timeline" => fn user ->
+          params = %{
+            "count" => 20,
+            "local_only" => true,
+            "only_media" => "false",
+            "type" => ["Create", "Announce"],
+            "with_muted" => "true",
+            "blocking_user" => user,
+            "muting_user" => user
+          }
+
+          Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(params)
+        end,
+        "User mastodon federated public timeline" => fn user ->
+          params = %{
+            "count" => 20,
+            "only_media" => "false",
+            "type" => ["Create", "Announce"],
+            "with_muted" => "true",
+            "blocking_user" => user,
+            "muting_user" => user
+          }
+
+          Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(params)
+        end
+      },
+      inputs: %{
+        "without thread containment" => Map.put(user, :skip_thread_containment, true),
+        "with thread containment" => Map.put(user, :skip_thread_containment, false)
+      }
+    )
+
+    Pleroma.Config.put([:instance, :skip_thread_containment], true)
 
     home_activities =
       Pleroma.Web.ActivityPub.ActivityPub.fetch_activities(
-        following,
-        home_timeline_params
+        [user.ap_id | following],
+        %{
+          "count" => 20,
+          "with_muted" => true,
+          "type" => ["Create", "Announce"],
+          "blocking_user" => user,
+          "muting_user" => user,
+          "user" => user
+        }
       )
 
     public_activities =
-      Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(mastodon_public_timeline_params)
+      Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(%{
+        "count" => 20,
+        "local_only" => true,
+        "only_media" => "false",
+        "type" => ["Create", "Announce"],
+        "with_muted" => "true",
+        "blocking_user" => user,
+        "muting_user" => user
+      })
 
     public_federated_activities =
-      Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(
-        mastodon_federated_timeline_params
-      )
+      Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities(%{
+        "count" => 20,
+        "only_media" => "false",
+        "type" => ["Create", "Announce"],
+        "with_muted" => "true",
+        "blocking_user" => user,
+        "muting_user" => user
+      })
 
     Benchee.run(%{
       "Rendering home timeline" => fn ->
@@ -98,33 +125,35 @@ defmodule Pleroma.LoadTesting.Fetcher do
       end,
       "Rendering favorites timeline" => fn ->
         conn = Phoenix.ConnTest.build_conn(:get, "http://localhost:4001/api/v1/favourites", nil)
-        Pleroma.Web.MastodonAPI.StatusController.favourites(
-          %Plug.Conn{conn |
-                     assigns: %{user: user},
-                     query_params:  %{"limit" => "0"},
-                     body_params: %{},
-                     cookies: %{},
-                     params: %{},
-                     path_params: %{},
-                     private: %{
-                       Pleroma.Web.Router => {[], %{}},
-                       phoenix_router: Pleroma.Web.Router,
-                       phoenix_action: :favourites,
-                       phoenix_controller: Pleroma.Web.MastodonAPI.StatusController,
-                       phoenix_endpoint: Pleroma.Web.Endpoint,
-                       phoenix_format: "json",
-                       phoenix_layout: {Pleroma.Web.LayoutView, "app.html"},
-                       phoenix_recycled: true,
 
-                       phoenix_view: Pleroma.Web.MastodonAPI.StatusView,
-                       plug_session: %{"user_id" => user.id},
-                       plug_session_fetch: :done,
-                       plug_session_info: :write,
-                       plug_skip_csrf_protection: true
-                     }
+        Pleroma.Web.MastodonAPI.StatusController.favourites(
+          %Plug.Conn{
+            conn
+            | assigns: %{user: user},
+              query_params: %{"limit" => "0"},
+              body_params: %{},
+              cookies: %{},
+              params: %{},
+              path_params: %{},
+              private: %{
+                Pleroma.Web.Router => {[], %{}},
+                phoenix_router: Pleroma.Web.Router,
+                phoenix_action: :favourites,
+                phoenix_controller: Pleroma.Web.MastodonAPI.StatusController,
+                phoenix_endpoint: Pleroma.Web.Endpoint,
+                phoenix_format: "json",
+                phoenix_layout: {Pleroma.Web.LayoutView, "app.html"},
+                phoenix_recycled: true,
+                phoenix_view: Pleroma.Web.MastodonAPI.StatusView,
+                plug_session: %{"user_id" => user.id},
+                plug_session_fetch: :done,
+                plug_session_info: :write,
+                plug_skip_csrf_protection: true
+              }
           },
-          %{})
-      end,
+          %{}
+        )
+      end
     })
   end
 
@@ -254,6 +283,59 @@ defmodule Pleroma.LoadTesting.Fetcher do
           as: :activity
         )
         |> Enum.reverse()
+      end
+    })
+  end
+
+  def query_replies(user) do
+    public_params = %{
+      "type" => ["Create", "Announce"],
+      "local_only" => false,
+      "blocking_user" => user,
+      "muting_user" => user,
+      "count" => 20
+    }
+
+    Benchee.run(%{
+      "Public timeline without reply filtering" => fn ->
+        ActivityPub.fetch_public_activities(public_params)
+      end,
+      "Public timeline with reply filtering - following" => fn ->
+        public_params
+        |> Map.put("reply_visibility", "following")
+        |> Map.put("user", user)
+        |> ActivityPub.fetch_public_activities()
+      end,
+      "Public timeline with reply filtering - self" => fn ->
+        public_params
+        |> Map.put("reply_visibility", "self")
+        |> Map.put("user", user)
+        |> ActivityPub.fetch_public_activities()
+      end
+    })
+
+    private_params = %{
+      "type" => ["Create", "Announce"],
+      "blocking_user" => user,
+      "muting_user" => user,
+      "user" => user,
+      "count" => 20
+    }
+
+    recipients = [user.ap_id | User.following(user)]
+
+    Benchee.run(%{
+      "Home timeline without reply filtering" => fn ->
+        ActivityPub.fetch_activities(recipients, private_params)
+      end,
+      "Home timeline with reply filtering - following" => fn ->
+        private_params = Map.put(private_params, "reply_visibility", "following")
+
+        ActivityPub.fetch_activities(recipients, private_params)
+      end,
+      "Home timeline with reply filtering - self" => fn ->
+        private_params = Map.put(private_params, "reply_visibility", "self")
+        ActivityPub.fetch_activities(recipients, private_params)
       end
     })
   end

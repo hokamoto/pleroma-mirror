@@ -9,9 +9,9 @@ defmodule Pleroma.LoadTesting.Generator do
     {time, _} =
       :timer.tc(fn ->
         Task.async_stream(
-           Enum.take_random(posts, count_likes),
+          Enum.take_random(posts, count_likes),
           fn post -> {:ok, _, _} = CommonAPI.favorite(post.id, user) end,
-          max_concurrency: 10,
+          max_concurrency: 20,
           timeout: 30_000
         )
         |> Stream.run()
@@ -33,7 +33,7 @@ defmodule Pleroma.LoadTesting.Generator do
     Task.async_stream(
       1..max,
       &generate_user_data(&1),
-      max_concurrency: 10,
+      max_concurrency: 20,
       timeout: 30_000
     )
     |> Enum.to_list()
@@ -91,7 +91,7 @@ defmodule Pleroma.LoadTesting.Generator do
           fn _ ->
             do_generate_activity([user | users])
           end,
-          max_concurrency: 10,
+          max_concurrency: 20,
           timeout: 30_000
         )
         |> Stream.run()
@@ -101,14 +101,16 @@ defmodule Pleroma.LoadTesting.Generator do
 
     IO.puts("Starting generating 20000 activities with mentions...")
 
+    nicknames = Enum.map(users, &["@", &1.nickname])
+
     {time, _} =
       :timer.tc(fn ->
         Task.async_stream(
           1..20_000,
           fn _ ->
-            do_generate_activity_with_mention(user, users)
+            do_generate_activity_with_mention(Enum.random(users), user.nickname, nicknames)
           end,
-          max_concurrency: 10,
+          max_concurrency: 20,
           timeout: 30_000
         )
         |> Stream.run()
@@ -125,7 +127,7 @@ defmodule Pleroma.LoadTesting.Generator do
           fn _ ->
             do_generate_threads([user | users])
           end,
-          max_concurrency: 10,
+          max_concurrency: 20,
           timeout: 30_000
         )
         |> Stream.run()
@@ -142,21 +144,24 @@ defmodule Pleroma.LoadTesting.Generator do
     CommonAPI.post(Enum.random(users), post)
   end
 
-  defp do_generate_activity_with_mention(user, users) do
-    mentions_cnt = Enum.random([2, 3, 4, 5])
-    with_user = Enum.random([true, false])
-    users = Enum.shuffle(users)
-    mentions_users = Enum.take(users, mentions_cnt)
-    mentions_users = if with_user, do: [user | mentions_users], else: mentions_users
+  defp do_generate_activity_with_mention(author, nickname, nicknames) do
+    mentions =
+      nicknames
+      |> Enum.shuffle()
+      |> Enum.take(Enum.random([2, 3, 4, 5]))
 
-    mentions_str =
-      Enum.map(mentions_users, fn user -> "@" <> user.nickname end) |> Enum.join(", ")
+    mentions =
+      if Enum.random([true, false]) do
+        [nickname | mentions]
+      else
+        mentions
+      end
 
     post = %{
-      "status" => mentions_str <> "some status with mentions random users"
+      "status" => ["some status with mentions random users" | mentions] |> Enum.join(" ")
     }
 
-    CommonAPI.post(Enum.random(users), post)
+    CommonAPI.post(author, post)
   end
 
   defp do_generate_threads(users) do
@@ -174,7 +179,7 @@ defmodule Pleroma.LoadTesting.Generator do
 
       post = %{
         "status" => "@#{actor.nickname} reply to thread",
-        "in_reply_to_status_id" => activity.id
+        "in_reply_to_status_id" => activity
       }
 
       CommonAPI.post(user, post)
@@ -195,7 +200,7 @@ defmodule Pleroma.LoadTesting.Generator do
           fn i ->
             do_generate_remote_activity(i, user, users)
           end,
-          max_concurrency: 10,
+          max_concurrency: 20,
           timeout: 30_000
         )
         |> Stream.run()
@@ -268,7 +273,7 @@ defmodule Pleroma.LoadTesting.Generator do
       fn _ ->
         do_generate_dm(user, users)
       end,
-      max_concurrency: 10,
+      max_concurrency: 20,
       timeout: 30_000
     )
     |> Stream.run()
@@ -291,12 +296,12 @@ defmodule Pleroma.LoadTesting.Generator do
   end
 
   defp do_generate_long_thread(user, users, opts) do
-    {:ok, %{id: id} = activity} = CommonAPI.post(user, %{"status" => "Start of long thread"})
+    {:ok, activity} = CommonAPI.post(user, %{"status" => "Start of long thread"})
 
     Task.async_stream(
       1..opts[:thread_length],
-      fn _ -> do_generate_thread(users, id) end,
-      max_concurrency: 10,
+      fn _ -> do_generate_thread(users, activity) end,
+      max_concurrency: 20,
       timeout: 30_000
     )
     |> Stream.run()
@@ -304,10 +309,10 @@ defmodule Pleroma.LoadTesting.Generator do
     activity
   end
 
-  defp do_generate_thread(users, activity_id) do
+  defp do_generate_thread(users, activity) do
     CommonAPI.post(Enum.random(users), %{
       "status" => "reply to main post",
-      "in_reply_to_status_id" => activity_id
+      "in_reply_to_status_id" => activity
     })
   end
 
@@ -328,7 +333,7 @@ defmodule Pleroma.LoadTesting.Generator do
     make_friends(user, users)
 
     Task.async_stream(1..1000, fn _ -> do_generate_non_visible_post(not_friend, users) end,
-      max_concurrency: 10,
+      max_concurrency: 20,
       timeout: 30_000
     )
     |> Stream.run()
@@ -357,11 +362,70 @@ defmodule Pleroma.LoadTesting.Generator do
 
       post = %{
         "status" => "@#{not_friend.nickname} reply to non visible post",
-        "in_reply_to_status_id" => activity.id,
+        "in_reply_to_status_id" => activity,
         "visibility" => "private"
       }
 
       CommonAPI.post(user, post)
     end)
+  end
+
+  def generate_replies(user, followers) do
+    IO.puts("Starting generating thread with 150 replies")
+    {time, _} = :timer.tc(fn -> do_generate_replies(user, followers) end)
+    IO.puts("Inserting thread with 150 replies take #{to_sec(time)} sec.\n")
+  end
+
+  defp do_generate_replies(user, [f1, f2, f3]) do
+    {:ok, user} = User.follow(user, f1)
+    {:ok, f1} = User.follow(f1, user)
+    {:ok, user} = User.follow(user, f3)
+    {:ok, f3} = User.follow(f3, user)
+
+    {:ok, f1} = User.follow(f1, f2)
+    {:ok, f2} = User.follow(f2, f1)
+
+    {:ok, activity} = CommonAPI.post(user, %{"status" => "Status"})
+
+    Stream.iterate(activity, fn id ->
+      {:ok, r1} =
+        CommonAPI.post(f1, %{
+          "status" => "@#{user.nickname} reply from #{f1.nickname} to #{user.nickname}",
+          "in_reply_to_status_id" => id
+        })
+
+      {:ok, r2} =
+        CommonAPI.post(f2, %{
+          "status" => "@#{f1.nickname} reply from #{f2.nickname} to #{f1.nickname}",
+          "in_reply_to_status_id" => r1
+        })
+
+      {:ok, r3} =
+        CommonAPI.post(f3, %{
+          "status" => "@#{f2.nickname} reply from #{f3.nickname} to #{f2.nickname}",
+          "in_reply_to_status_id" => r2
+        })
+
+      {:ok, r4} =
+        CommonAPI.post(f1, %{
+          "status" => "@#{f3.nickname} reply from #{f1.nickname} to #{f3.nickname}",
+          "in_reply_to_status_id" => r3
+        })
+
+      {:ok, r5} =
+        CommonAPI.post(f2, %{
+          "status" => "@#{f3.nickname} reply from #{f2.nickname} to #{f3.nickname}",
+          "in_reply_to_status_id" => r4
+        })
+
+      {:ok, r6} =
+        CommonAPI.post(f3, %{
+          "status" => "@#{user.nickname} reply from #{f3.nickname} to #{user.nickname}",
+          "in_reply_to_status_id" => r5
+        })
+
+      r6
+    end)
+    |> Enum.take(25)
   end
 end
