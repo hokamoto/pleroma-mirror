@@ -1277,6 +1277,10 @@ defmodule HttpRequestMock do
     {:ok, %Tesla.Env{status: 404, body: ""}}
   end
 
+  def get("http://pleroma.test:4000/users/user", _, _, _) do
+    {:ok, %Tesla.Env{status: 200, body: File.read!("test/fixtures/with_attachment_user.json")}}
+  end
+
   def get(url, query, body, headers) do
     {:error,
      "Mock response not implemented for GET #{inspect(url)}, #{query}, #{inspect(body)}, #{

@@ -134,12 +134,15 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
          {:fake, false, map, recipients} <- {:fake, fake, map, recipients},
          {:containment, :ok} <- {:containment, Containment.contain_child(map)},
          {:ok, map, object} <- insert_full_object(map) do
+      with_media = is_map(object) && object.data["attachment"] != []
+
       {:ok, activity} =
         Repo.insert(%Activity{
           data: map,
           local: local,
           actor: map["actor"],
-          recipients: recipients
+          recipients: recipients,
+          with_media: with_media
         })
 
       # Splice in the child object if we have one.
@@ -907,6 +910,10 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       [_activity, object] in query,
       where: fragment("not (?)->'attachment' = (?)", object.data, ^[])
     )
+  end
+
+  defp restrict_media(query, %{"only_media" => :with_media}) do
+    from(activity in query, where: activity.with_media == ^true)
   end
 
   defp restrict_media(query, _), do: query

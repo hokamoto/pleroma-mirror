@@ -9,7 +9,7 @@ defmodule Pleroma.LoadTesting.Generator do
     {time, _} =
       :timer.tc(fn ->
         Task.async_stream(
-           Enum.take_random(posts, count_likes),
+          Enum.take_random(posts, count_likes),
           fn post -> {:ok, _, _} = CommonAPI.favorite(post.id, user) end,
           max_concurrency: 10,
           timeout: 30_000
@@ -49,7 +49,7 @@ defmodule Pleroma.LoadTesting.Generator do
       password_hash:
         "$pbkdf2-sha512$160000$bU.OSFI7H/yqWb5DPEqyjw$uKp/2rmXw12QqnRRTqTtuk2DTwZfF8VR4MYW2xMeIlqPR/UX1nT1CEKVUx2CowFMZ5JON8aDvURrZpJjSgqXrg",
       bio: "Tester Number #{i}",
-      local: remote
+      local: !remote
     }
 
     user_urls =
@@ -78,10 +78,6 @@ defmodule Pleroma.LoadTesting.Generator do
   end
 
   def generate_activities(user, users) do
-    do_generate_activities(user, users)
-  end
-
-  defp do_generate_activities(user, users) do
     IO.puts("Starting generating 20000 common activities...")
 
     {time, _} =
@@ -91,14 +87,119 @@ defmodule Pleroma.LoadTesting.Generator do
           fn _ ->
             do_generate_activity([user | users])
           end,
-          max_concurrency: 10,
+          max_concurrency: 30,
           timeout: 30_000
         )
         |> Stream.run()
       end)
 
     IO.puts("Inserting common activities take #{to_sec(time)} sec.\n")
+  end
 
+  def generate_public_activities_with_media(users) do
+    IO.puts("Starting generating 1000 public activities with media...")
+
+    {time, _} =
+      :timer.tc(fn ->
+        Task.async_stream(
+          1..1000,
+          fn i ->
+            do_generate_public_activities_with_media(users, i)
+          end,
+          max_concurrency: 30,
+          timeout: 30_000
+        )
+        |> Stream.run()
+      end)
+
+    IO.puts("Inserting public activities with media take #{to_sec(time)} sec.\n")
+  end
+
+  def generate_private_activities_with_media(user, friends, not_friends) do
+    make_friends(user, friends)
+    IO.puts("Starting generating 1000 private activities with media...")
+
+    {time, _} =
+      :timer.tc(fn ->
+        Task.async_stream(
+          1..1000,
+          fn i ->
+            do_generate_private_activities_with_media(user, friends, not_friends, i)
+          end,
+          max_concurrency: 30,
+          timeout: 30_000
+        )
+        |> Stream.run()
+      end)
+
+    IO.puts("Inserting private activities with media take #{to_sec(time)} sec.\n")
+  end
+
+  defp do_generate_public_activities_with_media(users, i) when rem(i, 10) == 0 do
+    user = Enum.random(users)
+
+    generate_activity_with_media(user, "public")
+  end
+
+  defp do_generate_public_activities_with_media(users, _i), do: do_generate_activity(users)
+
+  defp do_generate_private_activities_with_media(user, _friends, _not_friends, i)
+       when rem(i, 8) == 0 do
+    generate_activity_with_media(user, "private")
+  end
+
+  defp do_generate_private_activities_with_media(_user, friends, _not_friends, i)
+       when rem(i, 10) == 0 do
+    user = Enum.random(friends)
+    generate_activity_with_media(user, "private")
+  end
+
+  defp do_generate_private_activities_with_media(_user, _friends, not_friends, i)
+       when rem(i, 12) == 0 do
+    user = Enum.random(not_friends)
+    generate_activity_with_media(user, "private")
+  end
+
+  defp do_generate_private_activities_with_media(_user, friends, not_friends, _i) do
+    do_generate_activity(friends ++ not_friends, Enum.random(["private", "public"]))
+  end
+
+  defp generate_activity_with_media(user, visibility) do
+    obj_data = %{
+      "actor" => user.ap_id,
+      "name" => "4467-11.jpg",
+      "type" => "Document",
+      "url" => [
+        %{
+          "href" =>
+            "http://#{Pleroma.Web.base_url()}/media/b1b873552422a07bf53af01f3c231c841db4dfc42c35efde681abaf0f2a4eab7.jpg",
+          "mediaType" => "image/jpeg",
+          "type" => "Link"
+        }
+      ]
+    }
+
+    object = Repo.insert!(%Pleroma.Object{data: obj_data})
+
+    post = %{
+      "status" => "Some status with media",
+      "media_ids" => [object.id],
+      "visibility" => visibility
+    }
+
+    CommonAPI.post(user, post)
+  end
+
+  defp do_generate_activity(users, visibility \\ "public") do
+    post = %{
+      "status" => "Some status with #{visibility} visibility",
+      "visibility" => visibility
+    }
+
+    CommonAPI.post(Enum.random(users), post)
+  end
+
+  def generate_activities_with_mentions(user, users) do
     IO.puts("Starting generating 20000 activities with mentions...")
 
     {time, _} =
@@ -108,14 +209,16 @@ defmodule Pleroma.LoadTesting.Generator do
           fn _ ->
             do_generate_activity_with_mention(user, users)
           end,
-          max_concurrency: 10,
+          max_concurrency: 30,
           timeout: 30_000
         )
         |> Stream.run()
       end)
 
     IO.puts("Inserting activities with menthions take #{to_sec(time)} sec.\n")
+  end
 
+  def generate_activities_with_thread(user, users) do
     IO.puts("Starting generating 10000 activities with threads...")
 
     {time, _} =
@@ -125,21 +228,13 @@ defmodule Pleroma.LoadTesting.Generator do
           fn _ ->
             do_generate_threads([user | users])
           end,
-          max_concurrency: 10,
+          max_concurrency: 30,
           timeout: 30_000
         )
         |> Stream.run()
       end)
 
     IO.puts("Inserting activities with threads take #{to_sec(time)} sec.\n")
-  end
-
-  defp do_generate_activity(users) do
-    post = %{
-      "status" => "Some status without mention with random user"
-    }
-
-    CommonAPI.post(Enum.random(users), post)
   end
 
   defp do_generate_activity_with_mention(user, users) do
@@ -195,7 +290,7 @@ defmodule Pleroma.LoadTesting.Generator do
           fn i ->
             do_generate_remote_activity(i, user, users)
           end,
-          max_concurrency: 10,
+          max_concurrency: 30,
           timeout: 30_000
         )
         |> Stream.run()
@@ -268,7 +363,7 @@ defmodule Pleroma.LoadTesting.Generator do
       fn _ ->
         do_generate_dm(user, users)
       end,
-      max_concurrency: 10,
+      max_concurrency: 30,
       timeout: 30_000
     )
     |> Stream.run()
@@ -296,7 +391,7 @@ defmodule Pleroma.LoadTesting.Generator do
     Task.async_stream(
       1..opts[:thread_length],
       fn _ -> do_generate_thread(users, id) end,
-      max_concurrency: 10,
+      max_concurrency: 30,
       timeout: 30_000
     )
     |> Stream.run()
@@ -328,7 +423,7 @@ defmodule Pleroma.LoadTesting.Generator do
     make_friends(user, users)
 
     Task.async_stream(1..1000, fn _ -> do_generate_non_visible_post(not_friend, users) end,
-      max_concurrency: 10,
+      max_concurrency: 30,
       timeout: 30_000
     )
     |> Stream.run()

@@ -1,0 +1,35 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "http://pleroma.test:4000/schemas/litepub-0.1.jsonld",
+    {
+      "@language": "und"
+    }
+  ],
+  "attachment": [],
+  "discoverable": false,
+  "endpoints": {
+    "oauthAuthorizationEndpoint": "http://pleroma.test:4000/oauth/authorize",
+    "oauthRegistrationEndpoint": "http://pleroma.test:4000/api/v1/apps",
+    "oauthTokenEndpoint": "http://pleroma.test:4000/oauth/token",
+    "sharedInbox": "http://pleroma.test:4000/inbox",
+    "uploadMedia": "http://pleroma.test:4000/api/ap/upload_media"
+  },
+  "followers": "http://pleroma.test:4000/users/user/followers",
+  "following": "http://pleroma.test:4000/users/user/following",
+  "id": "http://pleroma.test:4000/users/user",
+  "inbox": "http://pleroma.test:4000/users/user/inbox",
+  "manuallyApprovesFollowers": false,
+  "name": "usero 👺",
+  "outbox": "http://pleroma.test:4000/users/user/outbox",
+  "preferredUsername": "user",
+  "publicKey": {
+    "id": "http://pleroma.test:4000/users/user#main-key",
+    "owner": "http://pleroma.test:4000/users/user",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5FFUfWT6sPh1ARnhzTvq\nI0HfrScCYXahuu03/GK0zZt7zBGgIhdtbI1a/bH5S8+awXVjLQ3CztaxexdWNyrY\n2N11eGVA+ue67C1pH3Kn8C9+kJE1PiSSbvHr4iVt5p4X8J/lc8rA6Y7MynOzMBPt\nUm8Bzg9sInBg9ZV/yNRIi/oaHEEizbzUcP9ZXhje0xRNisC1Nl8RZGM6uT1npmlR\nf0iI8Dq8H/DtlqK0l42F4uekkhUsKBFXnSpLWSI98zoAS8cVqSvndICsuzxs9jGL\nVzo9qbx7a6UW+CqGw1X7DlXDfQt4StWklpdkwlZ3gNz33wEfjitlUs5Dhdprqiqa\nzwIDAQAB\n-----END PUBLIC KEY-----\n\n"
+  },
+  "summary": "debugerrr 👹👻",
+  "tag": [],
+  "type": "Person",
+  "url": "http://pleroma.test:4000/users/user"
+}

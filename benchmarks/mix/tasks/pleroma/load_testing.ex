@@ -98,10 +98,35 @@ defmodule Mix.Tasks.Pleroma.LoadTesting do
 
     generate_activities(user, users)
 
+    generate_public_activities_with_media([user | users])
+
+    query_public_media_timeline()
+
+    user_ids = [user.id | Enum.map(users, & &1.id)]
+
+    not_friends =
+      Repo.all(
+        from(u in User,
+          where: u.id not in ^user_ids,
+          where: u.local == true,
+          order_by: fragment("RANDOM()"),
+          limit: 10
+        )
+      )
+
+    generate_private_activities_with_media(user, users, not_friends)
+
+    query_private_media_timeline(user)
+
+    generate_activities_with_mentions(user, users)
+
+    generate_activities_with_thread(user, users)
+
     generate_remote_activities(user, remote_users)
 
     generate_like_activities(
-      user, Pleroma.Repo.all(Pleroma.Activity.Queries.by_type("Create"))
+      user,
+      Pleroma.Repo.all(Pleroma.Activity.Queries.by_type("Create"))
     )
 
     generate_dms(user, users, opts)
@@ -131,6 +156,7 @@ defmodule Mix.Tasks.Pleroma.LoadTesting do
 
   defp clean_tables do
     IO.puts("Deleting old data...\n")
+    Ecto.Adapters.SQL.query!(Repo, "TRUNCATE oban_jobs CASCADE;")
     Ecto.Adapters.SQL.query!(Repo, "TRUNCATE users CASCADE;")
     Ecto.Adapters.SQL.query!(Repo, "TRUNCATE activities CASCADE;")
     Ecto.Adapters.SQL.query!(Repo, "TRUNCATE objects CASCADE;")

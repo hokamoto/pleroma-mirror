@@ -42,6 +42,7 @@ defmodule Pleroma.Activity do
     field(:local, :boolean, default: true)
     field(:actor, :string)
     field(:recipients, {:array, :string}, default: [])
+    field(:with_media, :boolean, default: false)
     field(:thread_muted?, :boolean, virtual: true)
 
     # This is a fake relation,
