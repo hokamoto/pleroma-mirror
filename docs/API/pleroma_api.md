@@ -75,7 +75,7 @@ Request parameters can be passed via [query strings](https://en.wikipedia.org/wi
 * method: `GET`
 * Authentication: required
 * OAuth scope: `read:security`
-* Response: JSON. Returns `{"enabed": "false", "totp": false }`
+* Response: JSON. Returns `{"enabled": "false", "totp": false }`
 
 ## `/api/pleroma/accounts/mfa/setup/totp`
 #### Pre-setup the MFA/TOTP method
