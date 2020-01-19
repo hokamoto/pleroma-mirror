@@ -459,3 +459,25 @@ Emoji reactions work a lot like favourites do. They make it possible to react to
   "🗡" => [{"id" => "abc..."}] 
 }
 ```
+
+# Conversation mutes
+
+Fetching muted conversations is done with `with_muted=true` passed to any timeline query.
+
+Muted converstaions have `thread_muted` field set to true in `pleroma` object of status.
+
+Conversations are muted starting from OP post.
+
+## `POST /api/v1/statuses/:id/unmute`
+### Unmute conversation
+* Method: `POST`
+* Authentication: required
+* Params: None
+* Response: JSON, the status
+
+## `POST /api/v1/statuses/:id/mute`
+### Mute conversation
+* Method: `POST`
+* Authentication: required
+* Params: None
+* Response: JSON, the status
