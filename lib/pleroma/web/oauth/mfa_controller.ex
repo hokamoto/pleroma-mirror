@@ -11,9 +11,9 @@ defmodule Pleroma.Web.OAuth.MFAController do
 
   alias Pleroma.MFA
   alias Pleroma.Web.Auth.TOTPAuthenticator
-  alias Pleroma.Web.OAuth.Token
   alias Pleroma.Web.OAuth.MFAView, as: View
   alias Pleroma.Web.OAuth.OAuthController
+  alias Pleroma.Web.OAuth.Token
 
   plug(:fetch_session when action in [:show, :verify])
   plug(:fetch_flash when action in [:show, :verify])

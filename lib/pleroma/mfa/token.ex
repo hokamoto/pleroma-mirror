@@ -9,8 +9,8 @@ defmodule Pleroma.MFA.Token do
 
   alias Pleroma.Repo
   alias Pleroma.User
-  alias Pleroma.Web.OAuth.Token, as: OAuthToken
   alias Pleroma.Web.OAuth.Authorization
+  alias Pleroma.Web.OAuth.Token, as: OAuthToken
 
   @expires 300
 
