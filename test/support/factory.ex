@@ -190,7 +190,8 @@ defmodule Pleroma.Factory do
     %Pleroma.Activity{
       data: data,
       actor: data["actor"],
-      recipients: data["to"]
+      recipients: data["to"],
+      thread_recipients: Pleroma.Web.ActivityPub.ActivityPub.get_thread_recipients(data["to"])
     }
     |> Map.merge(attrs)
   end
@@ -230,7 +231,8 @@ defmodule Pleroma.Factory do
     %Pleroma.Activity{
       data: data,
       actor: data["actor"],
-      recipients: data["to"]
+      recipients: data["to"],
+      thread_recipients: Pleroma.Web.ActivityPub.ActivityPub.get_thread_recipients(data["to"])
     }
   end
 
@@ -250,7 +252,8 @@ defmodule Pleroma.Factory do
     %Pleroma.Activity{
       data: data,
       actor: user.ap_id,
-      recipients: data["to"]
+      recipients: data["to"],
+      thread_recipients: Pleroma.Web.ActivityPub.ActivityPub.get_thread_recipients(data["to"])
     }
   end
 

@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Breaking**: Removed 1.0+ deprecated configurations `Pleroma.Upload, :strip_exif` and `:instance, :dedupe_media`
 - **Breaking**: OStatus protocol support
 - **Breaking**: MDII uploader
+- **Breaking:** NodeInfo removed `skipThreadContainment` from `metadata.
+- **Breaking:** Configuration: `:skip_thread_containment` option from `:instance`.
 
 ### Changed
 - **Breaking:** Pleroma won't start if it detects unapplied migrations
@@ -105,6 +107,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - OTP releases: Not being able to configure OAuth expired token cleanup interval
 - OTP releases: Not being able to configure HTML sanitization policy
 - Favorites timeline now ordered by favorite date instead of post date
+- Perfomance: thread containment optimization
 <details>
   <summary>API Changes</summary>
 

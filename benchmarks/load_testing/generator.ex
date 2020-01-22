@@ -406,4 +406,70 @@ defmodule Pleroma.LoadTesting.Generator do
       CommonAPI.post(user, post)
     end)
   end
+
+  def generate_broken_threads(user, followers) do
+    IO.puts("Starting generating broken threads")
+
+    {time, resp} =
+      :timer.tc(fn ->
+        do_generate_broken_threads(user, followers)
+      end)
+
+    IO.puts("Inserting broken threads take #{to_sec(time)} sec.\n")
+    resp
+  end
+
+  defp do_generate_broken_threads(u1, [u2, u3]) do
+    {:ok, u1} = Pleroma.User.follow(u1, u2)
+    {:ok, u2} = Pleroma.User.follow(u2, u1)
+
+    {:ok, u1} = Pleroma.User.follow(u1, u3)
+    {:ok, u3} = Pleroma.User.follow(u3, u1)
+
+    {:ok, a} = CommonAPI.post(u1, %{"status" => "Start of the thread", "visibility" => "private"})
+
+    thread1 =
+      Stream.iterate(a.id, fn id ->
+        {:ok, reply} =
+          CommonAPI.post(u2, %{
+            "status" => "@#{u1.nickname} u2 answering to u1",
+            "visibility" => "private",
+            "in_reply_to_status_id" => id
+          })
+
+        {:ok, reply2} =
+          CommonAPI.post(u1, %{
+            "status" => "@#{u2.nickname} u1 replies to thread to u2",
+            "visibility" => "private",
+            "in_reply_to_status_id" => reply.id
+          })
+
+        reply2.id
+      end)
+      |> Enum.take(25)
+      |> List.last()
+
+    thread2 =
+      Stream.iterate(a.id, fn id ->
+        {:ok, reply} =
+          CommonAPI.post(u3, %{
+            "status" => "@#{u1.nickname} u3 answering to u1",
+            "visibility" => "private",
+            "in_reply_to_status_id" => id
+          })
+
+        {:ok, reply2} =
+          CommonAPI.post(u1, %{
+            "status" => "@#{u3.nickname} u1 replies to thread to u3",
+            "visibility" => "private",
+            "in_reply_to_status_id" => reply.id
+          })
+
+        reply2.id
+      end)
+      |> Enum.take(25)
+      |> List.last()
+
+    {thread1, thread2}
+  end
 end

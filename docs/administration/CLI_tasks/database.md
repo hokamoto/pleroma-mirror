@@ -69,3 +69,18 @@ mix pleroma.database update_users_following_followers_counts
 ```sh tab="From Source"
 mix pleroma.database fix_likes_collections
 ```
+
+## Fix thread_recipients for pre-existing activities
+
+Updates `thread_recipients` field in `activities` table. Fixes thread_containment for pre-existing activities. By default task updates today activities.
+
+### Options
+- `--period` - run with special period. Possible values: `w` - last 7 days, `m` - last 30 days, `all` - for all the time.
+
+```sh tab="OTP"
+./bin/pleroma_ctl database fix_thread_recipients [<options>]
+```
+
+```sh tab="From Source"
+mix pleroma.database fix_thread_recipients [<options>]
+```

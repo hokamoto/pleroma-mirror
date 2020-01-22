@@ -42,6 +42,7 @@ defmodule Pleroma.Activity do
     field(:local, :boolean, default: true)
     field(:actor, :string)
     field(:recipients, {:array, :string}, default: [])
+    field(:thread_recipients, {:array, :string}, default: [])
     field(:thread_muted?, :boolean, virtual: true)
 
     # This is a fake relation,
@@ -213,6 +214,7 @@ defmodule Pleroma.Activity do
     |> Repo.all()
   end
 
+  @spec get_create_by_object_ap_id(String.t()) :: Activity.t() | nil
   def get_create_by_object_ap_id(ap_id) when is_binary(ap_id) do
     create_by_object_ap_id(ap_id)
     |> restrict_deactivated_users()

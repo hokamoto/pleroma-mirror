@@ -409,6 +409,9 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
       options = Keyword.put(options, :depth, (options[:depth] || 0) + 1)
       object = fix_object(data["object"], options)
 
+      in_reply_to =
+        object["inReplyTo"] && Activity.get_create_by_object_ap_id(object["inReplyTo"])
+
       params = %{
         to: data["to"],
         object: object,
@@ -421,7 +424,8 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
             "cc",
             "directMessage",
             "id"
-          ])
+          ]),
+        in_reply_to: in_reply_to
       }
 
       ActivityPub.create(params)

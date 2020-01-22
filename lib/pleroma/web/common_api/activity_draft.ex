@@ -200,7 +200,8 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
         actor: draft.user,
         context: draft.context,
         object: draft.object,
-        additional: %{"cc" => draft.cc, "directMessage" => direct?}
+        additional: %{"cc" => draft.cc, "directMessage" => direct?},
+        in_reply_to: draft.in_reply_to
       }
       |> Utils.maybe_add_list_data(draft.user, draft.visibility)
 

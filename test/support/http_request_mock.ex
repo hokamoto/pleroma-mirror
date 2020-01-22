@@ -1277,6 +1277,27 @@ defmodule HttpRequestMock do
     {:ok, %Tesla.Env{status: 404, body: ""}}
   end
 
+  def get("http://pleroma.test:4000/objects/419e5123-afb9-445f-b9c3-9e2c4dbb2483", _, _,
+        Accept: "application/activity+json"
+      ) do
+    {:ok, %Tesla.Env{status: 404, body: "Not found"}}
+  end
+
+  def get("http://pleroma.test:4000/objects/f82aee3d-81aa-46cf-939d-43ec05f7fb44", _, _,
+        Accept: "application/activity+json"
+      ) do
+    {:ok, %Tesla.Env{status: 404, body: "Not found"}}
+  end
+
+  def get("http://pleroma.test:4000/users/" <> nickname, _, _, Accept: "application/activity+json") do
+    data =
+      "test/fixtures/thread_visibility/user.json"
+      |> File.read!()
+      |> String.replace("{{nickname}}", nickname)
+
+    {:ok, %Tesla.Env{status: 200, body: data}}
+  end
+
   def get(url, query, body, headers) do
     {:error,
      "Mock response not implemented for GET #{inspect(url)}, #{query}, #{inspect(body)}, #{

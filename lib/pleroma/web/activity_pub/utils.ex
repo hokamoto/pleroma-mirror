@@ -695,7 +695,8 @@ defmodule Pleroma.Web.ActivityPub.Utils do
       "actor" => params.actor.ap_id,
       "object" => params.object,
       "published" => published,
-      "context" => params.context
+      "context" => params.context,
+      "in_reply_to" => params.in_reply_to
     }
     |> Map.merge(additional)
   end

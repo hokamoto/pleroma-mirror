@@ -1,0 +1,53 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "http://pleroma.test:4000/schemas/litepub-0.1.jsonld",
+    {
+      "@language": "und"
+    }
+  ],
+  "actor": "http://pleroma.test:4000/users/{{nickname}}",
+  "cc": [
+    "http://pleroma.test:4000/users/{{nickname}}/followers"
+  ],
+  "context": "http://pleroma.test:4000/contexts/99bd4f6d-8812-46bc-bdc0-a7a2301edbc4",
+  "context_id": 1515499,
+  "directMessage": false,
+  "id": "http://pleroma.test:4000/activities/2413d35a-fc91-48a4-9da2-86ba18e43b1f",
+  "object": {
+    "actor": "http://pleroma.test:4000/users/{{nickname}}",
+    "attachment": [],
+    "attributedTo": "http://pleroma.test:4000/users/{{nickname}}",
+    "cc": [
+      "http://pleroma.test:4000/users/{{nickname}}/followers"
+    ],
+    "content": "<span class=\"h-card\"><a data-user=\"9nPxL8qCP1abaGDnSS\" class=\"u-url mention\" href=\"{{local_user_ap_id}}\" rel=\"ugc\">@<span>nick</span></a></span> one more public reply",
+    "context": "http://pleroma.test:4000/contexts/99bd4f6d-8812-46bc-bdc0-a7a2301edbc4",
+    "conversation": "http://pleroma.test:4000/contexts/99bd4f6d-8812-46bc-bdc0-a7a2301edbc4",
+    "id": "http://pleroma.test:4000/objects/4780a65e-b24a-4de2-80ad-43e406b1ee0f",
+    "inReplyTo": "http://pleroma.test:4000/objects/db82b80f-b727-4e6e-ab39-c8ef67647f7f",
+    "published": "2019-12-13T05:34:08.603624Z",
+    "sensitive": false,
+    "summary": "",
+    "tag": [
+      {
+        "href": "{{local_user_ap_id}}",
+        "name": "@nick",
+        "type": "Mention"
+      }
+    ],
+    "to": [
+      "http://pleroma.test:4000/users/{{nickname}}",
+      "https://www.w3.org/ns/activitystreams#Public",
+      "{{local_user_ap_id}}"
+    ],
+    "type": "Note"
+  },
+  "published": "2019-12-13T05:34:08.602103Z",
+  "to": [
+    "http://pleroma.test:4000/users/{{nickname}}",
+    "https://www.w3.org/ns/activitystreams#Public",
+    "{{local_user_ap_id}}"
+  ],
+  "type": "Create"
+}

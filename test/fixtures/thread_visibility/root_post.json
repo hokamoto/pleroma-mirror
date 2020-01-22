@@ -1,0 +1,42 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "http://pleroma.test:4000/schemas/litepub-0.1.jsonld",
+    {
+      "@language": "und"
+    }
+  ],
+  "actor": "http://pleroma.test:4000/users/{{nickname}}",
+  "cc": [
+    "http://pleroma.test:4000/users/{{nickname}}/followers"
+  ],
+  "context": "http://pleroma.test:4000/contexts/99bd4f6d-8812-46bc-bdc0-a7a2301edbc4",
+  "context_id": 1515499,
+  "directMessage": false,
+  "id": "http://pleroma.test:4000/activities/bc2fdf18-4485-4ec1-be0f-312320cb0c17",
+  "object": {
+    "actor": "http://pleroma.test:4000/users/{{nickname}}",
+    "attachment": [],
+    "attributedTo": "http://pleroma.test:4000/users/{{nickname}}",
+    "cc": [
+      "http://pleroma.test:4000/users/{{nickname}}/followers"
+    ],
+    "content": "trytata",
+    "context": "http://pleroma.test:4000/contexts/99bd4f6d-8812-46bc-bdc0-a7a2301edbc4",
+    "conversation": "http://pleroma.test:4000/contexts/99bd4f6d-8812-46bc-bdc0-a7a2301edbc4",
+    "id": "http://pleroma.test:4000/objects/f82aee3d-81aa-46cf-939d-43ec05f7fb44",
+    "published": "2019-12-13T05:06:34.088453Z",
+    "sensitive": false,
+    "summary": "",
+    "tag": [],
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "type": "Note"
+  },
+  "published": "2019-12-13T05:06:34.082345Z",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "type": "Create"
+}
