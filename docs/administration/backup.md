@@ -1,4 +1,4 @@
-# Backup/Restore/Move your instance
+# Backup/Restore/Move/Remove your instance
 
 ## Backup
 
@@ -20,3 +20,14 @@
 8. Restart the Pleroma service.
 
 [^1]: Prefix with `MIX_ENV=prod` to run it using the production config file.
+
+## Remove
+
+1. Optionally you can remove the users of your instance. This will trigger delete requests for their accounts and posts. Note that this is 'best effort' and doesn't mean that all traces of your instance will be gone from the fediverse.
+2. Stop the Pleroma service `systemctl stop pleroma`
+3. Disable pleroma from systemd `systemctl disable pleroma`
+4. Remove the files and folders you created during installation (see installation guide). This includes the pleroma, nginx and systemd files and folders.
+5. Reload nginx now that the configuration is removed `systemctl reload nginx`
+6. Remove the database and database user `sudo -Hu postgres psql -c 'DROP DATABASE <pleroma_db>;';` `sudo -Hu postgres psql -c 'DROP USER <pleroma_db>;';`
+7. Remove the system user `userdel pleroma`
+8. Remove the dependencies that you don't need anymore (see installation guide). Make sure you don't remove packages that are still needed for other software that you have running!
