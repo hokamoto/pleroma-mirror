@@ -73,14 +73,14 @@ config :pleroma, :config_description, [
             type: :boolean,
             description:
               "Redirects the client to the real remote URL if there's any HTTP errors. " <>
-                "Any error during body processing will not be redirected as the response is chunked"
+                "Any error during body processing will not be redirected as the response is chunked."
           },
           %{
             key: :max_body_length,
             type: :integer,
             description:
-              "limits the content length to be approximately the " <>
-                "specified length. It is validated with the `content-length` header and also verified when proxying"
+              "Limits the content length to be approximately the " <>
+                "specified length. It is validated with the `content-length` header and also verified when proxying."
           },
           %{
             key: :http,
@@ -658,7 +658,7 @@ config :pleroma, :config_description, [
         type: :integer,
         description:
           "Max. depth of reply-to activities fetching on incoming federation, to prevent out-of-memory situations while" <>
-            " fetching very long threads. If set to nil, threads of any depth will be fetched. Lower this value if you experience out-of-memory crashes",
+            " fetching very long threads. If set to `nil`, threads of any depth will be fetched. Lower this value if you experience out-of-memory crashes.",
         suggestions: [
           100
         ]
@@ -668,7 +668,7 @@ config :pleroma, :config_description, [
         label: "Fed. reachability timeout days",
         type: :integer,
         description:
-          "Timeout (in days) of each external federation target being unreachable prior to pausing federating to it",
+          "Timeout (in days) of each external federation target being unreachable prior to pausing federating to it.",
         suggestions: [
           7
         ]
@@ -701,13 +701,13 @@ config :pleroma, :config_description, [
         type: :boolean,
         description:
           "Makes the client API in authentificated mode-only except for user-profiles." <>
-            " Useful for disabling the Local Timeline and The Whole Known Network"
+            " Useful for disabling the Local Timeline and The Whole Known Network."
       },
       %{
         key: :quarantined_instances,
         type: {:list, :string},
         description:
-          "List of ActivityPub instances where private(DMs, followers-only) activities will not be send",
+          "List of ActivityPub instances where private (DMs, followers-only) activities will not be send",
         suggestions: [
           "quarantined.com",
           "*.quarantined.com"
@@ -750,7 +750,7 @@ config :pleroma, :config_description, [
         label: "MRF transparency exclusions",
         type: {:list, :string},
         description:
-          "Exclude specific instance names from MRF transparency. The use of the exclusions feature will be disclosed in nodeinfo as a boolean value",
+          "Exclude specific instance names from MRF transparency. The use of the exclusions feature will be disclosed in nodeinfo as a boolean value.",
         suggestions: [
           "exclusion.com"
         ]
@@ -760,12 +760,12 @@ config :pleroma, :config_description, [
         type: :boolean,
         description:
           "Set to `true` to use extended local nicknames format (allows underscores/dashes)." <>
-            " This will break federation with older software for theses nicknames"
+            " This will break federation with older software for theses nicknames."
       },
       %{
         key: :max_pinned_statuses,
         type: :integer,
-        description: "The maximum number of pinned statuses. 0 will disable the feature",
+        description: "The maximum number of pinned statuses. 0 will disable the feature.",
         suggestions: [
           0,
           1,
@@ -794,7 +794,7 @@ config :pleroma, :config_description, [
         key: :welcome_message,
         type: :string,
         description:
-          "A message that will be send to a newly registered users as a direct message",
+          "A message that will be sent to a newly registered users as a direct message",
         suggestions: [
           "Hi, @username! Welcome on board!"
         ]
@@ -820,7 +820,7 @@ config :pleroma, :config_description, [
         type: :boolean,
         description:
           "If set to `true`, only mentions at the beginning of a post will be used to address people in direct messages." <>
-            " This is to prevent accidental mentioning of people when talking about them (e.g. \"@friend hey i really don't like @enemy\")." <>
+            " This is to prevent accidental mentioning of people when talking about them (e.g. \"@admin please keep an eye on @bad_actor\")." <>
             " Default: `false`"
       },
       %{
@@ -918,7 +918,7 @@ config :pleroma, :config_description, [
         key: :backends,
         type: [:atom, :tuple, :module],
         description:
-          "Where logs will be send, :console - send logs to stdout, {ExSyslogger, :ex_syslogger} - to syslog, Quack.Logger - to Slack.",
+          "Where logs will be sent, :console - send logs to stdout, { ExSyslogger, :ex_syslogger } - to syslog, Quack.Logger - to Slack.",
         suggestions: [:console, {ExSyslogger, :ex_syslogger}, Quack.Logger]
       }
     ]
@@ -1024,7 +1024,7 @@ config :pleroma, :config_description, [
     description:
       "This form can be used to configure a keyword list that keeps the configuration data for any " <>
         "kind of frontend. By default, settings for pleroma_fe and masto_fe are configured. If you want to " <>
-        "add your own configuration your settings need to be complete as they will override the defaults.",
+        "add your own configuration your settings all fields must be complete.",
     children: [
       %{
         key: :pleroma_fe,
@@ -1259,7 +1259,7 @@ config :pleroma, :config_description, [
         key: :media_nsfw,
         label: "Media NSFW",
         type: {:list, :string},
-        description: "List of instances to put medias as NSFW(sensitive) from",
+        description: "List of instances to put medias as NSFW (sensitive) from",
         suggestions: ["example.com", "*.example.com"]
       },
       %{
@@ -1334,12 +1334,12 @@ config :pleroma, :config_description, [
         key: :allow_followersonly,
         label: "Allow followers-only",
         type: :boolean,
-        description: "whether to allow followers-only posts"
+        description: "Whether to allow followers-only posts"
       },
       %{
         key: :allow_direct,
         type: :boolean,
-        description: "whether to allow direct messages"
+        description: "Whether to allow direct messages"
       }
     ]
   },
@@ -1355,14 +1355,14 @@ config :pleroma, :config_description, [
         type: :integer,
         description:
           "Number of mentioned users after which the message gets delisted (the message can still be seen, " <>
-            " but it will not show up in public timelines and mentioned users won't get notifications about it). Set to 0 to disable",
+            " but it will not show up in public timelines and mentioned users won't get notifications about it). Set to 0 to disable.",
         suggestions: [10]
       },
       %{
         key: :reject_threshold,
         type: :integer,
         description:
-          "Number of mentioned users after which the messaged gets rejected. Set to 0 to disable",
+          "Number of mentioned users after which the messaged gets rejected. Set to 0 to disable.",
         suggestions: [20]
       }
     ]
@@ -1378,14 +1378,14 @@ config :pleroma, :config_description, [
         key: :reject,
         type: [:string, :regex],
         description:
-          "A list of patterns which result in message being rejected, each pattern can be a string or a regular expression",
+          "A list of patterns which result in message being rejected, each pattern can be a string or a regular expression.",
         suggestions: ["foo", ~r/foo/iu]
       },
       %{
         key: :federated_timeline_removal,
         type: [:string, :regex],
         description:
-          "A list of patterns which result in message being removed from federated timelines (a.k.a unlisted), each pattern can be a string or a regular expression",
+          "A list of patterns which result in message being removed from federated timelines (a.k.a unlisted), each pattern can be a string or a regular expression.",
         suggestions: ["foo", ~r/foo/iu]
       },
       %{
@@ -1491,8 +1491,8 @@ config :pleroma, :config_description, [
             key: :max_body_length,
             type: :integer,
             description:
-              "limits the content length to be approximately the " <>
-                "specified length. It is validated with the `content-length` header and also verified when proxying"
+              "Limits the content length to be approximately the " <>
+                "specified length. It is validated with the `content-length` header and also verified when proxying."
           },
           %{
             key: :http,
@@ -1810,9 +1810,9 @@ config :pleroma, :config_description, [
         key: :subject,
         type: :string,
         description:
-          "a mailto link for the administrative contact." <>
+          "A mailto link for the administrative contact." <>
             " It's best if this email is not a personal email address, but rather a group email so that if a person leaves an organization," <>
-            " is unavailable for an extended period, or otherwise can't respond, someone else on the list can",
+            " is unavailable for an extended period, or otherwise can't respond, someone else on the list can.",
         suggestions: ["Subject"]
       },
       %{
@@ -2084,7 +2084,7 @@ config :pleroma, :config_description, [
         key: :ttl_setters,
         label: "TTL setters",
         type: {:list, :module},
-        description: "List of rich media ttl setters.",
+        description: "List of rich media TTL setters.",
         suggestions: [
           Pleroma.Web.RichMedia.Parser.TTL.AwsSignedUrl
         ]
@@ -2101,12 +2101,12 @@ config :pleroma, :config_description, [
         key: :enabled,
         type: :boolean,
         description:
-          "if enabled, when a new user is federated with, fetch some of their latest posts"
+          "If enabled, when a new user is federated with, fetch some of their latest posts"
       },
       %{
         key: :pages,
         type: :integer,
-        description: "the amount of pages to fetch",
+        description: "The amount of pages to fetch",
         suggestions: [5]
       }
     ]
@@ -2175,13 +2175,13 @@ config :pleroma, :config_description, [
         key: :total_user_limit,
         type: :integer,
         description:
-          "the number of scheduled activities a user is allowed to create in total. Default: 300.",
+          "The number of scheduled activities a user is allowed to create in total. Default: 300.",
         suggestions: [300]
       },
       %{
         key: :enabled,
         type: :boolean,
-        description: "whether scheduled activities are sent to the job queue to be executed"
+        description: "Whether scheduled activities are sent to the job queue to be executed"
       }
     ]
   },
@@ -2194,7 +2194,7 @@ config :pleroma, :config_description, [
       %{
         key: :enabled,
         type: :boolean,
-        description: "whether expired activities will be sent to the job queue to be deleted"
+        description: "Whether expired activities will be sent to the job queue to be deleted"
       }
     ]
   },
@@ -2370,7 +2370,7 @@ config :pleroma, :config_description, [
           %{
             key: :active,
             type: :boolean,
-            description: "globally enable or disable digest emails"
+            description: "Globally enable or disable digest emails"
           },
           %{
             key: :schedule,
@@ -2404,7 +2404,7 @@ config :pleroma, :config_description, [
       %{
         key: :logo,
         type: :string,
-        description: "a path to a custom logo. Set it to nil to use the default Pleroma logo",
+        description: "A path to a custom logo. Set it to `nil` to use the default Pleroma logo",
         suggestions: ["some/path/logo.png"]
       },
       %{
@@ -2510,8 +2510,8 @@ config :pleroma, :config_description, [
         key: :groups,
         type: {:keyword, :string, {:list, :string}},
         description:
-          "Emojis are ordered in groups (tags). This is an array of key-value pairs where the key is the groupname" <>
-            " and the value the location or array of locations. * can be used as a wildcard",
+          "Emojis are ordered in groups (tags). This is an array of key-value pairs where the key is the group name" <>
+            " and the value is the location or array of locations. * can be used as a wildcard",
         suggestions: [
           Custom: ["/emoji/*.png", "/emoji/**/*.png"]
         ]
@@ -2558,45 +2558,45 @@ config :pleroma, :config_description, [
       %{
         key: :search,
         type: [:tuple, {:list, :tuple}],
-        description: "for the search requests (account & status search etc.)",
+        description: "For the search requests (account & status search etc.)",
         suggestions: [{1000, 10}, [{10_000, 10}, {10_000, 50}]]
       },
       %{
         key: :app_account_creation,
         type: [:tuple, {:list, :tuple}],
-        description: "for registering user accounts from the same IP address",
+        description: "For registering user accounts from the same IP address",
         suggestions: [{1000, 10}, [{10_000, 10}, {10_000, 50}]]
       },
       %{
         key: :relations_actions,
         type: [:tuple, {:list, :tuple}],
-        description: "for actions on relations with all users (follow, unfollow)",
+        description: "For actions on relations with all users (follow, unfollow)",
         suggestions: [{1000, 10}, [{10_000, 10}, {10_000, 50}]]
       },
       %{
         key: :relation_id_action,
         type: [:tuple, {:list, :tuple}],
-        description: "for actions on relation with a specific user (follow, unfollow)",
+        description: "For actions on relation with a specific user (follow, unfollow)",
         suggestions: [{1000, 10}, [{10_000, 10}, {10_000, 50}]]
       },
       %{
         key: :statuses_actions,
         type: [:tuple, {:list, :tuple}],
         description:
-          "for create / delete / fav / unfav / reblog / unreblog actions on any statuses",
+          "For create / delete / fav / unfav / reblog / unreblog actions on any statuses",
         suggestions: [{1000, 10}, [{10_000, 10}, {10_000, 50}]]
       },
       %{
         key: :status_id_action,
         type: [:tuple, {:list, :tuple}],
         description:
-          "for fav / unfav or reblog / unreblog actions on the same status by the same user",
+          "For fav / unfav or reblog / unreblog actions on the same status by the same user",
         suggestions: [{1000, 10}, [{10_000, 10}, {10_000, 50}]]
       },
       %{
         key: :authentication,
         type: [:tuple, {:list, :tuple}],
-        description: "for authentication create / password check / user existence check requests",
+        description: "For authentication create / password check / user existence check requests",
         suggestions: [{60_000, 15}]
       }
     ]
@@ -2967,8 +2967,7 @@ config :pleroma, :config_description, [
       %{
         key: :enabled,
         type: :boolean,
-        description: "Enable/disable the plug. Default: `false`.",
-        suggestions: [true, false]
+        description: "Enable/disable the plug. Default: `false`."
       },
       %{
         key: :headers,
@@ -3007,8 +3006,7 @@ config :pleroma, :config_description, [
       %{
         key: :activity_pub_question,
         type: :integer,
-        description:
-          "Activity pub routes (question activities). Default: `30_000` (30 seconds).",
+        description: "Activity pub routes (question activities). Default: `30_000` (30 seconds).",
         suggestions: [30_000]
       }
     ]
