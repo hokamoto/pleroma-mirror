@@ -65,5 +65,8 @@ config :logger, :ex_syslogger, level: :info
 # which should be versioned separately.
 import_config "prod.secret.exs"
 
+if File.exists?("./config/prod.for_reboot.exs"),
+  do: import_config("prod.for_reboot.exs")
+
 if File.exists?("./config/prod.exported_from_db.secret.exs"),
   do: import_config("prod.exported_from_db.secret.exs")

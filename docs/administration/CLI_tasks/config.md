@@ -18,7 +18,7 @@ mix pleroma.config migrate_to_db
 
 ## Transfer config from DB to `config/env.exported_from_db.secret.exs`
 
-To delete transfered settings from database optional flag `-d` can be used. <env> is `prod` by default.
+To delete transfered settings from database optional flag `-d` can be used. `<env>` is `prod` by default.
 ```sh tab="OTP"
  ./bin/pleroma_ctl config migrate_from_db [--env=<env>] [-d]
 ```

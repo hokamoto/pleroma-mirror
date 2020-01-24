@@ -60,5 +60,8 @@ else
   )
 end
 
+if File.exists?("./config/dev.for_reboot.exs"),
+  do: import_config("dev.for_reboot.exs")
+
 if File.exists?("./config/dev.exported_from_db.secret.exs"),
   do: import_config("dev.exported_from_db.secret.exs")

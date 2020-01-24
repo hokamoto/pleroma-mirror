@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Pleroma.ConfigTest do
     end
   end
 
-  describe "with deletion temp file" do
+  describe "migrate_from_db" do
     setup do
       temp_file = "config/temp.exported_from_db.secret.exs"
 
@@ -107,7 +107,27 @@ defmodule Mix.Tasks.Pleroma.ConfigTest do
       assert file =~ "config :quack, :level, :info"
     end
 
-    test "load a settings with large values and pass to file", %{temp_file: temp_file} do
+    test "without deletion from db" do
+      ConfigDB.create(%{
+        group: ":pleroma",
+        key: ":setting_first",
+        value: [key: "value", key2: ["Activity"]]
+      })
+
+      ConfigDB.create(%{
+        group: ":pleroma",
+        key: ":setting_second",
+        value: [key: "value2", key2: [Repo]]
+      })
+
+      ConfigDB.create(%{group: ":quack", key: ":level", value: :info})
+
+      Mix.Tasks.Pleroma.Config.run(["migrate_from_db", "--env", "temp"])
+
+      assert length(Repo.all(ConfigDB)) == 3
+    end
+
+    test "loads settings with large values and pass them to file", %{temp_file: temp_file} do
       ConfigDB.create(%{
         group: ":pleroma",
         key: ":instance",
@@ -191,6 +211,78 @@ defmodule Mix.Tasks.Pleroma.ConfigTest do
 
       assert file ==
                "#{header}\n\nconfig :pleroma, :instance,\n  name: \"Pleroma\",\n  email: \"example@example.com\",\n  notify_email: \"noreply@example.com\",\n  description: \"A Pleroma instance, an alternative fediverse server\",\n  limit: 5000,\n  chat_limit: 5000,\n  remote_limit: 100_000,\n  upload_limit: 16_000_000,\n  avatar_upload_limit: 2_000_000,\n  background_upload_limit: 4_000_000,\n  banner_upload_limit: 4_000_000,\n  poll_limits: %{\n    max_expiration: 31_536_000,\n    max_option_chars: 200,\n    max_options: 20,\n    min_expiration: 0\n  },\n  registrations_open: true,\n  federating: true,\n  federation_incoming_replies_max_depth: 100,\n  federation_reachability_timeout_days: 7,\n  federation_publisher_modules: [Pleroma.Web.ActivityPub.Publisher],\n  allow_relay: true,\n  rewrite_policy: Pleroma.Web.ActivityPub.MRF.NoOpPolicy,\n  public: true,\n  quarantined_instances: [],\n  managed_config: true,\n  static_dir: \"instance/static/\",\n  allowed_post_formats: [\"text/plain\", \"text/html\", \"text/markdown\", \"text/bbcode\"],\n  mrf_transparency: true,\n  mrf_transparency_exclusions: [],\n  autofollowed_nicknames: [],\n  max_pinned_statuses: 1,\n  no_attachment_links: true,\n  welcome_user_nickname: nil,\n  welcome_message: nil,\n  max_report_comment_size: 1000,\n  safe_dm_mentions: false,\n  healthcheck: false,\n  remote_post_retention_days: 90,\n  skip_thread_containment: true,\n  limit_to_local_content: :unauthenticated,\n  user_bio_length: 5000,\n  user_name_length: 100,\n  max_account_fields: 10,\n  max_remote_account_fields: 20,\n  account_field_name_length: 512,\n  account_field_value_length: 2048,\n  external_user_synchronization: true,\n  extended_nickname_format: true,\n  multi_factor_authentication: [\n    totp: [digits: 6, period: 30],\n    backup_codes: [number: 2, length: 6]\n  ]\n"
+    end
+  end
+
+  describe "dump_reboot_settings/0" do
+    setup do
+      temp_file = "config/test.for_reboot.exs"
+
+      on_exit(fn ->
+        :ok = File.rm(temp_file)
+      end)
+
+      {:ok, temp_file: temp_file}
+    end
+
+    test "dumps only reboot time keys", %{temp_file: temp_file} do
+      ConfigDB.create(%{
+        group: ":pleroma",
+        key: ":instance",
+        value: [key: "value", key2: ["Activity"]]
+      })
+
+      ConfigDB.create(%{
+        group: ":pleroma",
+        key: ":hackney_pools",
+        value: "some_value"
+      })
+
+      ConfigDB.create(%{
+        group: ":pleroma",
+        key: ":chat",
+        value: [key: "value2"]
+      })
+
+      Mix.Tasks.Pleroma.Config.dump_reboot_settings()
+
+      {:ok, file} = File.read(temp_file)
+
+      assert file =~ "config :pleroma, :hackney_pools"
+      assert file =~ "config :pleroma, :chat"
+
+      refute file =~ "config :pleroma, :instance"
+    end
+
+    test "dumps only reboot time subkeys", %{temp_file: temp_file} do
+      ConfigDB.create(%{
+        group: ":pleroma",
+        key: ":instance",
+        value: [upload_limit: :limit, another_key: :value]
+      })
+
+      ConfigDB.create(%{
+        group: ":pleroma",
+        key: "Pleroma.Captcha",
+        value: [seconds_valid: 60, another_key: :value]
+      })
+
+      ConfigDB.create(%{
+        group: ":pleroma",
+        key: "Pleroma.Upload",
+        value: [proxy_remote: :remote, another_key: :value]
+      })
+
+      Mix.Tasks.Pleroma.Config.dump_reboot_settings()
+
+      {:ok, file} = File.read(temp_file)
+
+      assert file =~ "config :pleroma, :instance, upload_limit: :limit"
+      assert file =~ "config :pleroma, Pleroma.Captcha, seconds_valid: 60"
+      assert file =~ "config :pleroma, Pleroma.Upload, proxy_remote: :remote"
+
+      refute file =~ "another_key"
+      refute file =~ ":value"
     end
   end
 end

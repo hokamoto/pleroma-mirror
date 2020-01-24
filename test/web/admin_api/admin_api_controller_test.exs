@@ -2043,7 +2043,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
         Application.delete_env(:pleroma, Pleroma.Captcha.NotReal)
         Application.put_env(:pleroma, :http, http)
         Application.put_env(:tesla, :adapter, Tesla.Mock)
-        :ok = File.rm("config/test.exported_from_db.secret.exs")
+        :ok = File.rm("config/test.for_reboot.exs")
       end)
     end
 
@@ -2977,6 +2977,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "transfer settings to DB and to file", %{conn: conn} do
+      on_exit(fn -> :ok = File.rm("config/test.exported_from_db.secret.exs") end)
       assert Repo.all(Pleroma.ConfigDB) == []
       Mix.Tasks.Pleroma.Config.migrate_to_db("test/fixtures/config/temp.secret.exs")
       assert Repo.aggregate(Pleroma.ConfigDB, :count, :id) > 0

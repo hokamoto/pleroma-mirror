@@ -21,10 +21,15 @@ else
   IO.puts(warning)
 end
 
-exported_config =
-  config_path
-  |> Path.dirname()
-  |> Path.join("prod.exported_from_db.secret.exs")
+config_path_dir = Path.dirname(config_path)
+
+for_reboot_config = Path.join(config_path_dir, "prod.for_reboot.exs")
+
+if File.exists?(for_reboot_config) do
+  import_config for_reboot_config
+end
+
+exported_config = Path.join(config_path_dir, "prod.exported_from_db.secret.exs")
 
 if File.exists?(exported_config) do
   import_config exported_config

@@ -892,11 +892,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
       Pleroma.Config.TransferTask.load_and_update_env(deleted)
 
-      Mix.Tasks.Pleroma.Config.run([
-        "migrate_from_db",
-        "--env",
-        to_string(Pleroma.Config.get(:env))
-      ])
+      Mix.Tasks.Pleroma.Config.dump_reboot_settings()
 
       conn
       |> put_view(ConfigView)

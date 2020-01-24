@@ -13,6 +13,17 @@ defmodule Mix.Tasks.Pleroma.Config do
   @shortdoc "Manages the location of the config"
   @moduledoc File.read!("docs/administration/CLI_tasks/config.md")
 
+  @reboot_time_keys [
+    {:pleroma, :hackney_pools},
+    {:pleroma, :chat}
+  ]
+
+  @reboot_time_subkeys [
+    {:pleroma, Pleroma.Captcha, [:seconds_valid]},
+    {:pleroma, Pleroma.Upload, [:proxy_remote]},
+    {:pleroma, :instance, [:upload_limit]}
+  ]
+
   def run(["migrate_to_db"]) do
     start_pleroma()
     migrate_to_db()
@@ -50,6 +61,20 @@ defmodule Mix.Tasks.Pleroma.Config do
     end
   end
 
+  @spec dump_reboot_settings() :: :ok
+  def dump_reboot_settings do
+    with config_path <- config_path(),
+         file <- open_file_with_header(config_path) do
+      ConfigDB
+      |> Repo.all()
+      |> Enum.each(&filter_and_write(&1, file))
+
+      close_and_format_file(file, config_path)
+
+      :ok
+    end
+  end
+
   defp do_migrate_to_db(config_file) do
     if File.exists?(config_file) do
       Ecto.Adapters.SQL.query!(Repo, "TRUNCATE config;")
@@ -81,30 +106,50 @@ defmodule Mix.Tasks.Pleroma.Config do
     shell_info("Settings for group :#{group} migrated.")
   end
 
+  defp config_path do
+    :env
+    |> Pleroma.Config.get()
+    |> to_string()
+    |> config_path("for_reboot")
+  end
+
+  defp config_path(opts) when is_list(opts) do
+    (opts[:env] || "prod")
+    |> config_path()
+  end
+
+  defp config_path(env, tail \\ "exported_from_db.secret") when is_binary(env) do
+    if Pleroma.Config.get(:release) do
+      :config_path
+      |> Pleroma.Config.get()
+      |> Path.dirname()
+    else
+      "config"
+    end
+    |> Path.join("#{env}.#{tail}.exs")
+  end
+
+  defp open_file_with_header(config_path) do
+    file = File.open!(config_path, [:write, :utf8])
+    IO.write(file, config_header())
+    file
+  end
+
+  defp close_and_format_file(file, config_path) do
+    :ok = File.close(file)
+    System.cmd("mix", ["format", config_path])
+  end
+
   defp migrate_from_db(opts) do
     if Pleroma.Config.get([:configurable_from_database]) do
-      env = opts[:env] || "prod"
+      with config_path <- config_path(opts),
+           file <- open_file_with_header(config_path) do
+        ConfigDB
+        |> Repo.all()
+        |> Enum.each(&write_and_delete(&1, file, opts[:delete]))
 
-      config_path =
-        if Pleroma.Config.get(:release) do
-          :config_path
-          |> Pleroma.Config.get()
-          |> Path.dirname()
-        else
-          "config"
-        end
-        |> Path.join("#{env}.exported_from_db.secret.exs")
-
-      file = File.open!(config_path, [:write, :utf8])
-
-      IO.write(file, config_header())
-
-      ConfigDB
-      |> Repo.all()
-      |> Enum.each(&write_and_delete(&1, file, opts[:delete]))
-
-      :ok = File.close(file)
-      System.cmd("mix", ["format", config_path])
+        close_and_format_file(file, config_path)
+      end
     else
       migration_error()
     end
@@ -122,6 +167,27 @@ defmodule Mix.Tasks.Pleroma.Config do
   else
     defp config_header, do: "use Mix.Config\r\n\r\n"
     defp read_file(config_file), do: Mix.Config.eval!(config_file)
+  end
+
+  defp filter_and_write(config, file) do
+    group = ConfigDB.from_string(config.group)
+    key = ConfigDB.from_string(config.key)
+    value = ConfigDB.from_binary(config.value)
+
+    if Enum.any?(@reboot_time_keys, fn {g, k} -> g == group and k == key end) do
+      write(config, file)
+    else
+      with {_g, _k, subkeys} <-
+             Enum.find(@reboot_time_subkeys, fn {g, k, _subkeys} ->
+               g == group and k == key and Keyword.keyword?(value)
+             end),
+           for_dump when for_dump != [] <- Keyword.take(value, subkeys) do
+        IO.write(
+          file,
+          "config #{config.group}, #{config.key}, #{inspect(for_dump, limit: :infinity)}\r\n\r\n"
+        )
+      end
+    end
   end
 
   defp write_and_delete(config, file, delete?) do
