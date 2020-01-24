@@ -53,7 +53,7 @@ config :pleroma, :config_description, [
         key: :proxy_remote,
         type: :boolean,
         description:
-          "If enabled, requests to media stored using a remote uploader will be proxied instead of being redirected."
+          "If enabled, requests to media stored using a remote uploader will be proxied instead of being redirected"
       },
       %{
         key: :proxy_opts,
@@ -130,7 +130,7 @@ config :pleroma, :config_description, [
       %{
         key: :uploads,
         type: :string,
-        description: "Path where user uploads will be saved",
+        description: "Path where user's uploads will be saved",
         suggestions: [
           "uploads"
         ]
@@ -635,12 +635,12 @@ config :pleroma, :config_description, [
       %{
         key: :registrations_open,
         type: :boolean,
-        description: "Enable registrations for anyone, invitations can be enabled when false"
+        description: "Enable registrations for anyone, invitations can be enabled when `false`"
       },
       %{
         key: :invites_enabled,
         type: :boolean,
-        description: "Enable user invitations for admins (depends on registrations_open: false)"
+        description: "Enable user invitations for admins (depends on `registrations_open: false`)"
       },
       %{
         key: :account_activation_required,
@@ -759,7 +759,7 @@ config :pleroma, :config_description, [
         key: :extended_nickname_format,
         type: :boolean,
         description:
-          "Set to true to use extended local nicknames format (allows underscores/dashes)." <>
+          "Set to `true` to use extended local nicknames format (allows underscores/dashes)." <>
             " This will break federation with older software for theses nicknames"
       },
       %{
@@ -788,7 +788,7 @@ config :pleroma, :config_description, [
         key: :no_attachment_links,
         type: :boolean,
         description:
-          "Set to true to disable automatically adding attachment link text to statuses"
+          "Set to `true` to disable automatically adding attachment link text to statuses"
       },
       %{
         key: :welcome_message,
@@ -810,7 +810,7 @@ config :pleroma, :config_description, [
       %{
         key: :max_report_comment_size,
         type: :integer,
-        description: "The maximum size of the report comment (Default: 1000)",
+        description: "The maximum size of the report comment. Default: 1000.",
         suggestions: [
           1_000
         ]
@@ -819,14 +819,14 @@ config :pleroma, :config_description, [
         key: :safe_dm_mentions,
         type: :boolean,
         description:
-          "If set to true, only mentions at the beginning of a post will be used to address people in direct messages." <>
+          "If set to `true`, only mentions at the beginning of a post will be used to address people in direct messages." <>
             " This is to prevent accidental mentioning of people when talking about them (e.g. \"@friend hey i really don't like @enemy\")." <>
-            " Default: false"
+            " Default: `false`"
       },
       %{
         key: :healthcheck,
         type: :boolean,
-        description: "If set to true, system data will be shown on /api/pleroma/healthcheck"
+        description: "If set to `true`, system data will be shown on /api/pleroma/healthcheck"
       },
       %{
         key: :remote_post_retention_days,
@@ -840,7 +840,7 @@ config :pleroma, :config_description, [
       %{
         key: :user_bio_length,
         type: :integer,
-        description: "A user bio maximum length (default: 5000)",
+        description: "A user bio maximum length. Default: 5000.",
         suggestions: [
           5_000
         ]
@@ -848,7 +848,7 @@ config :pleroma, :config_description, [
       %{
         key: :user_name_length,
         type: :integer,
-        description: "A user name maximum length (default: 100)",
+        description: "A user name maximum length. Default: 100.",
         suggestions: [
           100
         ]
@@ -856,13 +856,13 @@ config :pleroma, :config_description, [
       %{
         key: :skip_thread_containment,
         type: :boolean,
-        description: "Skip filter out broken threads. The default is true"
+        description: "Skip filter out broken threads. Default: `true`"
       },
       %{
         key: :limit_to_local_content,
         type: [:atom, false],
         description:
-          "Limit unauthenticated users to search for local statutes and users only. The default is :unauthenticated ",
+          "Limit unauthenticated users to search for local statutes and users only. Default: `:unauthenticated`.",
         suggestions: [
           :unauthenticated,
           :all,
@@ -872,7 +872,7 @@ config :pleroma, :config_description, [
       %{
         key: :max_account_fields,
         type: :integer,
-        description: "The maximum number of custom fields in the user profile (default: 10)",
+        description: "The maximum number of custom fields in the user profile. Default: 10.",
         suggestions: [
           10
         ]
@@ -881,7 +881,7 @@ config :pleroma, :config_description, [
         key: :max_remote_account_fields,
         type: :integer,
         description:
-          "The maximum number of custom fields in the remote user profile (default: 20)",
+          "The maximum number of custom fields in the remote user profile. Default: 20.",
         suggestions: [
           20
         ]
@@ -889,7 +889,7 @@ config :pleroma, :config_description, [
       %{
         key: :account_field_name_length,
         type: :integer,
-        description: "An account field name maximum length (default: 512)",
+        description: "An account field name maximum length. Default: 512.",
         suggestions: [
           512
         ]
@@ -897,7 +897,7 @@ config :pleroma, :config_description, [
       %{
         key: :account_field_value_length,
         type: :integer,
-        description: "An account field value maximum length (default: 2048)",
+        description: "An account field value maximum length. Default: 2048.",
         suggestions: [
           2048
         ]
@@ -945,7 +945,7 @@ config :pleroma, :config_description, [
       %{
         key: :format,
         type: :string,
-        description: "It defaults to \"$date $time [$level] $levelpad$node $metadata $message\"",
+        description: "Default: \"$date $time [$level] $levelpad$node $metadata $message\".",
         suggestions: ["$metadata[$level] $message"]
       },
       %{
@@ -970,7 +970,7 @@ config :pleroma, :config_description, [
       %{
         key: :format,
         type: :string,
-        description: "It defaults to \"$date $time [$level] $levelpad$node $metadata $message\"",
+        description: "Default: \"$date $time [$level] $levelpad$node $metadata $message\".",
         suggestions: ["$metadata[$level] $message"]
       },
       %{
@@ -1074,7 +1074,7 @@ config :pleroma, :config_description, [
             label: "Redirect root no login",
             type: :string,
             description:
-              "relative URL which indicates where to redirect when a user isn't logged in",
+              "Relative URL which indicates where to redirect when a user isn't logged in",
             suggestions: ["/main/all"]
           },
           %{
@@ -1082,7 +1082,7 @@ config :pleroma, :config_description, [
             label: "Redirect root login",
             type: :string,
             description:
-              "relative URL which indicates where to redirect when a user is logged in",
+              "Relative URL which indicates where to redirect when a user is logged in",
             suggestions: ["/main/friends"]
           },
           %{
@@ -1095,34 +1095,34 @@ config :pleroma, :config_description, [
             key: :scopeOptionsEnabled,
             label: "Scope options enabled",
             type: :boolean,
-            description: "Enable setting an notice visibility and subject/CW when posting"
+            description: "Enable setting a notice visibility and subject/CW when posting"
           },
           %{
             key: :formattingOptionsEnabled,
             label: "Formatting options enabled",
             type: :boolean,
             description:
-              "Enable setting a formatting different than plain-text (ie. HTML, Markdown) when posting, relates to :instance, allowed_post_formats"
+              "Enable setting a formatting different than plain-text (ie. HTML, Markdown) when posting, relates to `:instance`, `allowed_post_formats`"
           },
           %{
             key: :collapseMessageWithSubject,
             label: "Collapse message with subject",
             type: :boolean,
             description:
-              "When a message has a subject(aka Content Warning), collapse it by default"
+              "When a message has a subject (aka Content Warning), collapse it by default"
           },
           %{
             key: :hidePostStats,
             label: "Hide post stats",
             type: :boolean,
-            description: "Hide notices statistics(repeats, favorites, ...)"
+            description: "Hide notices statistics (repeats, favorites, ...)"
           },
           %{
             key: :hideUserStats,
             label: "Hide user stats",
             type: :boolean,
             description:
-              "Hide profile statistics(posts, posts per day, followers, followings, ...)"
+              "Hide profile statistics (posts, posts per day, followers, followings, ...)"
           },
           %{
             key: :scopeCopy,
@@ -1135,16 +1135,16 @@ config :pleroma, :config_description, [
             label: "Subject line behavior",
             type: :string,
             description: "Allows changing the default behaviour of subject lines in replies.
-          `email`: Copy and preprend re:, as in email,
-          `masto`: Copy verbatim, as in Mastodon,
-          `noop`: Don't copy the subjec",
+          `email`: copy and preprend re:, as in email,
+          `masto`: copy verbatim, as in Mastodon,
+          `noop`: don't copy the subjec",
             suggestions: ["email", "masto", "noop"]
           },
           %{
             key: :alwaysShowSubjectInput,
             label: "Always show subject input",
             type: :boolean,
-            description: "When set to false, auto-hide the subject field when it's empty"
+            description: "When set to `false`, auto-hide the subject field when it's empty"
           }
         ]
       },
@@ -1180,7 +1180,7 @@ config :pleroma, :config_description, [
         key: :mascots,
         type: {:keyword, :map},
         description:
-          "Keyword of mascots, each element MUST contain both a url and a mime_type key",
+          "Keyword of mascots, each element must contain both an url and a mime_type key",
         suggestions: [
           pleroma_fox_tan: %{
             url: "/images/pleroma-fox-tan-smol.png",
@@ -1196,7 +1196,7 @@ config :pleroma, :config_description, [
         key: :default_mascot,
         type: :atom,
         description:
-          "This will be used as the default mascot on MastoFE (default: :pleroma_fox_tan)",
+          "This will be used as the default mascot on MastoFE. Default: `:pleroma_fox_tan`",
         suggestions: [
           :pleroma_fox_tan
         ]
@@ -1860,7 +1860,7 @@ config :pleroma, :config_description, [
     type: :group,
     description:
       "Kocaptcha is a very simple captcha service with a single API endpoint, the source code is" <>
-        " here: https://github.com/koto-bank/kocaptcha. The default endpoint https://captcha.kotobank.ch is hosted by the developer",
+        " here: https://github.com/koto-bank/kocaptcha. The default endpoint (https://captcha.kotobank.ch) is hosted by the developer",
     children: [
       %{
         key: :endpoint,
@@ -2040,7 +2040,7 @@ config :pleroma, :config_description, [
         key: :unfurl_nsfw,
         label: "Unfurl NSFW",
         type: :boolean,
-        description: "If set to true nsfw attachments will be shown in previews"
+        description: "If set to `true` NSFW attachments will be shown in previews"
       }
     ]
   },
@@ -2120,24 +2120,24 @@ config :pleroma, :config_description, [
       %{
         key: :class,
         type: [:string, false],
-        description: "specify the class to be added to the generated link. false to clear",
+        description: "Specify the class to be added to the generated link. `False` to clear",
         suggestions: ["auto-linker", false]
       },
       %{
         key: :rel,
         type: [:string, false],
-        description: "override the rel attribute. false to clear",
+        description: "Override the rel attribute. `False` to clear",
         suggestions: ["ugc", "noopener noreferrer", false]
       },
       %{
         key: :new_window,
         type: :boolean,
-        description: "set to false to remove target='_blank' attribute"
+        description: "Set to `false` to remove target='_blank' attribute"
       },
       %{
         key: :scheme,
         type: :boolean,
-        description: "Set to true to link urls with schema http://google.com"
+        description: "Set to `true` to link urls with schema http://google.com"
       },
       %{
         key: :truncate,
@@ -2154,7 +2154,7 @@ config :pleroma, :config_description, [
       %{
         key: :extra,
         type: :boolean,
-        description: "link urls with rarely used schemes (magnet, ipfs, irc, etc.)"
+        description: "Link urls with rarely used schemes (magnet, ipfs, irc, etc.)"
       }
     ]
   },
@@ -2168,14 +2168,14 @@ config :pleroma, :config_description, [
         key: :daily_user_limit,
         type: :integer,
         description:
-          "the number of scheduled activities a user is allowed to create in a single day (Default: 25)",
+          "The number of scheduled activities a user is allowed to create in a single day. Default: 25.",
         suggestions: [25]
       },
       %{
         key: :total_user_limit,
         type: :integer,
         description:
-          "the number of scheduled activities a user is allowed to create in total (Default: 300)",
+          "the number of scheduled activities a user is allowed to create in total. Default: 300.",
         suggestions: [300]
       },
       %{
@@ -2216,14 +2216,14 @@ config :pleroma, :config_description, [
     type: :group,
     description:
       "Use LDAP for user authentication. When a user logs in to the Pleroma instance, the name and password" <>
-        " will be verified by trying to authenticate (bind) to an LDAP server." <>
+        " will be verified by trying to authenticate (bind) to a LDAP server." <>
         " If a user exists in the LDAP directory but there is no account with the same name yet on the" <>
         " Pleroma instance then a new Pleroma account will be created with the same name as the LDAP user name.",
     children: [
       %{
         key: :enabled,
         type: :boolean,
-        description: "enables LDAP authentication"
+        description: "Enables LDAP authentication"
       },
       %{
         key: :host,
@@ -2241,13 +2241,13 @@ config :pleroma, :config_description, [
         key: :ssl,
         label: "SSL",
         type: :boolean,
-        description: "true to use SSL, usually implies the port 636"
+        description: "`True` to use SSL, usually implies the port 636"
       },
       %{
         key: :sslopts,
         label: "SSL options",
         type: :keyword,
-        description: "additional SSL options",
+        description: "Additional SSL options",
         suggestions: [cacertfile: "path/to/file/with/PEM/cacerts", verify: :verify_peer],
         children: [
           %{
@@ -2268,13 +2268,13 @@ config :pleroma, :config_description, [
         key: :tls,
         label: "TLS",
         type: :boolean,
-        description: "true to start TLS, usually implies the port 389"
+        description: "`True` to start TLS, usually implies the port 389"
       },
       %{
         key: :tlsopts,
         label: "TLS options",
         type: :keyword,
-        description: "additional TLS options",
+        description: "Additional TLS options",
         suggestions: [cacertfile: "path/to/file/with/PEM/cacerts", verify: :verify_peer],
         children: [
           %{
@@ -2325,22 +2325,22 @@ config :pleroma, :config_description, [
         key: :auth_template,
         type: :string,
         description:
-          "authentication form template. By default it's show.html which corresponds to lib/pleroma/web/templates/o_auth/o_auth/show.html.ee",
+          "Authentication form template. By default it's `show.html` which corresponds to `lib/pleroma/web/templates/o_auth/o_auth/show.html.ee`",
         suggestions: ["show.html"]
       },
       %{
         key: :oauth_consumer_template,
         type: :string,
         description:
-          "OAuth consumer mode authentication form template. By default it's consumer.html which corresponds to" <>
-            " lib/pleroma/web/templates/o_auth/o_auth/consumer.html.eex",
+          "OAuth consumer mode authentication form template. By default it's `consumer.html` which corresponds to" <>
+            " `lib/pleroma/web/templates/o_auth/o_auth/consumer.html.eex`",
         suggestions: ["consumer.html"]
       },
       %{
         key: :oauth_consumer_strategies,
         type: {:list, :string},
         description:
-          "the list of enabled OAuth consumer strategies; by default it's set by OAUTH_CONSUMER_STRATEGIES environment variable." <>
+          "The list of enabled OAuth consumer strategies; by default it's set by OAUTH_CONSUMER_STRATEGIES environment variable." <>
             " Each entry in this space-delimited string should be of format <strategy> or <strategy>:<dependency>" <>
             " (e.g. twitter or keycloak:ueberauth_keycloak_strategy in case dependency is named differently than ueberauth_<strategy>).",
         suggestions: ["twitter", "keycloak:ueberauth_keycloak_strategy"]
@@ -2477,13 +2477,13 @@ config :pleroma, :config_description, [
       %{
         key: :clean_expired_tokens,
         type: :boolean,
-        description: "Enable a background job to clean expired oauth tokens. Defaults to false"
+        description: "Enable a background job to clean expired oauth tokens. Default: `false`."
       },
       %{
         key: :clean_expired_tokens_interval,
         type: :integer,
         description:
-          "Interval to run the job to clean expired tokens. Defaults to 86_400_000 (24 hours).",
+          "Interval to run the job to clean expired tokens. Default: 86_400_000 (24 hours).",
         suggestions: [86_400_000]
       }
     ]
@@ -2544,7 +2544,7 @@ config :pleroma, :config_description, [
       %{
         key: :rum_enabled,
         type: :boolean,
-        description: "If RUM indexes should be used. Defaults to false"
+        description: "If RUM indexes should be used. Default: `false`"
       }
     ]
   },
@@ -2611,12 +2611,12 @@ config :pleroma, :config_description, [
       %{
         key: :enabled,
         type: :boolean,
-        description: "Enables ssh"
+        description: "Enables SSH"
       },
       %{
         key: :priv_dir,
         type: :string,
-        description: "Dir with ssh keys",
+        description: "Dir with SSH keys",
         suggestions: ["/some/path/ssh_keys"]
       },
       %{
@@ -2967,19 +2967,20 @@ config :pleroma, :config_description, [
       %{
         key: :enabled,
         type: :boolean,
-        description: "Enable/disable the plug. Defaults to `false`."
+        description: "Enable/disable the plug. Default: `false`.",
+        suggestions: [true, false]
       },
       %{
         key: :headers,
         type: {:list, :string},
         description:
-          "A list of strings naming the `req_headers` to use when deriving the `remote_ip`. Order does not matter. Defaults to `~w[forwarded x-forwarded-for x-client-ip x-real-ip]`."
+          "A list of strings naming the `req_headers` to use when deriving the `remote_ip`. Order does not matter. Default: `~w[forwarded x-forwarded-for x-client-ip x-real-ip]`."
       },
       %{
         key: :proxies,
         type: {:list, :string},
         description:
-          "A list of strings in [CIDR](https://en.wikipedia.org/wiki/CIDR) notation specifying the IPs of known proxies. Defaults to `[]`."
+          "A list of strings in [CIDR](https://en.wikipedia.org/wiki/CIDR) notation specifying the IPs of known proxies. Default: `[]`."
       },
       %{
         key: :reserved,
@@ -3000,14 +3001,14 @@ config :pleroma, :config_description, [
         key: :activity_pub,
         type: :integer,
         description:
-          "activity pub routes (except question activities). Defaults to `nil` (no expiration).",
-        suggestions: [30_000]
+          "Activity pub routes (except question activities). Default: `nil` (no expiration).",
+        suggestions: [30_000, nil]
       },
       %{
         key: :activity_pub_question,
         type: :integer,
         description:
-          "activity pub routes (question activities). Defaults to `30_000` (30 seconds).",
+          "Activity pub routes (question activities). Default: `30_000` (30 seconds).",
         suggestions: [30_000]
       }
     ]
