@@ -39,7 +39,7 @@ config :pleroma, :config_description, [
         key: :link_name,
         type: :boolean,
         description:
-          "If enabled, a name parameter will be added to the url of the upload. For example `https://instance.tld/media/imagehash.png?name=realname.png`"
+          "If enabled, a name parameter will be added to the url of the upload. For example `https://instance.tld/media/imagehash.png?name=realname.png`."
       },
       %{
         key: :base_url,
@@ -207,7 +207,7 @@ config :pleroma, :config_description, [
         type: :string,
         description:
           "Text to replace filenames in links. If no setting, {random}.extension will be used. You can get the original" <>
-            " filename extension by using {extension}, for example custom-file-name.{extension}",
+            " filename extension by using {extension}, for example custom-file-name.{extension}.",
         suggestions: [
           "custom-file-name.{extension}"
         ]
@@ -1137,7 +1137,7 @@ config :pleroma, :config_description, [
             description: "Allows changing the default behaviour of subject lines in replies.
           `email`: copy and preprend re:, as in email,
           `masto`: copy verbatim, as in Mastodon,
-          `noop`: don't copy the subjec",
+          `noop`: don't copy the subject.",
             suggestions: ["email", "masto", "noop"]
           },
           %{
@@ -1464,7 +1464,7 @@ config :pleroma, :config_description, [
         key: :base_url,
         type: :string,
         description:
-          "The base URL to access a user-uploaded file. Useful when you want to proxy the media files via another host/CDN fronts",
+          "The base URL to access a user-uploaded file. Useful when you want to proxy the media files via another host/CDN fronts.",
         suggestions: ["https://example.com"]
       },
       %{
@@ -1485,7 +1485,7 @@ config :pleroma, :config_description, [
             type: :boolean,
             description:
               "Redirects the client to the real remote URL if there's any HTTP errors. " <>
-                "Any error during body processing will not be redirected as the response is chunked"
+                "Any error during body processing will not be redirected as the response is chunked."
           },
           %{
             key: :max_body_length,
@@ -1860,12 +1860,12 @@ config :pleroma, :config_description, [
     type: :group,
     description:
       "Kocaptcha is a very simple captcha service with a single API endpoint, the source code is" <>
-        " here: https://github.com/koto-bank/kocaptcha. The default endpoint (https://captcha.kotobank.ch) is hosted by the developer",
+        " here: https://github.com/koto-bank/kocaptcha. The default endpoint (https://captcha.kotobank.ch) is hosted by the developer.",
     children: [
       %{
         key: :endpoint,
         type: :string,
-        description: "the kocaptcha endpoint to use",
+        description: "The kocaptcha endpoint to use",
         suggestions: ["https://captcha.kotobank.ch"]
       }
     ]
@@ -1874,7 +1874,7 @@ config :pleroma, :config_description, [
     group: :pleroma,
     type: :group,
     description:
-      "Allows to set a token that can be used to authenticate with the admin api without using an actual user by giving it as the 'admin_token' parameter",
+      "Allows to set a token that can be used to authenticate with the admin api without using an actual user by giving it as the `admin_token` parameter",
     children: [
       %{
         key: :admin_token,
@@ -2325,7 +2325,7 @@ config :pleroma, :config_description, [
         key: :auth_template,
         type: :string,
         description:
-          "Authentication form template. By default it's `show.html` which corresponds to `lib/pleroma/web/templates/o_auth/o_auth/show.html.ee`",
+          "Authentication form template. By default it's `show.html` which corresponds to `lib/pleroma/web/templates/o_auth/o_auth/show.html.ee`.",
         suggestions: ["show.html"]
       },
       %{
@@ -2333,7 +2333,7 @@ config :pleroma, :config_description, [
         type: :string,
         description:
           "OAuth consumer mode authentication form template. By default it's `consumer.html` which corresponds to" <>
-            " `lib/pleroma/web/templates/o_auth/o_auth/consumer.html.eex`",
+            " `lib/pleroma/web/templates/o_auth/o_auth/consumer.html.eex`.",
         suggestions: ["consumer.html"]
       },
       %{
@@ -2341,7 +2341,7 @@ config :pleroma, :config_description, [
         type: {:list, :string},
         description:
           "The list of enabled OAuth consumer strategies; by default it's set by OAUTH_CONSUMER_STRATEGIES environment variable." <>
-            " Each entry in this space-delimited string should be of format <strategy> or <strategy>:<dependency>" <>
+            " Each entry in this space-delimited string should be of format \"strategy\" or \"strategy:dependency\"" <>
             " (e.g. twitter or keycloak:ueberauth_keycloak_strategy in case dependency is named differently than ueberauth_<strategy>).",
         suggestions: ["twitter", "keycloak:ueberauth_keycloak_strategy"]
       }
@@ -2376,7 +2376,7 @@ config :pleroma, :config_description, [
             key: :schedule,
             type: :string,
             description:
-              "When to send digest email, in crontab format. \"0 0 0\" is the default, meaning \"once a week at midnight on Sunday morning\"",
+              "When to send digest email, in crontab format. \"0 0 0\" is the default, meaning \"once a week at midnight on Sunday morning\".",
             suggestions: ["0 0 * * 0"]
           },
           %{
@@ -2404,7 +2404,7 @@ config :pleroma, :config_description, [
       %{
         key: :logo,
         type: :string,
-        description: "A path to a custom logo. Set it to `nil` to use the default Pleroma logo",
+        description: "A path to a custom logo. Set it to `nil` to use the default Pleroma logo.",
         suggestions: ["some/path/logo.png"]
       },
       %{
@@ -2496,7 +2496,7 @@ config :pleroma, :config_description, [
       %{
         key: :shortcode_globs,
         type: {:list, :string},
-        description: "Location of custom emoji files. * can be used as a wildcard",
+        description: "Location of custom emoji files. * can be used as a wildcard.",
         suggestions: ["/emoji/custom/**/*.png"]
       },
       %{
@@ -2511,7 +2511,7 @@ config :pleroma, :config_description, [
         type: {:keyword, :string, {:list, :string}},
         description:
           "Emojis are ordered in groups (tags). This is an array of key-value pairs where the key is the group name" <>
-            " and the value is the location or array of locations. * can be used as a wildcard",
+            " and the value is the location or array of locations. * can be used as a wildcard.",
         suggestions: [
           Custom: ["/emoji/*.png", "/emoji/**/*.png"]
         ]
@@ -2521,7 +2521,7 @@ config :pleroma, :config_description, [
         type: :string,
         description:
           "Location of the JSON-manifest. This manifest contains information about the emoji-packs you can download." <>
-            " Currently only one manifest can be added (no arrays)",
+            " Currently only one manifest can be added (no arrays).",
         suggestions: ["https://git.pleroma.social/pleroma/emoji-index/raw/master/index.json"]
       },
       %{
@@ -2795,7 +2795,7 @@ config :pleroma, :config_description, [
         key: :user_agent,
         type: [:string, :atom],
         description:
-          "What user agent to use. Must be a string or an atom `:default`. Default value is `:default`",
+          "What user agent to use. Must be a string or an atom `:default`. Default value is `:default`.",
         suggestions: ["Pleroma", :default]
       },
       %{
