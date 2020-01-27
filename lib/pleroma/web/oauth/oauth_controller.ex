@@ -170,11 +170,9 @@ defmodule Pleroma.Web.OAuth.OAuthController do
 
   defp handle_create_authorization_error(
          %Plug.Conn{} = conn,
-         {:auth_active, false},
+         {:account_status, :confirmation_pending},
          %{"authorization" => _} = params
        ) do
-    # Per https://github.com/tootsuite/mastodon/blob/
-    #   51e154f5e87968d6bb115e053689767ab33e80cd/app/controllers/api/base_controller.rb#L76
     conn
     |> put_flash(:error, dgettext("errors", "Your login is missing a confirmed e-mail address"))
     |> put_status(:forbidden)
@@ -195,6 +193,28 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     }
 
     MFAController.show(conn, data)
+  end
+
+  defp handle_create_authorization_error(
+         %Plug.Conn{} = conn,
+         {:account_status, :password_reset_pending},
+         %{"authorization" => _} = params
+       ) do
+    conn
+    |> put_flash(:error, dgettext("errors", "Password reset is required"))
+    |> put_status(:forbidden)
+    |> authorize(params)
+  end
+
+  defp handle_create_authorization_error(
+         %Plug.Conn{} = conn,
+         {:account_status, :deactivated},
+         %{"authorization" => _} = params
+       ) do
+    conn
+    |> put_flash(:error, dgettext("errors", "Your account is currently disabled"))
+    |> put_status(:forbidden)
+    |> authorize(params)
   end
 
   defp handle_create_authorization_error(%Plug.Conn{} = conn, error, %{"authorization" => _}) do
@@ -237,11 +257,8 @@ defmodule Pleroma.Web.OAuth.OAuthController do
         %{"grant_type" => "password"} = params
       ) do
     with {:ok, %User{} = user} <- Authenticator.get_user(conn),
-         {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
-         {:user_active, true} <- {:user_active, !user.deactivated},
-         {:password_reset_pending, false} <-
-           {:password_reset_pending, user.password_reset_pending},
          {:ok, app} <- Token.Utils.fetch_app(conn),
+         {:account_status, :active} <- {:account_status, User.account_status(user)},
          {:ok, scopes} <- validate_scopes(app, params),
          {:ok, auth} <- Authorization.create_authorization(app, user, scopes),
          {:mfa_required, _, _, false} <- {:mfa_required, user, auth, MFA.require?(user)},
@@ -285,19 +302,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     |> json(build_and_response_mfa_token(user, auth))
   end
 
-  defp handle_token_exchange_error(%Plug.Conn{} = conn, {:auth_active, false}) do
-    # Per https://github.com/tootsuite/mastodon/blob/
-    #   51e154f5e87968d6bb115e053689767ab33e80cd/app/controllers/api/base_controller.rb#L76
-    render_error(
-      conn,
-      :forbidden,
-      "Your login is missing a confirmed e-mail address",
-      %{},
-      "missing_confirmed_email"
-    )
-  end
-
-  defp handle_token_exchange_error(%Plug.Conn{} = conn, {:user_active, false}) do
+  defp handle_token_exchange_error(%Plug.Conn{} = conn, {:account_status, :deactivated}) do
     render_error(
       conn,
       :forbidden,
@@ -307,13 +312,26 @@ defmodule Pleroma.Web.OAuth.OAuthController do
     )
   end
 
-  defp handle_token_exchange_error(%Plug.Conn{} = conn, {:password_reset_pending, true}) do
+  defp handle_token_exchange_error(
+         %Plug.Conn{} = conn,
+         {:account_status, :password_reset_pending}
+       ) do
     render_error(
       conn,
       :forbidden,
       "Password reset is required",
       %{},
       "password_reset_required"
+    )
+  end
+
+  defp handle_token_exchange_error(%Plug.Conn{} = conn, {:account_status, :confirmation_pending}) do
+    render_error(
+      conn,
+      :forbidden,
+      "Your login is missing a confirmed e-mail address",
+      %{},
+      "missing_confirmed_email"
     )
   end
 
@@ -508,7 +526,7 @@ defmodule Pleroma.Web.OAuth.OAuthController do
          %App{} = app <- Repo.get_by(App, client_id: client_id),
          true <- redirect_uri in String.split(app.redirect_uris),
          {:ok, scopes} <- validate_scopes(app, auth_attrs),
-         {:auth_active, true} <- {:auth_active, User.auth_active?(user)},
+         {:account_status, :active} <- {:account_status, User.account_status(user)},
          {:ok, auth} <- Authorization.create_authorization(app, user, scopes) do
       {:ok, auth, user}
     end
