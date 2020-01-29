@@ -9,13 +9,13 @@ defmodule Pleroma.Web.TwitterAPI.UtilController do
 
   alias Pleroma.Config
   alias Pleroma.Emoji
+  alias Pleroma.Federation.WebFinger
   alias Pleroma.Healthcheck
   alias Pleroma.Notification
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.User
   alias Pleroma.Web
   alias Pleroma.Web.CommonAPI
-  alias Pleroma.Web.WebFinger
 
   plug(
     OAuthScopesPlug,

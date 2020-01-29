@@ -2,13 +2,14 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Web.WebFinger do
+defmodule Pleroma.Federation.WebFinger do
+  alias Pleroma.Federation.WebFinger.XML
+  alias Pleroma.Federation.WebFinger.XMLBuilder
   alias Pleroma.HTTP
   alias Pleroma.User
   alias Pleroma.Web
   alias Pleroma.Web.Federator.Publisher
-  alias Pleroma.Web.XML
-  alias Pleroma.XmlBuilder
+
   require Jason
   require Logger
 
@@ -27,7 +28,7 @@ defmodule Pleroma.Web.WebFinger do
         }
       }
     }
-    |> XmlBuilder.to_doc()
+    |> XMLBuilder.to_doc()
   end
 
   def webfinger(resource, fmt) when fmt in ["XML", "JSON"] do
@@ -83,7 +84,7 @@ defmodule Pleroma.Web.WebFinger do
         {:Alias, user.ap_id}
       ] ++ links
     }
-    |> XmlBuilder.to_doc()
+    |> XMLBuilder.to_doc()
   end
 
   defp get_magic_key("data:application/magic-public-key," <> magic_key) do

@@ -2,10 +2,10 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Web.WebFinger.WebFingerController do
+defmodule Pleroma.Federation.WebFinger.WebFingerController do
   use Pleroma.Web, :controller
 
-  alias Pleroma.Web.WebFinger
+  alias Pleroma.Federation.WebFinger
 
   plug(Pleroma.Plugs.SetFormatPlug)
   plug(Pleroma.Web.FederatingPlug)

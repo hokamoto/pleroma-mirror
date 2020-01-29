@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
+defmodule Pleroma.Federation.NodeInfo.NodeInfoController do
   use Pleroma.Web, :controller
 
   alias Pleroma.Config
@@ -162,6 +162,6 @@ defmodule Pleroma.Web.Nodeinfo.NodeinfoController do
   end
 
   def nodeinfo(conn, _) do
-    render_error(conn, :not_found, "Nodeinfo schema version not handled")
+    render_error(conn, :not_found, "NodeInfo schema version not handled")
   end
 end

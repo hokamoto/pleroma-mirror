@@ -421,8 +421,8 @@ msgid "Invalid answer data"
 msgstr "Réponse invalide"
 
 #, elixir-format
-#: lib/pleroma/web/nodeinfo/nodeinfo_controller.ex:204
-msgid "Nodeinfo schema version not handled"
+#: lib/federation/node_info/node_info_controller.ex:204
+msgid "NodeInfo schema version not handled"
 msgstr "Version du schéma nodeinfo non géré"
 
 #, elixir-format

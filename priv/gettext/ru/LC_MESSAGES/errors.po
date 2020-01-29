@@ -426,9 +426,9 @@ msgid "Invalid answer data"
 msgstr "Неверный ответ"
 
 #, elixir-format
-#: lib/pleroma/web/nodeinfo/nodeinfo_controller.ex:204
-msgid "Nodeinfo schema version not handled"
-msgstr "Версия схемы Nodeinfo не учитывается"
+#: lib/federation/node_info/node_info_controller.ex:204
+msgid "NodeInfo schema version not handled"
+msgstr "Версия схемы NodeInfo не учитывается"
 
 #, elixir-format
 #: lib/pleroma/web/oauth/oauth_controller.ex:145

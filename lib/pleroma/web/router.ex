@@ -605,16 +605,16 @@ defmodule Pleroma.Web.Router do
     post("/inbox", ActivityPubController, :inbox)
   end
 
-  scope "/.well-known", Pleroma.Web do
+  scope "/.well-known", Pleroma.Federation do
     pipe_through(:well_known)
 
     get("/host-meta", WebFinger.WebFingerController, :host_meta)
     get("/webfinger", WebFinger.WebFingerController, :webfinger)
-    get("/nodeinfo", Nodeinfo.NodeinfoController, :schemas)
+    get("/nodeinfo", NodeInfo.NodeInfoController, :schemas)
   end
 
-  scope "/nodeinfo", Pleroma.Web do
-    get("/:version", Nodeinfo.NodeinfoController, :nodeinfo)
+  scope "/nodeinfo", Pleroma.Federation do
+    get("/:version", NodeInfo.NodeInfoController, :nodeinfo)
   end
 
   scope "/", Pleroma.Web do

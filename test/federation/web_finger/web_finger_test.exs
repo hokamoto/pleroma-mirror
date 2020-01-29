@@ -2,11 +2,13 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Web.WebFingerTest do
+defmodule Pleroma.Federation.WebFingerTest do
   use Pleroma.DataCase
-  alias Pleroma.Web.WebFinger
+
   import Pleroma.Factory
   import Tesla.Mock
+
+  alias Pleroma.Federation.WebFinger
 
   setup do
     mock(fn env -> apply(HttpRequestMock, :request, [env]) end)

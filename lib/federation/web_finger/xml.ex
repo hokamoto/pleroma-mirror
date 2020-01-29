@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Web.XML do
+defmodule Pleroma.Federation.WebFinger.XML do
   require Logger
 
   def string_from_xpath(_, :error), do: nil

@@ -3,11 +3,16 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.ActivityPub.ActivityPub do
+  import Ecto.Query
+  import Pleroma.Web.ActivityPub.Utils
+  import Pleroma.Web.ActivityPub.Visibility
+
   alias Pleroma.Activity
   alias Pleroma.Activity.Ir.Topics
   alias Pleroma.Config
   alias Pleroma.Conversation
   alias Pleroma.Conversation.Participation
+  alias Pleroma.Federation.WebFinger
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Object.Containment
@@ -20,12 +25,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.Streamer
-  alias Pleroma.Web.WebFinger
   alias Pleroma.Workers.BackgroundWorker
-
-  import Ecto.Query
-  import Pleroma.Web.ActivityPub.Utils
-  import Pleroma.Web.ActivityPub.Visibility
 
   require Logger
   require Pleroma.Constants
