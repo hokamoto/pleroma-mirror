@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Pleroma.Uploads do
   use Mix.Task
   import Mix.Pleroma
   alias Pleroma.Upload
-  alias Pleroma.Uploaders.Local
+  alias Pleroma.Upload.Uploaders.Local
   require Logger
 
   @log_every 50
@@ -18,7 +18,7 @@ defmodule Mix.Tasks.Pleroma.Uploads do
     delete? = Enum.member?(args, "--delete")
     start_pleroma()
     local_path = Pleroma.Config.get!([Local, :uploads])
-    uploader = Module.concat(Pleroma.Uploaders, target_uploader)
+    uploader = Module.concat(Pleroma.Upload.Uploaders, target_uploader)
 
     unless Code.ensure_loaded?(uploader) do
       raise("The uploader #{inspect(uploader)} is not an existing/loaded module.")

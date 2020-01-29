@@ -99,7 +99,7 @@ defmodule Pleroma.Emoji do
     :ets.insert(@ets, emojis)
   end
 
-  @external_resource "lib/pleroma/emoji-data.txt"
+  @external_resource "lib/pleroma/emoji/emoji-data.txt"
 
   emojis =
     @external_resource

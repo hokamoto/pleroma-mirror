@@ -5,7 +5,7 @@
 defmodule Pleroma.Web.UploaderController do
   use Pleroma.Web, :controller
 
-  alias Pleroma.Uploaders.Uploader
+  alias Pleroma.Upload.Uploaders.Uploader
 
   def callback(conn, %{"upload_path" => upload_path} = params) do
     process_callback(conn, :global.whereis_name({Uploader, upload_path}), params)

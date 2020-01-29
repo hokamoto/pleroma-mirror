@@ -77,7 +77,7 @@ defmodule Pleroma.ObjectTest do
     clear_config([Pleroma.Upload])
 
     test "in subdirectories" do
-      Pleroma.Config.put([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+      Pleroma.Config.put([Pleroma.Upload, :uploader], Pleroma.Upload.Uploaders.Local)
 
       file = %Plug.Upload{
         content_type: "image/jpg",
@@ -93,7 +93,7 @@ defmodule Pleroma.ObjectTest do
       %{data: %{"attachment" => [%{"url" => [%{"href" => href}]}]}} =
         note = insert(:note, %{user: user, data: %{"attachment" => [attachment.data]}})
 
-      uploads_dir = Pleroma.Config.get!([Pleroma.Uploaders.Local, :uploads])
+      uploads_dir = Pleroma.Config.get!([Pleroma.Upload.Uploaders.Local, :uploads])
 
       path = href |> Path.dirname() |> Path.basename()
 
@@ -109,10 +109,10 @@ defmodule Pleroma.ObjectTest do
     end
 
     test "with dedupe enabled" do
-      Pleroma.Config.put([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+      Pleroma.Config.put([Pleroma.Upload, :uploader], Pleroma.Upload.Uploaders.Local)
       Pleroma.Config.put([Pleroma.Upload, :filters], [Pleroma.Upload.Filter.Dedupe])
 
-      uploads_dir = Pleroma.Config.get!([Pleroma.Uploaders.Local, :uploads])
+      uploads_dir = Pleroma.Config.get!([Pleroma.Upload.Uploaders.Local, :uploads])
 
       File.mkdir_p!(uploads_dir)
 
@@ -145,7 +145,7 @@ defmodule Pleroma.ObjectTest do
     end
 
     test "with objects that have legacy data.url attribute" do
-      Pleroma.Config.put([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+      Pleroma.Config.put([Pleroma.Upload, :uploader], Pleroma.Upload.Uploaders.Local)
 
       file = %Plug.Upload{
         content_type: "image/jpg",
@@ -163,7 +163,7 @@ defmodule Pleroma.ObjectTest do
       %{data: %{"attachment" => [%{"url" => [%{"href" => href}]}]}} =
         note = insert(:note, %{user: user, data: %{"attachment" => [attachment.data]}})
 
-      uploads_dir = Pleroma.Config.get!([Pleroma.Uploaders.Local, :uploads])
+      uploads_dir = Pleroma.Config.get!([Pleroma.Upload.Uploaders.Local, :uploads])
 
       path = href |> Path.dirname() |> Path.basename()
 
@@ -179,7 +179,7 @@ defmodule Pleroma.ObjectTest do
     end
 
     test "With custom base_url" do
-      Pleroma.Config.put([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+      Pleroma.Config.put([Pleroma.Upload, :uploader], Pleroma.Upload.Uploaders.Local)
       Pleroma.Config.put([Pleroma.Upload, :base_url], "https://sub.domain.tld/dir/")
 
       file = %Plug.Upload{
@@ -196,7 +196,7 @@ defmodule Pleroma.ObjectTest do
       %{data: %{"attachment" => [%{"url" => [%{"href" => href}]}]}} =
         note = insert(:note, %{user: user, data: %{"attachment" => [attachment.data]}})
 
-      uploads_dir = Pleroma.Config.get!([Pleroma.Uploaders.Local, :uploads])
+      uploads_dir = Pleroma.Config.get!([Pleroma.Upload.Uploaders.Local, :uploads])
 
       path = href |> Path.dirname() |> Path.basename()
 

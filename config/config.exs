@@ -88,7 +88,7 @@ config :pleroma, :hackney_pools,
 
 # Upload configuration
 config :pleroma, Pleroma.Upload,
-  uploader: Pleroma.Uploaders.Local,
+  uploader: Pleroma.Upload.Uploaders.Local,
   filters: [Pleroma.Upload.Filter.Dedupe],
   link_name: false,
   proxy_remote: false,
@@ -101,9 +101,9 @@ config :pleroma, Pleroma.Upload,
     ]
   ]
 
-config :pleroma, Pleroma.Uploaders.Local, uploads: "uploads"
+config :pleroma, Pleroma.Upload.Uploaders.Local, uploads: "uploads"
 
-config :pleroma, Pleroma.Uploaders.S3,
+config :pleroma, Pleroma.Upload.Uploaders.S3,
   bucket: nil,
   streaming_enabled: true,
   public_endpoint: "https://s3.amazonaws.com"

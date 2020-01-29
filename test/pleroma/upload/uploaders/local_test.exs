@@ -2,9 +2,9 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Uploaders.LocalTest do
+defmodule Pleroma.Upload.Uploaders.LocalTest do
   use Pleroma.DataCase
-  alias Pleroma.Uploaders.Local
+  alias Pleroma.Upload.Uploaders.Local
 
   describe "get_file/1" do
     test "it returns path to local folder for files" do

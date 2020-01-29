@@ -406,11 +406,11 @@ the source code is here: https://github.com/koto-bank/kocaptcha. The default end
 !!! warning
     `strip_exif` has been replaced by `Pleroma.Upload.Filter.Mogrify`.
 
-### Uploaders
-#### Pleroma.Uploaders.Local
+### Upload.Uploaders
+#### Pleroma.Upload.Uploaders.Local
 * `uploads`: Which directory to store the user-uploads in, relative to pleroma’s working directory.
 
-#### Pleroma.Uploaders.S3
+#### Pleroma.Upload.Uploaders.S3
 * `bucket`: S3 bucket name.
 * `bucket_namespace`: S3 bucket namespace.
 * `public_endpoint`: S3 endpoint that the user finally accesses(ex. "https://s3.dualstack.ap-northeast-1.amazonaws.com")

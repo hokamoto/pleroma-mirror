@@ -43,7 +43,7 @@ config :web_push_encryption, :vapid_details,
 
 config :pleroma, :database, rum_enabled: <%= rum_enabled %>
 config :pleroma, :instance, static_dir: "<%= static_dir %>"
-config :pleroma, Pleroma.Uploaders.Local, uploads: "<%= uploads_dir %>"
+config :pleroma, Pleroma.Upload.Uploaders.Local, uploads: "<%= uploads_dir %>"
 
 # Enable Strict-Transport-Security once SSL is working:
 # config :pleroma, :http_security,
@@ -53,7 +53,7 @@ config :pleroma, Pleroma.Uploaders.Local, uploads: "<%= uploads_dir %>"
 # The public S3 endpoint is different depending on region and provider,
 # consult your S3 provider's documentation for details on what to use.
 #
-# config :pleroma, Pleroma.Uploaders.S3,
+# config :pleroma, Pleroma.Upload.Uploaders.S3,
 #   bucket: "some-bucket",
 #   public_endpoint: "https://s3.amazonaws.com"
 #

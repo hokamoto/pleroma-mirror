@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.MIME do
+defmodule Pleroma.Upload.MIME do
   @moduledoc """
   Returns the mime-type of a binary and optionally a normalized file-name.
   """

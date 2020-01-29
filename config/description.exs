@@ -23,7 +23,7 @@ config :pleroma, :config_description, [
         key: :uploader,
         type: :module,
         description: "Module which will be used for uploads",
-        suggestions: [Pleroma.Uploaders.Local, Pleroma.Uploaders.S3]
+        suggestions: [Pleroma.Upload.Uploaders.Local, Pleroma.Upload.Uploaders.S3]
       },
       %{
         key: :filters,
@@ -123,7 +123,7 @@ config :pleroma, :config_description, [
   },
   %{
     group: :pleroma,
-    key: Pleroma.Uploaders.Local,
+    key: Pleroma.Upload.Uploaders.Local,
     type: :group,
     description: "Local uploader-related settings",
     children: [
@@ -139,7 +139,7 @@ config :pleroma, :config_description, [
   },
   %{
     group: :pleroma,
-    key: Pleroma.Uploaders.S3,
+    key: Pleroma.Upload.Uploaders.S3,
     type: :group,
     description: "S3 uploader-related settings",
     children: [

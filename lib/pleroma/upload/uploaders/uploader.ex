@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Uploaders.Uploader do
+defmodule Pleroma.Upload.Uploaders.Uploader do
   import Pleroma.Web.Gettext
 
   @moduledoc """

@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Web.UploaderControllerTest do
   use Pleroma.Web.ConnCase
-  alias Pleroma.Uploaders.Uploader
+  alias Pleroma.Upload.Uploaders.Uploader
 
   describe "callback/2" do
     test "it returns 400 response when process callback isn't alive", %{conn: conn} do

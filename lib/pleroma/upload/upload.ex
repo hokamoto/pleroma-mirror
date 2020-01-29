@@ -26,11 +26,12 @@ defmodule Pleroma.Upload do
 
   Related behaviors:
 
-  * `Pleroma.Uploaders.Uploader`
+  * `Pleroma.Upload.Uploaders.Uploader`
   * `Pleroma.Upload.Filter`
 
   """
   alias Ecto.UUID
+  alias Pleroma.Upload.MIME
   require Logger
 
   @type source ::
@@ -62,7 +63,7 @@ defmodule Pleroma.Upload do
     with {:ok, upload} <- prepare_upload(upload, opts),
          upload = %__MODULE__{upload | path: upload.path || "#{upload.id}/#{upload.name}"},
          {:ok, upload} <- Pleroma.Upload.Filter.filter(opts.filters, upload),
-         {:ok, url_spec} <- Pleroma.Uploaders.Uploader.put_file(opts.uploader, upload) do
+         {:ok, url_spec} <- Pleroma.Upload.Uploaders.Uploader.put_file(opts.uploader, upload) do
       {:ok,
        %{
          "type" => opts.activity_type,
@@ -122,7 +123,7 @@ defmodule Pleroma.Upload do
 
   defp prepare_upload(%Plug.Upload{} = file, opts) do
     with :ok <- check_file_size(file.path, opts.size_limit),
-         {:ok, content_type, name} <- Pleroma.MIME.file_mime_type(file.path, file.filename) do
+         {:ok, content_type, name} <- MIME.file_mime_type(file.path, file.filename) do
       {:ok,
        %__MODULE__{
          id: UUID.generate(),
@@ -141,7 +142,7 @@ defmodule Pleroma.Upload do
     with :ok <- check_binary_size(data, opts.size_limit),
          tmp_path <- tempfile_for_image(data),
          {:ok, content_type, name} <-
-           Pleroma.MIME.bin_mime_type(data, hash <> "." <> parsed["filetype"]) do
+           MIME.bin_mime_type(data, hash <> "." <> parsed["filetype"]) do
       {:ok,
        %__MODULE__{
          id: UUID.generate(),
@@ -154,7 +155,7 @@ defmodule Pleroma.Upload do
 
   # For Mix.Tasks.MigrateLocalUploads
   defp prepare_upload(%__MODULE__{tempfile: path} = upload, _opts) do
-    with {:ok, content_type} <- Pleroma.MIME.file_mime_type(path) do
+    with {:ok, content_type} <- MIME.file_mime_type(path) do
       {:ok, %__MODULE__{upload | content_type: content_type}}
     end
   end

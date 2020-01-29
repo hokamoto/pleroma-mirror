@@ -2,17 +2,17 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Uploaders.S3Test do
+defmodule Pleroma.Upload.Uploaders.S3Test do
   use Pleroma.DataCase
 
   alias Pleroma.Config
-  alias Pleroma.Uploaders.S3
+  alias Pleroma.Upload.Uploaders.S3
 
   import Mock
   import ExUnit.CaptureLog
 
-  clear_config([Pleroma.Uploaders.S3]) do
-    Config.put([Pleroma.Uploaders.S3],
+  clear_config([Pleroma.Upload.Uploaders.S3]) do
+    Config.put([Pleroma.Upload.Uploaders.S3],
       bucket: "test_bucket",
       public_endpoint: "https://s3.amazonaws.com"
     )
@@ -27,7 +27,7 @@ defmodule Pleroma.Uploaders.S3Test do
     end
 
     test "it returns path without bucket when truncated_namespace set to ''" do
-      Config.put([Pleroma.Uploaders.S3],
+      Config.put([Pleroma.Upload.Uploaders.S3],
         bucket: "test_bucket",
         public_endpoint: "https://s3.amazonaws.com",
         truncated_namespace: ""
@@ -40,7 +40,7 @@ defmodule Pleroma.Uploaders.S3Test do
     end
 
     test "it returns path with bucket namespace when namespace is set" do
-      Config.put([Pleroma.Uploaders.S3],
+      Config.put([Pleroma.Upload.Uploaders.S3],
         bucket: "test_bucket",
         public_endpoint: "https://s3.amazonaws.com",
         bucket_namespace: "family"
@@ -75,7 +75,7 @@ defmodule Pleroma.Uploaders.S3Test do
       with_mock ExAws, request: fn _ -> {:error, "S3 Upload failed"} end do
         assert capture_log(fn ->
                  assert S3.put_file(file_upload) == {:error, "S3 Upload failed"}
-               end) =~ "Elixir.Pleroma.Uploaders.S3: {:error, \"S3 Upload failed\"}"
+               end) =~ "Elixir.Pleroma.Upload.Uploaders.S3: {:error, \"S3 Upload failed\"}"
       end
     end
   end

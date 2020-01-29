@@ -812,7 +812,7 @@ config :quack,
       "group": ":pleroma",
       "key": "Pleroma.Upload",
       "value": [
-        {"tuple": [":uploader", "Pleroma.Uploaders.Local"]},
+        {"tuple": [":uploader", "Pleroma.Upload.Uploaders.Local"]},
         {"tuple": [":filters", ["Pleroma.Upload.Filter.Dedupe"]]},
         {"tuple": [":link_name", true]},
         {"tuple": [":proxy_remote", false]},
