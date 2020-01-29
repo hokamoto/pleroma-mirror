@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.CreateWebsubClientSubscription do
+defmodule Pleroma.Storage.Repo.Migrations.CreateWebsubClientSubscription do
   use Ecto.Migration
 
   def change do

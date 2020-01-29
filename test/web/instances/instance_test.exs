@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Instances.InstanceTest do
   alias Pleroma.Instances.Instance
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   use Pleroma.DataCase
 

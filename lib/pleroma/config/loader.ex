@@ -6,7 +6,7 @@ defmodule Pleroma.Config.Loader do
   @paths ["config/config.exs", "config/#{Mix.env()}.exs"]
 
   @reject_keys [
-    Pleroma.Repo,
+    Pleroma.Storage.Repo,
     Pleroma.Web.Endpoint,
     :env,
     :configurable_from_database,

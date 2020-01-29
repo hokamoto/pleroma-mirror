@@ -492,7 +492,7 @@ Email notifications settings.
 
 Configuration options described in [Oban readme](https://github.com/sorentwo/oban#usage):
 
-* `repo` - app's Ecto repo (`Pleroma.Repo`)
+* `repo` - app's Ecto repo (`Pleroma.Storage.Repo`)
 * `verbose` - logs verbosity
 * `prune` - non-retryable jobs [pruning settings](https://github.com/sorentwo/oban#pruning) (`:disabled` / `{:maxlen, value}` / `{:maxage, value}`)
 * `queues` - job queues (see below)
@@ -511,7 +511,7 @@ Example:
 
 ```elixir
 config :pleroma, Oban,
-  repo: Pleroma.Repo,
+  repo: Pleroma.Storage.Repo,
   verbose: false,
   prune: {:maxlen, 1500},
   queues: [

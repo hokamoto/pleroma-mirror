@@ -7,7 +7,7 @@ defmodule Pleroma.Healthcheck do
   Module collects metrics about app and assign healthy status.
   """
   alias Pleroma.Healthcheck
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   @derive Jason.Encoder
   defstruct pool_size: 0,

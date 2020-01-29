@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Pleroma.NotificationSettings do
     if not is_nil(privacy_option) do
       privacy_option
       |> build_query(options)
-      |> Pleroma.Repo.update_all([])
+      |> Pleroma.Storage.Repo.update_all([])
     end
 
     shell_info("Done")

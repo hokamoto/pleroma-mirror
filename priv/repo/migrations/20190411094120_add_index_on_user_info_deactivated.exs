@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.AddIndexOnUserInfoDeactivated do
+defmodule Pleroma.Storage.Repo.Migrations.AddIndexOnUserInfoDeactivated do
   use Ecto.Migration
 
   def change do

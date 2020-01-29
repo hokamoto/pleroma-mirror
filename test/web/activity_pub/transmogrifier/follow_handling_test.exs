@@ -5,7 +5,7 @@
 defmodule Pleroma.Web.ActivityPub.Transmogrifier.FollowHandlingTest do
   use Pleroma.DataCase
   alias Pleroma.Activity
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.ActivityPub.Utils

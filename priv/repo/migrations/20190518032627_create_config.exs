@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.CreateConfig do
+defmodule Pleroma.Storage.Repo.Migrations.CreateConfig do
   use Ecto.Migration
 
   def change do

@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.CopyMutedToMutedNotifications do
+defmodule Pleroma.Storage.Repo.Migrations.CopyMutedToMutedNotifications do
   use Ecto.Migration
 
   def change do

@@ -7,7 +7,7 @@ defmodule Pleroma.Web.MongooseIM.MongooseIMController do
 
   alias Comeonin.Pbkdf2
   alias Pleroma.Plugs.RateLimiter
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
 
   plug(RateLimiter, [name: :authentication] when action in [:user_exists, :check_password])

@@ -7,7 +7,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
 
   alias Pleroma.Activity
   alias Pleroma.Notification
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.CommonAPI.Utils

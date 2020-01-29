@@ -11,8 +11,8 @@ defmodule Pleroma.Activity do
   alias Pleroma.Bookmark
   alias Pleroma.Notification
   alias Pleroma.Object
-  alias Pleroma.Repo
-  alias Pleroma.ReportNote
+  alias Pleroma.Storage.Repo
+  alias Pleroma.Storage.ReportNote
   alias Pleroma.ThreadMute
   alias Pleroma.User
 

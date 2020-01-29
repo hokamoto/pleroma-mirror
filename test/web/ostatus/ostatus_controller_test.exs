@@ -123,7 +123,7 @@ defmodule Pleroma.Web.OStatus.OStatusControllerTest do
       note_activity = insert(:note_activity)
       user = User.get_cached_by_ap_id(note_activity.data["actor"])
       User.invalidate_cache(user)
-      Pleroma.Repo.delete(user)
+      Pleroma.Storage.Repo.delete(user)
 
       conn =
         conn
@@ -202,7 +202,7 @@ defmodule Pleroma.Web.OStatus.OStatusControllerTest do
 
       object
       |> Ecto.Changeset.change(data: object_data)
-      |> Pleroma.Repo.update()
+      |> Pleroma.Storage.Repo.update()
 
       conn =
         conn
@@ -244,7 +244,7 @@ defmodule Pleroma.Web.OStatus.OStatusControllerTest do
 
       object
       |> Ecto.Changeset.change(data: object_data)
-      |> Pleroma.Repo.update()
+      |> Pleroma.Storage.Repo.update()
 
       assert conn
              |> get("/notice/#{note_activity.id}/embed_player")
@@ -270,7 +270,7 @@ defmodule Pleroma.Web.OStatus.OStatusControllerTest do
 
       object
       |> Ecto.Changeset.change(data: object_data)
-      |> Pleroma.Repo.update()
+      |> Pleroma.Storage.Repo.update()
 
       assert conn
              |> get("/notice/#{note_activity.id}/embed_player")

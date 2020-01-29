@@ -5,7 +5,7 @@
 os_exclude = if :os.type() == {:unix, :darwin}, do: [skip_on_mac: true], else: []
 ExUnit.start(exclude: [:federated | os_exclude])
 
-Ecto.Adapters.SQL.Sandbox.mode(Pleroma.Repo, :manual)
+Ecto.Adapters.SQL.Sandbox.mode(Pleroma.Storage.Repo, :manual)
 Mox.defmock(Pleroma.ReverseProxy.ClientMock, for: Pleroma.ReverseProxy.Client)
 {:ok, _} = Application.ensure_all_started(:ex_machina)
 

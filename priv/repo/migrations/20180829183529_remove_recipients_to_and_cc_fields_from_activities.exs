@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.RemoveRecipientsToAndCcFieldsFromActivities do
+defmodule Pleroma.Storage.Repo.Migrations.RemoveRecipientsToAndCcFieldsFromActivities do
   use Ecto.Migration
 
   def up do

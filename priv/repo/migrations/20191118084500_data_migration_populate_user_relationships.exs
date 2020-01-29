@@ -1,8 +1,8 @@
-defmodule Pleroma.Repo.Migrations.DataMigrationPopulateUserRelationships do
+defmodule Pleroma.Storage.Repo.Migrations.DataMigrationPopulateUserRelationships do
   use Ecto.Migration
 
   alias Ecto.Adapters.SQL
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   require Logger
 

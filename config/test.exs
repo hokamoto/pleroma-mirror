@@ -38,7 +38,7 @@ config :pleroma, :instance,
 config :pleroma, :activitypub, sign_object_fetches: false
 
 # Configure your database
-config :pleroma, Pleroma.Repo,
+config :pleroma, Pleroma.Storage.Repo,
   adapter: Ecto.Adapters.Postgres,
   username: "postgres",
   password: "postgres",

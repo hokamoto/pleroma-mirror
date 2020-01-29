@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.AddParticipationUpdatedAtIndex do
+defmodule Pleroma.Storage.Repo.Migrations.AddParticipationUpdatedAtIndex do
   use Ecto.Migration
 
   def change do

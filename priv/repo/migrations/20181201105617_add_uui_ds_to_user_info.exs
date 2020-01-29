@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.AddUUIDsToUserInfo do
+defmodule Pleroma.Storage.Repo.Migrations.AddUUIDsToUserInfo do
   use Ecto.Migration
 
   def up do

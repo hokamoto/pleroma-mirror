@@ -8,7 +8,7 @@ defmodule Pleroma.PasswordResetToken do
   import Ecto.Changeset
 
   alias Pleroma.PasswordResetToken
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
 
   schema "password_reset_tokens" do

@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.CreateFilters do
+defmodule Pleroma.Storage.Repo.Migrations.CreateFilters do
   use Ecto.Migration
 
   def change do

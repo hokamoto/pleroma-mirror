@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Repo do
+defmodule Pleroma.Storage.Repo do
   use Ecto.Repo,
     otp_app: :pleroma,
     adapter: Ecto.Adapters.Postgres,
@@ -10,9 +10,7 @@ defmodule Pleroma.Repo do
 
   require Logger
 
-  defmodule Instrumenter do
-    use Prometheus.EctoInstrumenter
-  end
+  alias Pleroma.Storage.Repo.UnappliedMigrationsError
 
   @doc """
   Dynamically loads the repository url from the
@@ -71,15 +69,11 @@ defmodule Pleroma.Repo do
             "The following migrations were not applied:\n#{down_migrations_text}If you want to start Pleroma anyway, set\nconfig :pleroma, :i_am_aware_this_may_cause_data_loss, disable_migration_check: true"
           )
 
-          raise Pleroma.Repo.UnappliedMigrationsError
+          raise UnappliedMigrationsError
         end
       end)
     else
       :ok
     end
   end
-end
-
-defmodule Pleroma.Repo.UnappliedMigrationsError do
-  defexception message: "Unapplied Migrations detected"
 end

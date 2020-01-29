@@ -7,7 +7,7 @@ defmodule Pleroma.Instances.Instance do
 
   alias Pleroma.Instances
   alias Pleroma.Instances.Instance
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   use Ecto.Schema
 

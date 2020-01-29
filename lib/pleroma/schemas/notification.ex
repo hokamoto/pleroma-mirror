@@ -9,7 +9,7 @@ defmodule Pleroma.Notification do
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Pagination
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.Push

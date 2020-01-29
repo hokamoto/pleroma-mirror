@@ -10,7 +10,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   alias Pleroma.FollowingRelationship
   alias Pleroma.Object
   alias Pleroma.Object.Containment
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Utils

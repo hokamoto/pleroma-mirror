@@ -9,7 +9,7 @@ defmodule Pleroma.Object do
   alias Pleroma.Object
   alias Pleroma.Object.Fetcher
   alias Pleroma.ObjectTombstone
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
 
   import Ecto.Query

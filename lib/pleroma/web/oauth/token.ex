@@ -7,7 +7,7 @@ defmodule Pleroma.Web.OAuth.Token do
 
   import Ecto.Changeset
 
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.OAuth.App
   alias Pleroma.Web.OAuth.Authorization

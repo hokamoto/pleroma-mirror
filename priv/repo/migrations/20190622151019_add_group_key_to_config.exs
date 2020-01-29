@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.AddGroupKeyToConfig do
+defmodule Pleroma.Storage.Repo.Migrations.AddGroupKeyToConfig do
   use Ecto.Migration
 
   def change do

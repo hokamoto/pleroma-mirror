@@ -5,7 +5,7 @@
 defmodule Mix.Tasks.Pleroma.Database do
   alias Pleroma.Conversation
   alias Pleroma.Object
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   require Logger
   require Pleroma.Constants
@@ -113,7 +113,7 @@ defmodule Mix.Tasks.Pleroma.Database do
       where: fragment("(?)->>'likes' is not null", object.data),
       select: %{id: object.id, likes: fragment("(?)->>'likes'", object.data)}
     )
-    |> Pleroma.RepoStreamer.chunk_stream(100)
+    |> Pleroma.Storage.Repo.Streamer.chunk_stream(100)
     |> Stream.each(fn objects ->
       ids =
         objects

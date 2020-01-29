@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.AddFtsIndexToObjectsTwo do
+defmodule Pleroma.Storage.Repo.Migrations.AddFtsIndexToObjectsTwo do
   use Ecto.Migration
 
   def up do

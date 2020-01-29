@@ -31,10 +31,10 @@ defmodule Pleroma.Web.ChannelCase do
   end
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Pleroma.Repo)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Pleroma.Storage.Repo)
 
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(Pleroma.Repo, {:shared, self()})
+      Ecto.Adapters.SQL.Sandbox.mode(Pleroma.Storage.Repo, {:shared, self()})
     end
 
     :ok

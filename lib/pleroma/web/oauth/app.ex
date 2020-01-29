@@ -5,7 +5,7 @@
 defmodule Pleroma.Web.OAuth.App do
   use Ecto.Schema
   import Ecto.Changeset
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   @type t :: %__MODULE__{}
 

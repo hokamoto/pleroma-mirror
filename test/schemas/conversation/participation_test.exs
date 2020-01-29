@@ -7,7 +7,7 @@ defmodule Pleroma.Conversation.ParticipationTest do
   import Pleroma.Factory
   alias Pleroma.Conversation
   alias Pleroma.Conversation.Participation
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
 
@@ -69,7 +69,7 @@ defmodule Pleroma.Conversation.ParticipationTest do
     user = User.get_cached_by_id(user.id)
     other_user = User.get_cached_by_id(other_user.id)
     [participation] = Participation.for_user(user)
-    participation = Pleroma.Repo.preload(participation, :recipients)
+    participation = Pleroma.Storage.Repo.preload(participation, :recipients)
 
     assert length(participation.recipients) == 2
     assert user in participation.recipients
@@ -85,7 +85,7 @@ defmodule Pleroma.Conversation.ParticipationTest do
       })
 
     [participation] = Participation.for_user(user)
-    participation = Pleroma.Repo.preload(participation, :recipients)
+    participation = Pleroma.Storage.Repo.preload(participation, :recipients)
 
     assert length(participation.recipients) == 2
   end

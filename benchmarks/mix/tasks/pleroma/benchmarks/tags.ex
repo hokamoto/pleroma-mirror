@@ -1,6 +1,6 @@
 defmodule Mix.Tasks.Pleroma.Benchmarks.Tags do
   use Mix.Task
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.LoadTesting.Generator
   import Ecto.Query
 

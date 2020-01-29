@@ -10,7 +10,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
   alias Pleroma.Config
   alias Pleroma.Conversation.Participation
   alias Pleroma.Object
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.ScheduledActivity
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User

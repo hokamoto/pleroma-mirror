@@ -8,7 +8,7 @@ defmodule Pleroma.Registration do
   import Ecto.Changeset
 
   alias Pleroma.Registration
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
 
   @primary_key {:id, FlakeId.Ecto.CompatType, autogenerate: true}

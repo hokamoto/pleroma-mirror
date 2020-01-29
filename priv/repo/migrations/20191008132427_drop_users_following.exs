@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.DropUsersFollowing do
+defmodule Pleroma.Storage.Repo.Migrations.DropUsersFollowing do
   use Ecto.Migration
 
   # had to disable these to be able to restore `following` index concurrently

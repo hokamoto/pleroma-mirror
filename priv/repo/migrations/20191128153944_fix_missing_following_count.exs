@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.FixMissingFollowingCount do
+defmodule Pleroma.Storage.Repo.Migrations.FixMissingFollowingCount do
   use Ecto.Migration
 
   def up do

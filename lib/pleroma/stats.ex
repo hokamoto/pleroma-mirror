@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Stats do
   import Ecto.Query
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
 
   use GenServer

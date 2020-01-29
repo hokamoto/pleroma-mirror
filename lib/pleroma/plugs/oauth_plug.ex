@@ -6,7 +6,7 @@ defmodule Pleroma.Plugs.OAuthPlug do
   import Plug.Conn
   import Ecto.Query
 
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.OAuth.App
   alias Pleroma.Web.OAuth.Token

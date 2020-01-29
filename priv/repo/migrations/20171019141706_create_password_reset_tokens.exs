@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.CreatePasswordResetTokens do
+defmodule Pleroma.Storage.Repo.Migrations.CreatePasswordResetTokens do
   use Ecto.Migration
 
   def change do

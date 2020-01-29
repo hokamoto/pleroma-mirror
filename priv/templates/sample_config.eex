@@ -27,7 +27,7 @@ config :pleroma, :media_proxy,
   redirect_on_failure: true
   #base_url: "https://cache.pleroma.social"
 
-config :pleroma, Pleroma.Repo,
+config :pleroma, Pleroma.Storage.Repo,
   adapter: Ecto.Adapters.Postgres,
   username: "<%= dbuser %>",
   password: "<%= dbpass %>",

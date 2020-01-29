@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Pleroma.EctoTest do
 
   test "raise on bad path" do
     assert_raise RuntimeError, ~r/Could not find migrations directory/, fn ->
-      Mix.Tasks.Pleroma.Ecto.ensure_migrations_path(Pleroma.Repo,
+      Mix.Tasks.Pleroma.Ecto.ensure_migrations_path(Pleroma.Storage.Repo,
         migrations_path: "some-path"
       )
     end

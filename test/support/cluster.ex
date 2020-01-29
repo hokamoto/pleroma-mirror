@@ -17,11 +17,11 @@ defmodule Pleroma.Cluster do
   "pleroma_test1", you would run:
 
     endpoint_conf = Application.fetch_env!(:pleroma, Pleroma.Web.Endpoint)
-    repo_conf = Application.fetch_env!(:pleroma, Pleroma.Repo)
+    repo_conf = Application.fetch_env!(:pleroma, Pleroma.Storage.Repo)
 
     Pleroma.Cluster.spawn_cluster(%{
       :"federated1@127.0.0.1" => [
-        {:pleroma, Pleroma.Repo, Keyword.merge(repo_conf, database: "pleroma_test1")},
+        {:pleroma, Pleroma.Storage.Repo, Keyword.merge(repo_conf, database: "pleroma_test1")},
         {:pleroma, Pleroma.Web.Endpoint,
         Keyword.merge(endpoint_conf, http: [port: 4011], url: [port: 4011], server: true)}
       ]
@@ -65,16 +65,16 @@ defmodule Pleroma.Cluster do
   """
   def spawn_default_cluster do
     endpoint_conf = Application.fetch_env!(:pleroma, Pleroma.Web.Endpoint)
-    repo_conf = Application.fetch_env!(:pleroma, Pleroma.Repo)
+    repo_conf = Application.fetch_env!(:pleroma, Pleroma.Storage.Repo)
 
     spawn_cluster(%{
       :"federated1@127.0.0.1" => [
-        {:pleroma, Pleroma.Repo, Keyword.merge(repo_conf, database: "pleroma_test_federated1")},
+        {:pleroma, Pleroma.Storage.Repo, Keyword.merge(repo_conf, database: "pleroma_test_federated1")},
         {:pleroma, Pleroma.Web.Endpoint,
          Keyword.merge(endpoint_conf, http: [port: 4011], url: [port: 4011], server: true)}
       ],
       :"federated2@127.0.0.1" => [
-        {:pleroma, Pleroma.Repo, Keyword.merge(repo_conf, database: "pleroma_test_federated2")},
+        {:pleroma, Pleroma.Storage.Repo, Keyword.merge(repo_conf, database: "pleroma_test_federated2")},
         {:pleroma, Pleroma.Web.Endpoint,
          Keyword.merge(endpoint_conf, http: [port: 4012], url: [port: 4012], server: true)}
       ]
@@ -186,16 +186,16 @@ defmodule Pleroma.Cluster do
   @doc false
   def prepare_database do
     log(node(), "preparing database")
-    repo_config = Application.get_env(:pleroma, Pleroma.Repo)
+    repo_config = Application.get_env(:pleroma, Pleroma.Storage.Repo)
     repo_config[:adapter].storage_down(repo_config)
     repo_config[:adapter].storage_up(repo_config)
 
     {:ok, _, _} =
-      Ecto.Migrator.with_repo(Pleroma.Repo, fn repo ->
+      Ecto.Migrator.with_repo(Pleroma.Storage.Repo, fn repo ->
         Ecto.Migrator.run(repo, :up, log: false, all: true)
       end)
 
-    Ecto.Adapters.SQL.Sandbox.mode(Pleroma.Repo, :manual)
+    Ecto.Adapters.SQL.Sandbox.mode(Pleroma.Storage.Repo, :manual)
     {:ok, _} = Application.ensure_all_started(:ex_machina)
   end
 

@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.AddFollowerAddressIndexToUsers do
+defmodule Pleroma.Storage.Repo.Migrations.AddFollowerAddressIndexToUsers do
   use Ecto.Migration
 
   @disable_ddl_transaction true

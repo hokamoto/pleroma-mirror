@@ -8,7 +8,7 @@ defmodule Pleroma.Web.MastodonAPI.SearchController do
   alias Pleroma.Activity
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.Plugs.RateLimiter
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web
   alias Pleroma.Web.ControllerHelper

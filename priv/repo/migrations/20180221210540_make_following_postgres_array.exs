@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.MakeFollowingPostgresArray do
+defmodule Pleroma.Storage.Repo.Migrations.MakeFollowingPostgresArray do
   use Ecto.Migration
 
   def up do

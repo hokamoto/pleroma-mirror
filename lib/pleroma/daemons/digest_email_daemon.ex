@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Daemons.DigestEmailDaemon do
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.Workers.DigestEmailsWorker
 
   import Ecto.Query

@@ -1,10 +1,9 @@
-defmodule Pleroma.Repo.Migrations.MigrateOldBookmarks do
+defmodule Pleroma.Storage.Repo.Migrations.MigrateOldBookmarks do
   use Ecto.Migration
   import Ecto.Query
   alias Pleroma.Activity
   alias Pleroma.Bookmark
-  alias Pleroma.User
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   def up do
     query =

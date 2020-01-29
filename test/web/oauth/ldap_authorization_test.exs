@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Web.OAuth.LDAPAuthorizationTest do
   use Pleroma.Web.ConnCase
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.Web.OAuth.Token
   import Pleroma.Factory
   import ExUnit.CaptureLog

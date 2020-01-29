@@ -6,7 +6,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationControllerTest do
   use Pleroma.Web.ConnCase
 
   alias Pleroma.Notification
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
 

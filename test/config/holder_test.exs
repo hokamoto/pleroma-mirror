@@ -12,7 +12,7 @@ defmodule Pleroma.Config.HolderTest do
     assert config[:pleroma][Pleroma.Uploaders.Local][:uploads] == "test/uploads"
     assert config[:tesla][:adapter] == Tesla.Mock
 
-    refute config[:pleroma][Pleroma.Repo]
+    refute config[:pleroma][Pleroma.Storage.Repo]
     refute config[:pleroma][Pleroma.Web.Endpoint]
     refute config[:pleroma][:env]
     refute config[:pleroma][:configurable_from_database]

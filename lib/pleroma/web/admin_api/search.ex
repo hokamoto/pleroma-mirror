@@ -5,7 +5,7 @@
 defmodule Pleroma.Web.AdminAPI.Search do
   import Ecto.Query
 
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
 
   @page_size 50

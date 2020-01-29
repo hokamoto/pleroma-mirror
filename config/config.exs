@@ -44,11 +44,11 @@
 use Mix.Config
 
 # General application configuration
-config :pleroma, ecto_repos: [Pleroma.Repo]
+config :pleroma, ecto_repos: [Pleroma.Storage.Repo]
 
-config :pleroma, Pleroma.Repo,
-  types: Pleroma.PostgresTypes,
-  telemetry_event: [Pleroma.Repo.Instrumenter],
+config :pleroma, Pleroma.Storage.Repo,
+  types: Pleroma.Storage.PostgresTypes,
+  telemetry_event: [Pleroma.Storage.Repo.Instrumenter],
   migration_lock: nil
 
 scheduled_jobs =
@@ -481,7 +481,7 @@ config :pleroma, Pleroma.User,
   ]
 
 config :pleroma, Oban,
-  repo: Pleroma.Repo,
+  repo: Pleroma.Storage.Repo,
   verbose: false,
   prune: {:maxlen, 1500},
   queues: [

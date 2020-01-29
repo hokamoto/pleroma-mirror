@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.CreateBookmarks do
+defmodule Pleroma.Storage.Repo.Migrations.CreateBookmarks do
   use Ecto.Migration
 
   def change do

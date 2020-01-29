@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.AddAvatarObjectToUsers do
+defmodule Pleroma.Storage.Repo.Migrations.AddAvatarObjectToUsers do
   use Ecto.Migration
 
   def change do

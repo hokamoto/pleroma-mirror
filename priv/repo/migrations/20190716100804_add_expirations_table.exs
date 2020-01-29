@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.AddExpirationsTable do
+defmodule Pleroma.Storage.Repo.Migrations.AddExpirationsTable do
   use Ecto.Migration
 
   def change do

@@ -6,7 +6,7 @@ defmodule Pleroma.Daemons.ActivityExpirationDaemon do
   alias Pleroma.Activity
   alias Pleroma.ActivityExpiration
   alias Pleroma.Config
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
 

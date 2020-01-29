@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.AddUUIDExtension do
+defmodule Pleroma.Storage.Repo.Migrations.AddUUIDExtension do
   use Ecto.Migration
 
   def up do

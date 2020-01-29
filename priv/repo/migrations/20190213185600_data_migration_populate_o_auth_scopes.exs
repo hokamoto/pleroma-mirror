@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.DataMigrationPopulateOAuthScopes do
+defmodule Pleroma.Storage.Repo.Migrations.DataMigrationPopulateOAuthScopes do
   use Ecto.Migration
 
   def up do

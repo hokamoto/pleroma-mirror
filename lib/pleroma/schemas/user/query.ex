@@ -9,8 +9,8 @@ defmodule Pleroma.User.Query do
     ## Example:
         query = Pleroma.User.Query.build(%{nickname: "nickname"})
         another_query = Pleroma.User.Query.build(query, %{email: "email@example.com"})
-        Pleroma.Repo.all(query)
-        Pleroma.Repo.all(another_query)
+        Pleroma.Storage.Repo.all(query)
+        Pleroma.Storage.Repo.all(another_query)
 
   Adding new rules:
     - *ilike criteria*

@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.AddTagIndexToObjects do
+defmodule Pleroma.Storage.Repo.Migrations.AddTagIndexToObjects do
   use Ecto.Migration
 
   def change do

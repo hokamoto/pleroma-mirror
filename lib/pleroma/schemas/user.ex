@@ -20,8 +20,7 @@ defmodule Pleroma.User do
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Registration
-  alias Pleroma.Repo
-  alias Pleroma.RepoStreamer
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.UserRelationship
   alias Pleroma.Web
@@ -1378,7 +1377,7 @@ defmodule Pleroma.User do
   def delete_user_activities(%User{ap_id: ap_id}) do
     ap_id
     |> Activity.Queries.by_actor()
-    |> RepoStreamer.chunk_stream(50)
+    |> Repo.Streamer.chunk_stream(50)
     |> Stream.each(fn activities -> Enum.each(activities, &delete_activity/1) end)
     |> Stream.run()
   end
@@ -1668,7 +1667,7 @@ defmodule Pleroma.User do
         having: max(n.updated_at) > datetime_add(^now, ^negative_inactivity_threshold, "day"),
         select: n.user_id
       )
-      |> Pleroma.Repo.all()
+      |> Pleroma.Storage.Repo.all()
 
     from(u in Pleroma.User,
       left_join: a in Pleroma.Activity,

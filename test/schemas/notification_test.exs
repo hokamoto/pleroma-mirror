@@ -362,7 +362,7 @@ defmodule Pleroma.NotificationTest do
       Enum.each(old, fn notification ->
         notification
         |> cast(%{updated_at: days_ago(10)}, [:updated_at])
-        |> Pleroma.Repo.update!()
+        |> Pleroma.Storage.Repo.update!()
       end)
 
       recent_notifications_ids =

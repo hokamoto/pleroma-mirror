@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.ChangePushSubscriptionsVarchar do
+defmodule Pleroma.Storage.Repo.Migrations.ChangePushSubscriptionsVarchar do
   use Ecto.Migration
 
   def up do

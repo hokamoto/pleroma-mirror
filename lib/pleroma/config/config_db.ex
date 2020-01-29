@@ -10,7 +10,7 @@ defmodule Pleroma.ConfigDB do
   import Pleroma.Web.Gettext
 
   alias __MODULE__
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   @type t :: %__MODULE__{}
 

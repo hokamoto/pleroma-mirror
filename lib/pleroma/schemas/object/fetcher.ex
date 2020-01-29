@@ -6,7 +6,7 @@ defmodule Pleroma.Object.Fetcher do
   alias Pleroma.HTTP
   alias Pleroma.Object
   alias Pleroma.Object.Containment
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.Signature
   alias Pleroma.Web.ActivityPub.InternalFetchActor
   alias Pleroma.Web.ActivityPub.Transmogrifier

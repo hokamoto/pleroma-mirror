@@ -5,7 +5,7 @@
 defmodule Pleroma.Web.MastodonAPI.WebsocketHandler do
   require Logger
 
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.OAuth.Token
   alias Pleroma.Web.Streamer

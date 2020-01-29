@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.AddScopeSToOAuthEntities do
+defmodule Pleroma.Storage.Repo.Migrations.AddScopeSToOAuthEntities do
   use Ecto.Migration
 
   def change do

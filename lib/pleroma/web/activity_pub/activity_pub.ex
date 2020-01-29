@@ -18,7 +18,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   alias Pleroma.Object.Containment
   alias Pleroma.Object.Fetcher
   alias Pleroma.Pagination
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.Upload
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.MRF

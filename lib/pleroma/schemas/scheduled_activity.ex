@@ -6,7 +6,7 @@ defmodule Pleroma.ScheduledActivity do
   use Ecto.Schema
 
   alias Pleroma.Config
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.ScheduledActivity
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI.Utils

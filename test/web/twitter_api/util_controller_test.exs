@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Web.TwitterAPI.UtilControllerTest do
   use Pleroma.Web.ConnCase
-  use Oban.Testing, repo: Pleroma.Repo
+  use Oban.Testing, repo: Pleroma.Storage.Repo
 
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User

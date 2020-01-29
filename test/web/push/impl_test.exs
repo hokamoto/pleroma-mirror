@@ -95,7 +95,7 @@ defmodule Pleroma.Web.Push.ImplTest do
              subscription
            ) == :ok
 
-    refute Pleroma.Repo.get(Subscription, subscription.id)
+    refute Pleroma.Storage.Repo.get(Subscription, subscription.id)
   end
 
   test "renders title and body for create activity" do

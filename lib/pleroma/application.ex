@@ -33,14 +33,14 @@ defmodule Pleroma.Application do
   def start(_type, _args) do
     Pleroma.HTML.compile_scrubbers()
     Pleroma.Config.DeprecationWarnings.warn()
-    Pleroma.Repo.check_migrations_applied!()
+    Pleroma.Storage.Repo.check_migrations_applied!()
     setup_instrumenters()
     load_custom_modules()
 
     # Define workers and child supervisors to be supervised
     children =
       [
-        Pleroma.Repo,
+        Pleroma.Storage.Repo,
         Pleroma.Scheduler,
         Pleroma.Config.TransferTask,
         Pleroma.Emoji,
@@ -96,16 +96,16 @@ defmodule Pleroma.Application do
   defp setup_instrumenters do
     require Prometheus.Registry
 
-    if Application.get_env(:prometheus, Pleroma.Repo.Instrumenter) do
+    if Application.get_env(:prometheus, Pleroma.Storage.Repo.Instrumenter) do
       :ok =
         :telemetry.attach(
           "prometheus-ecto",
           [:pleroma, :repo, :query],
-          &Pleroma.Repo.Instrumenter.handle_event/4,
+          &Pleroma.Storage.Repo.Instrumenter.handle_event/4,
           %{}
         )
 
-      Pleroma.Repo.Instrumenter.setup()
+      Pleroma.Storage.Repo.Instrumenter.setup()
     end
 
     Pleroma.Web.Endpoint.MetricsExporter.setup()

@@ -9,7 +9,7 @@ defmodule Pleroma.Marker do
   import Ecto.Query
 
   alias Ecto.Multi
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
 
   @timelines ["notifications"]

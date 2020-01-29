@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.FixUserTrigramIndex do
+defmodule Pleroma.Storage.Repo.Migrations.FixUserTrigramIndex do
   use Ecto.Migration
 
   def up do

@@ -12,7 +12,7 @@ defmodule Pleroma.Web.TwitterAPI.PasswordController do
   require Logger
 
   alias Pleroma.PasswordResetToken
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
 
   def reset(conn, %{"token" => token}) do

@@ -4,14 +4,14 @@
 
 defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
   use Pleroma.Web.ConnCase
-  use Oban.Testing, repo: Pleroma.Repo
+  use Oban.Testing, repo: Pleroma.Storage.Repo
 
   alias Pleroma.Activity
   alias Pleroma.ConfigDB
   alias Pleroma.HTML
   alias Pleroma.ModerationLog
-  alias Pleroma.Repo
-  alias Pleroma.ReportNote
+  alias Pleroma.Storage.Repo
+  alias Pleroma.Storage.ReportNote
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
   alias Pleroma.UserInviteToken

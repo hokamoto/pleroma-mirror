@@ -6,14 +6,14 @@ defmodule Pleroma.UserTest do
   alias Pleroma.Activity
   alias Pleroma.Builders.UserBuilder
   alias Pleroma.Object
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
 
   use Pleroma.DataCase
-  use Oban.Testing, repo: Pleroma.Repo
+  use Oban.Testing, repo: Pleroma.Storage.Repo
 
   import Mock
   import Pleroma.Factory
@@ -1458,7 +1458,7 @@ defmodule Pleroma.UserTest do
 
       inactive_users_ids =
         Pleroma.User.list_inactive_users_query()
-        |> Pleroma.Repo.all()
+        |> Pleroma.Storage.Repo.all()
         |> Enum.map(& &1.id)
 
       Enum.each(users, fn user ->
@@ -1487,7 +1487,7 @@ defmodule Pleroma.UserTest do
 
       inactive_users_ids =
         Pleroma.User.list_inactive_users_query()
-        |> Pleroma.Repo.all()
+        |> Pleroma.Storage.Repo.all()
         |> Enum.map(& &1.id)
 
       Enum.each(active, fn user ->
@@ -1529,7 +1529,7 @@ defmodule Pleroma.UserTest do
 
       inactive_users_ids =
         Pleroma.User.list_inactive_users_query()
-        |> Pleroma.Repo.all()
+        |> Pleroma.Storage.Repo.all()
         |> Enum.map(& &1.id)
 
       Enum.each(active, fn user ->

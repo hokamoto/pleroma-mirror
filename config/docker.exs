@@ -12,7 +12,7 @@ config :pleroma, :instance,
   registrations_open: false,
   healthcheck: true
 
-config :pleroma, Pleroma.Repo,
+config :pleroma, Pleroma.Storage.Repo,
   adapter: Ecto.Adapters.Postgres,
   username: System.get_env("DB_USER", "pleroma"),
   password: System.fetch_env!("DB_PASS"),

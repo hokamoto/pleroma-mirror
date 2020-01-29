@@ -8,7 +8,7 @@ defmodule Pleroma.Web.Push.Impl do
   alias Pleroma.Activity
   alias Pleroma.Notification
   alias Pleroma.Object
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.Metadata.Utils
   alias Pleroma.Web.Push.Subscription

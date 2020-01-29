@@ -7,7 +7,7 @@ defmodule Pleroma.BBS.HandlerTest do
   alias Pleroma.Activity
   alias Pleroma.BBS.Handler
   alias Pleroma.Object
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
 

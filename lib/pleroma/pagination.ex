@@ -10,7 +10,7 @@ defmodule Pleroma.Pagination do
   import Ecto.Query
   import Ecto.Changeset
 
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   @default_limit 20
   @page_keys ["max_id", "min_id", "limit", "since_id", "order"]

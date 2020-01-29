@@ -11,9 +11,9 @@ defmodule Mix.Tasks.Pleroma.CountStatuses do
     stream =
       User
       |> where(local: true)
-      |> Pleroma.Repo.stream()
+      |> Pleroma.Storage.Repo.stream()
 
-    Pleroma.Repo.transaction(fn ->
+    Pleroma.Storage.Repo.transaction(fn ->
       Enum.each(stream, &User.update_note_count/1)
     end)
 

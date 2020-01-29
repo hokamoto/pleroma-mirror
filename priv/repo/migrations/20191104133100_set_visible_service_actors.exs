@@ -1,7 +1,7 @@
-defmodule Pleroma.Repo.Migrations.SetVisibleServiceActors do
+defmodule Pleroma.Storage.Repo.Migrations.SetVisibleServiceActors do
   use Ecto.Migration
   import Ecto.Query
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   def up do
     user_nicknames = ["relay", "internal.fetch"]

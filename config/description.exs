@@ -1956,7 +1956,7 @@ config :pleroma, :config_description, [
         key: :repo,
         type: :module,
         description: "Application's Ecto repo",
-        suggestions: [Pleroma.Repo]
+        suggestions: [Pleroma.Storage.Repo]
       },
       %{
         key: :verbose,

@@ -5,7 +5,7 @@
 defmodule Pleroma.ThreadMute do
   use Ecto.Schema
 
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.ThreadMute
   alias Pleroma.User
 

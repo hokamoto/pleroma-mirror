@@ -6,7 +6,7 @@ defmodule Pleroma.Web.MastodonAPI.AppController do
   use Pleroma.Web, :controller
 
   alias Pleroma.Plugs.OAuthScopesPlug
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.Web.OAuth.App
   alias Pleroma.Web.OAuth.Scopes
   alias Pleroma.Web.OAuth.Token

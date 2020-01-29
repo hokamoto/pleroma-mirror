@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.DropWebsubTables do
+defmodule Pleroma.Storage.Repo.Migrations.DropWebsubTables do
   use Ecto.Migration
 
   def up do

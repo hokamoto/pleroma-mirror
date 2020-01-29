@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.RepoTest do
+defmodule Pleroma.Storage.RepoTest do
   use Pleroma.DataCase
   import ExUnit.CaptureLog
   import Pleroma.Factory
@@ -55,7 +55,7 @@ defmodule Pleroma.RepoTest do
       {Ecto.Migrator, [],
        [
          with_repo: fn repo, fun -> passthrough([repo, fun]) end,
-         migrations: fn Pleroma.Repo ->
+         migrations: fn Pleroma.Storage.Repo ->
            [
              {:up, 20_191_128_153_944, "fix_missing_following_count"},
              {:up, 20_191_203_043_610, "create_report_notes"},
@@ -68,7 +68,7 @@ defmodule Pleroma.RepoTest do
     end
 
     test "raises if it detects unapplied migrations" do
-      assert_raise Pleroma.Repo.UnappliedMigrationsError, fn ->
+      assert_raise Pleroma.Storage.Repo.UnappliedMigrationsError, fn ->
         capture_log(&Repo.check_migrations_applied!/0)
       end
     end

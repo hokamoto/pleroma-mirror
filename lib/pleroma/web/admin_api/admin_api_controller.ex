@@ -11,7 +11,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   alias Pleroma.ConfigDB
   alias Pleroma.ModerationLog
   alias Pleroma.Plugs.OAuthScopesPlug
-  alias Pleroma.ReportNote
+  alias Pleroma.Storage.ReportNote
   alias Pleroma.User
   alias Pleroma.UserInviteToken
   alias Pleroma.Web.ActivityPub.ActivityPub
@@ -194,7 +194,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
         Ecto.Multi.insert(multi, Ecto.UUID.generate(), changeset)
       end)
 
-    case Pleroma.Repo.transaction(changesets) do
+    case Pleroma.Storage.Repo.transaction(changesets) do
       {:ok, users} ->
         res =
           users
@@ -808,7 +808,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
   def config_show(conn, %{"only_db" => true}) do
     with :ok <- configurable_from_database(conn) do
-      configs = Pleroma.Repo.all(ConfigDB)
+      configs = Pleroma.Storage.Repo.all(ConfigDB)
 
       if configs == [] do
         errors(

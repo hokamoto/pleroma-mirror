@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.AddSigninAndLastDigestDatesToUser do
+defmodule Pleroma.Storage.Repo.Migrations.AddSigninAndLastDigestDatesToUser do
   use Ecto.Migration
 
   def change do

@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.MigrateMissingFollowingRelationships do
+defmodule Pleroma.Storage.Repo.Migrations.MigrateMissingFollowingRelationships do
   use Ecto.Migration
 
   def change do

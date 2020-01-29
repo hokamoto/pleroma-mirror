@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.FilterTest do
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   use Pleroma.DataCase
 
   import Pleroma.Factory

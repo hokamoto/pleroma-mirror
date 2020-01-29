@@ -7,7 +7,7 @@ defmodule Pleroma.Web.OAuth.Token.Utils do
   Auxiliary functions for dealing with tokens.
   """
 
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.Web.OAuth.App
 
   @doc "Fetch app by client credentials from request"

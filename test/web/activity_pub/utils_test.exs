@@ -6,7 +6,7 @@ defmodule Pleroma.Web.ActivityPub.UtilsTest do
   use Pleroma.DataCase
   alias Pleroma.Activity
   alias Pleroma.Object
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.ActivityPub.Utils

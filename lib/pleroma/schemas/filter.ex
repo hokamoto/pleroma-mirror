@@ -8,7 +8,7 @@ defmodule Pleroma.Filter do
   import Ecto.Changeset
   import Ecto.Query
 
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
 
   schema "filters" do

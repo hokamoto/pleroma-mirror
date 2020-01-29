@@ -9,7 +9,7 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
   alias Pleroma.HTTP
   alias Pleroma.Instances
   alias Pleroma.Object
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.Relay
   alias Pleroma.Web.ActivityPub.Transmogrifier

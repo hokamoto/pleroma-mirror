@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.CreateConversationParticipationRecipientShips do
+defmodule Pleroma.Storage.Repo.Migrations.CreateConversationParticipationRecipientShips do
   use Ecto.Migration
 
   def change do

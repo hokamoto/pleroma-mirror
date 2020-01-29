@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.SetNotNullForThreadMutes do
+defmodule Pleroma.Storage.Repo.Migrations.SetNotNullForThreadMutes do
   use Ecto.Migration
 
   # modify/3 function will require index recreation, so using execute/1 instead

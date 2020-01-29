@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.AddUnreadConversationCountToUserInfo do
+defmodule Pleroma.Storage.Repo.Migrations.AddUnreadConversationCountToUserInfo do
   use Ecto.Migration
 
   def up do

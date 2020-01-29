@@ -7,7 +7,7 @@ defmodule Pleroma.ActivityExpiration do
 
   alias Pleroma.Activity
   alias Pleroma.ActivityExpiration
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   import Ecto.Changeset
   import Ecto.Query

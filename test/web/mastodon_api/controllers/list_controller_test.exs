@@ -5,7 +5,7 @@
 defmodule Pleroma.Web.MastodonAPI.ListControllerTest do
   use Pleroma.Web.ConnCase
 
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   import Pleroma.Factory
 

@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.UpdateOban do
+defmodule Pleroma.Storage.Repo.Migrations.UpdateOban do
   use Ecto.Migration
 
   def up do

@@ -2,15 +2,15 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.ReportNote do
+defmodule Pleroma.Storage.ReportNote do
   use Ecto.Schema
 
   import Ecto.Changeset
   import Ecto.Query
 
   alias Pleroma.Activity
-  alias Pleroma.Repo
-  alias Pleroma.ReportNote
+  alias Pleroma.Storage.Repo
+  alias Pleroma.Storage.ReportNote
   alias Pleroma.User
 
   @type t :: %__MODULE__{}

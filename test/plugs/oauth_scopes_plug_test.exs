@@ -7,7 +7,7 @@ defmodule Pleroma.Plugs.OAuthScopesPlugTest do
 
   alias Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug
   alias Pleroma.Plugs.OAuthScopesPlug
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   import Mock
   import Pleroma.Factory

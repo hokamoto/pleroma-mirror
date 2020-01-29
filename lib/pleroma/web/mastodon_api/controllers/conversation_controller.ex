@@ -9,7 +9,7 @@ defmodule Pleroma.Web.MastodonAPI.ConversationController do
 
   alias Pleroma.Conversation.Participation
   alias Pleroma.Plugs.OAuthScopesPlug
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   action_fallback(Pleroma.Web.MastodonAPI.FallbackController)
 

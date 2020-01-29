@@ -51,12 +51,13 @@ defmodule Mix.Tasks.Pleroma.Ecto.Migrate do
         do: Keyword.merge(opts, log: false, log_sql: false),
         else: opts
 
-    path = Mix.Tasks.Pleroma.Ecto.ensure_migrations_path(Pleroma.Repo, opts)
+    path = Mix.Tasks.Pleroma.Ecto.ensure_migrations_path(Pleroma.Storage.Repo, opts)
 
     level = Logger.level()
     Logger.configure(level: :info)
 
-    {:ok, _, _} = Ecto.Migrator.with_repo(Pleroma.Repo, &Ecto.Migrator.run(&1, path, :up, opts))
+    {:ok, _, _} =
+      Ecto.Migrator.with_repo(Pleroma.Storage.Repo, &Ecto.Migrator.run(&1, path, :up, opts))
 
     Logger.configure(level: level)
   end

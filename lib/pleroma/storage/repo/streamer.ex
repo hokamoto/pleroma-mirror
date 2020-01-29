@@ -2,9 +2,9 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.RepoStreamer do
-  alias Pleroma.Repo
+defmodule Pleroma.Storage.Repo.Streamer do
   import Ecto.Query
+  alias Pleroma.Storage.Repo
 
   def chunk_stream(query, chunk_size) do
     Stream.unfold(0, fn

@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
   use Pleroma.Web.ConnCase
-  use Oban.Testing, repo: Pleroma.Repo
+  use Oban.Testing, repo: Pleroma.Storage.Repo
 
   import Pleroma.Factory
   alias Pleroma.Activity

@@ -113,7 +113,7 @@ defmodule Pleroma.ConfigDBTest do
     end
 
     test "only full update for some keys" do
-      config1 = insert(:config, key: ":ecto_repos", value: ConfigDB.to_binary(repo: Pleroma.Repo))
+      config1 = insert(:config, key: ":ecto_repos", value: ConfigDB.to_binary(repo: Pleroma.Storage.Repo))
 
       config2 =
         insert(:config, group: ":cors_plug", key: ":max_age", value: ConfigDB.to_binary(18))
@@ -122,7 +122,7 @@ defmodule Pleroma.ConfigDBTest do
         ConfigDB.update_or_create(%{
           group: config1.group,
           key: config1.key,
-          value: [another_repo: [Pleroma.Repo]]
+          value: [another_repo: [Pleroma.Storage.Repo]]
         })
 
       {:ok, _config} =
@@ -135,7 +135,7 @@ defmodule Pleroma.ConfigDBTest do
       updated1 = ConfigDB.get_by_params(%{group: config1.group, key: config1.key})
       updated2 = ConfigDB.get_by_params(%{group: config2.group, key: config2.key})
 
-      assert ConfigDB.from_binary(updated1.value) == [another_repo: [Pleroma.Repo]]
+      assert ConfigDB.from_binary(updated1.value) == [another_repo: [Pleroma.Storage.Repo]]
       assert ConfigDB.from_binary(updated2.value) == 777
     end
 
@@ -429,9 +429,9 @@ defmodule Pleroma.ConfigDBTest do
     end
 
     test "list of modules" do
-      binary = ConfigDB.transform(["Pleroma.Repo", "Pleroma.Activity"])
-      assert binary == :erlang.term_to_binary([Pleroma.Repo, Pleroma.Activity])
-      assert ConfigDB.from_binary(binary) == [Pleroma.Repo, Pleroma.Activity]
+      binary = ConfigDB.transform(["Pleroma.Storage.Repo", "Pleroma.Activity"])
+      assert binary == :erlang.term_to_binary([Pleroma.Storage.Repo, Pleroma.Activity])
+      assert ConfigDB.from_binary(binary) == [Pleroma.Storage.Repo, Pleroma.Activity]
     end
 
     test "list of atoms" do
@@ -445,7 +445,7 @@ defmodule Pleroma.ConfigDBTest do
         ConfigDB.transform([
           "v1",
           ":v2",
-          "Pleroma.Repo",
+          "Pleroma.Storage.Repo",
           "Phoenix.Socket.V1.JSONSerializer",
           15,
           false
@@ -455,7 +455,7 @@ defmodule Pleroma.ConfigDBTest do
                :erlang.term_to_binary([
                  "v1",
                  :v2,
-                 Pleroma.Repo,
+                 Pleroma.Storage.Repo,
                  Phoenix.Socket.V1.JSONSerializer,
                  15,
                  false
@@ -464,7 +464,7 @@ defmodule Pleroma.ConfigDBTest do
       assert ConfigDB.from_binary(binary) == [
                "v1",
                :v2,
-               Pleroma.Repo,
+               Pleroma.Storage.Repo,
                Phoenix.Socket.V1.JSONSerializer,
                15,
                false
@@ -489,8 +489,8 @@ defmodule Pleroma.ConfigDBTest do
     test "keyword" do
       binary =
         ConfigDB.transform([
-          %{"tuple" => [":types", "Pleroma.PostgresTypes"]},
-          %{"tuple" => [":telemetry_event", ["Pleroma.Repo.Instrumenter"]]},
+          %{"tuple" => [":types", "Pleroma.Storage.PostgresTypes"]},
+          %{"tuple" => [":telemetry_event", ["Pleroma.Storage.Repo.Instrumenter"]]},
           %{"tuple" => [":migration_lock", nil]},
           %{"tuple" => [":key1", 150]},
           %{"tuple" => [":key2", "string"]}
@@ -498,16 +498,16 @@ defmodule Pleroma.ConfigDBTest do
 
       assert binary ==
                :erlang.term_to_binary(
-                 types: Pleroma.PostgresTypes,
-                 telemetry_event: [Pleroma.Repo.Instrumenter],
+                 types: Pleroma.Storage.PostgresTypes,
+                 telemetry_event: [Pleroma.Storage.Repo.Instrumenter],
                  migration_lock: nil,
                  key1: 150,
                  key2: "string"
                )
 
       assert ConfigDB.from_binary(binary) == [
-               types: Pleroma.PostgresTypes,
-               telemetry_event: [Pleroma.Repo.Instrumenter],
+               types: Pleroma.Storage.PostgresTypes,
+               telemetry_event: [Pleroma.Storage.Repo.Instrumenter],
                migration_lock: nil,
                key1: 150,
                key2: "string"

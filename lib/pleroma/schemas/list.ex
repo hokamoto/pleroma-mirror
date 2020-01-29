@@ -9,7 +9,7 @@ defmodule Pleroma.List do
   import Ecto.Changeset
 
   alias Pleroma.Activity
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
 
   schema "lists" do

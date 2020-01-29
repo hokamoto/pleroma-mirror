@@ -7,7 +7,7 @@ defmodule Pleroma.Delivery do
 
   alias Pleroma.Delivery
   alias Pleroma.Object
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.User
 

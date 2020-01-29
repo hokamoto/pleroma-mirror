@@ -10,7 +10,7 @@ defmodule Pleroma.Bookmark do
 
   alias Pleroma.Activity
   alias Pleroma.Bookmark
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
 
   @type t :: %__MODULE__{}

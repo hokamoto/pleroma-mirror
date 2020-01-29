@@ -5,7 +5,7 @@
 defmodule Mix.Tasks.Pleroma.DatabaseTest do
   alias Pleroma.Activity
   alias Pleroma.Object
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
 

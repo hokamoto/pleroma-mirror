@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.UpdateUserNoteCounters do
+defmodule Pleroma.Storage.Repo.Migrations.UpdateUserNoteCounters do
   use Ecto.Migration
 
   @public "https://www.w3.org/ns/activitystreams#Public"

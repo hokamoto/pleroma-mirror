@@ -7,7 +7,7 @@ defmodule Pleroma.Web.OAuth.Token.Strategy.Revoke do
   Functions for dealing with revocation.
   """
 
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.Web.OAuth.App
   alias Pleroma.Web.OAuth.Token
 

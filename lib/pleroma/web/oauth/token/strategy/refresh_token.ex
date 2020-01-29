@@ -8,7 +8,7 @@ defmodule Pleroma.Web.OAuth.Token.Strategy.RefreshToken do
   """
 
   alias Pleroma.Config
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.Web.OAuth.Token
   alias Pleroma.Web.OAuth.Token.Strategy.Revoke
 

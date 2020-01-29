@@ -8,7 +8,7 @@ defmodule Pleroma.RegistrationTest do
   import Pleroma.Factory
 
   alias Pleroma.Registration
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   describe "generic changeset" do
     test "requires :provider, :uid" do

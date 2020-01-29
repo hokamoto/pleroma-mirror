@@ -4,13 +4,13 @@
 
 defmodule Pleroma.ObjectTest do
   use Pleroma.DataCase
-  use Oban.Testing, repo: Pleroma.Repo
+  use Oban.Testing, repo: Pleroma.Storage.Repo
   import ExUnit.CaptureLog
   import Pleroma.Factory
   import Tesla.Mock
   alias Pleroma.Activity
   alias Pleroma.Object
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.Web.CommonAPI
 

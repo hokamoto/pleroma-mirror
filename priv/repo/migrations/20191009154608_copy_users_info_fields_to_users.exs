@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.CopyUsersInfoFieldsToUsers do
+defmodule Pleroma.Storage.Repo.Migrations.CopyUsersInfoFieldsToUsers do
   use Ecto.Migration
 
   @jsonb_array_default "'[]'::jsonb"

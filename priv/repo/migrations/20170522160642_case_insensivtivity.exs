@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.CaseInsensivtivity do
+defmodule Pleroma.Storage.Repo.Migrations.CaseInsensivtivity do
   use Ecto.Migration
 
   # Two-steps alters are intentional.

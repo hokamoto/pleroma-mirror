@@ -175,7 +175,7 @@ defmodule Mix.Tasks.Pleroma.User do
     start_pleroma()
 
     Pleroma.User.Query.build(%{nickname: "@#{instance}"})
-    |> Pleroma.RepoStreamer.chunk_stream(500)
+    |> Pleroma.Storage.Repo.Streamer.chunk_stream(500)
     |> Stream.each(fn users ->
       users
       |> Enum.each(fn user ->
@@ -366,7 +366,7 @@ defmodule Mix.Tasks.Pleroma.User do
     start_pleroma()
 
     Pleroma.User.Query.build(%{local: true})
-    |> Pleroma.RepoStreamer.chunk_stream(500)
+    |> Pleroma.Storage.Repo.Streamer.chunk_stream(500)
     |> Stream.each(fn users ->
       users
       |> Enum.each(fn user ->

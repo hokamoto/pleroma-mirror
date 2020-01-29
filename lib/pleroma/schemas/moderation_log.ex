@@ -3,7 +3,7 @@ defmodule Pleroma.ModerationLog do
 
   alias Pleroma.Activity
   alias Pleroma.ModerationLog
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
 
   import Ecto.Query

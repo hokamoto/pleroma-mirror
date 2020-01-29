@@ -137,7 +137,7 @@ defmodule Pleroma.Plugs.RateLimiterTest do
 
   describe "authenticated users" do
     setup do
-      Ecto.Adapters.SQL.Sandbox.checkout(Pleroma.Repo)
+      Ecto.Adapters.SQL.Sandbox.checkout(Pleroma.Storage.Repo)
 
       :ok
     end

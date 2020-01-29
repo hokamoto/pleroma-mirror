@@ -20,7 +20,7 @@ defmodule Pleroma.DataCase do
 
   using do
     quote do
-      alias Pleroma.Repo
+      alias Pleroma.Storage.Repo
 
       import Ecto
       import Ecto.Changeset
@@ -33,10 +33,10 @@ defmodule Pleroma.DataCase do
   setup tags do
     Cachex.clear(:user_cache)
     Cachex.clear(:object_cache)
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Pleroma.Repo)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Pleroma.Storage.Repo)
 
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(Pleroma.Repo, {:shared, self()})
+      Ecto.Adapters.SQL.Sandbox.mode(Pleroma.Storage.Repo, {:shared, self()})
     end
 
     if tags[:needs_streamer] do

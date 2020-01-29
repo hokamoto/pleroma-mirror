@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.RemoveInfoFromUsers do
+defmodule Pleroma.Storage.Repo.Migrations.RemoveInfoFromUsers do
   use Ecto.Migration
 
   def change do

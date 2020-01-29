@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.AddActivitypubActorType do
+defmodule Pleroma.Storage.Repo.Migrations.AddActivitypubActorType do
   use Ecto.Migration
 
   def change do

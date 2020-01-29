@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.ReleaseTasks do
-  @repo Pleroma.Repo
+  @repo Pleroma.Storage.Repo
 
   def run(args) do
     [task | args] = String.split(args)

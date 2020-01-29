@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Workers.WebPusherWorker do
   alias Pleroma.Notification
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   use Pleroma.Workers.WorkerHelper, queue: "web_push"
 

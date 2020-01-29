@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
   use Pleroma.DataCase
-  use Oban.Testing, repo: Pleroma.Repo
+  use Oban.Testing, repo: Pleroma.Storage.Repo
 
   alias Pleroma.Activity
   alias Pleroma.Builders.ActivityBuilder

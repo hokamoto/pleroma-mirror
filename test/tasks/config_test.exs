@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Pleroma.ConfigTest do
   use Pleroma.DataCase
 
   alias Pleroma.ConfigDB
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   setup_all do
     Mix.shell(Mix.Shell.Process)
@@ -48,7 +48,7 @@ defmodule Mix.Tasks.Pleroma.ConfigTest do
       config1 = ConfigDB.get_by_params(%{group: ":pleroma", key: ":first_setting"})
       config2 = ConfigDB.get_by_params(%{group: ":pleroma", key: ":second_setting"})
       config3 = ConfigDB.get_by_params(%{group: ":quack", key: ":level"})
-      refute ConfigDB.get_by_params(%{group: ":pleroma", key: "Pleroma.Repo"})
+      refute ConfigDB.get_by_params(%{group: ":pleroma", key: "Pleroma.Storage.Repo"})
 
       assert ConfigDB.from_binary(config1.value) == [key: "value", key2: [Repo]]
       assert ConfigDB.from_binary(config2.value) == [key: "value2", key2: ["Activity"]]

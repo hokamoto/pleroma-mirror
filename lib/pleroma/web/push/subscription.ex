@@ -7,7 +7,7 @@ defmodule Pleroma.Web.Push.Subscription do
 
   import Ecto.Changeset
 
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.OAuth.Token
   alias Pleroma.Web.Push.Subscription

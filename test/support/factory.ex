@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Factory do
-  use ExMachina.Ecto, repo: Pleroma.Repo
+  use ExMachina.Ecto, repo: Pleroma.Storage.Repo
   alias Pleroma.Object
   alias Pleroma.User
 

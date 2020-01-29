@@ -6,7 +6,7 @@ defmodule Pleroma.Web.MastodonAPI.AuthControllerTest do
   use Pleroma.Web.ConnCase
 
   alias Pleroma.Config
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.Tests.ObanHelpers
 
   import Pleroma.Factory

@@ -58,7 +58,7 @@ defmodule Pleroma.Web.MastodonAPI.SubscriptionControllerTest do
         })
         |> json_response(200)
 
-      [subscription] = Pleroma.Repo.all(Subscription)
+      [subscription] = Pleroma.Storage.Repo.all(Subscription)
 
       assert %{
                "alerts" => %{"mention" => true},
@@ -186,7 +186,7 @@ defmodule Pleroma.Web.MastodonAPI.SubscriptionControllerTest do
         |> json_response(200)
 
       assert %{} == res
-      refute Pleroma.Repo.get(Subscription, subscription.id)
+      refute Pleroma.Storage.Repo.get(Subscription, subscription.id)
     end
   end
 end

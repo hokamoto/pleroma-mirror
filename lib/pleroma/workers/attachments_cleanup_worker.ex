@@ -6,7 +6,7 @@ defmodule Pleroma.Workers.AttachmentsCleanupWorker do
   import Ecto.Query
 
   alias Pleroma.Object
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   use Pleroma.Workers.WorkerHelper, queue: "attachments_cleanup"
 

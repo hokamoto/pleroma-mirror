@@ -1,4 +1,4 @@
-defmodule Pleroma.Repo.Migrations.SetNotNullForPushSubscriptions do
+defmodule Pleroma.Storage.Repo.Migrations.SetNotNullForPushSubscriptions do
   use Ecto.Migration
 
   # modify/3 function will require index recreation, so using execute/1 instead

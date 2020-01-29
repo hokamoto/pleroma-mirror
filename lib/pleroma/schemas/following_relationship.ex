@@ -9,7 +9,7 @@ defmodule Pleroma.FollowingRelationship do
   import Ecto.Query
 
   alias FlakeId.Ecto.CompatType
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
 
   schema "following_relationships" do

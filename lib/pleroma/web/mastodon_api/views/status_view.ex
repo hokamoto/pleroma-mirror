@@ -11,7 +11,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   alias Pleroma.ActivityExpiration
   alias Pleroma.HTML
   alias Pleroma.Object
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.CommonAPI.Utils
