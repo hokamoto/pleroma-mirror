@@ -14,9 +14,10 @@ defmodule Pleroma.User do
   alias Pleroma.Activity
   alias Pleroma.Config
   alias Pleroma.Conversation.Participation
+  alias Pleroma.Crypto
+  alias Pleroma.Crypto.Keys
   alias Pleroma.Delivery
   alias Pleroma.FollowingRelationship
-  alias Pleroma.Keys
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Registration
@@ -1918,7 +1919,7 @@ defmodule Pleroma.User do
       if need_confirmation? do
         %{
           confirmation_pending: true,
-          confirmation_token: :crypto.strong_rand_bytes(32) |> Base.url_encode64()
+          confirmation_token: Crypto.random_string(32)
         }
       else
         %{

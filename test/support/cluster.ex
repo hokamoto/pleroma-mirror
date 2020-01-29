@@ -69,12 +69,14 @@ defmodule Pleroma.Cluster do
 
     spawn_cluster(%{
       :"federated1@127.0.0.1" => [
-        {:pleroma, Pleroma.Storage.Repo, Keyword.merge(repo_conf, database: "pleroma_test_federated1")},
+        {:pleroma, Pleroma.Storage.Repo,
+         Keyword.merge(repo_conf, database: "pleroma_test_federated1")},
         {:pleroma, Pleroma.Web.Endpoint,
          Keyword.merge(endpoint_conf, http: [port: 4011], url: [port: 4011], server: true)}
       ],
       :"federated2@127.0.0.1" => [
-        {:pleroma, Pleroma.Storage.Repo, Keyword.merge(repo_conf, database: "pleroma_test_federated2")},
+        {:pleroma, Pleroma.Storage.Repo,
+         Keyword.merge(repo_conf, database: "pleroma_test_federated2")},
         {:pleroma, Pleroma.Web.Endpoint,
          Keyword.merge(endpoint_conf, http: [port: 4012], url: [port: 4012], server: true)}
       ]

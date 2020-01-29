@@ -5,7 +5,7 @@
 defmodule Pleroma.Signature do
   @behaviour HTTPSignatures.Adapter
 
-  alias Pleroma.Keys
+  alias Pleroma.Crypto.Keys
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
 

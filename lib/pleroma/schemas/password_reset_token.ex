@@ -7,6 +7,7 @@ defmodule Pleroma.PasswordResetToken do
 
   import Ecto.Changeset
 
+  alias Pleroma.Crypto
   alias Pleroma.PasswordResetToken
   alias Pleroma.Storage.Repo
   alias Pleroma.User
@@ -20,7 +21,7 @@ defmodule Pleroma.PasswordResetToken do
   end
 
   def create_token(%User{} = user) do
-    token = :crypto.strong_rand_bytes(32) |> Base.url_encode64()
+    token = Crypto.random_string(32)
 
     token = %PasswordResetToken{
       user_id: user.id,

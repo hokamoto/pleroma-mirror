@@ -6,6 +6,7 @@ defmodule Mix.Tasks.Pleroma.User do
   use Mix.Task
   import Mix.Pleroma
   alias Ecto.Changeset
+  alias Pleroma.Crypto
   alias Pleroma.User
   alias Pleroma.UserInviteToken
 
@@ -35,7 +36,7 @@ defmodule Mix.Tasks.Pleroma.User do
     {password, generated_password?} =
       case Keyword.get(options, :password) do
         nil ->
-          {:crypto.strong_rand_bytes(16) |> Base.encode64(), true}
+          {Crypto.random_string(16), true}
 
         password ->
           {password, false}

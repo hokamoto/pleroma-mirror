@@ -5,6 +5,7 @@
 defmodule Pleroma.Web.OAuth.Authorization do
   use Ecto.Schema
 
+  alias Pleroma.Crypto
   alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.OAuth.App
@@ -48,7 +49,7 @@ defmodule Pleroma.Web.OAuth.Authorization do
   end
 
   defp add_token(changeset) do
-    token = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
+    token = Crypto.random_string(32, padding: false)
     put_change(changeset, :token, token)
   end
 

@@ -2,10 +2,10 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.KeysTest do
+defmodule Pleroma.Crypto.KeysTest do
   use Pleroma.DataCase
 
-  alias Pleroma.Keys
+  alias Pleroma.Crypto.Keys
 
   test "generates an RSA private key pem" do
     {:ok, key} = Keys.generate_rsa_pem()

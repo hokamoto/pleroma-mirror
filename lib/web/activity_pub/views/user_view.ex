@@ -5,7 +5,7 @@
 defmodule Pleroma.Web.ActivityPub.UserView do
   use Pleroma.Web, :view
 
-  alias Pleroma.Keys
+  alias Pleroma.Crypto.Keys
   alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.Transmogrifier

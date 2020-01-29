@@ -694,8 +694,8 @@ curl -H "X-Admin-Token: somerandomtoken" "http://localhost:4000/api/pleroma/admi
 
 Authentication / authorization settings.
 
-* `auth_template`: authentication form template. By default it's `show.html` which corresponds to `lib/pleroma/web/templates/o_auth/o_auth/show.html.eex`.
-* `oauth_consumer_template`: OAuth consumer mode authentication form template. By default it's `consumer.html` which corresponds to `lib/pleroma/web/templates/o_auth/o_auth/consumer.html.eex`.
+* `auth_template`: authentication form template. By default it's `show.html` which corresponds to `lib/web/templates/o_auth/o_auth/show.html.eex`.
+* `oauth_consumer_template`: OAuth consumer mode authentication form template. By default it's `consumer.html` which corresponds to `lib/web/templates/o_auth/o_auth/consumer.html.eex`.
 * `oauth_consumer_strategies`: the list of enabled OAuth consumer strategies; by default it's set by `OAUTH_CONSUMER_STRATEGIES` environment variable. Each entry in this space-delimited string should be of format `<strategy>` or `<strategy>:<dependency>` (e.g. `twitter` or `keycloak:ueberauth_keycloak_strategy` in case dependency is named differently than `ueberauth_<strategy>`).
 
 ### Pleroma.Web.Auth.Authenticator

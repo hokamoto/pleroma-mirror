@@ -7,6 +7,7 @@ defmodule Pleroma.Web.OAuth.Token.Utils do
   Auxiliary functions for dealing with tokens.
   """
 
+  alias Pleroma.Crypto
   alias Pleroma.Storage.Repo
   alias Pleroma.Web.OAuth.App
 
@@ -57,8 +58,7 @@ defmodule Pleroma.Web.OAuth.Token.Utils do
   def generate_token(opts \\ []) do
     opts
     |> Keyword.get(:size, 32)
-    |> :crypto.strong_rand_bytes()
-    |> Base.url_encode64(padding: false)
+    |> Crypto.random_string(padding: false)
   end
 
   # XXX - for whatever reason our token arrives urlencoded, but Plug.Conn should be

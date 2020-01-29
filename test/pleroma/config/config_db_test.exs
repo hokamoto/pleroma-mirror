@@ -113,7 +113,8 @@ defmodule Pleroma.ConfigDBTest do
     end
 
     test "only full update for some keys" do
-      config1 = insert(:config, key: ":ecto_repos", value: ConfigDB.to_binary(repo: Pleroma.Storage.Repo))
+      config1 =
+        insert(:config, key: ":ecto_repos", value: ConfigDB.to_binary(repo: Pleroma.Storage.Repo))
 
       config2 =
         insert(:config, group: ":cors_plug", key: ":max_age", value: ConfigDB.to_binary(18))

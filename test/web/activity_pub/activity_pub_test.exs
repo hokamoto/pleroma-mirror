@@ -8,6 +8,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
 
   alias Pleroma.Activity
   alias Pleroma.Builders.ActivityBuilder
+  alias Pleroma.Crypto
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.User
@@ -227,8 +228,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       limit = Pleroma.Config.get([:instance, :remote_limit])
 
       random_text =
-        :crypto.strong_rand_bytes(limit + 1)
-        |> Base.encode64()
+        (limit + 1)
+        |> Crypto.random_string()
         |> binary_part(0, limit + 1)
 
       data = %{

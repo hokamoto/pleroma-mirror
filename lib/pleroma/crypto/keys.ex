@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Keys do
+defmodule Pleroma.Crypto.Keys do
   # Native generation of RSA keys is only available since OTP 20+ and in default build conditions
   # We try at compile time to generate natively an RSA key otherwise we fallback on the old way.
   try do

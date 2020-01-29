@@ -4,6 +4,7 @@
 
 defmodule Pleroma.Factory do
   use ExMachina.Ecto, repo: Pleroma.Storage.Repo
+  alias Pleroma.Crypto
   alias Pleroma.Object
   alias Pleroma.User
 
@@ -319,8 +320,8 @@ defmodule Pleroma.Factory do
       Map.get(attrs, :valid_until, NaiveDateTime.add(NaiveDateTime.utc_now(), 60 * 10))
 
     %Pleroma.Web.OAuth.Token{
-      token: :crypto.strong_rand_bytes(32) |> Base.url_encode64(),
-      refresh_token: :crypto.strong_rand_bytes(32) |> Base.url_encode64(),
+      token: Crypto.random_string(32),
+      refresh_token: Crypto.random_string(32),
       scopes: scopes,
       user: user,
       app: oauth_app,
@@ -343,7 +344,7 @@ defmodule Pleroma.Factory do
 
   def oauth_authorization_factory do
     %Pleroma.Web.OAuth.Authorization{
-      token: :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false),
+      token: Crypto.random_string(32, padding: false),
       scopes: ["read", "write", "follow", "push"],
       valid_until: NaiveDateTime.add(NaiveDateTime.utc_now(), 60 * 10),
       user: build(:user),

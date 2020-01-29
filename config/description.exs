@@ -694,7 +694,7 @@ config :pleroma, :config_description, [
         description: "A list of MRF policies enabled",
         suggestions:
           Generator.list_modules_in_dir(
-            "lib/pleroma/web/activity_pub/mrf",
+            "lib/web/activity_pub/mrf",
             "Elixir.Pleroma.Web.ActivityPub.MRF."
           )
       },
@@ -2362,7 +2362,7 @@ config :pleroma, :config_description, [
         key: :auth_template,
         type: :string,
         description:
-          "Authentication form template. By default it's `show.html` which corresponds to `lib/pleroma/web/templates/o_auth/o_auth/show.html.ee`.",
+          "Authentication form template. By default it's `show.html` which corresponds to `lib/web/templates/o_auth/o_auth/show.html.ee`.",
         suggestions: ["show.html"]
       },
       %{
@@ -2370,7 +2370,7 @@ config :pleroma, :config_description, [
         type: :string,
         description:
           "OAuth consumer mode authentication form template. By default it's `consumer.html` which corresponds to" <>
-            " `lib/pleroma/web/templates/o_auth/o_auth/consumer.html.eex`.",
+            " `lib/web/templates/o_auth/o_auth/consumer.html.eex`.",
         suggestions: ["consumer.html"]
       },
       %{

@@ -5,6 +5,7 @@
 defmodule Pleroma.Web.OAuth.App do
   use Ecto.Schema
   import Ecto.Changeset
+  alias Pleroma.Crypto
   alias Pleroma.Storage.Repo
 
   @type t :: %__MODULE__{}
@@ -30,11 +31,11 @@ defmodule Pleroma.Web.OAuth.App do
       changeset
       |> put_change(
         :client_id,
-        :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
+        Crypto.random_string(32, padding: false)
       )
       |> put_change(
         :client_secret,
-        :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
+        Crypto.random_string(32, padding: false)
       )
     else
       changeset
