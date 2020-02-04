@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Object.Fetcher do
+  alias Pleroma.Federation.HTTPSignatures.Signature
   alias Pleroma.HTTP
   alias Pleroma.Object
   alias Pleroma.Object.Containment
   alias Pleroma.Storage.Repo
-  alias Pleroma.Signature
   alias Pleroma.Web.ActivityPub.InternalFetchActor
   alias Pleroma.Web.ActivityPub.Transmogrifier
 
@@ -159,7 +159,7 @@ defmodule Pleroma.Object.Fetcher do
   def fetch_and_contain_remote_object_from_id(id) when is_binary(id) do
     Logger.debug("Fetching object #{id} via AP")
 
-    date = Pleroma.Signature.signed_date()
+    date = Signature.signed_date()
 
     headers =
       [{:Accept, "application/activity+json"}]

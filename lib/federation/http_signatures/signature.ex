@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Signature do
+defmodule Pleroma.Federation.HTTPSignatures.Signature do
   @behaviour HTTPSignatures.Adapter
 
   alias Pleroma.Crypto.Keys

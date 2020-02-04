@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.SignatureTest do
+defmodule Pleroma.Federation.HTTPSignatures.SignatureTest do
   use Pleroma.DataCase
 
   import ExUnit.CaptureLog
@@ -10,7 +10,7 @@ defmodule Pleroma.SignatureTest do
   import Tesla.Mock
   import Mock
 
-  alias Pleroma.Signature
+  alias Pleroma.Federation.HTTPSignatures.Signature
 
   setup do
     mock(fn env -> apply(HttpRequestMock, :request, [env]) end)

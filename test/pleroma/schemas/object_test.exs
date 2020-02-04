@@ -77,7 +77,7 @@ defmodule Pleroma.ObjectTest do
     clear_config([Pleroma.Upload])
 
     test "Disabled via config" do
-      Pleroma.Config.put([Pleroma.Upload, :uploader], Pleroma.Uploaders.Local)
+      Pleroma.Config.put([Pleroma.Upload, :uploader], Pleroma.Upload.Uploaders.Local)
       Pleroma.Config.put([:instance, :cleanup_attachments], false)
 
       file = %Plug.Upload{
@@ -94,7 +94,7 @@ defmodule Pleroma.ObjectTest do
       %{data: %{"attachment" => [%{"url" => [%{"href" => href}]}]}} =
         note = insert(:note, %{user: user, data: %{"attachment" => [attachment.data]}})
 
-      uploads_dir = Pleroma.Config.get!([Pleroma.Uploaders.Local, :uploads])
+      uploads_dir = Pleroma.Config.get!([Pleroma.Upload.Uploaders.Local, :uploads])
 
       path = href |> Path.dirname() |> Path.basename()
 

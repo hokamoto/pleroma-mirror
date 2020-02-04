@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Plugs.MappedSignatureToIdentityPlug do
-  alias Pleroma.Signature
+  alias Pleroma.Federation.HTTPSignatures.Signature
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.Utils
 

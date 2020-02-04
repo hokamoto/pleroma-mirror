@@ -6,6 +6,7 @@ defmodule Pleroma.Object.FetcherTest do
   use Pleroma.DataCase
 
   alias Pleroma.Activity
+  alias Pleroma.Federation.HTTPSignatures.Signature
   alias Pleroma.Object
   alias Pleroma.Object.Fetcher
   import Tesla.Mock
@@ -138,25 +139,25 @@ defmodule Pleroma.Object.FetcherTest do
     clear_config([:activitypub, :sign_object_fetches])
 
     test_with_mock "it signs fetches when configured to do so",
-                   Pleroma.Signature,
+                   Signature,
                    [:passthrough],
                    [] do
       Pleroma.Config.put([:activitypub, :sign_object_fetches], true)
 
       Fetcher.fetch_object_from_id("http://mastodon.example.org/@admin/99541947525187367")
 
-      assert called(Pleroma.Signature.sign(:_, :_))
+      assert called(Signature.sign(:_, :_))
     end
 
     test_with_mock "it doesn't sign fetches when not configured to do so",
-                   Pleroma.Signature,
+                   Signature,
                    [:passthrough],
                    [] do
       Pleroma.Config.put([:activitypub, :sign_object_fetches], false)
 
       Fetcher.fetch_object_from_id("http://mastodon.example.org/@admin/99541947525187367")
 
-      refute called(Pleroma.Signature.sign(:_, :_))
+      refute called(Signature.sign(:_, :_))
     end
   end
 end

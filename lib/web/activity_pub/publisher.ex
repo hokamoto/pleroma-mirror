@@ -6,6 +6,7 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
   alias Pleroma.Activity
   alias Pleroma.Config
   alias Pleroma.Delivery
+  alias Pleroma.Federation.HTTPSignatures.Signature
   alias Pleroma.HTTP
   alias Pleroma.Instances
   alias Pleroma.Object
@@ -53,10 +54,10 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
 
     digest = "SHA-256=" <> (:crypto.hash(:sha256, json) |> Base.encode64())
 
-    date = Pleroma.Signature.signed_date()
+    date = Signature.signed_date()
 
     signature =
-      Pleroma.Signature.sign(actor, %{
+      Signature.sign(actor, %{
         "(request-target)": "post #{path}",
         host: host,
         "content-length": byte_size(json),
