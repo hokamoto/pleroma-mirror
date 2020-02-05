@@ -46,7 +46,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationView do
         "reblog" ->
           put_status(response, parent_activity, user)
 
-        "move" ->
+        "pleroma:move" ->
           put_target(response, activity, user)
 
         "follow" ->

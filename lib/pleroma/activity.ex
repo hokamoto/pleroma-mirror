@@ -30,7 +30,7 @@ defmodule Pleroma.Activity do
     "Follow" => "follow",
     "Announce" => "reblog",
     "Like" => "favourite",
-    "Move" => "move",
+    "Move" => "pleroma:move",
     "EmojiReaction" => "pleroma:emoji_reaction"
   }
 
