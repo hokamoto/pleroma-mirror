@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Workers.PublisherWorker do
   alias Pleroma.Activity
-  alias Pleroma.Web.Federator
+  alias Pleroma.Federation.ActivityPub.Federator
 
   use Pleroma.Workers.WorkerHelper, queue: "federator_outgoing"
 

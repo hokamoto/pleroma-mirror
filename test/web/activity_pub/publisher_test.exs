@@ -11,6 +11,7 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
   import Mock
 
   alias Pleroma.Activity
+  alias Pleroma.Federation.ActivityPub.Publisher, as: FederationPublisher
   alias Pleroma.Instances
   alias Pleroma.Object
   alias Pleroma.Web.ActivityPub.Publisher
@@ -252,7 +253,7 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
 
   describe "publish/2" do
     test_with_mock "publishes an activity with BCC to all relevant peers.",
-                   Pleroma.Web.Federator.Publisher,
+                   FederationPublisher,
                    [:passthrough],
                    [] do
       follower =
@@ -278,7 +279,7 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
       assert res == :ok
 
       assert called(
-               Pleroma.Web.Federator.Publisher.enqueue_one(Publisher, %{
+               FederationPublisher.enqueue_one(Publisher, %{
                  inbox: "https://domain.com/users/nick1/inbox",
                  actor_id: actor.id,
                  id: note_activity.data["id"]
@@ -287,7 +288,7 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
     end
 
     test_with_mock "publishes a delete activity to peers who signed fetch requests to the create acitvity/object.",
-                   Pleroma.Web.Federator.Publisher,
+                   FederationPublisher,
                    [:passthrough],
                    [] do
       fetcher =
@@ -330,7 +331,7 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
       assert res == :ok
 
       assert called(
-               Pleroma.Web.Federator.Publisher.enqueue_one(Publisher, %{
+               FederationPublisher.enqueue_one(Publisher, %{
                  inbox: "https://domain.com/users/nick1/inbox",
                  actor_id: actor.id,
                  id: delete.data["id"]
@@ -338,7 +339,7 @@ defmodule Pleroma.Web.ActivityPub.PublisherTest do
              )
 
       assert called(
-               Pleroma.Web.Federator.Publisher.enqueue_one(Publisher, %{
+               FederationPublisher.enqueue_one(Publisher, %{
                  inbox: "https://domain2.com/users/nick1/inbox",
                  actor_id: actor.id,
                  id: delete.data["id"]

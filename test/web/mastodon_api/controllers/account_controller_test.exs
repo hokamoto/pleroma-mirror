@@ -5,10 +5,10 @@
 defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
   use Pleroma.Web.ConnCase
 
+  alias Pleroma.Federation.ActivityPub
+  alias Pleroma.Federation.ActivityPub.InternalFetchActor
   alias Pleroma.Storage.Repo
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
-  alias Pleroma.Web.ActivityPub.InternalFetchActor
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.OAuth.Token
 

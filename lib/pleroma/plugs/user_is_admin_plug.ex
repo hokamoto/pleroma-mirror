@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Plugs.UserIsAdminPlug do
-  import Pleroma.Web.TranslationHelpers
+  import Pleroma.Web.Gettext.Helper
   import Plug.Conn
 
   alias Pleroma.User

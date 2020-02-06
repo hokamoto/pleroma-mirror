@@ -6,10 +6,11 @@ defmodule Pleroma.Web.ActivityPub.UserView do
   use Pleroma.Web, :view
 
   alias Pleroma.Crypto.Keys
+  alias Pleroma.Federation.ActivityPub.Transmogrifier
+  alias Pleroma.Federation.ActivityPub.Utils
+  alias Pleroma.HTML
   alias Pleroma.Storage.Repo
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.Transmogrifier
-  alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.Endpoint
   alias Pleroma.Web.Router.Helpers
 
@@ -83,8 +84,8 @@ defmodule Pleroma.Web.ActivityPub.UserView do
       |> User.fields()
       |> Enum.map(fn %{"name" => name, "value" => value} ->
         %{
-          "name" => Pleroma.HTML.strip_tags(name),
-          "value" => Pleroma.HTML.filter_tags(value, Pleroma.HTML.Scrubber.LinksOnly)
+          "name" => HTML.strip_tags(name),
+          "value" => HTML.filter_tags(value, HTML.Scrubber.LinksOnly)
         }
       end)
       |> Enum.map(&Map.put(&1, "type", "PropertyValue"))

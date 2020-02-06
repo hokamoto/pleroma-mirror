@@ -6,20 +6,22 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
   alias Pleroma.Activity
   alias Pleroma.Config
   alias Pleroma.Delivery
+  alias Pleroma.Federation.ActivityPub.Publisher, as: FederationPublisher
+  alias Pleroma.Federation.ActivityPub.Relay
+  alias Pleroma.Federation.ActivityPub.Transmogrifier
   alias Pleroma.Federation.HTTPSignatures.Signature
+  alias Pleroma.Helpers.Constants
   alias Pleroma.HTTP
   alias Pleroma.Instances
   alias Pleroma.Object
   alias Pleroma.Storage.Repo
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.Relay
-  alias Pleroma.Web.ActivityPub.Transmogrifier
 
-  require Pleroma.Constants
+  require Pleroma.Helpers.Constants
 
-  import Pleroma.Web.ActivityPub.Visibility
+  import Pleroma.Federation.ActivityPub.Visibility
 
-  @behaviour Pleroma.Web.Federator.Publisher
+  @behaviour FederationPublisher
 
   require Logger
 
@@ -31,11 +33,9 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
   Determine if an activity can be represented by running it through Transmogrifier.
   """
   def is_representable?(%Activity{} = activity) do
-    with {:ok, _data} <- Transmogrifier.prepare_outgoing(activity.data) do
-      true
-    else
-      _e ->
-        false
+    case Transmogrifier.prepare_outgoing(activity.data) do
+      {:ok, _data} -> true
+      _e -> false
     end
   end
 
@@ -105,9 +105,9 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
 
       quarantined_instances =
         Config.get([:instance, :quarantined_instances], [])
-        |> Pleroma.Web.ActivityPub.MRF.subdomains_regex()
+        |> Pleroma.Federation.ActivityPub.MRF.subdomains_regex()
 
-      !Pleroma.Web.ActivityPub.MRF.subdomain_match?(quarantined_instances, host)
+      !Pleroma.Federation.ActivityPub.MRF.subdomain_match?(quarantined_instances, host)
     end
   end
 
@@ -131,7 +131,7 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
           []
       end
 
-    Pleroma.Web.Federator.Publisher.remote_users(actor, activity) ++ followers ++ fetchers
+    FederationPublisher.remote_users(actor, activity) ++ followers ++ fetchers
   end
 
   defp get_cc_ap_ids(ap_id, recipients) do
@@ -168,7 +168,7 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
       type == "Delete" ->
         maybe_use_sharedinbox(user)
 
-      Pleroma.Constants.as_public() in to || Pleroma.Constants.as_public() in cc ->
+      Constants.as_public() in to || Constants.as_public() in cc ->
         maybe_use_sharedinbox(user)
 
       length(to) + length(cc) > 1 ->
@@ -211,7 +211,7 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
           |> Map.put("cc", cc)
           |> Jason.encode!()
 
-        Pleroma.Web.Federator.Publisher.enqueue_one(__MODULE__, %{
+        FederationPublisher.enqueue_one(__MODULE__, %{
           inbox: inbox,
           json: json,
           actor_id: actor.id,
@@ -245,7 +245,7 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
     |> Enum.filter(fn inbox -> should_federate?(inbox, public) end)
     |> Instances.filter_reachable()
     |> Enum.each(fn {inbox, unreachable_since} ->
-      Pleroma.Web.Federator.Publisher.enqueue_one(
+      FederationPublisher.enqueue_one(
         __MODULE__,
         %{
           inbox: inbox,
@@ -273,5 +273,5 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
     ]
   end
 
-  def gather_nodeinfo_protocol_names, do: ["activitypub"]
+  def gather_node_info_protocol_names, do: ["activitypub"]
 end

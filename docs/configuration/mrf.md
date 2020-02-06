@@ -33,7 +33,7 @@ To use `SimplePolicy`, you must enable it.  Do so by adding the following to you
 ```
 config :pleroma, :instance,
   [...]
-  rewrite_policy: Pleroma.Web.ActivityPub.MRF.SimplePolicy
+  rewrite_policy: Pleroma.Federation.ActivityPub.MRF.SimplePolicy
 ```
 
 Once `SimplePolicy` is enabled, you can configure various groups in the `:mrf_simple` config object.  These groups are:
@@ -52,7 +52,7 @@ This example will enable `SimplePolicy`, block media from `illegalporn.biz`, mar
 
 ```
 config :pleroma, :instance,
-  rewrite_policy: [Pleroma.Web.ActivityPub.MRF.SimplePolicy]
+  rewrite_policy: [Pleroma.Federation.ActivityPub.MRF.SimplePolicy]
 
 config :pleroma, :mrf_simple,
   media_removal: ["illegalporn.biz"],
@@ -77,7 +77,7 @@ For example, here is a sample policy module which rewrites all messages to "new 
 # This is a sample MRF policy which rewrites all Notes to have "new message
 # content."
 defmodule Site.RewritePolicy do
-  @behavior Pleroma.Web.ActivityPub.MRF
+  @behavior Pleroma.Federation.ActivityPub.MRF
 
   # Catch messages which contain Note objects with actual data to filter.
   # Capture the object as `object`, the message content as `content` and the
@@ -114,7 +114,7 @@ If you save this file as `lib/site/mrf/rewrite_policy.ex`, it will be included w
 ```
 config :pleroma, :instance,
   rewrite_policy: [
-    Pleroma.Web.ActivityPub.MRF.SimplePolicy,
+    Pleroma.Federation.ActivityPub.MRF.SimplePolicy,
     Site.RewritePolicy
   ]
 ```

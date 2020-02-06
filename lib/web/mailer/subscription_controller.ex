@@ -1,7 +1,7 @@
 defmodule Pleroma.Web.Mailer.SubscriptionController do
   use Pleroma.Web, :controller
 
-  alias Pleroma.JWT
+  alias Pleroma.Helpers.JWT
   alias Pleroma.Storage.Repo
   alias Pleroma.User
 

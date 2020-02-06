@@ -61,7 +61,7 @@ defmodule Pleroma.Plugs.RateLimiter do
         ...
       end
   """
-  import Pleroma.Web.TranslationHelpers
+  import Pleroma.Web.Gettext.Helper
   import Plug.Conn
 
   alias Pleroma.Plugs.RateLimiter.LimiterSupervisor

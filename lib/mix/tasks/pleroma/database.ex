@@ -4,11 +4,12 @@
 
 defmodule Mix.Tasks.Pleroma.Database do
   alias Pleroma.Conversation
+  alias Pleroma.Helpers.Constants
   alias Pleroma.Object
   alias Pleroma.Storage.Repo
   alias Pleroma.User
   require Logger
-  require Pleroma.Constants
+  require Pleroma.Helpers.Constants
   import Mix.Pleroma
   use Mix.Task
 
@@ -83,9 +84,9 @@ defmodule Mix.Tasks.Pleroma.Database do
         fragment(
           "?->'to' \\? ? OR ?->'cc' \\? ?",
           o.data,
-          ^Pleroma.Constants.as_public(),
+          ^Constants.as_public(),
           o.data,
-          ^Pleroma.Constants.as_public()
+          ^Constants.as_public()
         ),
       where: o.inserted_at < ^time_deadline,
       where:

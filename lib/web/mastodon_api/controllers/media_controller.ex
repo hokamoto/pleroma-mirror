@@ -5,10 +5,10 @@
 defmodule Pleroma.Web.MastodonAPI.MediaController do
   use Pleroma.Web, :controller
 
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.Object
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
 
   action_fallback(Pleroma.Web.MastodonAPI.FallbackController)
   plug(:put_view, Pleroma.Web.MastodonAPI.StatusView)

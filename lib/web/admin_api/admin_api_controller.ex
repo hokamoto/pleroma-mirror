@@ -9,14 +9,14 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
 
   alias Pleroma.Activity
   alias Pleroma.ConfigDB
+  alias Pleroma.Federation.ActivityPub
+  alias Pleroma.Federation.ActivityPub.Relay
+  alias Pleroma.Federation.ActivityPub.Utils
   alias Pleroma.ModerationLog
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.Storage.ReportNote
   alias Pleroma.User
   alias Pleroma.UserInviteToken
-  alias Pleroma.Web.ActivityPub.ActivityPub
-  alias Pleroma.Web.ActivityPub.Relay
-  alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.AdminAPI.AccountView
   alias Pleroma.Web.AdminAPI.ConfigView
   alias Pleroma.Web.AdminAPI.ModerationLogView

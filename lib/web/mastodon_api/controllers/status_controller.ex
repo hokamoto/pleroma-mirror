@@ -11,14 +11,14 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
 
   alias Pleroma.Activity
   alias Pleroma.Bookmark
+  alias Pleroma.Federation.ActivityPub
+  alias Pleroma.Federation.ActivityPub.Visibility
   alias Pleroma.Object
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.Plugs.RateLimiter
   alias Pleroma.Storage.Repo
   alias Pleroma.ScheduledActivity
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
-  alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MastodonAPI.ScheduledActivityView

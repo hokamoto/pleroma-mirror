@@ -6,6 +6,7 @@ defmodule Pleroma.ActivityTest do
   use Pleroma.DataCase
   alias Pleroma.Activity
   alias Pleroma.Bookmark
+  alias Pleroma.Federation.ActivityPub.Federator
   alias Pleroma.Object
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.ThreadMute
@@ -127,7 +128,7 @@ defmodule Pleroma.ActivityTest do
 
       {:ok, local_activity} = Pleroma.Web.CommonAPI.post(user, %{"status" => "find me!"})
       {:ok, japanese_activity} = Pleroma.Web.CommonAPI.post(user, %{"status" => "更新情報"})
-      {:ok, job} = Pleroma.Web.Federator.incoming_ap_doc(params)
+      {:ok, job} = Federator.incoming_ap_doc(params)
       {:ok, remote_activity} = ObanHelpers.perform(job)
 
       %{

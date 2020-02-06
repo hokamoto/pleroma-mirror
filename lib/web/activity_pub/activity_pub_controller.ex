@@ -7,18 +7,18 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
 
   alias Pleroma.Activity
   alias Pleroma.Delivery
+  alias Pleroma.Federation.ActivityPub
+  alias Pleroma.Federation.ActivityPub.Federator
+  alias Pleroma.Federation.ActivityPub.InternalFetchActor
+  alias Pleroma.Federation.ActivityPub.Relay
+  alias Pleroma.Federation.ActivityPub.Transmogrifier
+  alias Pleroma.Federation.ActivityPub.Utils
+  alias Pleroma.Federation.ActivityPub.Visibility
   alias Pleroma.Object
   alias Pleroma.Object.Fetcher
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
-  alias Pleroma.Web.ActivityPub.InternalFetchActor
   alias Pleroma.Web.ActivityPub.ObjectView
-  alias Pleroma.Web.ActivityPub.Relay
-  alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.ActivityPub.UserView
-  alias Pleroma.Web.ActivityPub.Utils
-  alias Pleroma.Web.ActivityPub.Visibility
-  alias Pleroma.Web.Federator
 
   require Logger
 
@@ -30,7 +30,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     when action in [:activity, :object]
   )
 
-  plug(Pleroma.Web.FederatingPlug when action in [:inbox, :relay])
+  plug(Pleroma.Federation.ActivityPub.FederatingPlug when action in [:inbox, :relay])
   plug(:set_requester_reachable when action in [:inbox])
   plug(:relay_active? when action in [:relay])
 

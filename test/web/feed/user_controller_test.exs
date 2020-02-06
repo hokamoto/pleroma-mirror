@@ -10,6 +10,7 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
 
   alias Pleroma.Object
   alias Pleroma.User
+  alias Pleroma.Web.FallbackRedirectController
 
   clear_config([:feed])
 
@@ -233,7 +234,7 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
         |> response(200)
 
       assert response ==
-               Fallback.RedirectController.redirector_with_meta(
+               FallbackRedirectController.redirector_with_meta(
                  conn,
                  %{user: user}
                ).resp_body

@@ -4,12 +4,13 @@
 
 defmodule Pleroma.Activity.Search do
   alias Pleroma.Activity
+  alias Pleroma.Federation.ActivityPub.Visibility
+  alias Pleroma.Helpers.Constants
   alias Pleroma.Object.Fetcher
   alias Pleroma.Pagination
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.Visibility
 
-  require Pleroma.Constants
+  require Pleroma.Helpers.Constants
 
   import Ecto.Query
 
@@ -46,7 +47,7 @@ defmodule Pleroma.Activity.Search do
   defp restrict_public(q) do
     from([a, o] in q,
       where: fragment("?->>'type' = 'Create'", a.data),
-      where: ^Pleroma.Constants.as_public() in a.recipients
+      where: ^Constants.as_public() in a.recipients
     )
   end
 

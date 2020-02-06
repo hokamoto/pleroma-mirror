@@ -6,16 +6,16 @@ defmodule Pleroma.Web.CommonAPITest do
   use Pleroma.DataCase
   alias Pleroma.Activity
   alias Pleroma.Conversation.Participation
+  alias Pleroma.Federation.ActivityPub
+  alias Pleroma.Federation.ActivityPub.Visibility
   alias Pleroma.Object
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
-  alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.AdminAPI.AccountView
   alias Pleroma.Web.CommonAPI
 
   import Pleroma.Factory
 
-  require Pleroma.Constants
+  require Pleroma.Helpers.Constants
 
   clear_config([:instance, :safe_dm_mentions])
   clear_config([:instance, :limit])
@@ -105,7 +105,7 @@ defmodule Pleroma.Web.CommonAPITest do
 
     assert firefox["name"] == ":firefox:"
 
-    assert Pleroma.Constants.as_public() in activity.recipients
+    assert Pleroma.Helpers.Constants.as_public() in activity.recipients
   end
 
   describe "posting" do

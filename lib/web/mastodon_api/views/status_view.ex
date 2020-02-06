@@ -5,10 +5,11 @@
 defmodule Pleroma.Web.MastodonAPI.StatusView do
   use Pleroma.Web, :view
 
-  require Pleroma.Constants
+  require Pleroma.Helpers.Constants
 
   alias Pleroma.Activity
   alias Pleroma.ActivityExpiration
+  alias Pleroma.Helpers.Constants
   alias Pleroma.HTML
   alias Pleroma.Object
   alias Pleroma.Storage.Repo
@@ -20,7 +21,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
   alias Pleroma.Web.MastodonAPI.StatusView
   alias Pleroma.Web.MediaProxy
 
-  import Pleroma.Web.ActivityPub.Visibility, only: [get_visibility: 1]
+  import Pleroma.Federation.ActivityPub.Visibility, only: [get_visibility: 1]
 
   # TODO: Add cached version.
   defp get_replied_to_activities([]), do: %{}
@@ -160,7 +161,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
       (object.data["to"] ++ tag_mentions)
       |> Enum.uniq()
       |> Enum.map(fn
-        Pleroma.Constants.as_public() -> nil
+        Constants.as_public() -> nil
         ^user_follower_address -> nil
         ap_id -> User.get_cached_by_ap_id(ap_id)
       end)

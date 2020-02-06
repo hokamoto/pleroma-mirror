@@ -5,8 +5,8 @@
 defmodule Pleroma.BBS.Handler do
   use Sshd.ShellHandler
   alias Pleroma.Activity
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.HTML
-  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
 
   def on_shell(username, _pubkey, _ip, _port) do

@@ -3,9 +3,10 @@ defmodule Pleroma.Activity.Ir.TopicsTest do
 
   alias Pleroma.Activity
   alias Pleroma.Activity.Ir.Topics
+  alias Pleroma.Helpers.Constants
   alias Pleroma.Object
 
-  require Pleroma.Constants
+  require Pleroma.Helpers.Constants
 
   describe "poll answer" do
     test "produce no topics" do
@@ -29,7 +30,7 @@ defmodule Pleroma.Activity.Ir.TopicsTest do
     setup do
       activity = %Activity{
         object: %Object{data: %{"type" => "Note"}},
-        data: %{"to" => [Pleroma.Constants.as_public()]}
+        data: %{"to" => [Constants.as_public()]}
       }
 
       {:ok, activity: activity}
@@ -60,7 +61,7 @@ defmodule Pleroma.Activity.Ir.TopicsTest do
     setup do
       activity = %Activity{
         object: %Object{data: %{"type" => "Create", "attachment" => []}},
-        data: %{"to" => [Pleroma.Constants.as_public()]}
+        data: %{"to" => [Constants.as_public()]}
       }
 
       {:ok, activity: activity}
@@ -99,7 +100,7 @@ defmodule Pleroma.Activity.Ir.TopicsTest do
     setup do
       activity = %Activity{
         object: %Object{data: %{"type" => "Create", "attachment" => ["foo"]}},
-        data: %{"to" => [Pleroma.Constants.as_public()]}
+        data: %{"to" => [Constants.as_public()]}
       }
 
       {:ok, activity: activity}

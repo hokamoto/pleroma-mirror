@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Plugs.EnsureAuthenticatedPlug do
   import Plug.Conn
-  import Pleroma.Web.TranslationHelpers
+  import Pleroma.Web.Gettext.Helper
   alias Pleroma.User
 
   def init(options) do

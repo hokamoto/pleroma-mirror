@@ -11,9 +11,9 @@ defmodule Pleroma.Formatter do
   @markdown_characters_regex ~r/(`|\*|_|{|}|[|]|\(|\)|#|\+|-|\.|!)/
 
   @auto_linker_config hashtag: true,
-                      hashtag_handler: &Pleroma.Formatter.hashtag_handler/4,
+                      hashtag_handler: &__MODULE__.hashtag_handler/4,
                       mention: true,
-                      mention_handler: &Pleroma.Formatter.mention_handler/4
+                      mention_handler: &__MODULE__.mention_handler/4
 
   def escape_mention_handler("@" <> nickname = mention, buffer, _, _) do
     case User.get_cached_by_nickname(nickname) do
@@ -87,7 +87,7 @@ defmodule Pleroma.Formatter do
       Keyword.merge(options,
         mention: true,
         url: false,
-        mention_handler: &Pleroma.Formatter.escape_mention_handler/4
+        mention_handler: &__MODULE__.escape_mention_handler/4
       )
 
     if options[:safe_mention] && Regex.named_captures(@safe_mention_regex, text) do

@@ -3,16 +3,17 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Object.Fetcher do
+  alias Pleroma.Federation.ActivityPub.InternalFetchActor
+  alias Pleroma.Federation.ActivityPub.Transmogrifier
   alias Pleroma.Federation.HTTPSignatures.Signature
+  alias Pleroma.Helpers.Constants
   alias Pleroma.HTTP
   alias Pleroma.Object
   alias Pleroma.Object.Containment
   alias Pleroma.Storage.Repo
-  alias Pleroma.Web.ActivityPub.InternalFetchActor
-  alias Pleroma.Web.ActivityPub.Transmogrifier
 
   require Logger
-  require Pleroma.Constants
+  require Pleroma.Helpers.Constants
 
   defp touch_changeset(changeset) do
     updated_at =
@@ -23,7 +24,7 @@ defmodule Pleroma.Object.Fetcher do
   end
 
   defp maybe_reinject_internal_fields(data, %{data: %{} = old_data}) do
-    internal_fields = Map.take(old_data, Pleroma.Constants.object_internal_fields())
+    internal_fields = Map.take(old_data, Constants.object_internal_fields())
 
     Map.merge(data, internal_fields)
   end

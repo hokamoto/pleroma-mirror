@@ -5,9 +5,9 @@
 defmodule Pleroma.Web.PleromaAPI.MascotController do
   use Pleroma.Web, :controller
 
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
 
   plug(OAuthScopesPlug, %{scopes: ["read:accounts"]} when action == :show)
   plug(OAuthScopesPlug, %{scopes: ["write:accounts"]} when action != :show)

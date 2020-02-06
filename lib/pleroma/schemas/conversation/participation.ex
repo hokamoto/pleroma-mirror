@@ -6,9 +6,9 @@ defmodule Pleroma.Conversation.Participation do
   use Ecto.Schema
   alias Pleroma.Conversation
   alias Pleroma.Conversation.Participation.RecipientShip
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.Storage.Repo
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
   import Ecto.Changeset
   import Ecto.Query
 

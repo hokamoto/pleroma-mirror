@@ -5,7 +5,7 @@
 defmodule Pleroma.Workers.BackgroundWorker do
   alias Pleroma.Activity
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.MRF.MediaProxyWarmingPolicy
+  alias Pleroma.Federation.ActivityPub.MRF.MediaProxyWarmingPolicy
   alias Pleroma.Web.OAuth.Token.CleanWorker
 
   use Pleroma.Workers.WorkerHelper, queue: "background"

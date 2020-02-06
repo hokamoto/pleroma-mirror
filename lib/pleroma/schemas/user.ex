@@ -17,7 +17,11 @@ defmodule Pleroma.User do
   alias Pleroma.Crypto
   alias Pleroma.Crypto.Keys
   alias Pleroma.Delivery
+  alias Pleroma.Federation.ActivityPub
+  alias Pleroma.Federation.ActivityPub.Federator
+  alias Pleroma.Federation.ActivityPub.Utils
   alias Pleroma.FollowingRelationship
+  alias Pleroma.Helpers.RelMe
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Registration
@@ -25,12 +29,9 @@ defmodule Pleroma.User do
   alias Pleroma.User
   alias Pleroma.UserRelationship
   alias Pleroma.Web
-  alias Pleroma.Web.ActivityPub.ActivityPub
-  alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.CommonAPI.Utils, as: CommonUtils
   alias Pleroma.Web.OAuth
-  alias Pleroma.Web.RelMe
   alias Pleroma.Workers.BackgroundWorker
 
   require Logger
@@ -1164,9 +1165,9 @@ defmodule Pleroma.User do
   def blocks_user?(_, _), do: false
 
   def blocks_domain?(%User{} = user, %User{} = target) do
-    domain_blocks = Pleroma.Web.ActivityPub.MRF.subdomains_regex(user.domain_blocks)
+    domain_blocks = Pleroma.Federation.ActivityPub.MRF.subdomains_regex(user.domain_blocks)
     %{host: host} = URI.parse(target.ap_id)
-    Pleroma.Web.ActivityPub.MRF.subdomain_match?(domain_blocks, host)
+    Pleroma.Federation.ActivityPub.MRF.subdomain_match?(domain_blocks, host)
   end
 
   def blocks_domain?(_, _), do: false
@@ -1289,7 +1290,7 @@ defmodule Pleroma.User do
     user.source_data["outbox"]
     |> Utils.fetch_ordered_collection(pages)
     |> Enum.reverse()
-    |> Enum.each(&Pleroma.Web.Federator.incoming_ap_doc/1)
+    |> Enum.each(&Federator.incoming_ap_doc/1)
   end
 
   def perform(:deactivate_async, user, status), do: deactivate(user, status)

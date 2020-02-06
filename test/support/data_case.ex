@@ -47,7 +47,7 @@ defmodule Pleroma.DataCase do
   end
 
   def ensure_local_uploader(context) do
-    test_uploader = Map.get(context, :uploader, Pleroma.Upload.Uploaders.Local)
+    test_uploader = Map.get(context, :uploader, Pleroma.Upload.Uploader.Local)
     uploader = Pleroma.Config.get([Pleroma.Upload, :uploader])
     filters = Pleroma.Config.get([Pleroma.Upload, :filters])
 

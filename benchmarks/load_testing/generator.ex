@@ -295,7 +295,7 @@ defmodule Pleroma.LoadTesting.Generator do
       "type" => "Create"
     }
 
-    Pleroma.Web.ActivityPub.ActivityPub.insert(map, false)
+    Pleroma.Federation.ActivityPub.insert(map, false)
   end
 
   def generate_dms(user, users, opts) do

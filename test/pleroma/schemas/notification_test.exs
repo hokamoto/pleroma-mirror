@@ -7,10 +7,11 @@ defmodule Pleroma.NotificationTest do
 
   import Pleroma.Factory
 
+  alias Pleroma.Federation.ActivityPub
+  alias Pleroma.Federation.ActivityPub.Transmogrifier
   alias Pleroma.Notification
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.Streamer
 
@@ -664,7 +665,7 @@ defmodule Pleroma.NotificationTest do
       User.follow(follower, old_user)
       User.follow(other_follower, old_user)
 
-      Pleroma.Web.ActivityPub.ActivityPub.move(old_user, new_user)
+      ActivityPub.move(old_user, new_user)
       ObanHelpers.perform_all()
 
       assert [] = Notification.for_user(follower)

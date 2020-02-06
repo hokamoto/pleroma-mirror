@@ -26,8 +26,8 @@ defmodule Pleroma.Web do
 
       import Plug.Conn
       import Pleroma.Web.Gettext
+      import Pleroma.Web.Gettext.Helper
       import Pleroma.Web.Router.Helpers
-      import Pleroma.Web.TranslationHelpers
 
       plug(:set_put_layout)
 

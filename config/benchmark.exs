@@ -21,7 +21,7 @@ config :pleroma, :auth, oauth_consumer_strategies: []
 
 config :pleroma, Pleroma.Upload, filters: [], link_name: false
 
-config :pleroma, Pleroma.Upload.Uploaders.Local, uploads: "test/uploads"
+config :pleroma, Pleroma.Upload.Uploader.Local, uploads: "test/uploads"
 
 config :pleroma, Pleroma.Emails.Mailer, adapter: Swoosh.Adapters.Test, enabled: true
 

@@ -8,9 +8,9 @@ defmodule Pleroma.Web.MastodonAPI.PollController do
   import Pleroma.Web.ControllerHelper, only: [try_render: 3, json_response: 3]
 
   alias Pleroma.Activity
+  alias Pleroma.Federation.ActivityPub.Visibility
   alias Pleroma.Object
   alias Pleroma.Plugs.OAuthScopesPlug
-  alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.CommonAPI
 
   action_fallback(Pleroma.Web.MastodonAPI.FallbackController)

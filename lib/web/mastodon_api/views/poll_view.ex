@@ -5,6 +5,7 @@
 defmodule Pleroma.Web.MastodonAPI.PollView do
   use Pleroma.Web, :view
 
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.HTML
   alias Pleroma.Web.CommonAPI.Utils
 
@@ -65,7 +66,7 @@ defmodule Pleroma.Web.MastodonAPI.PollView do
 
   defp voted?(%{object: object} = opts) do
     if opts[:for] do
-      existing_votes = Pleroma.Web.ActivityPub.Utils.get_existing_votes(opts[:for].ap_id, object)
+      existing_votes = ActivityPub.Utils.get_existing_votes(opts[:for].ap_id, object)
       existing_votes != [] or opts[:for].ap_id == object.data["actor"]
     else
       false

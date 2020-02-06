@@ -11,18 +11,19 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   alias Pleroma.Config
   alias Pleroma.Conversation.Participation
   alias Pleroma.Emoji
+  alias Pleroma.Federation.ActivityPub.Utils
+  alias Pleroma.Federation.ActivityPub.Visibility
   alias Pleroma.Formatter
+  alias Pleroma.Helpers.Constants
   alias Pleroma.Object
   alias Pleroma.Plugs.AuthenticationPlug
   alias Pleroma.Storage.Repo
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.Utils
-  alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.Endpoint
   alias Pleroma.Web.MediaProxy
 
   require Logger
-  require Pleroma.Constants
+  require Pleroma.Helpers.Constants
 
   # This is a hack for twidere.
   def get_by_id_or_ap_id(id) do
@@ -95,7 +96,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   end
 
   def get_to_and_cc(user, mentioned_users, inReplyTo, "public", _) do
-    to = [Pleroma.Constants.as_public() | mentioned_users]
+    to = [Constants.as_public() | mentioned_users]
     cc = [user.follower_address]
 
     if inReplyTo do
@@ -107,7 +108,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
 
   def get_to_and_cc(user, mentioned_users, inReplyTo, "unlisted", _) do
     to = [user.follower_address | mentioned_users]
-    cc = [Pleroma.Constants.as_public()]
+    cc = [Constants.as_public()]
 
     if inReplyTo do
       {Enum.uniq([inReplyTo.data["actor"] | to]), cc}

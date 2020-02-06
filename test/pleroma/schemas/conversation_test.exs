@@ -6,6 +6,7 @@ defmodule Pleroma.ConversationTest do
   use Pleroma.DataCase
   alias Pleroma.Activity
   alias Pleroma.Conversation
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.Object
   alias Pleroma.Web.CommonAPI
 
@@ -186,7 +187,7 @@ defmodule Pleroma.ConversationTest do
     undo = %Activity{
       id: "fake",
       data: %{
-        "id" => Pleroma.Web.ActivityPub.Utils.generate_activity_id(),
+        "id" => ActivityPub.Utils.generate_activity_id(),
         "actor" => note.data["actor"],
         "to" => [note.data["actor"]],
         "object" => note_id,

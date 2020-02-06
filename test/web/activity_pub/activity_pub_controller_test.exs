@@ -9,14 +9,14 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
   import Pleroma.Factory
   alias Pleroma.Activity
   alias Pleroma.Delivery
+  alias Pleroma.Federation.ActivityPub.Relay
+  alias Pleroma.Federation.ActivityPub.Utils
   alias Pleroma.Instances
   alias Pleroma.Object
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ObjectView
-  alias Pleroma.Web.ActivityPub.Relay
   alias Pleroma.Web.ActivityPub.UserView
-  alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Workers.ReceiverWorker
 

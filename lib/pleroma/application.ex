@@ -53,8 +53,8 @@ defmodule Pleroma.Application do
         cachex_children() ++
         hackney_pool_children() ++
         [
-          Pleroma.Stats,
-          Pleroma.JobQueueMonitor,
+          Pleroma.Healthcheck.Stats,
+          Pleroma.Healthcheck.JobQueueMonitor,
           {Oban, Pleroma.Config.get(Oban)}
         ] ++
         task_children(@env) ++
@@ -77,7 +77,7 @@ defmodule Pleroma.Application do
 
     if dir && File.exists?(dir) do
       dir
-      |> Pleroma.Utils.compile_dir()
+      |> Pleroma.Helpers.Compile.compile_dir()
       |> case do
         {:error, _errors, _warnings} ->
           raise "Invalid custom modules"
@@ -206,7 +206,7 @@ defmodule Pleroma.Application do
       },
       %{
         id: :internal_fetch_init,
-        start: {Task, :start_link, [&Pleroma.Web.ActivityPub.InternalFetchActor.init/0]},
+        start: {Task, :start_link, [&Pleroma.Federation.ActivityPub.InternalFetchActor.init/0]},
         restart: :temporary
       }
     ]

@@ -5,7 +5,7 @@
 defmodule Pleroma.Web.AdminAPI.StatusView do
   use Pleroma.Web, :view
 
-  require Pleroma.Constants
+  require Pleroma.Helpers.Constants
 
   alias Pleroma.User
 

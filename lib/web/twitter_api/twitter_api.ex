@@ -9,7 +9,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
   alias Pleroma.User
   alias Pleroma.UserInviteToken
 
-  require Pleroma.Constants
+  require Pleroma.Helpers.Constants
 
   def register_user(params, opts \\ []) do
     token = params["token"]

@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Activity.Ir.Topics do
+  alias Pleroma.Federation.ActivityPub.Visibility
   alias Pleroma.Object
-  alias Pleroma.Web.ActivityPub.Visibility
 
   def get_activity_topics(activity) do
     activity

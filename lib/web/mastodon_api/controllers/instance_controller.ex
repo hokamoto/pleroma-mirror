@@ -12,6 +12,6 @@ defmodule Pleroma.Web.MastodonAPI.InstanceController do
 
   @doc "GET /api/v1/instance/peers"
   def peers(conn, _params) do
-    json(conn, Pleroma.Stats.get_peers())
+    json(conn, Pleroma.Healthcheck.Stats.get_peers())
   end
 end

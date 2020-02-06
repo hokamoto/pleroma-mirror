@@ -11,7 +11,7 @@ defmodule Pleroma.Web.Feed.FeedView do
   alias Pleroma.User
   alias Pleroma.Web.MediaProxy
 
-  require Pleroma.Constants
+  require Pleroma.Helpers.Constants
 
   @spec pub_date(String.t() | DateTime.t()) :: String.t()
   def pub_date(date) when is_binary(date) do

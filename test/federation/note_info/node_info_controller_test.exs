@@ -137,7 +137,10 @@ defmodule Pleroma.Web.NodeInfoTest do
 
   test "it shows MRF transparency data if enabled", %{conn: conn} do
     config = Pleroma.Config.get([:instance, :rewrite_policy])
-    Pleroma.Config.put([:instance, :rewrite_policy], [Pleroma.Web.ActivityPub.MRF.SimplePolicy])
+
+    Pleroma.Config.put([:instance, :rewrite_policy], [
+      Pleroma.Federation.ActivityPub.MRF.SimplePolicy
+    ])
 
     option = Pleroma.Config.get([:instance, :mrf_transparency])
     Pleroma.Config.put([:instance, :mrf_transparency], true)
@@ -159,7 +162,10 @@ defmodule Pleroma.Web.NodeInfoTest do
 
   test "it performs exclusions from MRF transparency data if configured", %{conn: conn} do
     config = Pleroma.Config.get([:instance, :rewrite_policy])
-    Pleroma.Config.put([:instance, :rewrite_policy], [Pleroma.Web.ActivityPub.MRF.SimplePolicy])
+
+    Pleroma.Config.put([:instance, :rewrite_policy], [
+      Pleroma.Federation.ActivityPub.MRF.SimplePolicy
+    ])
 
     option = Pleroma.Config.get([:instance, :mrf_transparency])
     Pleroma.Config.put([:instance, :mrf_transparency], true)

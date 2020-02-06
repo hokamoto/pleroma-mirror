@@ -8,10 +8,10 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
   import Pleroma.Web.ControllerHelper,
     only: [add_link_headers: 2, add_link_headers: 3, truthy_param?: 1]
 
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.Pagination
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
 
   plug(OAuthScopesPlug, %{scopes: ["read:statuses"]} when action in [:home, :direct])
   plug(OAuthScopesPlug, %{scopes: ["read:lists"]} when action == :list)

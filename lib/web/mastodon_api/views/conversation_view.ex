@@ -6,8 +6,8 @@ defmodule Pleroma.Web.MastodonAPI.ConversationView do
   use Pleroma.Web, :view
 
   alias Pleroma.Activity
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.Storage.Repo
-  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MastodonAPI.StatusView
 

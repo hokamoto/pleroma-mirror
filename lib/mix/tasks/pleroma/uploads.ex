@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Pleroma.Uploads do
   use Mix.Task
   import Mix.Pleroma
   alias Pleroma.Upload
-  alias Pleroma.Upload.Uploaders.Local
+  alias Pleroma.Upload.Uploader
   require Logger
 
   @log_every 50
@@ -17,8 +17,8 @@ defmodule Mix.Tasks.Pleroma.Uploads do
   def run(["migrate_local", target_uploader | args]) do
     delete? = Enum.member?(args, "--delete")
     start_pleroma()
-    local_path = Pleroma.Config.get!([Local, :uploads])
-    uploader = Module.concat(Pleroma.Upload.Uploaders, target_uploader)
+    local_path = Pleroma.Config.get!([Uploader.Local, :uploads])
+    uploader = Module.concat(Uploader, target_uploader)
 
     unless Code.ensure_loaded?(uploader) do
       raise("The uploader #{inspect(uploader)} is not an existing/loaded module.")
@@ -51,8 +51,7 @@ defmodule Mix.Tasks.Pleroma.Uploads do
 
             case List.first(files) do
               {id, file, path} ->
-                {%Pleroma.Upload{id: id, name: file, path: id <> "/" <> file, tempfile: path},
-                 root_path}
+                {%Upload{id: id, name: file, path: id <> "/" <> file, tempfile: path}, root_path}
 
               _ ->
                 nil
@@ -61,7 +60,7 @@ defmodule Mix.Tasks.Pleroma.Uploads do
           File.exists?(root_path) ->
             file = Path.basename(id)
             hash = Path.rootname(id)
-            {%Pleroma.Upload{id: hash, name: file, path: file, tempfile: root_path}, root_path}
+            {%Upload{id: hash, name: file, path: file, tempfile: root_path}, root_path}
 
           true ->
             nil

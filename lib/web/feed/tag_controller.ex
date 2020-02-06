@@ -6,7 +6,7 @@ defmodule Pleroma.Web.Feed.TagController do
   use Pleroma.Web, :controller
 
   alias Pleroma.Config
-  alias Pleroma.Web.ActivityPub.ActivityPub
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.Web.Feed.FeedView
 
   import Pleroma.Web.ControllerHelper, only: [put_in_if_exist: 3]

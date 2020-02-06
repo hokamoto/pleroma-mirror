@@ -5,9 +5,9 @@
 defmodule Pleroma.FollowingRelationshipTest do
   use Pleroma.DataCase
 
+  alias Pleroma.Federation.ActivityPub.InternalFetchActor
+  alias Pleroma.Federation.ActivityPub.Relay
   alias Pleroma.FollowingRelationship
-  alias Pleroma.Web.ActivityPub.InternalFetchActor
-  alias Pleroma.Web.ActivityPub.Relay
 
   import Pleroma.Factory
 

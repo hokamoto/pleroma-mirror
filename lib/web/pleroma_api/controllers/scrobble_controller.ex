@@ -7,9 +7,9 @@ defmodule Pleroma.Web.PleromaAPI.ScrobbleController do
 
   import Pleroma.Web.ControllerHelper, only: [add_link_headers: 2, fetch_integer_param: 2]
 
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.MastodonAPI.StatusView
 

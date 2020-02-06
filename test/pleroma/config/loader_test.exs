@@ -25,7 +25,7 @@ defmodule Pleroma.Config.LoaderTest do
     refute config[:phoenix][:serve_endpoints]
 
     assert config[:pleroma][:ecto_repos] == [Pleroma.Storage.Repo]
-    assert config[:pleroma][Pleroma.Upload.Uploaders.Local][:uploads] == "test/uploads"
+    assert config[:pleroma][Pleroma.Upload.Uploader.Local][:uploads] == "test/uploads"
     assert config[:tesla][:adapter] == Tesla.Mock
   end
 

@@ -3,12 +3,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Federation.WebFinger do
+  alias Pleroma.Federation.ActivityPub.Publisher
   alias Pleroma.Federation.WebFinger.XML
   alias Pleroma.Federation.WebFinger.XMLBuilder
   alias Pleroma.HTTP
   alias Pleroma.User
   alias Pleroma.Web
-  alias Pleroma.Web.Federator.Publisher
 
   require Jason
   require Logger

@@ -25,8 +25,8 @@ defmodule Pleroma.Docs.GeneratorTest do
           description: "",
           suggestions:
             Generator.list_modules_in_dir(
-              "lib/web/activity_pub/mrf",
-              "Elixir.Pleroma.Web.ActivityPub.MRF."
+              "lib/federation/activity_pub/mrf",
+              "Elixir.Pleroma.Federation.ActivityPub.MRF."
             )
         },
         %{

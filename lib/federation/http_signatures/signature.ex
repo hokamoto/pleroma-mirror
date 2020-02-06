@@ -6,8 +6,8 @@ defmodule Pleroma.Federation.HTTPSignatures.Signature do
   @behaviour HTTPSignatures.Adapter
 
   alias Pleroma.Crypto.Keys
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
 
   def key_id_to_actor_id(key_id) do
     uri =

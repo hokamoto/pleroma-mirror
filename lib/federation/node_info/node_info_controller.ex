@@ -6,11 +6,11 @@ defmodule Pleroma.Federation.NodeInfo.NodeInfoController do
   use Pleroma.Web, :controller
 
   alias Pleroma.Config
-  alias Pleroma.Stats
+  alias Pleroma.Healthcheck.Stats
   alias Pleroma.User
   alias Pleroma.Web
-  alias Pleroma.Web.ActivityPub.MRF
-  alias Pleroma.Web.Federator.Publisher
+  alias Pleroma.Federation.ActivityPub.MRF
+  alias Pleroma.Federation.ActivityPub.Publisher
 
   def schemas(conn, _params) do
     response = %{
@@ -84,7 +84,7 @@ defmodule Pleroma.Federation.NodeInfo.NodeInfoController do
         name: Pleroma.Application.name() |> String.downcase(),
         version: Pleroma.Application.version()
       },
-      protocols: Publisher.gather_nodeinfo_protocol_names(),
+      protocols: Publisher.gather_node_info_protocol_names(),
       services: %{
         inbound: [],
         outbound: []

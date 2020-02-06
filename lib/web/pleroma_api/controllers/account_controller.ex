@@ -9,14 +9,15 @@ defmodule Pleroma.Web.PleromaAPI.AccountController do
     only: [json_response: 3, add_link_headers: 2, assign_account_by_id: 2]
 
   alias Ecto.Changeset
+  alias Pleroma.Federation.ActivityPub
+  alias Pleroma.Helpers.Constants
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.Plugs.RateLimiter
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.MastodonAPI.StatusView
 
-  require Pleroma.Constants
+  require Pleroma.Helpers.Constants
 
   plug(
     OAuthScopesPlug,
@@ -126,9 +127,9 @@ defmodule Pleroma.Web.PleromaAPI.AccountController do
 
     recipients =
       if for_user do
-        [Pleroma.Constants.as_public()] ++ [for_user.ap_id | User.following(for_user)]
+        [Constants.as_public()] ++ [for_user.ap_id | User.following(for_user)]
       else
-        [Pleroma.Constants.as_public()]
+        [Constants.as_public()]
       end
 
     activities =

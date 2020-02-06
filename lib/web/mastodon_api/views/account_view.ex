@@ -105,8 +105,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
       |> User.fields()
       |> Enum.map(fn %{"name" => name, "value" => value} ->
         %{
-          "name" => Pleroma.HTML.strip_tags(name),
-          "value" => Pleroma.HTML.filter_tags(value, Pleroma.HTML.Scrubber.LinksOnly)
+          "name" => HTML.strip_tags(name),
+          "value" => HTML.filter_tags(value, HTML.Scrubber.LinksOnly)
         }
       end)
 

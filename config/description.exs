@@ -23,7 +23,7 @@ config :pleroma, :config_description, [
         key: :uploader,
         type: :module,
         description: "Module which will be used for uploads",
-        suggestions: [Pleroma.Upload.Uploaders.Local, Pleroma.Upload.Uploaders.S3]
+        suggestions: [Pleroma.Upload.Uploader.Local, Pleroma.Upload.Uploader.S3]
       },
       %{
         key: :filters,
@@ -123,7 +123,7 @@ config :pleroma, :config_description, [
   },
   %{
     group: :pleroma,
-    key: Pleroma.Upload.Uploaders.Local,
+    key: Pleroma.Upload.Uploader.Local,
     type: :group,
     description: "Local uploader-related settings",
     children: [
@@ -139,7 +139,7 @@ config :pleroma, :config_description, [
   },
   %{
     group: :pleroma,
-    key: Pleroma.Upload.Uploaders.S3,
+    key: Pleroma.Upload.Uploader.S3,
     type: :group,
     description: "S3 uploader-related settings",
     children: [
@@ -694,8 +694,8 @@ config :pleroma, :config_description, [
         description: "A list of MRF policies enabled",
         suggestions:
           Generator.list_modules_in_dir(
-            "lib/web/activity_pub/mrf",
-            "Elixir.Pleroma.Web.ActivityPub.MRF."
+            "lib/federation/activity_pub/mrf",
+            "Elixir.Pleroma.Federation.ActivityPub.MRF."
           )
       },
       %{
@@ -1361,7 +1361,7 @@ config :pleroma, :config_description, [
         description: "Matches a series of regular expressions against the actor field",
         suggestions: [
           %{
-            ~r/https:\/\/example.com/s => [Pleroma.Web.ActivityPub.MRF.DropPolicy]
+            ~r/https:\/\/example.com/s => [Pleroma.Federation.ActivityPub.MRF.DropPolicy]
           }
         ]
       }
@@ -1937,7 +1937,7 @@ config :pleroma, :config_description, [
   },
   %{
     group: :pleroma,
-    key: Pleroma.Web.Federator.RetryQueue,
+    key: Pleroma.Federation.ActivityPub.Federator.RetryQueue,
     type: :group,
     description: "[Deprecated] See `Oban` and `:workers` sections for configuration notes",
     children: [
@@ -2779,7 +2779,7 @@ config :pleroma, :config_description, [
       %{
         key: :adapter,
         type: :module,
-        suggestions: [Pleroma.Signature]
+        suggestions: [Pleroma.Federation.HTTPSignatures.Signature]
       }
     ]
   },

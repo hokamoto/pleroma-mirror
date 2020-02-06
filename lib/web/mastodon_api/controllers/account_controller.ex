@@ -9,10 +9,10 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
     only: [add_link_headers: 2, truthy_param?: 1, assign_account_by_id: 2, json_response: 3]
 
   alias Pleroma.Emoji
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.Plugs.RateLimiter
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.MastodonAPI.ListView
   alias Pleroma.Web.MastodonAPI.MastodonAPI

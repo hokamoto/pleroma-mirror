@@ -8,7 +8,7 @@ defmodule Pleroma.Federation.WebFinger.WebFingerController do
   alias Pleroma.Federation.WebFinger
 
   plug(Pleroma.Plugs.SetFormatPlug)
-  plug(Pleroma.Web.FederatingPlug)
+  plug(Pleroma.Federation.ActivityPub.FederatingPlug)
 
   def host_meta(conn, _params) do
     xml = WebFinger.host_meta()

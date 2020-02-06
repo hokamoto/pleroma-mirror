@@ -10,11 +10,11 @@ defmodule Pleroma.Web.Streamer.Worker do
   alias Pleroma.Activity
   alias Pleroma.Config
   alias Pleroma.Conversation.Participation
+  alias Pleroma.Federation.ActivityPub
+  alias Pleroma.Federation.ActivityPub.Visibility
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
-  alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.Streamer.State
   alias Pleroma.Web.Streamer.StreamerSocket
@@ -134,7 +134,7 @@ defmodule Pleroma.Web.Streamer.Worker do
 
     recipient_blocks = MapSet.new(blocked_ap_ids ++ muted_ap_ids)
     recipients = MapSet.new(item.recipients)
-    domain_blocks = Pleroma.Web.ActivityPub.MRF.subdomains_regex(user.domain_blocks)
+    domain_blocks = Pleroma.Federation.ActivityPub.MRF.subdomains_regex(user.domain_blocks)
 
     with parent <- Object.normalize(item) || item,
          true <-
@@ -144,8 +144,8 @@ defmodule Pleroma.Web.Streamer.Worker do
          true <- MapSet.disjoint?(recipients, recipient_blocks),
          %{host: item_host} <- URI.parse(item.actor),
          %{host: parent_host} <- URI.parse(parent.data["actor"]),
-         false <- Pleroma.Web.ActivityPub.MRF.subdomain_match?(domain_blocks, item_host),
-         false <- Pleroma.Web.ActivityPub.MRF.subdomain_match?(domain_blocks, parent_host),
+         false <- Pleroma.Federation.ActivityPub.MRF.subdomain_match?(domain_blocks, item_host),
+         false <- Pleroma.Federation.ActivityPub.MRF.subdomain_match?(domain_blocks, parent_host),
          true <- thread_containment(item, user),
          false <- CommonAPI.thread_muted?(user, item) do
       true

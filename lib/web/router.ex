@@ -110,8 +110,8 @@ defmodule Pleroma.Web.Router do
   end
 
   pipeline :http_signature do
-    plug(Pleroma.Web.Plugs.HTTPSignaturePlug)
-    plug(Pleroma.Web.Plugs.MappedSignatureToIdentityPlug)
+    plug(Pleroma.Federation.HTTPSignatures.HTTPSignaturesPlug)
+    plug(Pleroma.Federation.HTTPSignatures.MappedSignatureToIdentityPlug)
   end
 
   scope "/api/pleroma", Pleroma.Web.TwitterAPI do
@@ -518,7 +518,7 @@ defmodule Pleroma.Web.Router do
     plug(:accepts, ["json", "xml"])
   end
 
-  scope "/", Pleroma.Web do
+  scope "/", Pleroma.Federation do
     pipe_through(:ostatus)
     pipe_through(:http_signature)
 
@@ -526,6 +526,11 @@ defmodule Pleroma.Web.Router do
     get("/activities/:uuid", OStatus.OStatusController, :activity)
     get("/notice/:id", OStatus.OStatusController, :notice)
     get("/notice/:id/embed_player", OStatus.OStatusController, :notice_player)
+  end
+
+  scope "/", Pleroma.Web do
+    pipe_through(:ostatus)
+    pipe_through(:http_signature)
 
     get("/users/:nickname/feed", Feed.UserController, :feed, as: :user_feed)
     get("/users/:nickname", Feed.UserController, :feed_redirect, as: :user_feed)
@@ -540,8 +545,8 @@ defmodule Pleroma.Web.Router do
 
   pipeline :activitypub do
     plug(:accepts, ["activity+json", "json"])
-    plug(Pleroma.Web.Plugs.HTTPSignaturePlug)
-    plug(Pleroma.Web.Plugs.MappedSignatureToIdentityPlug)
+    plug(Pleroma.Federation.HTTPSignatures.HTTPSignaturesPlug)
+    plug(Pleroma.Federation.HTTPSignatures.MappedSignatureToIdentityPlug)
   end
 
   scope "/", Pleroma.Web.ActivityPub do
@@ -657,12 +662,12 @@ defmodule Pleroma.Web.Router do
     get("/check_password", MongooseIMController, :check_password)
   end
 
-  scope "/", Fallback do
-    get("/registration/:token", RedirectController, :registration_page)
-    get("/:maybe_nickname_or_id", RedirectController, :redirector_with_meta)
-    get("/api*path", RedirectController, :api_not_implemented)
-    get("/*path", RedirectController, :redirector)
+  scope "/", Pleroma.Web do
+    get("/registration/:token", FallbackRedirectController, :registration_page)
+    get("/:maybe_nickname_or_id", FallbackRedirectController, :redirector_with_meta)
+    get("/api*path", FallbackRedirectController, :api_not_implemented)
+    get("/*path", FallbackRedirectController, :redirector)
 
-    options("/*path", RedirectController, :empty)
+    options("/*path", FallbackRedirectController, :empty)
   end
 end

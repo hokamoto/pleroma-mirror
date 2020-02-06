@@ -5,6 +5,7 @@
 defmodule Pleroma.Web.MastodonAPI.InstanceControllerTest do
   use Pleroma.Web.ConnCase
 
+  alias Pleroma.Healthcheck.Stats
   alias Pleroma.User
   import Pleroma.Factory
 
@@ -48,7 +49,7 @@ defmodule Pleroma.Web.MastodonAPI.InstanceControllerTest do
 
     {:ok, _} = Pleroma.Web.CommonAPI.post(user, %{"status" => "cofe"})
 
-    Pleroma.Stats.force_update()
+    Stats.force_update()
 
     conn = get(conn, "/api/v1/instance")
 
@@ -66,7 +67,7 @@ defmodule Pleroma.Web.MastodonAPI.InstanceControllerTest do
     insert(:user, %{local: false, nickname: "u@peer1.com"})
     insert(:user, %{local: false, nickname: "u@peer2.com"})
 
-    Pleroma.Stats.force_update()
+    Stats.force_update()
 
     conn = get(conn, "/api/v1/instance/peers")
 

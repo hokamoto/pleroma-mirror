@@ -518,7 +518,7 @@ defmodule Pleroma.ConfigDBTest do
     test "complex keyword with nested mixed childs" do
       binary =
         ConfigDB.transform([
-          %{"tuple" => [":uploader", "Pleroma.Upload.Uploaders.Local"]},
+          %{"tuple" => [":uploader", "Pleroma.Upload.Uploader.Local"]},
           %{"tuple" => [":filters", ["Pleroma.Upload.Filter.Dedupe"]]},
           %{"tuple" => [":link_name", true]},
           %{"tuple" => [":proxy_remote", false]},
@@ -542,7 +542,7 @@ defmodule Pleroma.ConfigDBTest do
 
       assert binary ==
                :erlang.term_to_binary(
-                 uploader: Pleroma.Upload.Uploaders.Local,
+                 uploader: Pleroma.Upload.Uploader.Local,
                  filters: [Pleroma.Upload.Filter.Dedupe],
                  link_name: true,
                  proxy_remote: false,
@@ -559,7 +559,7 @@ defmodule Pleroma.ConfigDBTest do
 
       assert ConfigDB.from_binary(binary) ==
                [
-                 uploader: Pleroma.Upload.Uploaders.Local,
+                 uploader: Pleroma.Upload.Uploader.Local,
                  filters: [Pleroma.Upload.Filter.Dedupe],
                  link_name: true,
                  proxy_remote: false,

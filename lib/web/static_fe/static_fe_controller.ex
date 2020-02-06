@@ -6,10 +6,10 @@ defmodule Pleroma.Web.StaticFE.StaticFEController do
   use Pleroma.Web, :controller
 
   alias Pleroma.Activity
+  alias Pleroma.Federation.ActivityPub
+  alias Pleroma.Federation.ActivityPub.Visibility
   alias Pleroma.Object
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
-  alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.Metadata
   alias Pleroma.Web.Router.Helpers
 

@@ -5,6 +5,8 @@
 defmodule Pleroma.Conversation do
   alias Pleroma.Conversation.Participation
   alias Pleroma.Conversation.Participation.RecipientShip
+  alias Pleroma.Federation.ActivityPub
+  alias Pleroma.Federation.ActivityPub.Visibility
   alias Pleroma.Storage.Repo
   alias Pleroma.User
   use Ecto.Schema
@@ -56,7 +58,7 @@ defmodule Pleroma.Conversation do
   3. Bump all relevant participations to 'unread'
   """
   def create_or_bump_for(activity, opts \\ []) do
-    with true <- Pleroma.Web.ActivityPub.Visibility.is_direct?(activity),
+    with true <- Visibility.is_direct?(activity),
          "Create" <- activity.data["type"],
          object <- Pleroma.Object.normalize(activity),
          true <- object.data["type"] in ["Note", "Question"],
@@ -96,15 +98,10 @@ defmodule Pleroma.Conversation do
   This is only meant to be run by a mix task. It creates conversations/participations for all direct messages in the database.
   """
   def bump_for_all_activities do
-    stream =
-      Pleroma.Web.ActivityPub.ActivityPub.fetch_direct_messages_query()
-      |> Repo.stream()
+    stream = Repo.stream(ActivityPub.fetch_direct_messages_query())
 
     Repo.transaction(
-      fn ->
-        stream
-        |> Enum.each(fn a -> create_or_bump_for(a, read: true) end)
-      end,
+      fn -> Enum.each(stream, fn a -> create_or_bump_for(a, read: true) end) end,
       timeout: :infinity
     )
   end

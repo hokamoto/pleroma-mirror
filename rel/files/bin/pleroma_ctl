@@ -154,8 +154,8 @@ else
 	if [ "$ACTION" = "update" ]; then
 		update "$@"
 	elif [ "$ACTION" = "migrate" ] || [ "$ACTION" = "rollback" ] || [ "$ACTION" = "create" ] || [ "$ACTION $SUBACTION" = "instance gen" ] || [ "$PLEROMA_CTL_RPC_DISABLED" = true ]; then
-		"$SCRIPTPATH"/pleroma eval 'Pleroma.ReleaseTasks.run("'"$FULL_ARGS"'")'
+		"$SCRIPTPATH"/pleroma eval 'Pleroma.Release.Tasks.run("'"$FULL_ARGS"'")'
 	else
-		"$SCRIPTPATH"/pleroma rpc 'Pleroma.ReleaseTasks.run("'"$FULL_ARGS"'")'
+		"$SCRIPTPATH"/pleroma rpc 'Pleroma.Release.Tasks.run("'"$FULL_ARGS"'")'
 	fi
 fi

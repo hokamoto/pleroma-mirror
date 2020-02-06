@@ -26,7 +26,7 @@ defmodule Pleroma.Upload do
 
   Related behaviors:
 
-  * `Pleroma.Upload.Uploaders.Uploader`
+  * `Pleroma.Upload.Uploader`
   * `Pleroma.Upload.Filter`
 
   """
@@ -63,7 +63,7 @@ defmodule Pleroma.Upload do
     with {:ok, upload} <- prepare_upload(upload, opts),
          upload = %__MODULE__{upload | path: upload.path || "#{upload.id}/#{upload.name}"},
          {:ok, upload} <- Pleroma.Upload.Filter.filter(opts.filters, upload),
-         {:ok, url_spec} <- Pleroma.Upload.Uploaders.Uploader.put_file(opts.uploader, upload) do
+         {:ok, url_spec} <- Pleroma.Upload.Uploader.put_file(opts.uploader, upload) do
       {:ok,
        %{
          "type" => opts.activity_type,

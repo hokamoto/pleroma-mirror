@@ -9,11 +9,11 @@ defmodule Pleroma.Web.PleromaAPI.PleromaAPIController do
 
   alias Pleroma.Activity
   alias Pleroma.Conversation.Participation
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MastodonAPI.ConversationView

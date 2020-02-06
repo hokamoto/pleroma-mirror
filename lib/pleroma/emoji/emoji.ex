@@ -10,6 +10,7 @@ defmodule Pleroma.Emoji do
   use GenServer
 
   alias Pleroma.Emoji.Loader
+  alias Pleroma.HTML
 
   require Logger
 
@@ -29,8 +30,8 @@ defmodule Pleroma.Emoji do
       code: code,
       file: file,
       tags: tags,
-      safe_code: Pleroma.HTML.strip_tags(code),
-      safe_file: Pleroma.HTML.strip_tags(file)
+      safe_code: HTML.strip_tags(code),
+      safe_file: HTML.strip_tags(file)
     }
   end
 

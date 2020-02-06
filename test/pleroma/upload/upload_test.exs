@@ -8,7 +8,7 @@ defmodule Pleroma.UploadTest do
   import ExUnit.CaptureLog
 
   alias Pleroma.Upload
-  alias Pleroma.Upload.Uploaders.Uploader
+  alias Pleroma.Upload.Uploader
 
   @upload_file %Plug.Upload{
     content_type: "image/jpg",

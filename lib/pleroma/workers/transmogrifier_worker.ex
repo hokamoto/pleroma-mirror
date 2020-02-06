@@ -4,12 +4,13 @@
 
 defmodule Pleroma.Workers.TransmogrifierWorker do
   alias Pleroma.User
+  alias Pleroma.Federation.ActivityPub.Transmogrifier
 
   use Pleroma.Workers.WorkerHelper, queue: "transmogrifier"
 
   @impl Oban.Worker
   def perform(%{"op" => "user_upgrade", "user_id" => user_id}, _job) do
     user = User.get_cached_by_id(user_id)
-    Pleroma.Web.ActivityPub.Transmogrifier.perform(:user_upgrade, user)
+    Transmogrifier.perform(:user_upgrade, user)
   end
 end

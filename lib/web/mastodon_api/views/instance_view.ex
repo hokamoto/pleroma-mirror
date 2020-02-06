@@ -19,7 +19,7 @@ defmodule Pleroma.Web.MastodonAPI.InstanceView do
       urls: %{
         streaming_api: Pleroma.Web.Endpoint.websocket_url()
       },
-      stats: Pleroma.Stats.get_stats(),
+      stats: Pleroma.Healthcheck.Stats.get_stats(),
       thumbnail: Pleroma.Web.base_url() <> "/instance/thumbnail.jpeg",
       languages: ["en"],
       registrations: Keyword.get(instance, :registrations_open),
