@@ -26,7 +26,7 @@ defmodule Pleroma.MFA.TOTP do
       |> Enum.into(%{})
       |> URI.encode_query()
 
-    %URI{scheme: "otpauth", host: "totp/", path: label, query: query}
+    %URI{scheme: "otpauth", host: "totp", path: "/" <> label, query: query}
     |> URI.to_string()
   end
 
