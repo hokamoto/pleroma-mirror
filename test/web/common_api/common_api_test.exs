@@ -238,7 +238,9 @@ defmodule Pleroma.Web.CommonAPITest do
       assert reaction.data["actor"] == user.ap_id
       assert reaction.data["content"] == "👍"
 
-      # TODO: test error case.
+      {:ok, activity} = CommonAPI.post(other_user, %{"status" => "cofe"})
+
+      {:error, _} = CommonAPI.react_with_emoji(activity.id, user, ".")
     end
 
     test "unreacting to a status with an emoji" do
@@ -314,6 +316,21 @@ defmodule Pleroma.Web.CommonAPITest do
     end
 
     test "pin status", %{user: user, activity: activity} do
+      assert {:ok, ^activity} = CommonAPI.pin(activity.id, user)
+
+      id = activity.id
+      user = refresh_record(user)
+
+      assert %User{pinned_activities: [^id]} = user
+    end
+
+    test "pin poll", %{user: user} do
+      {:ok, activity} =
+        CommonAPI.post(user, %{
+          "status" => "How is fediverse today?",
+          "poll" => %{"options" => ["Absolutely outstanding", "Not good"], "expires_in" => 20}
+        })
+
       assert {:ok, ^activity} = CommonAPI.pin(activity.id, user)
 
       id = activity.id
