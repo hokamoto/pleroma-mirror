@@ -20,7 +20,7 @@ defmodule Pleroma.Federation.ActivityPub do
   alias Pleroma.Object
   alias Pleroma.Object.Containment
   alias Pleroma.Object.Fetcher
-  alias Pleroma.Pagination
+  alias Pleroma.Storage.Page
   alias Pleroma.Storage.Repo
   alias Pleroma.Upload
   alias Pleroma.User
@@ -623,7 +623,7 @@ defmodule Pleroma.Federation.ActivityPub do
     [Constants.as_public()]
     |> fetch_activities_query(opts)
     |> restrict_unlisted()
-    |> Pagination.fetch_paginated(opts, pagination)
+    |> Page.fetch_paginated(opts, pagination)
   end
 
   @valid_visibilities ~w[direct unlisted public private]
@@ -1162,7 +1162,7 @@ defmodule Pleroma.Federation.ActivityPub do
     list_memberships = Pleroma.List.memberships(opts["user"])
 
     fetch_activities_query(recipients ++ list_memberships, opts)
-    |> Pagination.fetch_paginated(opts, pagination)
+    |> Page.fetch_paginated(opts, pagination)
     |> Enum.reverse()
     |> maybe_update_cc(list_memberships, opts["user"])
   end
@@ -1179,7 +1179,7 @@ defmodule Pleroma.Federation.ActivityPub do
     |> Object.with_joined_activity()
     |> select([_like, object, activity], %{activity | object: object})
     |> order_by([like, _, _], desc: like.id)
-    |> Pagination.fetch_paginated(
+    |> Page.fetch_paginated(
       Map.merge(params, %{"skip_order" => true}),
       pagination,
       :object_activity
@@ -1220,7 +1220,7 @@ defmodule Pleroma.Federation.ActivityPub do
       ) do
     fetch_activities_query([], opts)
     |> fetch_activities_bounded_query(recipients, recipients_with_public)
-    |> Pagination.fetch_paginated(opts, pagination)
+    |> Page.fetch_paginated(opts, pagination)
     |> Enum.reverse()
   end
 

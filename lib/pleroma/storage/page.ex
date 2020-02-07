@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Pagination do
+defmodule Pleroma.Storage.Page do
   @moduledoc """
   Implements Mastodon-compatible pagination.
   """
@@ -21,11 +21,9 @@ defmodule Pleroma.Pagination do
 
   def fetch_paginated(query, %{"total" => true} = params, :keyset, table_binding) do
     total = Repo.aggregate(query, :count, :id)
+    items = fetch_paginated(query, Map.drop(params, ["total"]), :keyset, table_binding)
 
-    %{
-      total: total,
-      items: fetch_paginated(query, Map.drop(params, ["total"]), :keyset, table_binding)
-    }
+    %{total: total, items: items}
   end
 
   def fetch_paginated(query, params, :keyset, table_binding) do
@@ -43,10 +41,9 @@ defmodule Pleroma.Pagination do
       |> Ecto.Query.exclude(:left_join)
       |> Repo.aggregate(:count, :id)
 
-    %{
-      total: total,
-      items: fetch_paginated(query, Map.drop(params, ["total"]), :offset, table_binding)
-    }
+    items = fetch_paginated(query, Map.drop(params, ["total"]), :offset, table_binding)
+
+    %{total: total, items: items}
   end
 
   def fetch_paginated(query, params, :offset, table_binding) do

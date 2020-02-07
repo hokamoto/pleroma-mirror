@@ -8,7 +8,7 @@ defmodule Pleroma.Notification do
   alias Pleroma.Activity
   alias Pleroma.Notification
   alias Pleroma.Object
-  alias Pleroma.Pagination
+  alias Pleroma.Storage.Page
   alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI.Utils
@@ -171,7 +171,7 @@ defmodule Pleroma.Notification do
   def for_user(user, opts \\ %{}) do
     user
     |> for_user_query(opts)
-    |> Pagination.fetch_paginated(opts)
+    |> Page.fetch_paginated(opts)
   end
 
   @doc """

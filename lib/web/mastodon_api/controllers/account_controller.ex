@@ -66,7 +66,11 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
   @relations [:follow, :unfollow]
   @needs_account ~W(followers following lists follow unfollow mute unmute block unblock)a
 
-  plug(RateLimiterPlug, [name: :relations_id_action, params: ["id", "uri"]] when action in @relations)
+  plug(
+    RateLimiterPlug,
+    [name: :relations_id_action, params: ["id", "uri"]] when action in @relations
+  )
+
   plug(RateLimiterPlug, [name: :relations_actions] when action in @relations)
   plug(RateLimiterPlug, [name: :app_account_creation] when action == :create)
   plug(:assign_account_by_id when action in @needs_account)

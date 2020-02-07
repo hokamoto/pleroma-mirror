@@ -124,7 +124,10 @@ defmodule Pleroma.Web.RateLimiterPlugTest do
       Pleroma.Config.put([Pleroma.Web.Endpoint, :http, :ip], {8, 8, 8, 8})
 
       base_bucket_name = "#{limiter_name}:group1"
-      opts = RateLimiterPlug.init(name: limiter_name, bucket_name: base_bucket_name, params: ["id"])
+
+      opts =
+        RateLimiterPlug.init(name: limiter_name, bucket_name: base_bucket_name, params: ["id"])
+
       id = "100"
 
       conn = conn(:get, "/?id=#{id}")

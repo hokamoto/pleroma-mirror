@@ -125,7 +125,7 @@ defmodule Pleroma.Conversation.Participation do
       preload: [conversation: [:users]]
     )
     |> restrict_recipients(user, params)
-    |> Pleroma.Pagination.fetch_paginated(params)
+    |> Pleroma.Storage.Page.fetch_paginated(params)
   end
 
   def restrict_recipients(query, user, %{"recipients" => user_ids}) do

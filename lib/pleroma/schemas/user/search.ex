@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.User.Search do
-  alias Pleroma.Pagination
+  alias Pleroma.Storage.Page
   alias Pleroma.User
   import Ecto.Query
 
@@ -24,7 +24,7 @@ defmodule Pleroma.User.Search do
     results =
       query_string
       |> search_query(for_user, following)
-      |> Pagination.fetch_paginated(%{"offset" => offset, "limit" => result_limit}, :offset)
+      |> Page.fetch_paginated(%{"offset" => offset, "limit" => result_limit}, :offset)
 
     results
   end

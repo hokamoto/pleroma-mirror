@@ -9,7 +9,7 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
     only: [add_link_headers: 2, add_link_headers: 3, truthy_param?: 1]
 
   alias Pleroma.Federation.ActivityPub
-  alias Pleroma.Pagination
+  alias Pleroma.Storage.Page
   alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.User
 
@@ -53,7 +53,7 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
     activities =
       [user.ap_id]
       |> ActivityPub.fetch_activities_query(params)
-      |> Pagination.fetch_paginated(params)
+      |> Page.fetch_paginated(params)
 
     conn
     |> add_link_headers(activities)

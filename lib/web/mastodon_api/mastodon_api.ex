@@ -8,7 +8,7 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPI do
 
   alias Pleroma.Activity
   alias Pleroma.Notification
-  alias Pleroma.Pagination
+  alias Pleroma.Storage.Page
   alias Pleroma.ScheduledActivity
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
@@ -41,13 +41,13 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPI do
   def get_followers(user, params \\ %{}) do
     user
     |> User.get_followers_query()
-    |> Pagination.fetch_paginated(params)
+    |> Page.fetch_paginated(params)
   end
 
   def get_friends(user, params \\ %{}) do
     user
     |> User.get_friends_query()
-    |> Pagination.fetch_paginated(params)
+    |> Page.fetch_paginated(params)
   end
 
   def get_notifications(user, params \\ %{}) do
@@ -57,13 +57,13 @@ defmodule Pleroma.Web.MastodonAPI.MastodonAPI do
     |> Notification.for_user_query(options)
     |> restrict(:exclude_types, options)
     |> restrict(:account_ap_id, options)
-    |> Pagination.fetch_paginated(params)
+    |> Page.fetch_paginated(params)
   end
 
   def get_scheduled_activities(user, params \\ %{}) do
     user
     |> ScheduledActivity.for_user_query()
-    |> Pagination.fetch_paginated(params)
+    |> Page.fetch_paginated(params)
   end
 
   defp cast_params(params) do

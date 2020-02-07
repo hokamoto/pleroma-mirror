@@ -349,7 +349,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
     activities =
       ActivityPub.fetch_favourites(
         user,
-        Map.take(params, Pleroma.Pagination.page_keys())
+        Map.take(params, Pleroma.Storage.Page.page_keys())
       )
 
     conn
@@ -364,7 +364,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
     bookmarks =
       user.id
       |> Bookmark.for_user_query()
-      |> Pleroma.Pagination.fetch_paginated(params)
+      |> Pleroma.Storage.Page.fetch_paginated(params)
 
     activities =
       bookmarks

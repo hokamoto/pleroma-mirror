@@ -7,7 +7,7 @@ defmodule Pleroma.Activity.Search do
   alias Pleroma.Federation.ActivityPub.Visibility
   alias Pleroma.Helpers.Constants
   alias Pleroma.Object.Fetcher
-  alias Pleroma.Pagination
+  alias Pleroma.Storage.Page
   alias Pleroma.User
 
   require Pleroma.Helpers.Constants
@@ -28,7 +28,7 @@ defmodule Pleroma.Activity.Search do
     |> maybe_restrict_local(user)
     |> maybe_restrict_author(author)
     |> maybe_restrict_blocked(user)
-    |> Pagination.fetch_paginated(%{"offset" => offset, "limit" => limit}, :offset)
+    |> Page.fetch_paginated(%{"offset" => offset, "limit" => limit}, :offset)
     |> maybe_fetch(user, search_query)
   end
 
