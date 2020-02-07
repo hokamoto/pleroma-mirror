@@ -8,21 +8,21 @@ defmodule Pleroma.Federation.OStatus.OStatusController do
   alias Pleroma.Activity
   alias Pleroma.Federation.ActivityPub.Visibility
   alias Pleroma.Object
-  alias Pleroma.Plugs.RateLimiter
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPubController
   alias Pleroma.Web.Endpoint
   alias Pleroma.Web.FallbackRedirectController
   alias Pleroma.Web.Metadata.PlayerView
+  alias Pleroma.Web.RateLimiterPlug
   alias Pleroma.Web.Router
 
   plug(
-    RateLimiter,
+    RateLimiterPlug,
     [name: :ap_routes, params: ["uuid"]] when action in [:object, :activity]
   )
 
   plug(
-    Pleroma.Plugs.SetFormatPlug
+    Pleroma.Web.SetFormatPlug
     when action in [:object, :activity, :notice]
   )
 

@@ -25,7 +25,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
   action_fallback(:errors)
 
   plug(
-    Pleroma.Plugs.Cache,
+    Pleroma.Web.CachePlug,
     [query_params: false, tracking_fun: &__MODULE__.track_object_fetch/2]
     when action in [:activity, :object]
   )

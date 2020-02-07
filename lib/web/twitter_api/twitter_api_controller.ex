@@ -6,7 +6,7 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
   use Pleroma.Web, :controller
 
   alias Pleroma.Notification
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.User
   alias Pleroma.Web.OAuth.Token
   alias Pleroma.Web.TwitterAPI.TokenView
@@ -15,7 +15,7 @@ defmodule Pleroma.Web.TwitterAPI.Controller do
 
   plug(OAuthScopesPlug, %{scopes: ["write:notifications"]} when action == :notifications_read)
 
-  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
+  plug(Pleroma.Web.EnsurePublicOrAuthenticatedPlug)
 
   action_fallback(:errors)
 

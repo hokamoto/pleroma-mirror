@@ -5,7 +5,7 @@
 defmodule Pleroma.Web.MastoFEController do
   use Pleroma.Web, :controller
 
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.User
 
   plug(OAuthScopesPlug, %{scopes: ["write:accounts"]} when action == :put_settings)
@@ -17,7 +17,7 @@ defmodule Pleroma.Web.MastoFEController do
     when action == :index
   )
 
-  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug when action != :index)
+  plug(Pleroma.Web.EnsurePublicOrAuthenticatedPlug when action != :index)
 
   @doc "GET /web/*path"
   def index(%{assigns: %{user: user, token: token}} = conn, _params)

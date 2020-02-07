@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Web.Auth.PleromaAuthenticator do
   alias Pleroma.Crypto
-  alias Pleroma.Plugs.AuthenticationPlug
+  alias Pleroma.Web.AuthenticationPlug
   alias Pleroma.Registration
   alias Pleroma.Storage.Repo
   alias Pleroma.User

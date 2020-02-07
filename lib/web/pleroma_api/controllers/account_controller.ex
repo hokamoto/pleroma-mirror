@@ -11,11 +11,11 @@ defmodule Pleroma.Web.PleromaAPI.AccountController do
   alias Ecto.Changeset
   alias Pleroma.Federation.ActivityPub
   alias Pleroma.Helpers.Constants
-  alias Pleroma.Plugs.OAuthScopesPlug
-  alias Pleroma.Plugs.RateLimiter
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.MastodonAPI.StatusView
+  alias Pleroma.Web.RateLimiterPlug
 
   require Pleroma.Helpers.Constants
 
@@ -39,11 +39,11 @@ defmodule Pleroma.Web.PleromaAPI.AccountController do
 
   # An extra safety measure for possible actions not guarded by OAuth permissions specification
   plug(
-    Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug
+    Pleroma.Web.EnsurePublicOrAuthenticatedPlug
     when action != :confirmation_resend
   )
 
-  plug(RateLimiter, [name: :account_confirmation_resend] when action == :confirmation_resend)
+  plug(RateLimiterPlug, [name: :account_confirmation_resend] when action == :confirmation_resend)
   plug(:assign_account_by_id when action in [:favourites, :subscribe, :unsubscribe])
   plug(:put_view, Pleroma.Web.MastodonAPI.AccountView)
 

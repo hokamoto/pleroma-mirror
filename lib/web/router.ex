@@ -12,80 +12,80 @@ defmodule Pleroma.Web.Router do
 
   pipeline :oauth do
     plug(:fetch_session)
-    plug(Pleroma.Plugs.OAuthPlug)
-    plug(Pleroma.Plugs.UserEnabledPlug)
+    plug(Pleroma.Web.OAuthPlug)
+    plug(Pleroma.Web.UserEnabledPlug)
   end
 
   pipeline :api do
     plug(:accepts, ["json"])
     plug(:fetch_session)
-    plug(Pleroma.Plugs.OAuthPlug)
-    plug(Pleroma.Plugs.BasicAuthDecoderPlug)
-    plug(Pleroma.Plugs.UserFetcherPlug)
-    plug(Pleroma.Plugs.SessionAuthenticationPlug)
-    plug(Pleroma.Plugs.LegacyAuthenticationPlug)
-    plug(Pleroma.Plugs.AuthenticationPlug)
-    plug(Pleroma.Plugs.UserEnabledPlug)
-    plug(Pleroma.Plugs.SetUserSessionIdPlug)
-    plug(Pleroma.Plugs.EnsureUserKeyPlug)
-    plug(Pleroma.Plugs.IdempotencyPlug)
+    plug(Pleroma.Web.OAuthPlug)
+    plug(Pleroma.Web.BasicAuthDecoderPlug)
+    plug(Pleroma.Web.UserFetcherPlug)
+    plug(Pleroma.Web.SessionAuthenticationPlug)
+    plug(Pleroma.Web.LegacyAuthenticationPlug)
+    plug(Pleroma.Web.AuthenticationPlug)
+    plug(Pleroma.Web.UserEnabledPlug)
+    plug(Pleroma.Web.SetUserSessionIDPlug)
+    plug(Pleroma.Web.EnsureUserKeyPlug)
+    plug(Pleroma.Web.IdempotencyPlug)
   end
 
   pipeline :authenticated_api do
     plug(:accepts, ["json"])
     plug(:fetch_session)
-    plug(Pleroma.Plugs.OAuthPlug)
-    plug(Pleroma.Plugs.BasicAuthDecoderPlug)
-    plug(Pleroma.Plugs.UserFetcherPlug)
-    plug(Pleroma.Plugs.SessionAuthenticationPlug)
-    plug(Pleroma.Plugs.LegacyAuthenticationPlug)
-    plug(Pleroma.Plugs.AuthenticationPlug)
-    plug(Pleroma.Plugs.UserEnabledPlug)
-    plug(Pleroma.Plugs.SetUserSessionIdPlug)
-    plug(Pleroma.Plugs.EnsureAuthenticatedPlug)
-    plug(Pleroma.Plugs.IdempotencyPlug)
+    plug(Pleroma.Web.OAuthPlug)
+    plug(Pleroma.Web.BasicAuthDecoderPlug)
+    plug(Pleroma.Web.UserFetcherPlug)
+    plug(Pleroma.Web.SessionAuthenticationPlug)
+    plug(Pleroma.Web.LegacyAuthenticationPlug)
+    plug(Pleroma.Web.AuthenticationPlug)
+    plug(Pleroma.Web.UserEnabledPlug)
+    plug(Pleroma.Web.SetUserSessionIDPlug)
+    plug(Pleroma.Web.EnsureAuthenticatedPlug)
+    plug(Pleroma.Web.IdempotencyPlug)
   end
 
   pipeline :admin_api do
     plug(:accepts, ["json"])
     plug(:fetch_session)
-    plug(Pleroma.Plugs.OAuthPlug)
-    plug(Pleroma.Plugs.BasicAuthDecoderPlug)
-    plug(Pleroma.Plugs.UserFetcherPlug)
-    plug(Pleroma.Plugs.SessionAuthenticationPlug)
-    plug(Pleroma.Plugs.LegacyAuthenticationPlug)
-    plug(Pleroma.Plugs.AuthenticationPlug)
-    plug(Pleroma.Plugs.AdminSecretAuthenticationPlug)
-    plug(Pleroma.Plugs.UserEnabledPlug)
-    plug(Pleroma.Plugs.SetUserSessionIdPlug)
-    plug(Pleroma.Plugs.EnsureAuthenticatedPlug)
-    plug(Pleroma.Plugs.UserIsAdminPlug)
-    plug(Pleroma.Plugs.IdempotencyPlug)
+    plug(Pleroma.Web.OAuthPlug)
+    plug(Pleroma.Web.BasicAuthDecoderPlug)
+    plug(Pleroma.Web.UserFetcherPlug)
+    plug(Pleroma.Web.SessionAuthenticationPlug)
+    plug(Pleroma.Web.LegacyAuthenticationPlug)
+    plug(Pleroma.Web.AuthenticationPlug)
+    plug(Pleroma.Web.AdminSecretAuthenticationPlug)
+    plug(Pleroma.Web.UserEnabledPlug)
+    plug(Pleroma.Web.SetUserSessionIDPlug)
+    plug(Pleroma.Web.EnsureAuthenticatedPlug)
+    plug(Pleroma.Web.UserIsAdminPlug)
+    plug(Pleroma.Web.IdempotencyPlug)
   end
 
   pipeline :mastodon_html do
     plug(:accepts, ["html"])
     plug(:fetch_session)
-    plug(Pleroma.Plugs.OAuthPlug)
-    plug(Pleroma.Plugs.BasicAuthDecoderPlug)
-    plug(Pleroma.Plugs.UserFetcherPlug)
-    plug(Pleroma.Plugs.SessionAuthenticationPlug)
-    plug(Pleroma.Plugs.LegacyAuthenticationPlug)
-    plug(Pleroma.Plugs.AuthenticationPlug)
-    plug(Pleroma.Plugs.UserEnabledPlug)
-    plug(Pleroma.Plugs.SetUserSessionIdPlug)
-    plug(Pleroma.Plugs.EnsureUserKeyPlug)
+    plug(Pleroma.Web.OAuthPlug)
+    plug(Pleroma.Web.BasicAuthDecoderPlug)
+    plug(Pleroma.Web.UserFetcherPlug)
+    plug(Pleroma.Web.SessionAuthenticationPlug)
+    plug(Pleroma.Web.LegacyAuthenticationPlug)
+    plug(Pleroma.Web.AuthenticationPlug)
+    plug(Pleroma.Web.UserEnabledPlug)
+    plug(Pleroma.Web.SetUserSessionIDPlug)
+    plug(Pleroma.Web.EnsureUserKeyPlug)
   end
 
   pipeline :pleroma_html do
     plug(:accepts, ["html"])
     plug(:fetch_session)
-    plug(Pleroma.Plugs.OAuthPlug)
-    plug(Pleroma.Plugs.BasicAuthDecoderPlug)
-    plug(Pleroma.Plugs.UserFetcherPlug)
-    plug(Pleroma.Plugs.SessionAuthenticationPlug)
-    plug(Pleroma.Plugs.AuthenticationPlug)
-    plug(Pleroma.Plugs.EnsureUserKeyPlug)
+    plug(Pleroma.Web.OAuthPlug)
+    plug(Pleroma.Web.BasicAuthDecoderPlug)
+    plug(Pleroma.Web.UserFetcherPlug)
+    plug(Pleroma.Web.SessionAuthenticationPlug)
+    plug(Pleroma.Web.AuthenticationPlug)
+    plug(Pleroma.Web.EnsureUserKeyPlug)
   end
 
   pipeline :well_known do
@@ -511,7 +511,7 @@ defmodule Pleroma.Web.Router do
 
   pipeline :ostatus do
     plug(:accepts, ["html", "xml", "atom", "activity+json", "json"])
-    plug(Pleroma.Plugs.StaticFEPlug)
+    plug(Pleroma.Web.StaticFEPlug)
   end
 
   pipeline :oembed do
@@ -559,15 +559,15 @@ defmodule Pleroma.Web.Router do
   pipeline :activitypub_client do
     plug(:accepts, ["activity+json", "json"])
     plug(:fetch_session)
-    plug(Pleroma.Plugs.OAuthPlug)
-    plug(Pleroma.Plugs.BasicAuthDecoderPlug)
-    plug(Pleroma.Plugs.UserFetcherPlug)
-    plug(Pleroma.Plugs.SessionAuthenticationPlug)
-    plug(Pleroma.Plugs.LegacyAuthenticationPlug)
-    plug(Pleroma.Plugs.AuthenticationPlug)
-    plug(Pleroma.Plugs.UserEnabledPlug)
-    plug(Pleroma.Plugs.SetUserSessionIdPlug)
-    plug(Pleroma.Plugs.EnsureUserKeyPlug)
+    plug(Pleroma.Web.OAuthPlug)
+    plug(Pleroma.Web.BasicAuthDecoderPlug)
+    plug(Pleroma.Web.UserFetcherPlug)
+    plug(Pleroma.Web.SessionAuthenticationPlug)
+    plug(Pleroma.Web.LegacyAuthenticationPlug)
+    plug(Pleroma.Web.AuthenticationPlug)
+    plug(Pleroma.Web.UserEnabledPlug)
+    plug(Pleroma.Web.SetUserSessionIDPlug)
+    plug(Pleroma.Web.EnsureUserKeyPlug)
   end
 
   scope "/", Pleroma.Web.ActivityPub do

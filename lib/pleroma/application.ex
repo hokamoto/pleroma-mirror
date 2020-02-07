@@ -33,7 +33,7 @@ defmodule Pleroma.Application do
   def start(_type, _args) do
     Pleroma.HTML.compile_scrubbers()
     Pleroma.Config.DeprecationWarnings.warn()
-    Pleroma.Plugs.HTTPSecurityPlug.warn_if_disabled()
+    Pleroma.Web.HTTPSecurityPlug.warn_if_disabled()
     Pleroma.Storage.Repo.check_migrations_applied!()
     setup_instrumenters()
     load_custom_modules()
@@ -48,7 +48,7 @@ defmodule Pleroma.Application do
         Pleroma.Captcha,
         Pleroma.Daemons.ScheduledActivityDaemon,
         Pleroma.Daemons.ActivityExpirationDaemon,
-        Pleroma.Plugs.RateLimiter.Supervisor
+        Pleroma.Web.RateLimiter.Supervisor
       ] ++
         cachex_children() ++
         hackney_pool_children() ++

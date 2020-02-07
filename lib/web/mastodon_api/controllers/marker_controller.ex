@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Web.MastodonAPI.MarkerController do
   use Pleroma.Web, :controller
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
 
   plug(
     OAuthScopesPlug,
@@ -13,7 +13,7 @@ defmodule Pleroma.Web.MastodonAPI.MarkerController do
   )
 
   plug(OAuthScopesPlug, %{scopes: ["write:statuses"]} when action == :upsert)
-  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
+  plug(Pleroma.Web.EnsurePublicOrAuthenticatedPlug)
   action_fallback(Pleroma.Web.MastodonAPI.FallbackController)
 
   # GET /api/v1/markers

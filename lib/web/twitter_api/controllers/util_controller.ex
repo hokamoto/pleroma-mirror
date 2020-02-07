@@ -12,7 +12,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilController do
   alias Pleroma.Federation.WebFinger
   alias Pleroma.Healthcheck
   alias Pleroma.Notification
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.User
   alias Pleroma.Web
   alias Pleroma.Web.CommonAPI
@@ -46,7 +46,7 @@ defmodule Pleroma.Web.TwitterAPI.UtilController do
 
   plug(OAuthScopesPlug, %{scopes: ["write:notifications"]} when action == :notifications_read)
 
-  plug(Pleroma.Plugs.SetFormatPlug when action in [:config, :version])
+  plug(Pleroma.Web.SetFormatPlug when action in [:config, :version])
 
   def help_test(conn, _params) do
     json(conn, "ok")

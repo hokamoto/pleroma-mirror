@@ -14,14 +14,14 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
   alias Pleroma.Federation.ActivityPub
   alias Pleroma.Federation.ActivityPub.Visibility
   alias Pleroma.Object
-  alias Pleroma.Plugs.OAuthScopesPlug
-  alias Pleroma.Plugs.RateLimiter
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.Storage.Repo
   alias Pleroma.ScheduledActivity
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.MastodonAPI.AccountView
   alias Pleroma.Web.MastodonAPI.ScheduledActivityView
+  alias Pleroma.Web.RateLimiterPlug
 
   @unauthenticated_access %{fallback: :proceed_unauthenticated, scopes: []}
 
@@ -76,23 +76,23 @@ defmodule Pleroma.Web.MastodonAPI.StatusController do
     %{scopes: ["write:bookmarks"]} when action in [:bookmark, :unbookmark]
   )
 
-  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
+  plug(Pleroma.Web.EnsurePublicOrAuthenticatedPlug)
 
   @rate_limited_status_actions ~w(reblog unreblog favourite unfavourite create delete)a
 
   plug(
-    RateLimiter,
+    RateLimiterPlug,
     [name: :status_id_action, bucket_name: "status_id_action:reblog_unreblog", params: ["id"]]
     when action in ~w(reblog unreblog)a
   )
 
   plug(
-    RateLimiter,
+    RateLimiterPlug,
     [name: :status_id_action, bucket_name: "status_id_action:fav_unfav", params: ["id"]]
     when action in ~w(favourite unfavourite)a
   )
 
-  plug(RateLimiter, [name: :statuses_actions] when action in @rate_limited_status_actions)
+  plug(RateLimiterPlug, [name: :statuses_actions] when action in @rate_limited_status_actions)
 
   action_fallback(Pleroma.Web.MastodonAPI.FallbackController)
 

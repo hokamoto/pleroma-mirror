@@ -5,7 +5,7 @@
 defmodule Pleroma.Web.MastodonAPI.DomainBlockController do
   use Pleroma.Web, :controller
 
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.User
 
   plug(
@@ -18,7 +18,7 @@ defmodule Pleroma.Web.MastodonAPI.DomainBlockController do
     %{scopes: ["follow", "write:blocks"]} when action != :index
   )
 
-  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
+  plug(Pleroma.Web.EnsurePublicOrAuthenticatedPlug)
 
   @doc "GET /api/v1/domain_blocks"
   def index(%{assigns: %{user: user}} = conn, _) do

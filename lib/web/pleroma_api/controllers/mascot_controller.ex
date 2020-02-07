@@ -6,13 +6,13 @@ defmodule Pleroma.Web.PleromaAPI.MascotController do
   use Pleroma.Web, :controller
 
   alias Pleroma.Federation.ActivityPub
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.User
 
   plug(OAuthScopesPlug, %{scopes: ["read:accounts"]} when action == :show)
   plug(OAuthScopesPlug, %{scopes: ["write:accounts"]} when action != :show)
 
-  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
+  plug(Pleroma.Web.EnsurePublicOrAuthenticatedPlug)
 
   @doc "GET /api/v1/pleroma/mascot"
   def show(%{assigns: %{user: user}} = conn, _params) do

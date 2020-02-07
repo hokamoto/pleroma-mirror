@@ -7,7 +7,7 @@ defmodule Pleroma.Web.OAuth.Scopes do
   Functions for dealing with scopes.
   """
 
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
 
   @doc """
   Fetch scopes from request params.

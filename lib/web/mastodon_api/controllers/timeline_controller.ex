@@ -10,13 +10,13 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
 
   alias Pleroma.Federation.ActivityPub
   alias Pleroma.Pagination
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.User
 
   plug(OAuthScopesPlug, %{scopes: ["read:statuses"]} when action in [:home, :direct])
   plug(OAuthScopesPlug, %{scopes: ["read:lists"]} when action == :list)
 
-  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
+  plug(Pleroma.Web.EnsurePublicOrAuthenticatedPlug)
 
   plug(:put_view, Pleroma.Web.MastodonAPI.StatusView)
 

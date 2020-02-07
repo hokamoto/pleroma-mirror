@@ -13,7 +13,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   alias Pleroma.Federation.ActivityPub.Relay
   alias Pleroma.Federation.ActivityPub.Utils
   alias Pleroma.ModerationLog
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.Storage.ReportNote
   alias Pleroma.User
   alias Pleroma.UserInviteToken

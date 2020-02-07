@@ -10,14 +10,14 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
 
   alias Pleroma.Emoji
   alias Pleroma.Federation.ActivityPub
-  alias Pleroma.Plugs.OAuthScopesPlug
-  alias Pleroma.Plugs.RateLimiter
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.MastodonAPI.ListView
   alias Pleroma.Web.MastodonAPI.MastodonAPI
   alias Pleroma.Web.MastodonAPI.StatusView
   alias Pleroma.Web.OAuth.Token
+  alias Pleroma.Web.RateLimiterPlug
   alias Pleroma.Web.TwitterAPI.TwitterAPI
 
   plug(
@@ -59,16 +59,16 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
   plug(OAuthScopesPlug, %{scopes: ["follow", "write:mutes"]} when action in [:mute, :unmute])
 
   plug(
-    Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug
+    Pleroma.Web.EnsurePublicOrAuthenticatedPlug
     when action != :create
   )
 
   @relations [:follow, :unfollow]
   @needs_account ~W(followers following lists follow unfollow mute unmute block unblock)a
 
-  plug(RateLimiter, [name: :relations_id_action, params: ["id", "uri"]] when action in @relations)
-  plug(RateLimiter, [name: :relations_actions] when action in @relations)
-  plug(RateLimiter, [name: :app_account_creation] when action == :create)
+  plug(RateLimiterPlug, [name: :relations_id_action, params: ["id", "uri"]] when action in @relations)
+  plug(RateLimiterPlug, [name: :relations_actions] when action in @relations)
+  plug(RateLimiterPlug, [name: :app_account_creation] when action == :create)
   plug(:assign_account_by_id when action in @needs_account)
 
   action_fallback(Pleroma.Web.MastodonAPI.FallbackController)

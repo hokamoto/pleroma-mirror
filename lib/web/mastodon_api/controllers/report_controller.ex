@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MastodonAPI.ReportController do
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
 
   use Pleroma.Web, :controller
 
@@ -11,7 +11,7 @@ defmodule Pleroma.Web.MastodonAPI.ReportController do
 
   plug(OAuthScopesPlug, %{scopes: ["write:reports"]} when action == :create)
 
-  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
+  plug(Pleroma.Web.EnsurePublicOrAuthenticatedPlug)
 
   @doc "POST /api/v1/reports"
   def create(%{assigns: %{user: user}} = conn, params) do

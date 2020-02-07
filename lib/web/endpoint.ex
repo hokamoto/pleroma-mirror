@@ -7,17 +7,17 @@ defmodule Pleroma.Web.Endpoint do
 
   socket("/socket", Pleroma.Web.UserSocket)
 
-  plug(Pleroma.Plugs.SetLocalePlug)
+  plug(Pleroma.Web.SetLocalePlug)
   plug(CORSPlug)
-  plug(Pleroma.Plugs.HTTPSecurityPlug)
-  plug(Pleroma.Plugs.UploadedMedia)
+  plug(Pleroma.Web.HTTPSecurityPlug)
+  plug(Pleroma.Web.UploadedMediaPlug)
 
   @static_cache_control "public max-age=86400 must-revalidate"
 
   # InstanceStatic needs to be before Plug.Static to be able to override shipped-static files
   # If you're adding new paths to `only:` you'll need to configure them in InstanceStatic as well
   # Cache-control headers are duplicated in case we turn off etags in the future
-  plug(Pleroma.Plugs.InstanceStatic,
+  plug(Pleroma.Web.InstanceStaticPlug,
     at: "/",
     gzip: true,
     cache_control_for_etags: @static_cache_control,
@@ -57,11 +57,11 @@ defmodule Pleroma.Web.Endpoint do
     plug(Phoenix.CodeReloader)
   end
 
-  plug(Pleroma.Plugs.TrailingFormatPlug)
+  plug(Pleroma.Web.TrailingFormatPlug)
   plug(Plug.RequestId)
   plug(Plug.Logger, log: :debug)
 
-  plug(Pleroma.Plugs.Parsers)
+  plug(Pleroma.Web.ParsersPlug)
 
   plug(Plug.MethodOverride)
   plug(Plug.Head)
@@ -90,7 +90,7 @@ defmodule Pleroma.Web.Endpoint do
     extra: extra
   )
 
-  plug(Pleroma.Plugs.RemoteIp)
+  plug(Pleroma.Web.RemoteIPPlug)
 
   defmodule Instrumenter do
     use Prometheus.PhoenixInstrumenter

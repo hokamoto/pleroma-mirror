@@ -1,7 +1,7 @@
 defmodule Pleroma.Web.PleromaAPI.EmojiAPIController do
   use Pleroma.Web, :controller
 
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
 
   require Logger
 
@@ -19,7 +19,7 @@ defmodule Pleroma.Web.PleromaAPI.EmojiAPIController do
          ]
   )
 
-  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
+  plug(Pleroma.Web.EnsurePublicOrAuthenticatedPlug)
 
   def emoji_dir_path do
     Path.join(

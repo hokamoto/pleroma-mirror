@@ -16,7 +16,7 @@ defmodule Pleroma.Web.CommonAPI.Utils do
   alias Pleroma.Formatter
   alias Pleroma.Helpers.Constants
   alias Pleroma.Object
-  alias Pleroma.Plugs.AuthenticationPlug
+  alias Pleroma.Web.AuthenticationPlug
   alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.Endpoint

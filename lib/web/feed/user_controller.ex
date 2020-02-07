@@ -13,7 +13,7 @@ defmodule Pleroma.Web.Feed.UserController do
 
   import Pleroma.Web.ControllerHelper, only: [put_in_if_exist: 3]
 
-  plug(Pleroma.Plugs.SetFormatPlug when action in [:feed_redirect])
+  plug(Pleroma.Web.SetFormatPlug when action in [:feed_redirect])
 
   action_fallback(:errors)
 

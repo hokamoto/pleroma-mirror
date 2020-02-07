@@ -12,7 +12,7 @@ defmodule Pleroma.Upload.Uploader do
   @doc """
   Instructs how to get the file from the backend.
 
-  Used by `Pleroma.Plugs.UploadedMedia`.
+  Used by `Pleroma.Web.UploadedMediaPlug`.
   """
   @type get_method :: {:static_dir, directory :: String.t()} | {:url, url :: String.t()}
   @callback get_file(file :: String.t()) :: {:ok, get_method()}

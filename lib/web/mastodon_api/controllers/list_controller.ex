@@ -5,7 +5,7 @@
 defmodule Pleroma.Web.MastodonAPI.ListController do
   use Pleroma.Web, :controller
 
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.User
   alias Pleroma.Web.MastodonAPI.AccountView
 
@@ -19,7 +19,7 @@ defmodule Pleroma.Web.MastodonAPI.ListController do
     when action in [:create, :update, :delete, :add_to_list, :remove_from_list]
   )
 
-  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
+  plug(Pleroma.Web.EnsurePublicOrAuthenticatedPlug)
 
   action_fallback(Pleroma.Web.MastodonAPI.FallbackController)
 

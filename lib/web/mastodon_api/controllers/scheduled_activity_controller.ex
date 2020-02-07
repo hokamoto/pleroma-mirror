@@ -7,7 +7,7 @@ defmodule Pleroma.Web.MastodonAPI.ScheduledActivityController do
 
   import Pleroma.Web.ControllerHelper, only: [add_link_headers: 2]
 
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.ScheduledActivity
   alias Pleroma.Web.MastodonAPI.MastodonAPI
 
@@ -18,7 +18,7 @@ defmodule Pleroma.Web.MastodonAPI.ScheduledActivityController do
   plug(OAuthScopesPlug, %{scopes: ["read:statuses"]} when action in @oauth_read_actions)
   plug(OAuthScopesPlug, %{scopes: ["write:statuses"]} when action not in @oauth_read_actions)
 
-  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
+  plug(Pleroma.Web.EnsurePublicOrAuthenticatedPlug)
 
   action_fallback(Pleroma.Web.MastodonAPI.FallbackController)
 

@@ -5,7 +5,7 @@
 defmodule Pleroma.Web.MastodonAPI.FollowRequestController do
   use Pleroma.Web, :controller
 
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
 
@@ -21,7 +21,7 @@ defmodule Pleroma.Web.MastodonAPI.FollowRequestController do
     %{scopes: ["follow", "write:follows"]} when action != :index
   )
 
-  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
+  plug(Pleroma.Web.EnsurePublicOrAuthenticatedPlug)
 
   @doc "GET /api/v1/follow_requests"
   def index(%{assigns: %{user: followed}} = conn, _params) do

@@ -9,7 +9,7 @@ defmodule Pleroma.Web.TwitterAPI.RemoteFollowController do
 
   alias Pleroma.Activity
   alias Pleroma.Object.Fetcher
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.User
   alias Pleroma.Web.Auth.Authenticator
   alias Pleroma.Web.CommonAPI

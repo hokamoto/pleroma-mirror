@@ -10,7 +10,7 @@ defmodule Pleroma.Web.MastodonAPI.PollController do
   alias Pleroma.Activity
   alias Pleroma.Federation.ActivityPub.Visibility
   alias Pleroma.Object
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.Web.CommonAPI
 
   action_fallback(Pleroma.Web.MastodonAPI.FallbackController)
@@ -22,7 +22,7 @@ defmodule Pleroma.Web.MastodonAPI.PollController do
 
   plug(OAuthScopesPlug, %{scopes: ["write:statuses"]} when action == :vote)
 
-  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
+  plug(Pleroma.Web.EnsurePublicOrAuthenticatedPlug)
 
   @doc "GET /api/v1/polls/:id"
   def show(%{assigns: %{user: user}} = conn, %{"id" => id}) do

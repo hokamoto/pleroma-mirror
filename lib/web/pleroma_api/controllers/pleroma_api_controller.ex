@@ -12,7 +12,7 @@ defmodule Pleroma.Web.PleromaAPI.PleromaAPIController do
   alias Pleroma.Federation.ActivityPub
   alias Pleroma.Notification
   alias Pleroma.Object
-  alias Pleroma.Plugs.OAuthScopesPlug
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.MastodonAPI.AccountView
@@ -39,7 +39,7 @@ defmodule Pleroma.Web.PleromaAPI.PleromaAPIController do
 
   plug(OAuthScopesPlug, %{scopes: ["write:notifications"]} when action == :read_notification)
 
-  plug(Pleroma.Plugs.EnsurePublicOrAuthenticatedPlug)
+  plug(Pleroma.Web.EnsurePublicOrAuthenticatedPlug)
 
   def emoji_reactions_by(%{assigns: %{user: user}} = conn, %{"id" => activity_id}) do
     with %Activity{} = activity <- Activity.get_by_id_with_object(activity_id),
