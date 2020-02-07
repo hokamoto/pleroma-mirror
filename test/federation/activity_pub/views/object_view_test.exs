@@ -2,12 +2,12 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Web.ActivityPub.ObjectViewTest do
+defmodule Pleroma.Federation.ActivityPub.ObjectViewTest do
   use Pleroma.DataCase
   import Pleroma.Factory
 
   alias Pleroma.Object
-  alias Pleroma.Web.ActivityPub.ObjectView
+  alias Pleroma.Federation.ActivityPub.ObjectView
   alias Pleroma.Web.CommonAPI
 
   test "renders a note object" do

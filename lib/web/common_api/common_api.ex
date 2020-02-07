@@ -15,7 +15,7 @@ defmodule Pleroma.Web.CommonAPI do
   alias Pleroma.ThreadMute
   alias Pleroma.User
   alias Pleroma.UserRelationship
-  alias Pleroma.Web.ActivityPub.UserView
+  alias Pleroma.Federation.ActivityPub.UserView
 
   import Pleroma.Web.Gettext
   import Pleroma.Web.CommonAPI.Utils

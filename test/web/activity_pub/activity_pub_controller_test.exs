@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
+defmodule Pleroma.Federation.ActivityPub.ActivityPubControllerTest do
   use Pleroma.Web.ConnCase
   use Oban.Testing, repo: Pleroma.Storage.Repo
 
@@ -15,8 +15,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
   alias Pleroma.Object
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ObjectView
-  alias Pleroma.Web.ActivityPub.UserView
+  alias Pleroma.Federation.ActivityPub.ObjectView
+  alias Pleroma.Federation.ActivityPub.UserView
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Workers.ReceiverWorker
 

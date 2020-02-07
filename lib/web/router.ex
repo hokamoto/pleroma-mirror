@@ -549,7 +549,7 @@ defmodule Pleroma.Web.Router do
     plug(Pleroma.Federation.HTTPSignatures.MappedSignatureToIdentityPlug)
   end
 
-  scope "/", Pleroma.Web.ActivityPub do
+  scope "/", Pleroma.Federation.ActivityPub do
     # XXX: not really ostatus
     pipe_through(:ostatus)
 
@@ -570,7 +570,7 @@ defmodule Pleroma.Web.Router do
     plug(Pleroma.Web.EnsureUserKeyPlug)
   end
 
-  scope "/", Pleroma.Web.ActivityPub do
+  scope "/", Pleroma.Federation.ActivityPub do
     pipe_through([:activitypub_client])
 
     get("/api/ap/whoami", ActivityPubController, :whoami)
@@ -583,13 +583,13 @@ defmodule Pleroma.Web.Router do
     get("/users/:nickname/following", ActivityPubController, :following)
   end
 
-  scope "/", Pleroma.Web.ActivityPub do
+  scope "/", Pleroma.Federation.ActivityPub do
     pipe_through(:activitypub)
     post("/inbox", ActivityPubController, :inbox)
     post("/users/:nickname/inbox", ActivityPubController, :inbox)
   end
 
-  scope "/relay", Pleroma.Web.ActivityPub do
+  scope "/relay", Pleroma.Federation.ActivityPub do
     pipe_through(:ap_service_actor)
 
     get("/", ActivityPubController, :relay)
@@ -603,7 +603,7 @@ defmodule Pleroma.Web.Router do
     get("/followers", ActivityPubController, :followers, assigns: %{relay: true})
   end
 
-  scope "/internal/fetch", Pleroma.Web.ActivityPub do
+  scope "/internal/fetch", Pleroma.Federation.ActivityPub do
     pipe_through(:ap_service_actor)
 
     get("/", ActivityPubController, :internal_fetch)

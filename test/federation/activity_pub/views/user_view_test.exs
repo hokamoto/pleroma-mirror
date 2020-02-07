@@ -2,12 +2,12 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Web.ActivityPub.UserViewTest do
+defmodule Pleroma.Federation.ActivityPub.UserViewTest do
   use Pleroma.DataCase
   import Pleroma.Factory
 
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.UserView
+  alias Pleroma.Federation.ActivityPub.UserView
   alias Pleroma.Web.CommonAPI
 
   test "Renders a user, including the public key" do

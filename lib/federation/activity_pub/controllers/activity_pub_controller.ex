@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Web.ActivityPub.ActivityPubController do
+defmodule Pleroma.Federation.ActivityPub.ActivityPubController do
   use Pleroma.Web, :controller
 
   alias Pleroma.Activity
@@ -17,8 +17,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
   alias Pleroma.Object
   alias Pleroma.Object.Fetcher
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ObjectView
-  alias Pleroma.Web.ActivityPub.UserView
+  alias Pleroma.Federation.ActivityPub.ObjectView
+  alias Pleroma.Federation.ActivityPub.UserView
 
   require Logger
 

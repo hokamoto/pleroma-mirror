@@ -7,7 +7,7 @@ defmodule Pleroma.Web.Feed.UserController do
 
   alias Pleroma.Federation.ActivityPub
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPubController
+  alias Pleroma.Federation.ActivityPub.ActivityPubController
   alias Pleroma.Web.FallbackRedirectController
   alias Pleroma.Web.Feed.FeedView
 

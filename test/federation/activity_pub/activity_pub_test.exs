@@ -15,7 +15,7 @@ defmodule Pleroma.Federation.ActivityPubTest do
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.UserView
+  alias Pleroma.Federation.ActivityPub.UserView
   alias Pleroma.Web.AdminAPI.AccountView
   alias Pleroma.Web.CommonAPI
 

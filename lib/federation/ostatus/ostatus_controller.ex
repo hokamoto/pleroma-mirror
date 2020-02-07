@@ -9,7 +9,7 @@ defmodule Pleroma.Federation.OStatus.OStatusController do
   alias Pleroma.Federation.ActivityPub.Visibility
   alias Pleroma.Object
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPubController
+  alias Pleroma.Federation.ActivityPub.ActivityPubController
   alias Pleroma.Web.Endpoint
   alias Pleroma.Web.FallbackRedirectController
   alias Pleroma.Web.Metadata.PlayerView
