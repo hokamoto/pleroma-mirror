@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
+defmodule Pleroma.Web.TwitterAPI do
   alias Pleroma.Emails.Mailer
   alias Pleroma.Emails.UserEmail
   alias Pleroma.Storage.Repo

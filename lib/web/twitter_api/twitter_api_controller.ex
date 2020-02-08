@@ -2,7 +2,7 @@
 # Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule Pleroma.Web.TwitterAPI.Controller do
+defmodule Pleroma.Web.TwitterAPI.TwitterAPIController do
   use Pleroma.Web, :controller
 
   alias Pleroma.Notification

@@ -114,6 +114,115 @@ defmodule Pleroma.Web.Router do
     plug(Pleroma.Federation.HTTPSignatures.MappedSignatureToIdentityPlug)
   end
 
+  pipeline :ap_service_actor do
+    plug(:accepts, ["activity+json", "json"])
+  end
+
+  pipeline :ostatus do
+    plug(:accepts, ["html", "xml", "atom", "activity+json", "json"])
+    plug(Pleroma.Web.StaticFEPlug)
+  end
+
+  pipeline :oembed do
+    plug(:accepts, ["json", "xml"])
+  end
+
+  pipeline :activitypub do
+    plug(:accepts, ["activity+json", "json"])
+    plug(Pleroma.Federation.HTTPSignatures.HTTPSignaturesPlug)
+    plug(Pleroma.Federation.HTTPSignatures.MappedSignatureToIdentityPlug)
+  end
+
+  pipeline :activitypub_client do
+    plug(:accepts, ["activity+json", "json"])
+    plug(:fetch_session)
+    plug(Pleroma.Web.OAuthPlug)
+    plug(Pleroma.Web.BasicAuthDecoderPlug)
+    plug(Pleroma.Web.UserFetcherPlug)
+    plug(Pleroma.Web.SessionAuthenticationPlug)
+    plug(Pleroma.Web.LegacyAuthenticationPlug)
+    plug(Pleroma.Web.AuthenticationPlug)
+    plug(Pleroma.Web.UserEnabledPlug)
+    plug(Pleroma.Web.SetUserSessionIDPlug)
+    plug(Pleroma.Web.EnsureUserKeyPlug)
+  end
+
+  pipeline :remote_media do
+  end
+
+  ## FEDERATION
+
+  scope "/", Pleroma.Federation do
+    pipe_through(:ostatus)
+    pipe_through(:http_signature)
+
+    get("/objects/:uuid", OStatus.OStatusController, :object)
+    get("/activities/:uuid", OStatus.OStatusController, :activity)
+    get("/notice/:id", OStatus.OStatusController, :notice)
+    get("/notice/:id/embed_player", OStatus.OStatusController, :notice_player)
+  end
+
+  scope "/", Pleroma.Federation.ActivityPub do
+    # XXX: not really ostatus
+    pipe_through(:ostatus)
+
+    get("/users/:nickname/outbox", ActivityPubController, :outbox)
+  end
+
+  scope "/", Pleroma.Federation.ActivityPub do
+    pipe_through([:activitypub_client])
+
+    get("/api/ap/whoami", ActivityPubController, :whoami)
+    get("/users/:nickname/inbox", ActivityPubController, :read_inbox)
+
+    post("/users/:nickname/outbox", ActivityPubController, :update_outbox)
+    post("/api/ap/upload_media", ActivityPubController, :upload_media)
+
+    get("/users/:nickname/followers", ActivityPubController, :followers)
+    get("/users/:nickname/following", ActivityPubController, :following)
+  end
+
+  scope "/", Pleroma.Federation.ActivityPub do
+    pipe_through(:activitypub)
+    post("/inbox", ActivityPubController, :inbox)
+    post("/users/:nickname/inbox", ActivityPubController, :inbox)
+  end
+
+  scope "/relay", Pleroma.Federation.ActivityPub do
+    pipe_through(:ap_service_actor)
+
+    get("/", ActivityPubController, :relay)
+
+    scope [] do
+      pipe_through(:http_signature)
+      post("/inbox", ActivityPubController, :inbox)
+    end
+
+    get("/following", ActivityPubController, :following, assigns: %{relay: true})
+    get("/followers", ActivityPubController, :followers, assigns: %{relay: true})
+  end
+
+  scope "/internal/fetch", Pleroma.Federation.ActivityPub do
+    pipe_through(:ap_service_actor)
+
+    get("/", ActivityPubController, :internal_fetch)
+    post("/inbox", ActivityPubController, :inbox)
+  end
+
+  scope "/.well-known", Pleroma.Federation do
+    pipe_through(:well_known)
+
+    get("/host-meta", WebFinger.WebFingerController, :host_meta)
+    get("/webfinger", WebFinger.WebFingerController, :webfinger)
+    get("/nodeinfo", NodeInfo.NodeInfoController, :schemas)
+  end
+
+  scope "/nodeinfo", Pleroma.Federation do
+    get("/:version", NodeInfo.NodeInfoController, :nodeinfo)
+  end
+
+  ## TWITTER API
+
   scope "/api/pleroma", Pleroma.Web.TwitterAPI do
     pipe_through(:pleroma_api)
 
@@ -122,107 +231,6 @@ defmodule Pleroma.Web.Router do
     get("/emoji", UtilController, :emoji)
     get("/captcha", UtilController, :captcha)
     get("/healthcheck", UtilController, :healthcheck)
-  end
-
-  scope "/api/pleroma", Pleroma.Web do
-    pipe_through(:pleroma_api)
-    post("/uploader_callback/:upload_path", UploaderController, :callback)
-  end
-
-  scope "/api/pleroma/admin", Pleroma.Web.AdminAPI do
-    pipe_through(:admin_api)
-
-    post("/users/follow", AdminAPIController, :user_follow)
-    post("/users/unfollow", AdminAPIController, :user_unfollow)
-
-    delete("/users", AdminAPIController, :user_delete)
-    post("/users", AdminAPIController, :users_create)
-    patch("/users/:nickname/toggle_activation", AdminAPIController, :user_toggle_activation)
-    patch("/users/activate", AdminAPIController, :user_activate)
-    patch("/users/deactivate", AdminAPIController, :user_deactivate)
-    put("/users/tag", AdminAPIController, :tag_users)
-    delete("/users/tag", AdminAPIController, :untag_users)
-
-    get("/users/:nickname/permission_group", AdminAPIController, :right_get)
-    get("/users/:nickname/permission_group/:permission_group", AdminAPIController, :right_get)
-
-    post("/users/:nickname/permission_group/:permission_group", AdminAPIController, :right_add)
-
-    delete(
-      "/users/:nickname/permission_group/:permission_group",
-      AdminAPIController,
-      :right_delete
-    )
-
-    post("/users/permission_group/:permission_group", AdminAPIController, :right_add_multiple)
-
-    delete(
-      "/users/permission_group/:permission_group",
-      AdminAPIController,
-      :right_delete_multiple
-    )
-
-    get("/relay", AdminAPIController, :relay_list)
-    post("/relay", AdminAPIController, :relay_follow)
-    delete("/relay", AdminAPIController, :relay_unfollow)
-
-    post("/users/invite_token", AdminAPIController, :create_invite_token)
-    get("/users/invites", AdminAPIController, :invites)
-    post("/users/revoke_invite", AdminAPIController, :revoke_invite)
-    post("/users/email_invite", AdminAPIController, :email_invite)
-
-    get("/users/:nickname/password_reset", AdminAPIController, :get_password_reset)
-    patch("/users/force_password_reset", AdminAPIController, :force_password_reset)
-
-    get("/users", AdminAPIController, :list_users)
-    get("/users/:nickname", AdminAPIController, :user_show)
-    get("/users/:nickname/statuses", AdminAPIController, :list_user_statuses)
-
-    get("/instances/:instance/statuses", AdminAPIController, :list_instance_statuses)
-
-    patch("/users/confirm_email", AdminAPIController, :confirm_email)
-    patch("/users/resend_confirmation_email", AdminAPIController, :resend_confirmation_email)
-
-    get("/reports", AdminAPIController, :list_reports)
-    get("/grouped_reports", AdminAPIController, :list_grouped_reports)
-    get("/reports/:id", AdminAPIController, :report_show)
-    patch("/reports", AdminAPIController, :reports_update)
-    post("/reports/:id/notes", AdminAPIController, :report_notes_create)
-    delete("/reports/:report_id/notes/:id", AdminAPIController, :report_notes_delete)
-
-    put("/statuses/:id", AdminAPIController, :status_update)
-    delete("/statuses/:id", AdminAPIController, :status_delete)
-
-    get("/config", AdminAPIController, :config_show)
-    post("/config", AdminAPIController, :config_update)
-    get("/config/descriptions", AdminAPIController, :config_descriptions)
-    get("/restart", AdminAPIController, :restart)
-
-    get("/moderation_log", AdminAPIController, :list_log)
-
-    post("/reload_emoji", AdminAPIController, :reload_emoji)
-  end
-
-  scope "/api/pleroma/emoji", Pleroma.Web.PleromaAPI do
-    scope "/packs" do
-      # Modifying packs
-      pipe_through(:admin_api)
-
-      post("/import_from_fs", EmojiAPIController, :import_from_fs)
-
-      post("/:pack_name/update_file", EmojiAPIController, :update_file)
-      post("/:pack_name/update_metadata", EmojiAPIController, :update_metadata)
-      put("/:name", EmojiAPIController, :create)
-      delete("/:name", EmojiAPIController, :delete)
-      post("/download_from", EmojiAPIController, :download_from)
-      post("/list_from", EmojiAPIController, :list_from)
-    end
-
-    scope "/packs" do
-      # Pack info / downloading
-      get("/", EmojiAPIController, :list_packs)
-      get("/:name/download_shared/", EmojiAPIController, :download_shared)
-    end
   end
 
   scope "/", Pleroma.Web.TwitterAPI do
@@ -245,6 +253,62 @@ defmodule Pleroma.Web.Router do
 
     post("/blocks_import", UtilController, :blocks_import)
     post("/follow_import", UtilController, :follow_import)
+  end
+
+  scope "/api", Pleroma.Web.TwitterAPI do
+    pipe_through(:config)
+
+    get("/help/test", UtilController, :help_test)
+    post("/help/test", UtilController, :help_test)
+    get("/statusnet/config", UtilController, :config)
+    get("/statusnet/version", UtilController, :version)
+    get("/pleroma/frontend_configurations", UtilController, :frontend_configurations)
+  end
+
+  scope "/api", Pleroma.Web.TwitterAPI do
+    pipe_through(:api)
+
+    get("/account/confirm_email/:user_id/:token", TwitterAPIController, :confirm_email,
+      as: :confirm_email
+    )
+  end
+
+  scope "/api", Pleroma.Web.TwitterAPI, as: :authenticated_twitter_api do
+    pipe_through(:authenticated_api)
+
+    get("/oauth_tokens", TwitterAPIController, :oauth_tokens)
+    delete("/oauth_tokens/:id", TwitterAPIController, :revoke_token)
+
+    post("/qvitter/statuses/notifications/read", TwitterAPIController, :notifications_read)
+  end
+
+  ## PLEROMA API
+
+  scope "/api/pleroma", Pleroma.Web do
+    pipe_through(:pleroma_api)
+    post("/uploader_callback/:upload_path", UploaderController, :callback)
+  end
+
+  scope "/api/pleroma/emoji", Pleroma.Web.PleromaAPI do
+    scope "/packs" do
+      # Modifying packs
+      pipe_through(:admin_api)
+
+      post("/import_from_fs", EmojiAPIController, :import_from_fs)
+
+      post("/:pack_name/update_file", EmojiAPIController, :update_file)
+      post("/:pack_name/update_metadata", EmojiAPIController, :update_metadata)
+      put("/:name", EmojiAPIController, :create)
+      delete("/:name", EmojiAPIController, :delete)
+      post("/download_from", EmojiAPIController, :download_from)
+      post("/list_from", EmojiAPIController, :list_from)
+    end
+
+    scope "/packs" do
+      # Pack info / downloading
+      get("/", EmojiAPIController, :list_packs)
+      get("/:name/download_shared/", EmojiAPIController, :download_shared)
+    end
   end
 
   scope "/oauth", Pleroma.Web.OAuth do
@@ -320,6 +384,125 @@ defmodule Pleroma.Web.Router do
     pipe_through(:api)
     get("/accounts/:id/scrobbles", ScrobbleController, :user_scrobbles)
   end
+
+  scope "/api/web", Pleroma.Web do
+    pipe_through(:authenticated_api)
+
+    put("/settings", MastoFEController, :put_settings)
+  end
+
+  scope "/", Pleroma.Web do
+    pipe_through(:ostatus)
+    pipe_through(:http_signature)
+
+    get("/users/:nickname/feed", Feed.UserController, :feed, as: :user_feed)
+    get("/users/:nickname", Feed.UserController, :feed_redirect, as: :user_feed)
+
+    get("/tags/:tag", Feed.TagController, :feed, as: :tag_feed)
+  end
+
+  scope "/", Pleroma.Web do
+    pipe_through(:browser)
+    get("/mailer/unsubscribe/:token", Mailer.SubscriptionController, :unsubscribe)
+  end
+
+  scope "/proxy/", Pleroma.Web.MediaProxy do
+    pipe_through(:remote_media)
+
+    get("/:sig/:url", MediaProxyController, :remote)
+    get("/:sig/:url/:filename", MediaProxyController, :remote)
+  end
+
+  if Pleroma.Config.get(:env) == :dev do
+    scope "/dev" do
+      pipe_through([:mailbox_preview])
+
+      forward("/mailbox", Plug.Swoosh.MailboxPreview, base_path: "/dev/mailbox")
+    end
+  end
+
+  scope "/", Pleroma.Web.MongooseIM do
+    get("/user_exists", MongooseIMController, :user_exists)
+    get("/check_password", MongooseIMController, :check_password)
+  end
+
+  ## PLEROMA ADMIN API
+
+  scope "/api/pleroma/admin", Pleroma.Web.AdminAPI do
+    pipe_through(:admin_api)
+
+    post("/users/follow", AdminAPIController, :user_follow)
+    post("/users/unfollow", AdminAPIController, :user_unfollow)
+
+    delete("/users", AdminAPIController, :user_delete)
+    post("/users", AdminAPIController, :users_create)
+    patch("/users/:nickname/toggle_activation", AdminAPIController, :user_toggle_activation)
+    patch("/users/activate", AdminAPIController, :user_activate)
+    patch("/users/deactivate", AdminAPIController, :user_deactivate)
+    put("/users/tag", AdminAPIController, :tag_users)
+    delete("/users/tag", AdminAPIController, :untag_users)
+
+    get("/users/:nickname/permission_group", AdminAPIController, :right_get)
+    get("/users/:nickname/permission_group/:permission_group", AdminAPIController, :right_get)
+
+    post("/users/:nickname/permission_group/:permission_group", AdminAPIController, :right_add)
+
+    delete(
+      "/users/:nickname/permission_group/:permission_group",
+      AdminAPIController,
+      :right_delete
+    )
+
+    post("/users/permission_group/:permission_group", AdminAPIController, :right_add_multiple)
+
+    delete(
+      "/users/permission_group/:permission_group",
+      AdminAPIController,
+      :right_delete_multiple
+    )
+
+    get("/relay", AdminAPIController, :relay_list)
+    post("/relay", AdminAPIController, :relay_follow)
+    delete("/relay", AdminAPIController, :relay_unfollow)
+
+    post("/users/invite_token", AdminAPIController, :create_invite_token)
+    get("/users/invites", AdminAPIController, :invites)
+    post("/users/revoke_invite", AdminAPIController, :revoke_invite)
+    post("/users/email_invite", AdminAPIController, :email_invite)
+
+    get("/users/:nickname/password_reset", AdminAPIController, :get_password_reset)
+    patch("/users/force_password_reset", AdminAPIController, :force_password_reset)
+
+    get("/users", AdminAPIController, :list_users)
+    get("/users/:nickname", AdminAPIController, :user_show)
+    get("/users/:nickname/statuses", AdminAPIController, :list_user_statuses)
+
+    get("/instances/:instance/statuses", AdminAPIController, :list_instance_statuses)
+
+    patch("/users/confirm_email", AdminAPIController, :confirm_email)
+    patch("/users/resend_confirmation_email", AdminAPIController, :resend_confirmation_email)
+
+    get("/reports", AdminAPIController, :list_reports)
+    get("/grouped_reports", AdminAPIController, :list_grouped_reports)
+    get("/reports/:id", AdminAPIController, :report_show)
+    patch("/reports", AdminAPIController, :reports_update)
+    post("/reports/:id/notes", AdminAPIController, :report_notes_create)
+    delete("/reports/:report_id/notes/:id", AdminAPIController, :report_notes_delete)
+
+    put("/statuses/:id", AdminAPIController, :status_update)
+    delete("/statuses/:id", AdminAPIController, :status_delete)
+
+    get("/config", AdminAPIController, :config_show)
+    post("/config", AdminAPIController, :config_update)
+    get("/config/descriptions", AdminAPIController, :config_descriptions)
+    get("/restart", AdminAPIController, :restart)
+
+    get("/moderation_log", AdminAPIController, :list_log)
+
+    post("/reload_emoji", AdminAPIController, :reload_emoji)
+  end
+
+  ## MASTODON API
 
   scope "/api/v1", Pleroma.Web.MastodonAPI do
     pipe_through(:authenticated_api)
@@ -426,12 +609,6 @@ defmodule Pleroma.Web.Router do
     post("/markers", MarkerController, :upsert)
   end
 
-  scope "/api/web", Pleroma.Web do
-    pipe_through(:authenticated_api)
-
-    put("/settings", MastoFEController, :put_settings)
-  end
-
   scope "/api/v1", Pleroma.Web.MastodonAPI do
     pipe_through(:api)
 
@@ -475,153 +652,6 @@ defmodule Pleroma.Web.Router do
     get("/search", SearchController, :search2)
   end
 
-  scope "/api", Pleroma.Web do
-    pipe_through(:config)
-
-    get("/help/test", TwitterAPI.UtilController, :help_test)
-    post("/help/test", TwitterAPI.UtilController, :help_test)
-    get("/statusnet/config", TwitterAPI.UtilController, :config)
-    get("/statusnet/version", TwitterAPI.UtilController, :version)
-    get("/pleroma/frontend_configurations", TwitterAPI.UtilController, :frontend_configurations)
-  end
-
-  scope "/api", Pleroma.Web do
-    pipe_through(:api)
-
-    get(
-      "/account/confirm_email/:user_id/:token",
-      TwitterAPI.Controller,
-      :confirm_email,
-      as: :confirm_email
-    )
-  end
-
-  scope "/api", Pleroma.Web, as: :authenticated_twitter_api do
-    pipe_through(:authenticated_api)
-
-    get("/oauth_tokens", TwitterAPI.Controller, :oauth_tokens)
-    delete("/oauth_tokens/:id", TwitterAPI.Controller, :revoke_token)
-
-    post("/qvitter/statuses/notifications/read", TwitterAPI.Controller, :notifications_read)
-  end
-
-  pipeline :ap_service_actor do
-    plug(:accepts, ["activity+json", "json"])
-  end
-
-  pipeline :ostatus do
-    plug(:accepts, ["html", "xml", "atom", "activity+json", "json"])
-    plug(Pleroma.Web.StaticFEPlug)
-  end
-
-  pipeline :oembed do
-    plug(:accepts, ["json", "xml"])
-  end
-
-  scope "/", Pleroma.Federation do
-    pipe_through(:ostatus)
-    pipe_through(:http_signature)
-
-    get("/objects/:uuid", OStatus.OStatusController, :object)
-    get("/activities/:uuid", OStatus.OStatusController, :activity)
-    get("/notice/:id", OStatus.OStatusController, :notice)
-    get("/notice/:id/embed_player", OStatus.OStatusController, :notice_player)
-  end
-
-  scope "/", Pleroma.Web do
-    pipe_through(:ostatus)
-    pipe_through(:http_signature)
-
-    get("/users/:nickname/feed", Feed.UserController, :feed, as: :user_feed)
-    get("/users/:nickname", Feed.UserController, :feed_redirect, as: :user_feed)
-
-    get("/tags/:tag", Feed.TagController, :feed, as: :tag_feed)
-  end
-
-  scope "/", Pleroma.Web do
-    pipe_through(:browser)
-    get("/mailer/unsubscribe/:token", Mailer.SubscriptionController, :unsubscribe)
-  end
-
-  pipeline :activitypub do
-    plug(:accepts, ["activity+json", "json"])
-    plug(Pleroma.Federation.HTTPSignatures.HTTPSignaturesPlug)
-    plug(Pleroma.Federation.HTTPSignatures.MappedSignatureToIdentityPlug)
-  end
-
-  scope "/", Pleroma.Federation.ActivityPub do
-    # XXX: not really ostatus
-    pipe_through(:ostatus)
-
-    get("/users/:nickname/outbox", ActivityPubController, :outbox)
-  end
-
-  pipeline :activitypub_client do
-    plug(:accepts, ["activity+json", "json"])
-    plug(:fetch_session)
-    plug(Pleroma.Web.OAuthPlug)
-    plug(Pleroma.Web.BasicAuthDecoderPlug)
-    plug(Pleroma.Web.UserFetcherPlug)
-    plug(Pleroma.Web.SessionAuthenticationPlug)
-    plug(Pleroma.Web.LegacyAuthenticationPlug)
-    plug(Pleroma.Web.AuthenticationPlug)
-    plug(Pleroma.Web.UserEnabledPlug)
-    plug(Pleroma.Web.SetUserSessionIDPlug)
-    plug(Pleroma.Web.EnsureUserKeyPlug)
-  end
-
-  scope "/", Pleroma.Federation.ActivityPub do
-    pipe_through([:activitypub_client])
-
-    get("/api/ap/whoami", ActivityPubController, :whoami)
-    get("/users/:nickname/inbox", ActivityPubController, :read_inbox)
-
-    post("/users/:nickname/outbox", ActivityPubController, :update_outbox)
-    post("/api/ap/upload_media", ActivityPubController, :upload_media)
-
-    get("/users/:nickname/followers", ActivityPubController, :followers)
-    get("/users/:nickname/following", ActivityPubController, :following)
-  end
-
-  scope "/", Pleroma.Federation.ActivityPub do
-    pipe_through(:activitypub)
-    post("/inbox", ActivityPubController, :inbox)
-    post("/users/:nickname/inbox", ActivityPubController, :inbox)
-  end
-
-  scope "/relay", Pleroma.Federation.ActivityPub do
-    pipe_through(:ap_service_actor)
-
-    get("/", ActivityPubController, :relay)
-
-    scope [] do
-      pipe_through(:http_signature)
-      post("/inbox", ActivityPubController, :inbox)
-    end
-
-    get("/following", ActivityPubController, :following, assigns: %{relay: true})
-    get("/followers", ActivityPubController, :followers, assigns: %{relay: true})
-  end
-
-  scope "/internal/fetch", Pleroma.Federation.ActivityPub do
-    pipe_through(:ap_service_actor)
-
-    get("/", ActivityPubController, :internal_fetch)
-    post("/inbox", ActivityPubController, :inbox)
-  end
-
-  scope "/.well-known", Pleroma.Federation do
-    pipe_through(:well_known)
-
-    get("/host-meta", WebFinger.WebFingerController, :host_meta)
-    get("/webfinger", WebFinger.WebFingerController, :webfinger)
-    get("/nodeinfo", NodeInfo.NodeInfoController, :schemas)
-  end
-
-  scope "/nodeinfo", Pleroma.Federation do
-    get("/:version", NodeInfo.NodeInfoController, :nodeinfo)
-  end
-
   scope "/", Pleroma.Web do
     pipe_through(:api)
 
@@ -639,28 +669,7 @@ defmodule Pleroma.Web.Router do
     get("/web/*path", MastoFEController, :index)
   end
 
-  pipeline :remote_media do
-  end
-
-  scope "/proxy/", Pleroma.Web.MediaProxy do
-    pipe_through(:remote_media)
-
-    get("/:sig/:url", MediaProxyController, :remote)
-    get("/:sig/:url/:filename", MediaProxyController, :remote)
-  end
-
-  if Pleroma.Config.get(:env) == :dev do
-    scope "/dev" do
-      pipe_through([:mailbox_preview])
-
-      forward("/mailbox", Plug.Swoosh.MailboxPreview, base_path: "/dev/mailbox")
-    end
-  end
-
-  scope "/", Pleroma.Web.MongooseIM do
-    get("/user_exists", MongooseIMController, :user_exists)
-    get("/check_password", MongooseIMController, :check_password)
-  end
+  ## FALLBACK
 
   scope "/", Pleroma.Web do
     get("/registration/:token", FallbackRedirectController, :registration_page)

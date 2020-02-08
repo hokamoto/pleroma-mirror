@@ -9,7 +9,7 @@ defmodule Pleroma.Web.MastodonAPI.AuthController do
   alias Pleroma.Web.OAuth.App
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.Token
-  alias Pleroma.Web.TwitterAPI.TwitterAPI
+  alias Pleroma.Web.TwitterAPI
 
   action_fallback(Pleroma.Web.MastodonAPI.FallbackController)
 

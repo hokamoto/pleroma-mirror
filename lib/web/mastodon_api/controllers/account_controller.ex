@@ -18,7 +18,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
   alias Pleroma.Web.MastodonAPI.StatusView
   alias Pleroma.Web.OAuth.Token
   alias Pleroma.Web.RateLimiterPlug
-  alias Pleroma.Web.TwitterAPI.TwitterAPI
+  alias Pleroma.Web.TwitterAPI
 
   plug(
     OAuthScopesPlug,
