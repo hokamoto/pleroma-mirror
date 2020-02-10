@@ -155,7 +155,7 @@ defmodule Pleroma.Mixfile do
       {:prometheus_ex, "~> 3.0"},
       {:prometheus_plugs, "~> 1.1"},
       {:prometheus_phoenix, "~> 1.3"},
-      {:prometheus_ecto, "~> 1.4"},
+      {:prometheus_ecto, "~> 1.4.3"},
       {:recon, github: "ferd/recon", tag: "2.4.0"},
       {:quack, "~> 0.1.1"},
       {:joken, "~> 2.0"},
