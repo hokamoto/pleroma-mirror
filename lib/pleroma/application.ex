@@ -55,7 +55,7 @@ defmodule Pleroma.Application do
           {Oban, Pleroma.Config.get(Oban)}
         ] ++
         task_children(@env) ++
-        streamer_child(@env) ++
+        dont_run_in_test(@env) ++
         chat_child(@env, chat_enabled?()) ++
         [
           Pleroma.Web.Endpoint,
@@ -156,10 +156,13 @@ defmodule Pleroma.Application do
 
   defp chat_enabled?, do: Pleroma.Config.get([:chat, :enabled])
 
-  defp streamer_child(:test), do: []
+  defp dont_run_in_test(:test), do: []
 
-  defp streamer_child(_) do
-    [Pleroma.Web.Streamer.supervisor()]
+  defp dont_run_in_test(_) do
+    [
+      Pleroma.Web.FedSockets.Supervisor,
+      Pleroma.Web.Streamer.supervisor()
+    ]
   end
 
   defp chat_child(_env, true) do

@@ -19,6 +19,8 @@ config :logger, :console,
   level: :warn,
   format: "\n[$level] $message\n"
 
+config :pleroma, :fed_sockets, enabled: false
+
 config :pleroma, :auth, oauth_consumer_strategies: []
 
 config :pleroma, Pleroma.Upload, filters: [], link_name: false
