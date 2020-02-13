@@ -143,6 +143,7 @@ defmodule Pleroma.Mixfile do
       {:ex_syslogger, github: "slashmili/ex_syslogger", tag: "1.4.0"},
       {:timex, "~> 3.5"},
       {:ueberauth, "~> 0.4"},
+      {:websockex, "~> 0.4.2"},
       {:auto_linker,
        git: "https://git.pleroma.social/pleroma/auto_linker.git",
        ref: "95e8188490e97505c56636c1379ffdf036c1fdde"},
