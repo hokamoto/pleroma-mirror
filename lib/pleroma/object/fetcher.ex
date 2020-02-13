@@ -170,7 +170,11 @@ defmodule Pleroma.Object.Fetcher do
     Logger.debug("Fetching object #{id} via AP")
 
     with {:scheme, true} <- {:scheme, String.starts_with?(id, "http")},
+<<<<<<< HEAD
          {:ok, body} <- get_object(id, opts),
+=======
+         {:ok, body} <- get_object(id),
+>>>>>>> Websocket based federation
          {:ok, data} <- safe_json_decode(body),
          :ok <- Containment.contain_origin_from_id(id, data) do
       {:ok, data}
