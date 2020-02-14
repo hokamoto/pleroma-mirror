@@ -46,10 +46,10 @@ defmodule Pleroma.Federation.NodeInfo.NodeInfoController do
 
         data
         |> Map.merge(%{quarantined_instances: quarantined})
-        |> Map.put(:enabled, Config.get([:instance, :federating]))
       else
         %{}
       end
+      |> Map.put(:enabled, Config.get([:instance, :federating]))
 
     features =
       [
