@@ -12,6 +12,7 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
+  alias Pleroma.Web.ActivityPub.Visibility
 
   plug(OAuthScopesPlug, %{scopes: ["read:statuses"]} when action in [:home, :direct])
   plug(OAuthScopesPlug, %{scopes: ["read:lists"]} when action == :list)
@@ -34,6 +35,7 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
     activities =
       recipients
       |> ActivityPub.fetch_activities(params)
+      |> Visibility.remove_half_conversations(user.ap_id, recipients)
       |> Enum.reverse()
 
     conn
