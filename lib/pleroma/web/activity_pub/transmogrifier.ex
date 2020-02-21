@@ -1158,7 +1158,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
 
   def upgrade_user_from_ap_id(ap_id) do
     with %User{local: false} = user <- User.get_cached_by_ap_id(ap_id),
-         {:ok, data} <- ActivityPub.fetch_and_prepare_user_from_ap_id(ap_id),
+         {:ok, data} <- ActivityPub.fetch_and_prepare_user_from_ap_id(ap_id, force_http: true),
          already_ap <- User.ap_enabled?(user),
          {:ok, user} <- upgrade_user(user, data) do
       if not already_ap do

@@ -157,11 +157,16 @@ defmodule Pleroma.Object.Fetcher do
     end
   end
 
-  def fetch_and_contain_remote_object_from_id(id) when is_binary(id) do
+  def fetch_and_contain_remote_object_from_id(prm, opts \\ [])
+
+  def fetch_and_contain_remote_object_from_id(%{"id" => id}, opts),
+    do: fetch_and_contain_remote_object_from_id(id, opts)
+
+  def fetch_and_contain_remote_object_from_id(id, opts) when is_binary(id) do
     Logger.debug("Fetching object #{id} via AP")
 
     with {:scheme, true} <- {:scheme, String.starts_with?(id, "http")},
-         {:ok, body} <- get_object(id),
+         {:ok, body} <- get_object(id, opts),
          {:ok, data} <- safe_json_decode(body),
          :ok <- Containment.contain_origin_from_id(id, data) do
       {:ok, data}
@@ -177,17 +182,17 @@ defmodule Pleroma.Object.Fetcher do
     end
   end
 
-  def fetch_and_contain_remote_object_from_id(%{"id" => id}),
-    do: fetch_and_contain_remote_object_from_id(id)
+  def fetch_and_contain_remote_object_from_id(_id, _opts),
+    do: {:error, "id must be a string"}
 
-  def fetch_and_contain_remote_object_from_id(_id), do: {:error, "id must be a string"}
-
-  defp get_object(id) do
-    case FedSockets.get_or_create_fed_socket(id) do
-      {:ok, fedsocket} ->
-        FedSockets.fetch(fedsocket, id)
-
-      _ ->
+  defp get_object(id, opts) do
+    with false <- Keyword.get(opts, :force_http, false),
+         {:ok, fedsocket} <- FedSockets.get_or_create_fed_socket(id) do
+      IO.inspect(id, label: "#{inspect(self())} - fetching via fedsocket")
+      FedSockets.fetch(fedsocket, id)
+    else
+      _other ->
+        IO.inspect(id, label: "#{inspect(self())} - fetching via http")
         get_object_http(id)
     end
   end
@@ -199,8 +204,6 @@ defmodule Pleroma.Object.Fetcher do
       [{:Accept, "application/activity+json"}]
       |> maybe_date_fetch(date)
       |> sign_fetch(id, date)
-
-    Logger.debug("Fetch headers: #{inspect(headers)}")
 
     case HTTP.get(id, headers) do
       {:ok, %{body: body, status: code}} when code in 200..299 ->
