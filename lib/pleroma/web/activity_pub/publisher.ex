@@ -53,9 +53,11 @@ defmodule Pleroma.Web.ActivityPub.Publisher do
 
     case FedSockets.get_or_create_fed_socket(inbox) do
       {:ok, fedsocket} ->
+        IO.inspect(inbox, label: "#{inspect(self())} - publishing via fedsockets")
         FedSockets.publish(fedsocket, json)
 
       _ ->
+        IO.inspect(inbox, label: "#{inspect(self())} - publishing via http")
         http_publish(inbox, actor, json, params)
     end
   end

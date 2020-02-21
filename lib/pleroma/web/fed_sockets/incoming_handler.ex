@@ -41,6 +41,7 @@ defmodule Pleroma.Web.FedSockets.IncomingHandler do
 
     with {:connect, {:ok, fed_socket}} <- {:connect, FedSocket.connection_from_host(sckt)},
          {:register, {:ok, fed_socket}} <- {:register, FedRegistry.add_fed_socket(fed_socket)} do
+      IO.puts("#{inspect(self())} - incoming FedSocket created for - #{origin}")
       {:ok, Map.put(state, :fed_socket, fed_socket)}
     else
       {mode, {:error, e}} ->

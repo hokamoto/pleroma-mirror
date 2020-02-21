@@ -93,7 +93,7 @@ defmodule Pleroma.Web.FedSockets do
     with {:cache, {:error, :missing}} <- {:cache, get_fed_socket(address)},
          {:connect, {:ok, fed_socket}} <- {:connect, FedSocket.connect_to_host(origin)},
          {:register, {:ok, fed_socket}} <- {:register, FedRegistry.add_fed_socket(fed_socket)} do
-      IO.puts("FedSocket created for - #{address}")
+      IO.puts("#{inspect(self())} - FedSocket created for - #{address}")
       {:ok, fed_socket}
     else
       {:cache, {:ok, socket}} ->
@@ -120,7 +120,7 @@ defmodule Pleroma.Web.FedSockets do
 
     with {:config, true} <- {:config, Pleroma.Config.get([:fed_sockets, :enabled], false)},
          {:ok, socket} <- FedRegistry.get_fed_socket(origin) do
-      IO.puts("FedSocket retrieved for - #{origin}")
+      IO.puts("#{inspect(self())} - FedSocket retrieved for - #{origin}")
       {:ok, socket}
     else
       {:config, _} ->
