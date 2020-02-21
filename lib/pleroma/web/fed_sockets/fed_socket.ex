@@ -98,6 +98,7 @@ defmodule Pleroma.Web.FedSockets.FedSocket do
 
   defp process_package(%{"action" => "fetch", "uuid" => uuid, "data" => ap_id}, _fed_socket) do
     {:ok, data} = render_fetched_data(ap_id, uuid)
+    IO.puts("#{inspect(self())} - fetch processed via FedSockets - #{inspect(uuid)}")
     {:reply, data}
   end
 

@@ -8,9 +8,18 @@ defmodule Pleroma.Web.FedSockets.IngesterWorker do
 
   @impl Oban.Worker
   def perform(%{"op" => "ingest", "object" => ingestee}, _job) do
-    ingestee
-    |> Jason.decode!()
-    |> do_ingestion()
+    IO.puts("#{inspect(self())} - starting ingestion")
+
+    try do
+      ingestee
+      |> Jason.decode!()
+      |> do_ingestion()
+
+      IO.puts("#{inspect(self())} - finished ingestion")
+    rescue
+      e ->
+        IO.inspect(e, label: "#{inspect(self())} - ingestion error")
+    end
   end
 
   defp do_ingestion(%{"nickname" => nickname} = params) do
