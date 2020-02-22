@@ -6,7 +6,7 @@ defmodule Pleroma.Federation.ActivityPub.FederatingPlugTest do
   use Pleroma.Web.ConnCase
   alias Pleroma.Federation.ActivityPub.FederatingPlug
 
-  clear_config_all([:instance, :federating])
+  clear_config([:instance, :federating])
 
   test "returns and halt the conn when federating is disabled" do
     Pleroma.Config.put([:instance, :federating], false)

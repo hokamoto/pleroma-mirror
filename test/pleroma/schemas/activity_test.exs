@@ -139,6 +139,8 @@ defmodule Pleroma.ActivityTest do
       }
     end
 
+    clear_config([:instance, :limit_to_local_content])
+
     test "finds utf8 text in statuses", %{
       japanese_activity: japanese_activity,
       user: user
@@ -166,7 +168,6 @@ defmodule Pleroma.ActivityTest do
          %{local_activity: local_activity} do
       Pleroma.Config.put([:instance, :limit_to_local_content], :all)
       assert [^local_activity] = Activity.search(nil, "find me")
-      Pleroma.Config.put([:instance, :limit_to_local_content], :unauthenticated)
     end
 
     test "find all statuses for unauthenticated users when `limit_to_local_content` is `false`",
@@ -179,8 +180,6 @@ defmodule Pleroma.ActivityTest do
       activities = Enum.sort_by(Activity.search(nil, "find me"), & &1.id)
 
       assert [^local_activity, ^remote_activity] = activities
-
-      Pleroma.Config.put([:instance, :limit_to_local_content], :unauthenticated)
     end
   end
 

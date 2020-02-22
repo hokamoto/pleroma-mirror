@@ -7,6 +7,8 @@ defmodule Pleroma.Federation.ActivityPub.MRF.MentionPolicyTest do
 
   alias Pleroma.Federation.ActivityPub.MRF.MentionPolicy
 
+  clear_config(:mrf_mention)
+
   test "pass filter if allow list is empty" do
     Pleroma.Config.delete([:mrf_mention])
 
