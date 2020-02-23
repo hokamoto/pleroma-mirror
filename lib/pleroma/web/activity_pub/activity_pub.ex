@@ -19,6 +19,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   alias Pleroma.Web.ActivityPub.MRF
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.ActivityPub.Utils
+  alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.Streamer
   alias Pleroma.Web.WebFinger
   alias Pleroma.Workers.BackgroundWorker
@@ -124,6 +125,22 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   def increase_poll_votes_if_vote(_create_data), do: :noop
 
+  @spec persist(map(), keyword()) :: {:ok, Activity.t() | Object.t()}
+  def persist(object, meta) do
+    local = Keyword.fetch!(meta, :local)
+    {recipients, _, _} = get_recipients(object)
+
+    with {:ok, activity} <-
+           Repo.insert(%Activity{
+             data: object,
+             local: local,
+             recipients: recipients,
+             actor: object["actor"]
+           }) do
+      {:ok, activity, meta}
+    end
+  end
+
   def insert(map, local \\ true, fake \\ false, bypass_actor_check \\ false) when is_map(map) do
     with nil <- Activity.normalize(map),
          map <- lazy_put_activity_defaults(map, fake),
@@ -131,6 +148,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
          {_, true} <- {:remote_limit_error, check_remote_limit(map)},
          {:ok, map} <- MRF.filter(map),
          {recipients, _, _} = get_recipients(map),
+         # ???
          {:fake, false, map, recipients} <- {:fake, fake, map, recipients},
          {:containment, :ok} <- {:containment, Containment.contain_child(map)},
          {:ok, map, object} <- insert_full_object(map) do
@@ -174,6 +192,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
         Pleroma.Web.RichMedia.Helpers.fetch_data_for_activity(activity)
         {:ok, activity}
+
+      {:error, error} ->
+        {:error, error}
 
       error ->
         {:error, error}
@@ -231,7 +252,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     :noop
   end
 
-  def create(%{to: to, actor: actor, context: context, object: object} = params, fake \\ false) do
+  def create(params, fake \\ false)
+
+  def create(%{to: to, actor: actor, context: context, object: object} = params, fake) do
     additional = params[:additional] || %{}
     # only accept false as false value
     local = !(params[:local] == false)
@@ -258,8 +281,8 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
       {:fake, true, activity} ->
         {:ok, activity}
 
-      {:error, message} ->
-        {:error, message}
+      {:error, error} ->
+        {:error, error}
     end
   end
 
@@ -352,22 +375,17 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     end
   end
 
-  # TODO: This is weird, maybe we shouldn't check here if we can make the activity.
   def like(
         %User{ap_id: ap_id} = user,
-        %Object{data: %{"id" => _}} = object,
-        activity_id \\ nil,
-        local \\ true
+        %Object{data: %{"id" => _}} = object
       ) do
     with nil <- get_existing_like(ap_id, object),
-         like_data <- make_like_data(user, object, activity_id),
-         {:ok, activity} <- insert(like_data, local),
-         {:ok, object} <- add_like_to_object(activity, object),
-         :ok <- maybe_federate(activity) do
-      {:ok, activity, object}
+         {:ok, %Activity{} = activity, _} <- CommonAPI.favorite(user, object) do
+      like_object = Object.normalize(activity)
+      {:ok, activity, like_object}
     else
       %Activity{} = activity -> {:ok, activity, object}
-      error -> {:error, error}
+      e -> e
     end
   end
 

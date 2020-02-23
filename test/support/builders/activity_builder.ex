@@ -10,8 +10,11 @@ defmodule Pleroma.Builders.ActivityBuilder do
       "to" => ["https://www.w3.org/ns/activitystreams#Public"],
       "type" => "Create",
       "object" => %{
+        "id" => Pleroma.Web.ActivityPub.Utils.generate_object_id(),
+        "actor" => user.ap_id,
         "type" => "Note",
         "content" => "test",
+        "context" => "2hu",
         "to" => ["https://www.w3.org/ns/activitystreams#Public"]
       }
     }

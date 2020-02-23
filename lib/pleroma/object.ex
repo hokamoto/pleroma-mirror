@@ -11,6 +11,7 @@ defmodule Pleroma.Object do
   alias Pleroma.ObjectTombstone
   alias Pleroma.Repo
   alias Pleroma.User
+  alias Pleroma.Web.ActivityPub.ObjectValidator
 
   import Ecto.Query
   import Ecto.Changeset
@@ -45,15 +46,31 @@ defmodule Pleroma.Object do
   end
 
   def create(data) do
-    Object.change(%Object{}, %{data: data})
+    %Object{}
+    |> Object.change(%{data: data})
     |> Repo.insert()
   end
 
   def change(struct, params \\ %{}) do
-    struct
-    |> cast(params, [:data])
-    |> validate_required([:data])
-    |> unique_constraint(:ap_id, name: :objects_unique_apid_index)
+    changeset =
+      struct
+      |> cast(params, [:data])
+      |> validate_required([:data])
+      |> unique_constraint(:ap_id, name: :objects_unique_apid_index)
+
+    with {:ok, _object, _meta} <-
+           changeset
+           |> get_field(:data)
+           |> ObjectValidator.validate([]) do
+      changeset
+    else
+      {:error, error_changeset} ->
+        Enum.reduce(
+          error_changeset.errors,
+          changeset,
+          fn {key, {msg, _opts}}, changeset -> add_error(changeset, :data, "#{key} #{msg}") end
+        )
+    end
   end
 
   def get_by_id(nil), do: nil

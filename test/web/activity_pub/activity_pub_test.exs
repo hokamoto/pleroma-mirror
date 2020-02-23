@@ -396,7 +396,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
           object: %{
             "to" => ["user1", "user1", "user2"],
             "type" => "Note",
-            "content" => "testing"
+            "actor" => user.ap_id,
+            "content" => "testing",
+            "context" => "context"
           }
         })
 
@@ -1284,12 +1286,15 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       {:ok, object} =
         object
         |> Object.change(%{
-          data: %{
-            "actor" => object.data["actor"],
-            "id" => object.data["id"],
-            "to" => [user.ap_id],
-            "type" => "Note"
-          }
+          data:
+            Map.merge(
+              object.data,
+              %{
+                "actor" => object.data["actor"],
+                "id" => object.data["id"],
+                "to" => [user.ap_id]
+              }
+            )
         })
         |> Object.update_and_set_cache()
 
@@ -1709,14 +1714,14 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       {:ok, a4} = CommonAPI.post(user2, %{"status" => "Agent Smith "})
       {:ok, a5} = CommonAPI.post(user1, %{"status" => "Red or Blue "})
 
-      {:ok, _, _} = CommonAPI.favorite(a4.id, user)
-      {:ok, _, _} = CommonAPI.favorite(a3.id, other_user)
-      {:ok, _, _} = CommonAPI.favorite(a3.id, user)
-      {:ok, _, _} = CommonAPI.favorite(a5.id, other_user)
-      {:ok, _, _} = CommonAPI.favorite(a5.id, user)
-      {:ok, _, _} = CommonAPI.favorite(a4.id, other_user)
-      {:ok, _, _} = CommonAPI.favorite(a1.id, user)
-      {:ok, _, _} = CommonAPI.favorite(a1.id, other_user)
+      {:ok, _, _} = CommonAPI.favorite(user, a4.id)
+      {:ok, _, _} = CommonAPI.favorite(other_user, a3.id)
+      {:ok, _, _} = CommonAPI.favorite(user, a3.id)
+      {:ok, _, _} = CommonAPI.favorite(other_user, a5.id)
+      {:ok, _, _} = CommonAPI.favorite(user, a5.id)
+      {:ok, _, _} = CommonAPI.favorite(other_user, a4.id)
+      {:ok, _, _} = CommonAPI.favorite(user, a1.id)
+      {:ok, _, _} = CommonAPI.favorite(other_user, a1.id)
       result = ActivityPub.fetch_favourites(user)
 
       assert Enum.map(result, & &1.id) == [a1.id, a5.id, a3.id, a4.id]

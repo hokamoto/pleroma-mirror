@@ -14,6 +14,8 @@ defmodule Pleroma.NotificationTest do
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.Streamer
 
+  import ExUnit.CaptureLog
+
   describe "create_notifications" do
     test "creates a notification for an emoji reaction" do
       user = insert(:user)
@@ -455,7 +457,7 @@ defmodule Pleroma.NotificationTest do
           "status" => "hey @#{other_user.nickname}!"
         })
 
-      {:ok, activity_two, _} = CommonAPI.favorite(activity_one.id, third_user)
+      {:ok, activity_two, _} = CommonAPI.favorite(third_user, activity_one.id)
 
       assert other_user not in Notification.get_notified_from_activity(activity_two)
     end
@@ -485,7 +487,7 @@ defmodule Pleroma.NotificationTest do
 
       assert Enum.empty?(Notification.for_user(user))
 
-      {:ok, _, _} = CommonAPI.favorite(activity.id, other_user)
+      {:ok, _, _} = CommonAPI.favorite(other_user, activity.id)
 
       assert length(Notification.for_user(user)) == 1
 
@@ -502,7 +504,7 @@ defmodule Pleroma.NotificationTest do
 
       assert Enum.empty?(Notification.for_user(user))
 
-      {:ok, _, _} = CommonAPI.favorite(activity.id, other_user)
+      {:ok, _, _} = CommonAPI.favorite(other_user, activity.id)
 
       assert length(Notification.for_user(user)) == 1
 
@@ -557,7 +559,9 @@ defmodule Pleroma.NotificationTest do
 
       assert Enum.empty?(Notification.for_user(user))
 
-      {:error, _} = CommonAPI.favorite(activity.id, other_user)
+      assert capture_log(fn ->
+               {:error, _} = CommonAPI.favorite(other_user, activity.id)
+             end) =~ "[error]"
 
       assert Enum.empty?(Notification.for_user(user))
     end

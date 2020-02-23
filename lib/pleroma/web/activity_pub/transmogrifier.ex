@@ -13,6 +13,9 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
+  alias Pleroma.Web.ActivityPub.ObjectValidator
+  alias Pleroma.Web.ActivityPub.ObjectValidators.LikeValidator
+  alias Pleroma.Web.ActivityPub.Pipeline
   alias Pleroma.Web.ActivityPub.Utils
   alias Pleroma.Web.ActivityPub.Visibility
   alias Pleroma.Web.Federator
@@ -28,17 +31,17 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   """
   def fix_object(object, options \\ []) do
     object
-    |> strip_internal_fields
-    |> fix_actor
-    |> fix_url
-    |> fix_attachments
-    |> fix_context
+    |> strip_internal_fields()
+    |> fix_actor()
+    |> fix_url()
+    |> fix_attachments()
+    |> fix_context()
     |> fix_in_reply_to(options)
-    |> fix_emoji
-    |> fix_tag
-    |> fix_content_map
-    |> fix_addressing
-    |> fix_summary
+    |> fix_emoji()
+    |> fix_tag()
+    |> fix_content_map()
+    |> fix_addressing()
+    |> fix_summary()
     |> fix_type(options)
   end
 
@@ -401,8 +404,9 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     actor = Containment.get_actor(data)
 
     data =
-      Map.put(data, "actor", actor)
-      |> fix_addressing
+      data
+      |> Map.put("actor", actor)
+      |> fix_addressing()
 
     with nil <- Activity.get_create_by_object_ap_id(object["id"]),
          {:ok, %User{} = user} <- User.get_or_fetch_by_ap_id(data["actor"]) do
@@ -594,17 +598,22 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     |> handle_incoming(options)
   end
 
-  def handle_incoming(
-        %{"type" => "Like", "object" => object_id, "actor" => _actor, "id" => id} = data,
-        _options
-      ) do
-    with actor <- Containment.get_actor(data),
-         {:ok, %User{} = actor} <- User.get_or_fetch_by_ap_id(actor),
-         {:ok, object} <- get_obj_helper(object_id),
-         {:ok, activity, _object} <- ActivityPub.like(actor, object, id, false) do
+  def handle_incoming(%{"type" => "Like"} = data, _options) do
+    with {_, {:ok, cast_data_sym}} <-
+           {:casting_data,
+            data |> LikeValidator.cast_data() |> Ecto.Changeset.apply_action(:insert)},
+         {_, cast_data} <-
+           {:stringify_keys,
+            cast_data_sym |> Map.from_struct() |> ObjectValidator.stringify_keys()},
+         :ok <- ObjectValidator.fetch_actor_and_object(cast_data),
+         {_, {:ok, cast_data}} <- {:maybe_add_context, maybe_add_context_from_object(cast_data)},
+         {_, {:ok, cast_data}} <-
+           {:maybe_add_recipients, maybe_add_recipients_from_object(cast_data)},
+         {_, {:ok, activity, _meta}} <-
+           {:common_pipeline, Pipeline.common_pipeline(cast_data, local: false)} do
       {:ok, activity}
     else
-      _e -> :error
+      e -> {:error, e}
     end
   end
 
@@ -906,17 +915,17 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   # Prepares the object of an outgoing create activity.
   def prepare_object(object) do
     object
-    |> set_sensitive
-    |> add_hashtags
-    |> add_mention_tags
-    |> add_emoji_tags
-    |> add_attributed_to
-    |> prepare_attachments
-    |> set_conversation
-    |> set_reply_to_uri
-    |> strip_internal_fields
-    |> strip_internal_tags
-    |> set_type
+    |> set_sensitive()
+    |> add_hashtags()
+    |> add_mention_tags()
+    |> add_emoji_tags()
+    |> add_attributed_to()
+    |> prepare_attachments()
+    |> set_conversation()
+    |> set_reply_to_uri()
+    |> strip_internal_fields()
+    |> strip_internal_tags()
+    |> set_type()
   end
 
   #  @doc
@@ -930,7 +939,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
       object_id
       |> Object.normalize()
       |> Map.get(:data)
-      |> prepare_object
+      |> prepare_object()
 
     data =
       data
@@ -950,12 +959,12 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
       if Visibility.is_private?(object) && object.data["actor"] == ap_id do
         data |> Map.put("object", object |> Map.get(:data) |> prepare_object)
       else
-        data |> maybe_fix_object_url
+        maybe_fix_object_url(data)
       end
 
     data =
       data
-      |> strip_internal_fields
+      |> strip_internal_fields()
       |> Map.merge(Utils.make_json_ld_header())
       |> Map.delete("bcc")
 
@@ -1003,8 +1012,8 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   def prepare_outgoing(%{"type" => _type} = data) do
     data =
       data
-      |> strip_internal_fields
-      |> maybe_fix_object_url
+      |> strip_internal_fields()
+      |> maybe_fix_object_url()
       |> Map.merge(Utils.make_json_ld_header())
 
     {:ok, data}
@@ -1029,9 +1038,15 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   def maybe_fix_object_url(data), do: data
 
   def add_hashtags(object) do
-    tags =
-      (object["tag"] || [])
-      |> Enum.map(fn
+    tags = as2_tags(object["tag"] || [])
+    Map.put(object, "tag", tags)
+  end
+
+  @doc "Converts `tag` list to ActivityStreams 2.0 format"
+  def as2_tags(tags) when is_list(tags) do
+    Enum.map(
+      tags,
+      fn
         # Expand internal representation tags into AS2 tags.
         tag when is_binary(tag) ->
           %{
@@ -1043,9 +1058,8 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
         # Do not process tags which are already AS2 tag objects.
         tag when is_map(tag) ->
           tag
-      end)
-
-    Map.put(object, "tag", tags)
+      end
+    )
   end
 
   def add_mention_tags(object) do
@@ -1185,4 +1199,47 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
   def maybe_fix_user_url(data), do: data
 
   def maybe_fix_user_object(data), do: maybe_fix_user_url(data)
+
+  defp maybe_add_context_from_object(%{"context" => context} = data) when is_binary(context),
+    do: {:ok, data}
+
+  defp maybe_add_context_from_object(%{"object" => object} = data) when is_binary(object) do
+    if object = Object.normalize(object) do
+      data =
+        data
+        |> Map.put("context", object.data["context"])
+
+      {:ok, data}
+    else
+      {:error, "No context on referenced object"}
+    end
+  end
+
+  defp maybe_add_context_from_object(_) do
+    {:error, "No referenced object"}
+  end
+
+  defp maybe_add_recipients_from_object(%{"object" => object} = data) do
+    to = data["to"] || []
+    cc = data["cc"] || []
+
+    if to == [] && cc == [] do
+      if object = Object.normalize(object) do
+        data =
+          data
+          |> Map.put("to", [object.data["actor"]])
+          |> Map.put("cc", cc)
+
+        {:ok, data}
+      else
+        {:error, "No actor on referenced object"}
+      end
+    else
+      {:ok, data}
+    end
+  end
+
+  defp maybe_add_recipients_from_object(_) do
+    {:error, "No referenced object"}
+  end
 end
