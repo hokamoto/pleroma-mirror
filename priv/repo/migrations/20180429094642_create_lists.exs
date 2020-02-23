@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.CreateLists do
+defmodule Pleroma.Repo.Migrations.CreateLists do
   use Ecto.Migration
 
   def change do

@@ -1,9 +1,9 @@
-defmodule Pleroma.Storage.Repo.Migrations.FixBlockedFollows do
+defmodule Pleroma.Repo.Migrations.FixBlockedFollows do
   use Ecto.Migration
 
   import Ecto.Query
   alias Pleroma.Config
-  alias Pleroma.Storage.Repo
+  alias Pleroma.Repo
 
   def up do
     unfollow_blocked = Config.get([:activitypub, :unfollow_blocked])

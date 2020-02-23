@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddNonFollowsAndNonFollowersFieldsToNotificationSettings do
+defmodule Pleroma.Repo.Migrations.AddNonFollowsAndNonFollowersFieldsToNotificationSettings do
   use Ecto.Migration
 
   def up do

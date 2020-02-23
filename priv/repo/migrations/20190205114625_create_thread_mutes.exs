@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.CreateThreadMutes do
+defmodule Pleroma.Repo.Migrations.CreateThreadMutes do
   use Ecto.Migration
 
   def change do

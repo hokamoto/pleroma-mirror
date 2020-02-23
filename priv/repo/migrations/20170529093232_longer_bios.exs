@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.LongerBios do
+defmodule Pleroma.Repo.Migrations.LongerBios do
   use Ecto.Migration
 
   def up do

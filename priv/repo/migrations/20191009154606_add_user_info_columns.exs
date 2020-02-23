@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddUsersInfoColumns do
+defmodule Pleroma.Repo.Migrations.AddUsersInfoColumns do
   use Ecto.Migration
 
   @jsonb_array_default "'[]'::jsonb"

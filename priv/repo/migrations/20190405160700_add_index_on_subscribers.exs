@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddIndexOnSubscribers do
+defmodule Pleroma.Repo.Migrations.AddIndexOnSubscribers do
   use Ecto.Migration
 
   @disable_ddl_transaction true

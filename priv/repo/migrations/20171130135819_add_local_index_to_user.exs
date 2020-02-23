@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddLocalIndexToUser do
+defmodule Pleroma.Repo.Migrations.AddLocalIndexToUser do
   use Ecto.Migration
 
   def change do

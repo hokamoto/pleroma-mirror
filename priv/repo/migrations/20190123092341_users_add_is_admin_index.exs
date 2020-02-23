@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.UsersAddIsAdminIndex do
+defmodule Pleroma.Repo.Migrations.UsersAddIsAdminIndex do
   use Ecto.Migration
 
   def change do

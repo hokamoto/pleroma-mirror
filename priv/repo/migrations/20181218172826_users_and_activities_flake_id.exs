@@ -1,9 +1,9 @@
-defmodule Pleroma.Storage.Repo.Migrations.UsersAndActivitiesFlakeId do
+defmodule Pleroma.Repo.Migrations.UsersAndActivitiesFlakeId do
   use Ecto.Migration
   alias Pleroma.Clippy
   require Integer
   import Ecto.Query
-  alias Pleroma.Storage.Repo
+  alias Pleroma.Repo
 
   # This migrates from int serial IDs to custom Flake:
   #   1- create a temporary uuid column

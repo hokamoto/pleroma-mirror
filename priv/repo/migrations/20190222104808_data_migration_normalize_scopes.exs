@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.DataMigrationNormalizeScopes do
+defmodule Pleroma.Repo.Migrations.DataMigrationNormalizeScopes do
   use Ecto.Migration
 
   def up do

@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.UsersAddIsModeratorIndex do
+defmodule Pleroma.Repo.Migrations.UsersAddIsModeratorIndex do
   use Ecto.Migration
 
   def change do

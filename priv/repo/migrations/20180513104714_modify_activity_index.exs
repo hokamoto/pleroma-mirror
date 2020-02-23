@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.ModifyActivityIndex do
+defmodule Pleroma.Repo.Migrations.ModifyActivityIndex do
   use Ecto.Migration
   @disable_ddl_transaction true
 

@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddTrigramExtension do
+defmodule Pleroma.Repo.Migrations.AddTrigramExtension do
   use Ecto.Migration
   require Logger
 

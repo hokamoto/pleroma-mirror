@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddKeysColumn do
+defmodule Pleroma.Repo.Migrations.AddKeysColumn do
   use Ecto.Migration
 
   def change do

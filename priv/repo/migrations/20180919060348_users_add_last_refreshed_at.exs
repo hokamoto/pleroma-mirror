@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.UsersAddLastRefreshedAt do
+defmodule Pleroma.Repo.Migrations.UsersAddLastRefreshedAt do
   use Ecto.Migration
 
   def change do

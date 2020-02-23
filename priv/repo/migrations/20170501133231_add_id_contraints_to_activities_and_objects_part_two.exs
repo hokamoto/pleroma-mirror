@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddIdContraintsToActivitiesAndObjectsPartTwo do
+defmodule Pleroma.Repo.Migrations.AddIdContraintsToActivitiesAndObjectsPartTwo do
   use Ecto.Migration
 
   def up do

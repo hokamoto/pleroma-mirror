@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.SetDefaultStateToReports do
+defmodule Pleroma.Repo.Migrations.SetDefaultStateToReports do
   use Ecto.Migration
 
   def up do

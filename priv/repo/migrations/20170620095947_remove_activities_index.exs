@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.RemoveActivitiesIndex do
+defmodule Pleroma.Repo.Migrations.RemoveActivitiesIndex do
   use Ecto.Migration
 
   def change do

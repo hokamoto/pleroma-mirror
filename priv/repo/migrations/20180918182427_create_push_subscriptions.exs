@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.CreatePushSubscriptions do
+defmodule Pleroma.Repo.Migrations.CreatePushSubscriptions do
   use Ecto.Migration
 
   def change do

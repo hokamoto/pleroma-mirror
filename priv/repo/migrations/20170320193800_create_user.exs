@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.CreatePleroma.User do
+defmodule Pleroma.Repo.Migrations.CreatePleroma.User do
   use Ecto.Migration
 
   def change do

@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.CreateSafeJsonbSet do
+defmodule Pleroma.Repo.Migrations.CreateSafeJsonbSet do
   use Ecto.Migration
 
   def change do

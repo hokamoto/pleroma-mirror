@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddActorIndexToActivity do
+defmodule Pleroma.Repo.Migrations.AddActorIndexToActivity do
   use Ecto.Migration
 
   def change do

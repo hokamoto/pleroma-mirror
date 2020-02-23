@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddObjectInReplyToIndex do
+defmodule Pleroma.Repo.Migrations.AddObjectInReplyToIndex do
   use Ecto.Migration
 
   def change do

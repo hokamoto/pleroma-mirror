@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.FixInfoIds do
+defmodule Pleroma.Repo.Migrations.FixInfoIds do
   use Ecto.Migration
 
   def up do

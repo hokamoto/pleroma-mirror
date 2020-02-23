@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddRefreshTokenIndexToToken do
+defmodule Pleroma.Repo.Migrations.AddRefreshTokenIndexToToken do
   use Ecto.Migration
 
   def change do

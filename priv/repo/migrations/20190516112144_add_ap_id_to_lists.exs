@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddApIdToLists do
+defmodule Pleroma.Repo.Migrations.AddApIdToLists do
   use Ecto.Migration
 
   def up do

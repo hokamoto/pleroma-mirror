@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.CreateNotifications do
+defmodule Pleroma.Repo.Migrations.CreateNotifications do
   use Ecto.Migration
 
   def change do

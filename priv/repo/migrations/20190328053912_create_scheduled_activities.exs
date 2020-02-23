@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.CreateScheduledActivities do
+defmodule Pleroma.Repo.Migrations.CreateScheduledActivities do
   use Ecto.Migration
 
   def change do

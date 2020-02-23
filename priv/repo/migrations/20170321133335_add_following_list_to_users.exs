@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddFollowingListToUsers do
+defmodule Pleroma.Repo.Migrations.AddFollowingListToUsers do
   use Ecto.Migration
 
   def change do

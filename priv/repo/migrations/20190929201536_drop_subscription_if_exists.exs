@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.DropSubscriptionIfExists do
+defmodule Pleroma.Repo.Migrations.DropSubscriptionIfExists do
   use Ecto.Migration
 
   def change do

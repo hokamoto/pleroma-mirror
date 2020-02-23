@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.SetNotNullForUserInviteTokens do
+defmodule Pleroma.Repo.Migrations.SetNotNullForUserInviteTokens do
   use Ecto.Migration
 
   # modify/3 function will require index recreation, so using execute/1 instead

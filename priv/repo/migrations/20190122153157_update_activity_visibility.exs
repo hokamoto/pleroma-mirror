@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.UpdateActivityVisibility do
+defmodule Pleroma.Repo.Migrations.UpdateActivityVisibility do
   use Ecto.Migration
   @disable_ddl_transaction true
 

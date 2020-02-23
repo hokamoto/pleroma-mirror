@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddListFollowIndex do
+defmodule Pleroma.Repo.Migrations.AddListFollowIndex do
   use Ecto.Migration
 
   def change do

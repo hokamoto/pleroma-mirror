@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddContextIndex do
+defmodule Pleroma.Repo.Migrations.AddContextIndex do
   use Ecto.Migration
   @disable_ddl_transaction true
   @disable_migration_lock true

@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.CreateUserFtsIndex do
+defmodule Pleroma.Repo.Migrations.CreateUserFtsIndex do
   use Ecto.Migration
 
   def change do

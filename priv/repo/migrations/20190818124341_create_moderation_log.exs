@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.CreateModerationLog do
+defmodule Pleroma.Repo.Migrations.CreateModerationLog do
   use Ecto.Migration
 
   def change do

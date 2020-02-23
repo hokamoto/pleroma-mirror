@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.ChangeAppsScopesToVarcharArray do
+defmodule Pleroma.Repo.Migrations.ChangeAppsScopesToVarcharArray do
   use Ecto.Migration
 
   @alter_apps_scopes "ALTER TABLE apps ALTER COLUMN scopes"

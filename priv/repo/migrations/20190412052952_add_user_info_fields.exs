@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddEmailNotificationsToUserInfo do
+defmodule Pleroma.Repo.Migrations.AddEmailNotificationsToUserInfo do
   use Ecto.Migration
 
   def up do

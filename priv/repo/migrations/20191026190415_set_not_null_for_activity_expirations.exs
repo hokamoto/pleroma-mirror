@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.SetNotNullForActivityExpirations do
+defmodule Pleroma.Repo.Migrations.SetNotNullForActivityExpirations do
   use Ecto.Migration
 
   # modify/3 function will require index recreation, so using execute/1 instead

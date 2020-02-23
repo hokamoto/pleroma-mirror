@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.SplitHideNetwork do
+defmodule Pleroma.Repo.Migrations.SplitHideNetwork do
   use Ecto.Migration
 
   def up do

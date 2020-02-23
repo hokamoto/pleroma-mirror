@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddLikesIndexToObjects do
+defmodule Pleroma.Repo.Migrations.AddLikesIndexToObjects do
   use Ecto.Migration
 
   def change do

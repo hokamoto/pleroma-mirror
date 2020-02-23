@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.SetNotNullForConversationParticipations do
+defmodule Pleroma.Repo.Migrations.SetNotNullForConversationParticipations do
   use Ecto.Migration
 
   # modify/3 function will require index recreation, so using execute/1 instead

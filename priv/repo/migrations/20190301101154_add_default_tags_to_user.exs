@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddDefaultTagsToUser do
+defmodule Pleroma.Repo.Migrations.AddDefaultTagsToUser do
   use Ecto.Migration
 
   def up do

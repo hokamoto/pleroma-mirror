@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.ChangeHideColumnInFilterTable do
+defmodule Pleroma.Repo.Migrations.ChangeHideColumnInFilterTable do
   use Ecto.Migration
 
   def up do

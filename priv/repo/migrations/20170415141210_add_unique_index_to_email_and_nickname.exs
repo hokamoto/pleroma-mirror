@@ -1,4 +1,4 @@
-defmodule Pleroma.Storage.Repo.Migrations.AddUniqueIndexToEmailAndNickname do
+defmodule Pleroma.Repo.Migrations.AddUniqueIndexToEmailAndNickname do
   use Ecto.Migration
 
   def change do
