@@ -13,8 +13,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   alias Pleroma.Federation.ActivityPub
   alias Pleroma.Federation.ActivityPub.Relay
   alias Pleroma.Federation.ActivityPub.Utils
+  alias Pleroma.Healthcheck.Stats
   alias Pleroma.ModerationLog
-  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.Storage.ReportNote
   alias Pleroma.User
   alias Pleroma.UserInviteToken
@@ -27,6 +27,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.Endpoint
   alias Pleroma.Web.MastodonAPI.StatusView
+  alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.Web.Router
 
   require Logger
@@ -98,7 +99,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   plug(
     OAuthScopesPlug,
     %{scopes: ["read"], admin: true}
-    when action in [:config_show, :list_log]
+    when action in [:config_show, :list_log, :stats]
   )
 
   plug(
@@ -951,6 +952,13 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     })
 
     conn |> json("")
+  end
+
+  def stats(conn, _) do
+    count = Stats.get_status_visibility_count()
+
+    conn
+    |> json(%{"status_visibility" => count})
   end
 
   def errors(conn, {:error, :not_found}) do

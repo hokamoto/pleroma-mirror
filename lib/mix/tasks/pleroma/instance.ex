@@ -7,6 +7,8 @@ defmodule Mix.Tasks.Pleroma.Instance do
   import Mix.Pleroma
   alias Pleroma.Crypto
 
+  alias Pleroma.Config
+
   @shortdoc "Manages Pleroma instance"
   @moduledoc File.read!("docs/administration/CLI_tasks/instance.md")
 
@@ -154,9 +156,12 @@ defmodule Mix.Tasks.Pleroma.Instance do
           Pleroma.Config.get([:instance, :static_dir])
         )
 
+      Config.put([:instance, :static_dir], static_dir)
+
       secret = 64 |> Crypto.random_string() |> binary_part(0, 64)
       jwt_secret = 64 |> Crypto.random_string() |> binary_part(0, 64)
       signing_salt = 8 |> Crypto.random_string() |> binary_part(0, 8)
+
       {web_push_public_key, web_push_private_key} = :crypto.generate_key(:ecdh, :prime256v1)
       template_dir = Application.app_dir(:pleroma, "priv") <> "/templates"
 
