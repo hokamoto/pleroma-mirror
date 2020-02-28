@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
@@ -13,6 +13,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
 
   def register_user(params, opts \\ []) do
     token = params["token"]
+    trusted_app? = params["trusted_app"]
 
     params = %{
       nickname: params["nickname"],
@@ -29,7 +30,7 @@ defmodule Pleroma.Web.TwitterAPI.TwitterAPI do
     captcha_enabled = Pleroma.Config.get([Pleroma.Captcha, :enabled])
     # true if captcha is disabled or enabled and valid, false otherwise
     captcha_ok =
-      if not captcha_enabled do
+      if trusted_app? || not captcha_enabled do
         :ok
       else
         Pleroma.Captcha.validate(

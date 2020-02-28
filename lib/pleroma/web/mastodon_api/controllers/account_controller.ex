@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MastodonAPI.AccountController do
@@ -92,6 +92,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountController do
       |> Map.put("fullname", params["fullname"] || nickname)
       |> Map.put("bio", params["bio"] || "")
       |> Map.put("confirm", params["password"])
+      |> Map.put("trusted_app", app.trusted)
 
     with {:ok, user} <- TwitterAPI.register_user(params, need_confirmation: true),
          {:ok, token} <- Token.create_token(app, user, %{scopes: app.scopes}) do
