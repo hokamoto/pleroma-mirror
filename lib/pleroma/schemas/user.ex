@@ -854,14 +854,14 @@ defmodule Pleroma.User do
   @spec get_followers_query(User.t()) :: Ecto.Query.t()
   def get_followers_query(user), do: get_followers_query(user, nil)
 
-  @spec get_followers(User.t(), pos_integer()) :: {:ok, list(User.t())}
+  @spec get_followers(User.t(), pos_integer() | nil) :: {:ok, list(User.t())}
   def get_followers(user, page \\ nil) do
     user
     |> get_followers_query(page)
     |> Repo.all()
   end
 
-  @spec get_external_followers(User.t(), pos_integer()) :: {:ok, list(User.t())}
+  @spec get_external_followers(User.t(), pos_integer() | nil) :: {:ok, list(User.t())}
   def get_external_followers(user, page \\ nil) do
     user
     |> get_followers_query(page)
@@ -1305,7 +1305,6 @@ defmodule Pleroma.User do
     Repo.delete(user)
   end
 
-  @spec perform(atom(), User.t()) :: {:ok, User.t()}
   def perform(:fetch_initial_posts, %User{} = user) do
     pages = Pleroma.Config.get!([:fetch_initial_posts, :pages])
 
@@ -1337,7 +1336,6 @@ defmodule Pleroma.User do
     )
   end
 
-  @spec perform(atom(), User.t(), list()) :: list() | {:error, any()}
   def perform(:follow_import, %User{} = follower, followed_identifiers)
       when is_list(followed_identifiers) do
     Enum.map(

@@ -1,11 +1,12 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.Push.ImplTest do
   use Pleroma.DataCase
 
   alias Pleroma.Object
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.Push.Impl
@@ -95,7 +96,15 @@ defmodule Pleroma.Web.Push.ImplTest do
              subscription
            ) == :ok
 
-    refute Pleroma.Storage.Repo.get(Subscription, subscription.id)
+    refute Repo.get(Subscription, subscription.id)
+  end
+
+  test "deletes subscription when token has been deleted" do
+    subscription = insert(:push_subscription)
+
+    Repo.delete(subscription.token)
+
+    refute Repo.get(Subscription, subscription.id)
   end
 
   test "renders title and body for create activity" do
