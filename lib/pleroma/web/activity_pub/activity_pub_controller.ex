@@ -480,17 +480,19 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
     {new_user, for_user}
   end
 
-  # TODO: Add support for "object" field
   @doc """
   Endpoint based on <https://www.w3.org/wiki/SocialCG/ActivityPub/MediaUpload>
 
   Parameters:
   - (required) `file`: data of the media
-  - (optionnal) `description`: description of the media, intended for accessibility
+  - (optional) `object`: object which will be used as a base for the response
+  - (optional) `description`: description of the media, intended for accessibility
 
   Response:
   - HTTP Code: 201 Created
   - HTTP Body: ActivityPub object to be inserted into another's `attachment` field
+
+  Note: Will not point to a URL with a `Location` header because no standalone Activity has been created
   """
   def upload_media(%{assigns: %{user: user}} = conn, %{"file" => file} = data) do
     with {:ok, object} <-
@@ -499,11 +501,24 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubController do
              actor: User.ap_id(user),
              description: Map.get(data, "description")
            ) do
-      Logger.debug(inspect(object))
+      object_data =
+        (data["object"] || %{})
+        |> Map.drop([
+          "attachment",
+          "attributedTo",
+          "audience",
+          "url",
+          "id",
+          "to",
+          "bto",
+          "cc",
+          "bcc"
+        ])
+        |> Map.merge(object.data)
 
       conn
       |> put_status(:created)
-      |> json(object.data)
+      |> json(object_data)
     end
   end
 end

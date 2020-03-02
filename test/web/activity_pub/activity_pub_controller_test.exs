@@ -1036,15 +1036,26 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubControllerTest do
         filename: "an_image.jpg"
       }
 
+      base_object = %{
+        "generator" => "#cofe machine",
+        "id" => "http://invalid.host/foo/bar"
+      }
+
       conn =
         conn
         |> assign(:user, user)
-        |> post("/api/ap/upload_media", %{"file" => image, "description" => desc})
+        |> post("/api/ap/upload_media", %{
+          "file" => image,
+          "description" => desc,
+          "object" => base_object
+        })
 
       assert object = json_response(conn, :created)
       assert object["name"] == desc
       assert object["type"] == "Document"
       assert object["actor"] == user.ap_id
+      assert object["generator"] == base_object["generator"]
+      refute object["id"] == base_object["id"]
     end
   end
 end
