@@ -1,5 +1,5 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MastodonAPI.TimelineController do
@@ -11,7 +11,18 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
   alias Pleroma.Federation.ActivityPub
   alias Pleroma.Storage.Page
   alias Pleroma.Web.OAuthScopesPlug
+  alias Pleroma.Web.RateLimiterPlug
   alias Pleroma.User
+
+  # TODO: Replace with a macro when there is a Phoenix release with
+  # https://github.com/phoenixframework/phoenix/commit/2e8c63c01fec4dde5467dbbbf9705ff9e780735e
+  # in it
+
+  plug(RateLimiterPlug, [name: :timeline, bucket_name: :direct_timeline] when action == :direct)
+  plug(RateLimiterPlug, [name: :timeline, bucket_name: :public_timeline] when action == :public)
+  plug(RateLimiterPlug, [name: :timeline, bucket_name: :home_timeline] when action == :home)
+  plug(RateLimiterPlug, [name: :timeline, bucket_name: :hashtag_timeline] when action == :hashtag)
+  plug(RateLimiterPlug, [name: :timeline, bucket_name: :list_timeline] when action == :list)
 
   plug(OAuthScopesPlug, %{scopes: ["read:statuses"]} when action in [:home, :direct])
   plug(OAuthScopesPlug, %{scopes: ["read:lists"]} when action == :list)

@@ -1,16 +1,18 @@
 # Pleroma: A lightweight social networking server
-# Copyright © 2017-2019 Pleroma Authors <https://pleroma.social/>
+# Copyright © 2017-2020 Pleroma Authors <https://pleroma.social/>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
   use Pleroma.Web.ConnCase
 
+  alias Pleroma.Config
   alias Pleroma.Federation.ActivityPub
   alias Pleroma.Federation.ActivityPub.InternalFetchActor
   alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.OAuth.Token
+  alias Pleroma.Web.RemoteIPPlug
 
   import Pleroma.Factory
 
@@ -46,7 +48,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     end
 
     test "works by nickname for remote users" do
-      Pleroma.Config.put([:instance, :limit_to_local_content], false)
+      Config.put([:instance, :limit_to_local_content], false)
       user = insert(:user, nickname: "user@example.com", local: false)
 
       conn =
@@ -58,7 +60,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     end
 
     test "respects limit_to_local_content == :all for remote user nicknames" do
-      Pleroma.Config.put([:instance, :limit_to_local_content], :all)
+      Config.put([:instance, :limit_to_local_content], :all)
 
       user = insert(:user, nickname: "user@example.com", local: false)
 
@@ -70,7 +72,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     end
 
     test "respects limit_to_local_content == :unauthenticated for remote user nicknames" do
-      Pleroma.Config.put([:instance, :limit_to_local_content], :unauthenticated)
+      Config.put([:instance, :limit_to_local_content], :unauthenticated)
 
       user = insert(:user, nickname: "user@example.com", local: false)
       reading_user = insert(:user)
@@ -673,10 +675,48 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
       assert json_response(res, 400) == %{"error" => "{\"email\":[\"has already been taken\"]}"}
     end
 
-    clear_config([Pleroma.Plugs.RemoteIp, :enabled])
+    test "returns bad_request if missing required params", %{
+      conn: conn,
+      valid_params: valid_params
+    } do
+      app_token = insert(:oauth_token, user: nil)
 
-    test "rate limit", %{conn: conn} do
-      Pleroma.Config.put([Pleroma.Web.RemoteIPPlug, :enabled], true)
+      conn = put_req_header(conn, "authorization", "Bearer " <> app_token.token)
+
+      res = post(conn, "/api/v1/accounts", valid_params)
+      assert json_response(res, 200)
+
+      [{127, 0, 0, 1}, {127, 0, 0, 2}, {127, 0, 0, 3}, {127, 0, 0, 4}]
+      |> Stream.zip(valid_params)
+      |> Enum.each(fn {ip, {attr, _}} ->
+        res =
+          conn
+          |> Map.put(:remote_ip, ip)
+          |> post("/api/v1/accounts", Map.delete(valid_params, attr))
+          |> json_response(400)
+
+        assert res == %{"error" => "Missing parameters"}
+      end)
+    end
+
+    test "returns forbidden if token is invalid", %{conn: conn, valid_params: valid_params} do
+      conn = put_req_header(conn, "authorization", "Bearer " <> "invalid-token")
+
+      res = post(conn, "/api/v1/accounts", valid_params)
+      assert json_response(res, 403) == %{"error" => "Invalid credentials"}
+    end
+  end
+
+  describe "create account by app / rate limit" do
+    clear_config([RemoteIPPlug, :enabled]) do
+      Config.put([RemoteIPPlug, :enabled], true)
+    end
+
+    clear_config([:rate_limit, :app_account_creation]) do
+      Config.put([:rate_limit, :app_account_creation], {10_000, 2})
+    end
+
+    test "respects rate limit setting", %{conn: conn} do
       app_token = insert(:oauth_token, user: nil)
 
       conn =
@@ -684,7 +724,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
         |> put_req_header("authorization", "Bearer " <> app_token.token)
         |> Map.put(:remote_ip, {15, 15, 15, 15})
 
-      for i <- 1..5 do
+      for i <- 1..2 do
         conn =
           post(conn, "/api/v1/accounts", %{
             username: "#{i}lain",
@@ -717,37 +757,6 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
         })
 
       assert json_response(conn, :too_many_requests) == %{"error" => "Throttled"}
-    end
-
-    test "returns bad_request if missing required params", %{
-      conn: conn,
-      valid_params: valid_params
-    } do
-      app_token = insert(:oauth_token, user: nil)
-
-      conn = put_req_header(conn, "authorization", "Bearer " <> app_token.token)
-
-      res = post(conn, "/api/v1/accounts", valid_params)
-      assert json_response(res, 200)
-
-      [{127, 0, 0, 1}, {127, 0, 0, 2}, {127, 0, 0, 3}, {127, 0, 0, 4}]
-      |> Stream.zip(valid_params)
-      |> Enum.each(fn {ip, {attr, _}} ->
-        res =
-          conn
-          |> Map.put(:remote_ip, ip)
-          |> post("/api/v1/accounts", Map.delete(valid_params, attr))
-          |> json_response(400)
-
-        assert res == %{"error" => "Missing parameters"}
-      end)
-    end
-
-    test "returns forbidden if token is invalid", %{conn: conn, valid_params: valid_params} do
-      conn = put_req_header(conn, "authorization", "Bearer " <> "invalid-token")
-
-      res = post(conn, "/api/v1/accounts", valid_params)
-      assert json_response(res, 403) == %{"error" => "Invalid credentials"}
     end
   end
 
