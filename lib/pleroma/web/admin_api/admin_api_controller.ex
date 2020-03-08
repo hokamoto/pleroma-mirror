@@ -10,6 +10,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
   alias Pleroma.Activity
   alias Pleroma.Config
   alias Pleroma.ConfigDB
+  alias Pleroma.MFA
   alias Pleroma.ModerationLog
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.ReportNote
@@ -54,7 +55,8 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
            :tag_users,
            :untag_users,
            :right_add,
-           :right_delete
+           :right_delete,
+           :disable_mfa
          ]
   )
 
@@ -120,8 +122,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
       action: "delete"
     })
 
-    conn
-    |> json(nickname)
+    json(conn, nickname)
   end
 
   def user_delete(%{assigns: %{user: admin}} = conn, %{"nicknames" => nicknames}) do
@@ -656,6 +657,18 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIController do
     })
 
     json_response(conn, :no_content, "")
+  end
+
+  @doc "Disable mfa for user's account."
+  def disable_mfa(conn, %{"nickname" => nickname}) do
+    case User.get_by_nickname(nickname) do
+      %User{} = user ->
+        MFA.disable(user)
+        json(conn, nickname)
+
+      _ ->
+        {:error, :not_found}
+    end
   end
 
   def list_reports(conn, params) do

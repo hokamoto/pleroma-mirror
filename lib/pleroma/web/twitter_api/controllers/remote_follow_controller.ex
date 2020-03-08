@@ -8,10 +8,12 @@ defmodule Pleroma.Web.TwitterAPI.RemoteFollowController do
   require Logger
 
   alias Pleroma.Activity
+  alias Pleroma.MFA
   alias Pleroma.Object.Fetcher
   alias Pleroma.Plugs.OAuthScopesPlug
   alias Pleroma.User
   alias Pleroma.Web.Auth.Authenticator
+  alias Pleroma.Web.Auth.TOTPAuthenticator
   alias Pleroma.Web.CommonAPI
 
   @status_types ["Article", "Event", "Note", "Video", "Page", "Question"]
@@ -79,6 +81,21 @@ defmodule Pleroma.Web.TwitterAPI.RemoteFollowController do
   def do_follow(conn, %{"authorization" => %{"name" => _, "password" => _, "id" => id}}) do
     with {:fetch_user, %User{} = followee} <- {:fetch_user, User.get_cached_by_id(id)},
          {_, {:ok, user}, _} <- {:auth, Authenticator.get_user(conn), followee},
+         {:mfa_required, _, _, false} <- {:mfa_required, followee, user, MFA.require?(user)},
+         {:ok, _, _, _} <- CommonAPI.follow(user, followee) do
+      redirect(conn, to: "/users/#{followee.id}")
+    else
+      error ->
+        handle_follow_error(conn, error)
+    end
+  end
+
+  def do_follow(conn, %{"mfa" => %{"code" => code, "token" => token, "id" => id}}) do
+    with {:fetch_user, %User{} = followee} <- {:fetch_user, User.get_cached_by_id(id)},
+         {:mfa_token, _, {:ok, %{user: user}}} <-
+           {:mfa_token, followee, MFA.Token.validate(token)},
+         {:verify_mfa_code, _, _, {:ok, _}} <-
+           {:verify_mfa_code, followee, token, TOTPAuthenticator.verify(code, user)},
          {:ok, _, _, _} <- CommonAPI.follow(user, followee) do
       redirect(conn, to: "/users/#{followee.id}")
     else
@@ -90,6 +107,23 @@ defmodule Pleroma.Web.TwitterAPI.RemoteFollowController do
   def do_follow(%{assigns: %{user: nil}} = conn, _) do
     Logger.debug("Insufficient permissions: follow | write:follows.")
     render(conn, "followed.html", %{error: "Insufficient permissions: follow | write:follows."})
+  end
+
+  defp handle_follow_error(conn, {:mfa_token, followee, _} = _) do
+    render(conn, "follow_login.html", %{error: "Wrong username or password", followee: followee})
+  end
+
+  defp handle_follow_error(conn, {:verify_mfa_code, followee, token, _} = _) do
+    render(conn, "follow_mfa.html", %{
+      error: "Wrong authentication code",
+      followee: followee,
+      mfa_token: token
+    })
+  end
+
+  defp handle_follow_error(conn, {:mfa_required, followee, user, _} = _) do
+    {:ok, %{token: token}} = MFA.Token.create_token(user)
+    render(conn, "follow_mfa.html", %{followee: followee, mfa_token: token, error: false})
   end
 
   defp handle_follow_error(conn, {:auth, _, followee} = _) do

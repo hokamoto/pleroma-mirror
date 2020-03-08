@@ -17,6 +17,7 @@ defmodule Pleroma.User do
   alias Pleroma.Delivery
   alias Pleroma.FollowingRelationship
   alias Pleroma.Keys
+  alias Pleroma.MFA
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Registration
@@ -178,6 +179,12 @@ defmodule Pleroma.User do
     field(:muted_notifications, {:array, :string}, default: [])
     # `:subscribers` is deprecated (replaced with `subscriber_users` relation)
     field(:subscribers, {:array, :string}, default: [])
+
+    embeds_one(
+      :multi_factor_authentication_settings,
+      MFA.Settings,
+      on_replace: :delete
+    )
 
     timestamps()
   end
@@ -810,6 +817,7 @@ defmodule Pleroma.User do
     end
   end
 
+  @spec get_by_nickname(String.t()) :: User.t() | nil
   def get_by_nickname(nickname) do
     Repo.get_by(User, nickname: nickname) ||
       if Regex.match?(~r(@#{Pleroma.Web.Endpoint.host()})i, nickname) do
