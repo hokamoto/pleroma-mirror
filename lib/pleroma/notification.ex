@@ -5,7 +5,9 @@
 defmodule Pleroma.Notification do
   use Ecto.Schema
 
+  alias Ecto.Multi
   alias Pleroma.Activity
+  alias Pleroma.Marker
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Pagination
@@ -34,6 +36,17 @@ defmodule Pleroma.Notification do
   def changeset(%Notification{} = notification, attrs) do
     notification
     |> cast(attrs, [:seen])
+  end
+
+  @spec last_read_query(User.t()) :: Ecto.Queryable.t()
+  def last_read_query(user) do
+    from(q in Pleroma.Notification,
+      where: q.user_id == ^user.id,
+      where: q.seen == true,
+      select: type(q.id, :string),
+      limit: 1,
+      order_by: [desc: :id]
+    )
   end
 
   defp for_user_query_ap_id_opts(user, opts) do
@@ -193,25 +206,23 @@ defmodule Pleroma.Notification do
     |> Repo.all()
   end
 
-  def set_read_up_to(%{id: user_id} = _user, id) do
+  def set_read_up_to(%{id: user_id} = user, id) do
     query =
       from(
         n in Notification,
         where: n.user_id == ^user_id,
         where: n.id <= ^id,
         where: n.seen == false,
-        update: [
-          set: [
-            seen: true,
-            updated_at: ^NaiveDateTime.utc_now()
-          ]
-        ],
         # Ideally we would preload object and activities here
         # but Ecto does not support preloads in update_all
         select: n.id
       )
 
-    {_, notification_ids} = Repo.update_all(query, [])
+    {:ok, %{ids: {_, notification_ids}}} =
+      Multi.new()
+      |> Multi.update_all(:ids, query, set: [seen: true, updated_at: NaiveDateTime.utc_now()])
+      |> Marker.multi_set_last_read_id(user, "notifications")
+      |> Repo.transaction()
 
     Notification
     |> where([n], n.id in ^notification_ids)
@@ -228,11 +239,18 @@ defmodule Pleroma.Notification do
     |> Repo.all()
   end
 
+  @spec read_one(User.t(), String.t()) ::
+          {:ok, Notification.t()} | {:error, Ecto.Changeset.t()} | nil
   def read_one(%User{} = user, notification_id) do
     with {:ok, %Notification{} = notification} <- get(user, notification_id) do
-      notification
-      |> changeset(%{seen: true})
-      |> Repo.update()
+      Multi.new()
+      |> Multi.update(:update, changeset(notification, %{seen: true}))
+      |> Marker.multi_set_last_read_id(user, "notifications")
+      |> Repo.transaction()
+      |> case do
+        {:ok, %{update: notification}} -> {:ok, notification}
+        {:error, :update, changeset, _} -> {:error, changeset}
+      end
     end
   end
 
@@ -285,8 +303,11 @@ defmodule Pleroma.Notification do
     object = Object.normalize(activity)
 
     unless object && object.data["type"] == "Answer" do
-      users = get_notified_from_activity(activity)
-      notifications = Enum.map(users, fn user -> create_notification(activity, user) end)
+      notifications =
+        activity
+        |> get_notified_from_activity()
+        |> Enum.map(&create_notification(activity, &1))
+
       {:ok, notifications}
     else
       {:ok, []}
@@ -308,8 +329,11 @@ defmodule Pleroma.Notification do
   # TODO move to sql, too.
   def create_notification(%Activity{} = activity, %User{} = user) do
     unless skip?(activity, user) do
-      notification = %Notification{user_id: user.id, activity: activity}
-      {:ok, notification} = Repo.insert(notification)
+      {:ok, %{notification: notification}} =
+        Multi.new()
+        |> Multi.insert(:notification, %Notification{user_id: user.id, activity: activity})
+        |> Marker.multi_set_last_read_id(user, "notifications")
+        |> Repo.transaction()
 
       ["user", "user:notification"]
       |> Streamer.stream(notification)
