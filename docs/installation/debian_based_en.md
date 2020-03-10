@@ -14,6 +14,7 @@ This guide will assume you are on Debian Stretch. This guide should also work wi
 * `erlang-eldap`, if you want to enable ldap authenticator
 * `erlang-ssh`
 * `erlang-xmerl`
+* `erlang-inets`
 * `git`
 * `build-essential`
 

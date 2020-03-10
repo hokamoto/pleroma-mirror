@@ -18,6 +18,7 @@
 - erlang-eldap (LDAP認証を有効化するときのみ必要)
 - erlang-ssh
 - erlang-xmerl
+- erlang-inets
 - git
 - build-essential
 
