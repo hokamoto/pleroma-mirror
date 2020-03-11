@@ -113,6 +113,15 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
     bio = HTML.filter_tags(user.bio, User.html_filter_policy(opts[:for]))
     relationship = render("relationship.json", %{user: opts[:for], target: user})
 
+    favicon =
+      user
+      |> Map.get(:ap_id, "")
+      |> URI.parse()
+      |> URI.merge("/")
+      |> to_string()
+      |> Pleroma.Instances.get_cached_favicon()
+      |> MediaProxy.url()
+
     %{
       id: to_string(user.id),
       username: username_from_nickname(user.nickname),
@@ -153,7 +162,8 @@ defmodule Pleroma.Web.MastodonAPI.AccountView do
         hide_favorites: user.hide_favorites,
         relationship: relationship,
         skip_thread_containment: user.skip_thread_containment,
-        background_image: image_url(user.background) |> MediaProxy.url()
+        background_image: image_url(user.background) |> MediaProxy.url(),
+        favicon: favicon
       }
     }
     |> maybe_put_role(user, opts[:for])
