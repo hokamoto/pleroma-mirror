@@ -7,26 +7,11 @@ defmodule Pleroma.Config.LoaderTest do
 
   alias Pleroma.Config.Loader
 
-  test "load/1" do
-    config = Loader.load("test/fixtures/config/temp.secret.exs")
+  test "read/1" do
+    config = Loader.read("test/fixtures/config/temp.secret.exs")
     assert config[:pleroma][:first_setting][:key] == "value"
     assert config[:pleroma][:first_setting][:key2] == [Pleroma.Storage.Repo]
     assert config[:quack][:level] == :info
-  end
-
-  test "load_and_merge/0" do
-    config = Loader.load_and_merge()
-
-    refute config[:pleroma][Pleroma.Storage.Repo]
-    refute config[:pleroma][Pleroma.Web.Endpoint]
-    refute config[:pleroma][:env]
-    refute config[:pleroma][:configurable_from_database]
-    refute config[:pleroma][:database]
-    refute config[:phoenix][:serve_endpoints]
-
-    assert config[:pleroma][:ecto_repos] == [Pleroma.Storage.Repo]
-    assert config[:pleroma][Pleroma.Upload.Uploader.Local][:uploads] == "test/uploads"
-    assert config[:tesla][:adapter] == Tesla.Mock
   end
 
   test "filter_group/2" do

@@ -6,10 +6,11 @@ defmodule Pleroma.Config.HolderTest do
   use ExUnit.Case, async: true
 
   alias Pleroma.Config.Holder
+  alias Pleroma.Upload.Uploader
 
-  test "config/0" do
-    config = Holder.config()
-    assert config[:pleroma][Pleroma.Upload.Uploader.Local][:uploads] == "test/uploads"
+  test "default_config/0" do
+    config = Holder.default_config()
+    assert config[:pleroma][Uploader.Local][:uploads] == "test/uploads"
     assert config[:tesla][:adapter] == Tesla.Mock
 
     refute config[:pleroma][Pleroma.Storage.Repo]
@@ -20,15 +21,15 @@ defmodule Pleroma.Config.HolderTest do
     refute config[:phoenix][:serve_endpoints]
   end
 
-  test "config/1" do
-    pleroma_config = Holder.config(:pleroma)
-    assert pleroma_config[Pleroma.Upload.Uploader.Local][:uploads] == "test/uploads"
-    tesla_config = Holder.config(:tesla)
+  test "default_config/1" do
+    pleroma_config = Holder.default_config(:pleroma)
+    assert pleroma_config[Uploader.Local][:uploads] == "test/uploads"
+    tesla_config = Holder.default_config(:tesla)
     assert tesla_config[:adapter] == Tesla.Mock
   end
 
-  test "config/2" do
-    assert Holder.config(:pleroma, Pleroma.Upload.Uploader.Local) == [uploads: "test/uploads"]
-    assert Holder.config(:tesla, :adapter) == Tesla.Mock
+  test "default_config/2" do
+    assert Holder.default_config(:pleroma, Uploader.Local) == [uploads: "test/uploads"]
+    assert Holder.default_config(:tesla, :adapter) == Tesla.Mock
   end
 end
