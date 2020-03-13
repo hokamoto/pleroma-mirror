@@ -109,6 +109,12 @@ sub vcl_backend_fetch {
       set bereq.first_byte_timeout = 300s;
     }
 
+    # Ensure clients can cache media objects
+    if (bereq.url ~ "^/(media|proxy)/") {
+      unset beresp.http.Cache-Control;
+      unset beresp.http.Expires;
+    }
+
     # CHUNKED SUPPORT
     if (bereq.http.x-range) {
       set bereq.http.Range = bereq.http.x-range;
