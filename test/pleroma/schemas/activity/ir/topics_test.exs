@@ -60,8 +60,8 @@ defmodule Pleroma.Activity.Ir.TopicsTest do
   describe "public visibility create events" do
     setup do
       activity = %Activity{
-        object: %Object{data: %{"type" => "Create", "attachment" => []}},
-        data: %{"to" => [Constants.as_public()]}
+        object: %Object{data: %{"attachment" => []}},
+        data: %{"type" => "Create", "to" => [Constants.as_public()]}
       }
 
       {:ok, activity: activity}
@@ -99,8 +99,8 @@ defmodule Pleroma.Activity.Ir.TopicsTest do
   describe "public visibility create events with attachments" do
     setup do
       activity = %Activity{
-        object: %Object{data: %{"type" => "Create", "attachment" => ["foo"]}},
-        data: %{"to" => [Constants.as_public()]}
+        object: %Object{data: %{"attachment" => ["foo"]}},
+        data: %{"type" => "Create", "to" => [Constants.as_public()]}
       }
 
       {:ok, activity: activity}
