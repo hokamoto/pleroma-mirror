@@ -2588,7 +2588,8 @@ config :pleroma, :config_description, [
         description: "Tesla adapter",
         suggestions: [Tesla.Adapter.Hackney]
       }
-    ]
+    ],
+    need_reboot: true
   },
   %{
     group: :pleroma,
@@ -2600,7 +2601,8 @@ config :pleroma, :config_description, [
         key: :enabled,
         type: :boolean
       }
-    ]
+    ],
+    need_reboot: true
   },
   %{
     group: :http_signatures,
