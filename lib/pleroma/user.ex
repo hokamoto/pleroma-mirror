@@ -1440,18 +1440,7 @@ defmodule Pleroma.User do
     if !is_nil(user) and !needs_update?(user) do
       {:ok, user}
     else
-      # Whether to fetch initial posts for the user (if it's a new user & the fetching is enabled)
-      should_fetch_initial = is_nil(user) and Pleroma.Config.get([:fetch_initial_posts, :enabled])
-
-      resp = fetch_by_ap_id(ap_id, opts)
-
-      if should_fetch_initial do
-        with {:ok, %User{} = user} <- resp do
-          fetch_initial_posts(user)
-        end
-      end
-
-      resp
+      fetch_by_ap_id(ap_id, opts)
     end
   end
 
