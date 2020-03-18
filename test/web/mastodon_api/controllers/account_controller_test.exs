@@ -5,6 +5,7 @@
 defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
   use Pleroma.Web.ConnCase
 
+  alias Pleroma.Config
   alias Pleroma.Repo
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
@@ -46,7 +47,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     end
 
     test "works by nickname for remote users" do
-      Pleroma.Config.put([:instance, :limit_to_local_content], false)
+      Config.put([:instance, :limit_to_local_content], false)
       user = insert(:user, nickname: "user@example.com", local: false)
 
       conn =
@@ -58,7 +59,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     end
 
     test "respects limit_to_local_content == :all for remote user nicknames" do
-      Pleroma.Config.put([:instance, :limit_to_local_content], :all)
+      Config.put([:instance, :limit_to_local_content], :all)
 
       user = insert(:user, nickname: "user@example.com", local: false)
 
@@ -70,7 +71,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     end
 
     test "respects limit_to_local_content == :unauthenticated for remote user nicknames" do
-      Pleroma.Config.put([:instance, :limit_to_local_content], :unauthenticated)
+      Config.put([:instance, :limit_to_local_content], :unauthenticated)
 
       user = insert(:user, nickname: "user@example.com", local: false)
       reading_user = insert(:user)
@@ -752,6 +753,75 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
 
       res = post(conn, "/api/v1/accounts", valid_params)
       assert json_response(res, 403) == %{"error" => "Invalid credentials"}
+    end
+
+    clear_config([Pleroma.Captcha, :enabled])
+
+    test "registration from trusted app" do
+      Config.put([Pleroma.Captcha, :enabled], true)
+      app = insert(:oauth_app, trusted: true, scopes: ["read", "write", "follow", "push"])
+
+      conn =
+        build_conn()
+        |> post("/oauth/token", %{
+          "grant_type" => "client_credentials",
+          "client_id" => app.client_id,
+          "client_secret" => app.client_secret
+        })
+
+      assert %{"access_token" => token, "token_type" => "Bearer"} = json_response(conn, 200)
+
+      response =
+        build_conn()
+        |> Plug.Conn.put_req_header("authorization", "Bearer " <> token)
+        |> post("/api/v1/accounts", %{
+          nickname: "nickanme",
+          agreement: true,
+          email: "email@example.com",
+          fullname: "Lain",
+          username: "Lain",
+          password: "some_password",
+          confirm: "some_password"
+        })
+        |> json_response(200)
+
+      assert %{
+               "access_token" => access_token,
+               "created_at" => _,
+               "scope" => ["read", "write", "follow", "push"],
+               "token_type" => "Bearer"
+             } = response
+
+      response =
+        build_conn()
+        |> Plug.Conn.put_req_header("authorization", "Bearer " <> access_token)
+        |> get("/api/v1/accounts/verify_credentials")
+        |> json_response(200)
+
+      assert %{
+               "acct" => "Lain",
+               "bot" => false,
+               "display_name" => "Lain",
+               "follow_requests_count" => 0,
+               "followers_count" => 0,
+               "following_count" => 0,
+               "locked" => false,
+               "note" => "",
+               "source" => %{
+                 "fields" => [],
+                 "note" => "",
+                 "pleroma" => %{
+                   "actor_type" => "Person",
+                   "discoverable" => false,
+                   "no_rich_text" => false,
+                   "show_role" => true
+                 },
+                 "privacy" => "public",
+                 "sensitive" => false
+               },
+               "statuses_count" => 0,
+               "username" => "Lain"
+             } = response
     end
   end
 
