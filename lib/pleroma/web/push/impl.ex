@@ -55,7 +55,8 @@ defmodule Pleroma.Web.Push.Impl do
     end
   end
 
-  def perform(_) do
+  def perform(obj) do
+    IO.inspect(obj, label: "unknown message received")
     Logger.warn("Unknown notification type")
     :error
   end

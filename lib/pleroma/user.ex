@@ -1432,15 +1432,15 @@ defmodule Pleroma.User do
 
   def html_filter_policy(_), do: Pleroma.Config.get([:markup, :scrub_policy])
 
-  def fetch_by_ap_id(ap_id), do: ActivityPub.make_user_from_ap_id(ap_id)
+  def fetch_by_ap_id(ap_id, opts \\ []), do: ActivityPub.make_user_from_ap_id(ap_id, opts)
 
-  def get_or_fetch_by_ap_id(ap_id) do
+  def get_or_fetch_by_ap_id(ap_id, opts \\ []) do
     user = get_cached_by_ap_id(ap_id)
 
     if !is_nil(user) and !needs_update?(user) do
       {:ok, user}
     else
-      fetch_by_ap_id(ap_id)
+      fetch_by_ap_id(ap_id, opts)
     end
   end
 
@@ -1504,8 +1504,8 @@ defmodule Pleroma.User do
 
   def public_key(_), do: {:error, "not found key"}
 
-  def get_public_key_for_ap_id(ap_id) do
-    with {:ok, %User{} = user} <- get_or_fetch_by_ap_id(ap_id),
+  def get_public_key_for_ap_id(ap_id, opts \\ []) do
+    with {:ok, %User{} = user} <- get_or_fetch_by_ap_id(ap_id, opts),
          {:ok, public_key} <- public_key(user) do
       {:ok, public_key}
     else

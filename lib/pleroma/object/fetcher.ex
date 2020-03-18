@@ -11,6 +11,7 @@ defmodule Pleroma.Object.Fetcher do
   alias Pleroma.Web.ActivityPub.InternalFetchActor
   alias Pleroma.Web.ActivityPub.Transmogrifier
   alias Pleroma.Web.Federator
+  alias Pleroma.Web.FedSockets
 
   require Logger
   require Pleroma.Constants
@@ -160,27 +161,20 @@ defmodule Pleroma.Object.Fetcher do
     end
   end
 
-  def fetch_and_contain_remote_object_from_id(id) when is_binary(id) do
+  def fetch_and_contain_remote_object_from_id(prm, opts \\ [])
+
+  def fetch_and_contain_remote_object_from_id(%{"id" => id}, opts),
+    do: fetch_and_contain_remote_object_from_id(id, opts)
+
+  def fetch_and_contain_remote_object_from_id(id, opts) when is_binary(id) do
     Logger.debug("Fetching object #{id} via AP")
 
-    date = Pleroma.Signature.signed_date()
-
-    headers =
-      [{:Accept, "application/activity+json"}]
-      |> maybe_date_fetch(date)
-      |> sign_fetch(id, date)
-
-    Logger.debug("Fetch headers: #{inspect(headers)}")
-
     with {:scheme, true} <- {:scheme, String.starts_with?(id, "http")},
-         {:ok, %{body: body, status: code}} when code in 200..299 <- HTTP.get(id, headers),
-         {:ok, data} <- Jason.decode(body),
+         {:ok, body} <- get_object(id, opts),
+         {:ok, data} <- safe_json_decode(body),
          :ok <- Containment.contain_origin_from_id(id, data) do
       {:ok, data}
     else
-      {:ok, %{status: code}} when code in [404, 410] ->
-        {:error, "Object has been deleted"}
-
       {:scheme, _} ->
         {:error, "Unsupported URI scheme"}
 
@@ -192,8 +186,44 @@ defmodule Pleroma.Object.Fetcher do
     end
   end
 
-  def fetch_and_contain_remote_object_from_id(%{"id" => id}),
-    do: fetch_and_contain_remote_object_from_id(id)
+  def fetch_and_contain_remote_object_from_id(_id, _opts),
+    do: {:error, "id must be a string"}
 
-  def fetch_and_contain_remote_object_from_id(_id), do: {:error, "id must be a string"}
+  defp get_object(id, opts) do
+    with false <- Keyword.get(opts, :force_http, false),
+         {:ok, fedsocket} <- FedSockets.get_or_create_fed_socket(id) do
+      IO.inspect(id, label: "#{inspect(self())} - fetching via fedsocket")
+      FedSockets.fetch(fedsocket, id)
+    else
+      _other ->
+        IO.inspect(id, label: "#{inspect(self())} - fetching via http")
+        get_object_http(id)
+    end
+  end
+
+  defp get_object_http(id) do
+    date = Pleroma.Signature.signed_date()
+
+    headers =
+      [{:Accept, "application/activity+json"}]
+      |> maybe_date_fetch(date)
+      |> sign_fetch(id, date)
+
+    case HTTP.get(id, headers) do
+      {:ok, %{body: body, status: code}} when code in 200..299 ->
+        {:ok, body}
+
+      {:ok, %{status: code}} when code in [404, 410] ->
+        {:error, "Object has been deleted"}
+
+      {:error, e} ->
+        {:error, e}
+
+      e ->
+        {:error, e}
+    end
+  end
+
+  defp safe_json_decode(nil), do: {:ok, nil}
+  defp safe_json_decode(json), do: Jason.decode(json)
 end
