@@ -448,7 +448,8 @@ defmodule Pleroma.Web.PleromaAPI.EmojiAPIControllerTest do
     File.rm!("#{@emoji_dir_path}/test_pack_for_import/pack.json")
     refute File.exists?("#{@emoji_dir_path}/test_pack_for_import/pack.json")
 
-    emoji_txt_content = "blank, blank.png, Fun\n\nblank2, blank.png"
+    emoji_txt_content =
+      "blank, blank.png, Fun\n\nblank2, blank.png\n\nfoo, /emoji/test_pack_for_import/blank.png\n\nbar"
 
     File.write!("#{@emoji_dir_path}/test_pack_for_import/emoji.txt", emoji_txt_content)
 
@@ -460,7 +461,8 @@ defmodule Pleroma.Web.PleromaAPI.EmojiAPIControllerTest do
 
     assert resp["test_pack_for_import"]["files"] == %{
              "blank" => "blank.png",
-             "blank2" => "blank.png"
+             "blank2" => "blank.png",
+             "foo" => "blank.png"
            }
   end
 end
