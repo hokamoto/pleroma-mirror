@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Breaking:** removed `with_move` parameter from notifications timeline.
 
 ### Added
+- NodeInfo: added `pleroma:api/v1/notifications:include_types_filter` to the `features` list.
 <details>
   <summary>API Changes</summary>
 - Mastodon API: Support for `include_types` in `/api/v1/notifications`.
