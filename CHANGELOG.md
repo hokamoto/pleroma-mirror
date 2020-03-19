@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [unreleased]
 ### Changed
 - **Breaking:** BBCode and Markdown formatters will no longer return any `\n` and only use `<br/>` for newlines
+- MFR policy to set global expiration for all local Create activities
 
 ### Removed
 - **Breaking:** removed `with_move` parameter from notifications timeline.
