@@ -2585,9 +2585,6 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "common config example", %{conn: conn} do
-      adapter = Application.get_env(:tesla, :adapter)
-      on_exit(fn -> Application.put_env(:tesla, :adapter, adapter) end)
-
       conn =
         post(conn, "/api/pleroma/admin/config", %{
           configs: [
@@ -2600,23 +2597,16 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                 %{"tuple" => [":seconds_valid", 60]},
                 %{"tuple" => [":path", ""]},
                 %{"tuple" => [":key1", nil]},
-                %{"tuple" => [":partial_chain", "&:hackney_connect.partial_chain/1"]},
                 %{"tuple" => [":regex1", "~r/https:\/\/example.com/"]},
                 %{"tuple" => [":regex2", "~r/https:\/\/example.com/u"]},
                 %{"tuple" => [":regex3", "~r/https:\/\/example.com/i"]},
                 %{"tuple" => [":regex4", "~r/https:\/\/example.com/s"]},
                 %{"tuple" => [":name", "Pleroma"]}
               ]
-            },
-            %{
-              "group" => ":tesla",
-              "key" => ":adapter",
-              "value" => "Tesla.Adapter.Httpc"
             }
           ]
         })
 
-      assert Application.get_env(:tesla, :adapter) == Tesla.Adapter.Httpc
       assert Config.get([Pleroma.Captcha.NotReal, :name]) == "Pleroma"
 
       assert json_response(conn, 200) == %{
@@ -2630,7 +2620,6 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                      %{"tuple" => [":seconds_valid", 60]},
                      %{"tuple" => [":path", ""]},
                      %{"tuple" => [":key1", nil]},
-                     %{"tuple" => [":partial_chain", "&:hackney_connect.partial_chain/1"]},
                      %{"tuple" => [":regex1", "~r/https:\\/\\/example.com/"]},
                      %{"tuple" => [":regex2", "~r/https:\\/\\/example.com/u"]},
                      %{"tuple" => [":regex3", "~r/https:\\/\\/example.com/i"]},
@@ -2643,19 +2632,12 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
                      ":seconds_valid",
                      ":path",
                      ":key1",
-                     ":partial_chain",
                      ":regex1",
                      ":regex2",
                      ":regex3",
                      ":regex4",
                      ":name"
                    ]
-                 },
-                 %{
-                   "group" => ":tesla",
-                   "key" => ":adapter",
-                   "value" => "Tesla.Adapter.Httpc",
-                   "db" => [":adapter"]
                  }
                ]
              }
