@@ -34,25 +34,25 @@ defmodule Pleroma.Application do
     Pleroma.Config.Holder.save_default()
     Pleroma.HTML.compile_scrubbers()
     Pleroma.Config.DeprecationWarnings.warn()
-    Pleroma.Plugs.HTTPSecurityPlug.warn_if_disabled()
-    Pleroma.Repo.check_migrations_applied!()
+    Pleroma.Web.HTTPSecurityPlug.warn_if_disabled()
+    Pleroma.Storage.Repo.check_migrations_applied!()
     setup_instrumenters()
     load_custom_modules()
 
     # Define workers and child supervisors to be supervised
     children =
       [
-        Pleroma.Repo,
+        Pleroma.Storage.Repo,
         Pleroma.Config.TransferTask,
         Pleroma.Emoji,
         Pleroma.Captcha,
-        Pleroma.Plugs.RateLimiter.Supervisor
+        Pleroma.Web.RateLimiter.Supervisor
       ] ++
         cachex_children() ++
         hackney_pool_children() ++
         [
-          Pleroma.Stats,
-          Pleroma.JobQueueMonitor,
+          Pleroma.Healthcheck.Stats,
+          Pleroma.Healthcheck.JobQueueMonitor,
           {Oban, Pleroma.Config.get(Oban)}
         ] ++
         task_children(@env) ++
@@ -74,7 +74,7 @@ defmodule Pleroma.Application do
 
     if dir && File.exists?(dir) do
       dir
-      |> Pleroma.Utils.compile_dir()
+      |> Pleroma.Helpers.Compile.compile_dir()
       |> case do
         {:error, _errors, _warnings} ->
           raise "Invalid custom modules"
@@ -94,16 +94,16 @@ defmodule Pleroma.Application do
   defp setup_instrumenters do
     require Prometheus.Registry
 
-    if Application.get_env(:prometheus, Pleroma.Repo.Instrumenter) do
+    if Application.get_env(:prometheus, Pleroma.Storage.Repo.Instrumenter) do
       :ok =
         :telemetry.attach(
           "prometheus-ecto",
           [:pleroma, :repo, :query],
-          &Pleroma.Repo.Instrumenter.handle_event/4,
+          &Pleroma.Storage.Repo.Instrumenter.handle_event/4,
           %{}
         )
 
-      Pleroma.Repo.Instrumenter.setup()
+      Pleroma.Storage.Repo.Instrumenter.setup()
     end
 
     Pleroma.Web.Endpoint.MetricsExporter.setup()
@@ -195,7 +195,7 @@ defmodule Pleroma.Application do
       },
       %{
         id: :internal_fetch_init,
-        start: {Task, :start_link, [&Pleroma.Web.ActivityPub.InternalFetchActor.init/0]},
+        start: {Task, :start_link, [&Pleroma.Federation.ActivityPub.InternalFetchActor.init/0]},
         restart: :temporary
       }
     ]

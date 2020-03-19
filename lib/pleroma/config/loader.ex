@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Config.Loader do
   @reject_keys [
-    Pleroma.Repo,
+    Pleroma.Storage.Repo,
     Pleroma.Web.Endpoint,
     :env,
     :configurable_from_database,

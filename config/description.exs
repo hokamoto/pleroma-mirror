@@ -23,7 +23,7 @@ config :pleroma, :config_description, [
         key: :uploader,
         type: :module,
         description: "Module which will be used for uploads",
-        suggestions: [Pleroma.Uploaders.Local, Pleroma.Uploaders.S3]
+        suggestions: [Pleroma.Upload.Uploader.Local, Pleroma.Upload.Uploader.S3]
       },
       %{
         key: :filters,
@@ -123,7 +123,7 @@ config :pleroma, :config_description, [
   },
   %{
     group: :pleroma,
-    key: Pleroma.Uploaders.Local,
+    key: Pleroma.Upload.Uploader.Local,
     type: :group,
     description: "Local uploader-related settings",
     children: [
@@ -139,7 +139,7 @@ config :pleroma, :config_description, [
   },
   %{
     group: :pleroma,
-    key: Pleroma.Uploaders.S3,
+    key: Pleroma.Upload.Uploader.S3,
     type: :group,
     description: "S3 uploader-related settings",
     children: [
@@ -697,8 +697,8 @@ config :pleroma, :config_description, [
         description: "A list of MRF policies enabled",
         suggestions:
           Generator.list_modules_in_dir(
-            "lib/pleroma/web/activity_pub/mrf",
-            "Elixir.Pleroma.Web.ActivityPub.MRF."
+            "lib/federation/activity_pub/mrf",
+            "Elixir.Pleroma.Federation.ActivityPub.MRF."
           )
       },
       %{
@@ -1361,7 +1361,7 @@ config :pleroma, :config_description, [
         description: "Matches a series of regular expressions against the actor field",
         suggestions: [
           %{
-            ~r/https:\/\/example.com/s => [Pleroma.Web.ActivityPub.MRF.DropPolicy]
+            ~r/https:\/\/example.com/s => [Pleroma.Federation.ActivityPub.MRF.DropPolicy]
           }
         ]
       }
@@ -1797,7 +1797,7 @@ config :pleroma, :config_description, [
         key: :repo,
         type: :module,
         description: "Application's Ecto repo",
-        suggestions: [Pleroma.Repo]
+        suggestions: [Pleroma.Storage.Repo]
       },
       %{
         key: :verbose,
@@ -2197,7 +2197,7 @@ config :pleroma, :config_description, [
         key: :auth_template,
         type: :string,
         description:
-          "Authentication form template. By default it's `show.html` which corresponds to `lib/pleroma/web/templates/o_auth/o_auth/show.html.ee`.",
+          "Authentication form template. By default it's `show.html` which corresponds to `lib/web/templates/o_auth/o_auth/show.html.ee`.",
         suggestions: ["show.html"]
       },
       %{
@@ -2205,7 +2205,7 @@ config :pleroma, :config_description, [
         type: :string,
         description:
           "OAuth consumer mode authentication form template. By default it's `consumer.html` which corresponds to" <>
-            " `lib/pleroma/web/templates/o_auth/o_auth/consumer.html.eex`.",
+            " `lib/web/templates/o_auth/o_auth/consumer.html.eex`.",
         suggestions: ["consumer.html"]
       },
       %{
@@ -2578,7 +2578,7 @@ config :pleroma, :config_description, [
       %{
         key: :adapter,
         type: :module,
-        suggestions: [Pleroma.Signature]
+        suggestions: [Pleroma.Federation.HTTPSignatures.Signature]
       }
     ]
   },

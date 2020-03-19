@@ -1,8 +1,8 @@
 defmodule Pleroma.Repo.Migrations.AddFollowingAddressFromSourceData do
-  alias Pleroma.User
-  import Ecto.Query
-  require Logger
   use Ecto.Migration
+  import Ecto.Query
+  alias Pleroma.User
+  require Logger
 
   def change do
     query =
@@ -16,9 +16,11 @@ defmodule Pleroma.Repo.Migrations.AddFollowingAddressFromSourceData do
     Pleroma.Repo.stream(query)
     |> Enum.each(fn
       %{info: %{source_data: source_data}} = user ->
-        Ecto.Changeset.cast(user, %{following_address: source_data["following"]}, [
-          :following_address
-        ])
+        user
+        |> Ecto.Changeset.cast(
+          %{following_address: source_data["following"]},
+          [:following_address]
+        )
         |> Pleroma.Repo.update()
 
       user ->

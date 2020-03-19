@@ -5,9 +5,9 @@
 defmodule Pleroma.Web.MastodonAPI.MediaControllerTest do
   use Pleroma.Web.ConnCase
 
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.Object
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
 
   setup do: oauth_access(["write:media"])
 

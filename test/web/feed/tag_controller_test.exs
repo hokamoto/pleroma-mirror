@@ -39,7 +39,7 @@ defmodule Pleroma.Web.Feed.TagControllerTest do
 
     object
     |> Ecto.Changeset.change(data: object_data)
-    |> Pleroma.Repo.update()
+    |> Pleroma.Storage.Repo.update()
 
     {:ok, _activity2} =
       Pleroma.Web.CommonAPI.post(user, %{"status" => "42 This is :moominmamma #PleromaArt"})
@@ -92,7 +92,7 @@ defmodule Pleroma.Web.Feed.TagControllerTest do
 
     object
     |> Ecto.Changeset.change(data: object_data)
-    |> Pleroma.Repo.update()
+    |> Pleroma.Storage.Repo.update()
 
     {:ok, activity2} =
       Pleroma.Web.CommonAPI.post(user, %{"status" => "42 This is :moominmamma #PleromaArt"})

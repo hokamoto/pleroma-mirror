@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Pleroma.Config do
   import Mix.Pleroma
 
   alias Pleroma.ConfigDB
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   @shortdoc "Manages the location of the config"
   @moduledoc File.read!("docs/administration/CLI_tasks/config.md")

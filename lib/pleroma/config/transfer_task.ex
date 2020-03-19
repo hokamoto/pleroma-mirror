@@ -6,7 +6,7 @@ defmodule Pleroma.Config.TransferTask do
   use Task
 
   alias Pleroma.ConfigDB
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   require Logger
 

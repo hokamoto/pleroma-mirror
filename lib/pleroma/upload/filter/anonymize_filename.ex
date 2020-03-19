@@ -11,6 +11,7 @@ defmodule Pleroma.Upload.Filter.AnonymizeFilename do
   @behaviour Pleroma.Upload.Filter
 
   alias Pleroma.Config
+  alias Pleroma.Crypto
   alias Pleroma.Upload
 
   def filter(%Upload{name: name} = upload) do
@@ -26,11 +27,7 @@ defmodule Pleroma.Upload.Filter.AnonymizeFilename do
   end
 
   defp random(extension) do
-    string =
-      10
-      |> :crypto.strong_rand_bytes()
-      |> Base.url_encode64(padding: false)
-
-    string <> "." <> extension
+    with string <- Crypto.random_string(10, padding: false),
+         do: "#{string}.#{extension}"
   end
 end

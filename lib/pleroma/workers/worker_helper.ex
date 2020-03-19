@@ -39,7 +39,7 @@ defmodule Pleroma.Workers.WorkerHelper do
 
         unquote(caller_module)
         |> apply(:new, [params, worker_args])
-        |> Pleroma.Repo.insert()
+        |> Pleroma.Storage.Repo.insert()
       end
     end
   end

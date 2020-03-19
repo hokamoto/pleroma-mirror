@@ -8,6 +8,7 @@ defmodule Pleroma.Emails.UserEmail do
   use Phoenix.Swoosh, view: Pleroma.Web.EmailView, layout: {Pleroma.Web.LayoutView, :email}
 
   alias Pleroma.Config
+  alias Pleroma.Helpers.JWT
   alias Pleroma.User
   alias Pleroma.Web.Endpoint
   alias Pleroma.Web.Router
@@ -47,7 +48,7 @@ defmodule Pleroma.Emails.UserEmail do
         to_name \\ nil
       ) do
     registration_url =
-      Router.Helpers.redirect_url(
+      Router.Helpers.fallback_redirect_url(
         Endpoint,
         :registration_page,
         user_invite_token.token
@@ -170,7 +171,7 @@ defmodule Pleroma.Emails.UserEmail do
   def unsubscribe_url(user, notifications_type) do
     token =
       %{"sub" => user.id, "act" => %{"unsubscribe" => notifications_type}, "exp" => false}
-      |> Pleroma.JWT.generate_and_sign!()
+      |> JWT.generate_and_sign!()
       |> Base.encode64()
 
     Router.Helpers.subscription_url(Endpoint, :unsubscribe, token)

@@ -456,7 +456,7 @@ defmodule Pleroma.Web.CommonAPI.UtilsTest do
           }
         )
 
-      Pleroma.Repo.delete(object)
+      Pleroma.Storage.Repo.delete(object)
 
       assert Utils.maybe_notify_mentioned_recipients(["test"], activity) == [
                "test",
@@ -470,7 +470,7 @@ defmodule Pleroma.Web.CommonAPI.UtilsTest do
       object = insert(:note, user: user)
 
       activity = insert(:note_activity, user: user, note: object)
-      Pleroma.Repo.delete(object)
+      Pleroma.Storage.Repo.delete(object)
 
       assert Utils.maybe_notify_mentioned_recipients(["test-test"], activity) == [
                "test-test"

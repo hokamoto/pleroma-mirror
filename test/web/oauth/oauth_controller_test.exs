@@ -6,7 +6,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
   use Pleroma.Web.ConnCase
   import Pleroma.Factory
 
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.OAuthController
@@ -581,7 +581,7 @@ defmodule Pleroma.Web.OAuth.OAuthControllerTest do
       # In case scope param is missing, expecting _all_ app-supported scopes to be granted
       for user <- [non_admin, admin],
           {requested_scopes, expected_scopes} <-
-            %{scopes_subset => scopes_subset, nil => app_scopes} do
+            %{scopes_subset => scopes_subset, nil: app_scopes} do
         conn =
           post(
             build_conn(),

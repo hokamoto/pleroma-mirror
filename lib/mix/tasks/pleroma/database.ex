@@ -4,11 +4,12 @@
 
 defmodule Mix.Tasks.Pleroma.Database do
   alias Pleroma.Conversation
+  alias Pleroma.Helpers.Constants
   alias Pleroma.Object
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   require Logger
-  require Pleroma.Constants
+  require Pleroma.Helpers.Constants
   import Mix.Pleroma
   use Mix.Task
 
@@ -83,9 +84,9 @@ defmodule Mix.Tasks.Pleroma.Database do
         fragment(
           "?->'to' \\? ? OR ?->'cc' \\? ?",
           o.data,
-          ^Pleroma.Constants.as_public(),
+          ^Constants.as_public(),
           o.data,
-          ^Pleroma.Constants.as_public()
+          ^Constants.as_public()
         ),
       where: o.inserted_at < ^time_deadline,
       where:
@@ -113,7 +114,7 @@ defmodule Mix.Tasks.Pleroma.Database do
       where: fragment("(?)->>'likes' is not null", object.data),
       select: %{id: object.id, likes: fragment("(?)->>'likes'", object.data)}
     )
-    |> Pleroma.RepoStreamer.chunk_stream(100)
+    |> Pleroma.Storage.Repo.Streamer.chunk_stream(100)
     |> Stream.each(fn objects ->
       ids =
         objects

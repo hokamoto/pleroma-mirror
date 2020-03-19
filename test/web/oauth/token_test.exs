@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Web.OAuth.TokenTest do
   use Pleroma.DataCase
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.Web.OAuth.App
   alias Pleroma.Web.OAuth.Authorization
   alias Pleroma.Web.OAuth.Token
@@ -77,7 +77,7 @@ defmodule Pleroma.Web.OAuth.TokenTest do
     t4 = insert(:oauth_token, valid_until: Timex.shift(Timex.now(), minutes: 10))
     {tokens, _} = Token.delete_expired_tokens()
     assert tokens == 2
-    available_tokens = Pleroma.Repo.all(Token)
+    available_tokens = Pleroma.Storage.Repo.all(Token)
 
     token_ids = available_tokens |> Enum.map(& &1.id)
     assert token_ids == [t3.id, t4.id]

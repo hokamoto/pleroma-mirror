@@ -5,8 +5,8 @@
 defmodule Pleroma.Web.MastodonAPI.FollowRequestControllerTest do
   use Pleroma.Web.ConnCase
 
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
 
   import Pleroma.Factory
 

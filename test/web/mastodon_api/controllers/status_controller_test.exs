@@ -9,12 +9,12 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
   alias Pleroma.ActivityExpiration
   alias Pleroma.Config
   alias Pleroma.Conversation.Participation
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.Object
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.ScheduledActivity
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
 
   import Pleroma.Factory

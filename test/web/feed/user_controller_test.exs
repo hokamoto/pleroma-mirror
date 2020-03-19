@@ -11,6 +11,7 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
   alias Pleroma.Config
   alias Pleroma.Object
   alias Pleroma.User
+  alias Pleroma.Web.FallbackRedirectController
 
   clear_config([:instance, :federating]) do
     Config.put([:instance, :federating], true)
@@ -94,7 +95,7 @@ defmodule Pleroma.Web.Feed.UserControllerTest do
         |> response(200)
 
       assert response ==
-               Fallback.RedirectController.redirector_with_meta(
+               FallbackRedirectController.redirector_with_meta(
                  conn,
                  %{user: user}
                ).resp_body

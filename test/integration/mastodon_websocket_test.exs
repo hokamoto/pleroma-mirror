@@ -78,7 +78,7 @@ defmodule Pleroma.Integration.MastodonWebsocketTest do
   describe "with a valid user token" do
     setup do
       {:ok, app} =
-        Pleroma.Repo.insert(
+        Pleroma.Storage.Repo.insert(
           OAuth.App.register_changeset(%OAuth.App{}, %{
             client_name: "client",
             scopes: ["scope"],

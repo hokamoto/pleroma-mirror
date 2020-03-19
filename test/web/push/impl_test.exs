@@ -6,6 +6,7 @@ defmodule Pleroma.Web.Push.ImplTest do
   use Pleroma.DataCase
 
   alias Pleroma.Object
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.Push.Impl
@@ -95,15 +96,15 @@ defmodule Pleroma.Web.Push.ImplTest do
              subscription
            ) == :ok
 
-    refute Pleroma.Repo.get(Subscription, subscription.id)
+    refute Repo.get(Subscription, subscription.id)
   end
 
   test "deletes subscription when token has been deleted" do
     subscription = insert(:push_subscription)
 
-    Pleroma.Repo.delete(subscription.token)
+    Repo.delete(subscription.token)
 
-    refute Pleroma.Repo.get(Subscription, subscription.id)
+    refute Repo.get(Subscription, subscription.id)
   end
 
   test "renders title and body for create activity" do

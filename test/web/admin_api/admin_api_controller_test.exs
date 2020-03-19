@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
   use Pleroma.Web.ConnCase
-  use Oban.Testing, repo: Pleroma.Repo
+  use Oban.Testing, repo: Pleroma.Storage.Repo
 
   import Pleroma.Factory
   import ExUnit.CaptureLog
@@ -12,14 +12,14 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
   alias Pleroma.Activity
   alias Pleroma.Config
   alias Pleroma.ConfigDB
+  alias Pleroma.Federation.ActivityPub.Relay
   alias Pleroma.HTML
   alias Pleroma.ModerationLog
-  alias Pleroma.Repo
-  alias Pleroma.ReportNote
+  alias Pleroma.Storage.Repo
+  alias Pleroma.Storage.ReportNote
   alias Pleroma.Tests.ObanHelpers
   alias Pleroma.User
   alias Pleroma.UserInviteToken
-  alias Pleroma.Web.ActivityPub.Relay
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.MastodonAPI.StatusView
   alias Pleroma.Web.MediaProxy
@@ -3421,7 +3421,7 @@ defmodule Pleroma.Web.AdminAPI.AdminAPIControllerTest do
     end
 
     test "GET /relay", %{conn: conn} do
-      relay_user = Pleroma.Web.ActivityPub.Relay.get_actor()
+      relay_user = Relay.get_actor()
 
       ["http://mastodon.example.org/users/admin", "https://mstdn.io/users/mayuutann"]
       |> Enum.each(fn ap_id ->

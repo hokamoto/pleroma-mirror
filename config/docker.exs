@@ -12,7 +12,7 @@ config :pleroma, :instance,
   registrations_open: false,
   healthcheck: true
 
-config :pleroma, Pleroma.Repo,
+config :pleroma, Pleroma.Storage.Repo,
   adapter: Ecto.Adapters.Postgres,
   username: System.get_env("DB_USER", "pleroma"),
   password: System.fetch_env!("DB_PASS"),
@@ -25,7 +25,7 @@ config :web_push_encryption, :vapid_details, subject: "mailto:#{System.get_env("
 
 config :pleroma, :database, rum_enabled: false
 config :pleroma, :instance, static_dir: "/var/lib/pleroma/static"
-config :pleroma, Pleroma.Uploaders.Local, uploads: "/var/lib/pleroma/uploads"
+config :pleroma, Pleroma.Upload.Uploader.Local, uploads: "/var/lib/pleroma/uploads"
 
 # We can't store the secrets in this file, since this is baked into the docker image
 if not File.exists?("/var/lib/pleroma/secret.exs") do

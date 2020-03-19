@@ -78,10 +78,10 @@ defmodule Pleroma.Web.ConnCase do
   setup tags do
     Cachex.clear(:user_cache)
     Cachex.clear(:object_cache)
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Pleroma.Repo)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Pleroma.Storage.Repo)
 
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(Pleroma.Repo, {:shared, self()})
+      Ecto.Adapters.SQL.Sandbox.mode(Pleroma.Storage.Repo, {:shared, self()})
     end
 
     if tags[:needs_streamer] do

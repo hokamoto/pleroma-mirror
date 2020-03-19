@@ -7,7 +7,7 @@ defmodule Pleroma.Tests.ObanHelpers do
   Oban test helpers.
   """
 
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   def wipe_all do
     Repo.delete_all(Oban.Job)

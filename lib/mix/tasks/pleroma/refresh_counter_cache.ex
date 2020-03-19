@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Pleroma.RefreshCounterCache do
 
   alias Pleroma.Activity
   alias Pleroma.CounterCache
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
 
   require Logger
   import Ecto.Query

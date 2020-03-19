@@ -50,7 +50,7 @@ defmodule Mix.Tasks.Pleroma.Ecto.Rollback do
         do: Keyword.merge(opts, log: false, log_sql: false),
         else: opts
 
-    path = Mix.Tasks.Pleroma.Ecto.ensure_migrations_path(Pleroma.Repo, opts)
+    path = Mix.Tasks.Pleroma.Ecto.ensure_migrations_path(Pleroma.Storage.Repo, opts)
 
     level = Logger.level()
     Logger.configure(level: :info)
@@ -59,7 +59,7 @@ defmodule Mix.Tasks.Pleroma.Ecto.Rollback do
       Logger.info("Rollback succesfully")
     else
       {:ok, _, _} =
-        Ecto.Migrator.with_repo(Pleroma.Repo, &Ecto.Migrator.run(&1, path, :down, opts))
+        Ecto.Migrator.with_repo(Pleroma.Storage.Repo, &Ecto.Migrator.run(&1, path, :down, opts))
     end
 
     Logger.configure(level: level)

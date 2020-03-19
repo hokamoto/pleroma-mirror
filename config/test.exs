@@ -23,7 +23,7 @@ config :pleroma, :auth, oauth_consumer_strategies: []
 
 config :pleroma, Pleroma.Upload, filters: [], link_name: false
 
-config :pleroma, Pleroma.Uploaders.Local, uploads: "test/uploads"
+config :pleroma, Pleroma.Upload.Uploader.Local, uploads: "test/uploads"
 
 config :pleroma, Pleroma.Emails.Mailer, adapter: Swoosh.Adapters.Test, enabled: true
 
@@ -38,7 +38,7 @@ config :pleroma, :instance,
 config :pleroma, :activitypub, sign_object_fetches: false
 
 # Configure your database
-config :pleroma, Pleroma.Repo,
+config :pleroma, Pleroma.Storage.Repo,
   adapter: Ecto.Adapters.Postgres,
   username: "postgres",
   password: "postgres",

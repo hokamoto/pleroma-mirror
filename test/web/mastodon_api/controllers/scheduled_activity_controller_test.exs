@@ -5,7 +5,7 @@
 defmodule Pleroma.Web.MastodonAPI.ScheduledActivityControllerTest do
   use Pleroma.Web.ConnCase
 
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.ScheduledActivity
 
   import Pleroma.Factory

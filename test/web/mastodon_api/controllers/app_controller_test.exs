@@ -5,7 +5,7 @@
 defmodule Pleroma.Web.MastodonAPI.AppControllerTest do
   use Pleroma.Web.ConnCase, async: true
 
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.Web.OAuth.App
   alias Pleroma.Web.Push
 

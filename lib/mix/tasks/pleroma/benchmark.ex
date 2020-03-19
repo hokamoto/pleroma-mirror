@@ -5,6 +5,7 @@
 defmodule Mix.Tasks.Pleroma.Benchmark do
   import Mix.Pleroma
   use Mix.Task
+  alias Pleroma.Federation.ActivityPub
 
   def run(["search"]) do
     start_pleroma()
@@ -21,8 +22,7 @@ defmodule Mix.Tasks.Pleroma.Benchmark do
 
     Benchee.run(%{
       "tag" => fn ->
-        %{"type" => "Create", "tag" => "cofe"}
-        |> Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities()
+        ActivityPub.fetch_public_activities(%{"type" => "Create", "tag" => "cofe"})
       end
     })
   end
@@ -38,7 +38,7 @@ defmodule Mix.Tasks.Pleroma.Benchmark do
       |> Map.put("muting_user", user)
       |> Map.put("user", user)
       |> Map.put("limit", 4096)
-      |> Pleroma.Web.ActivityPub.ActivityPub.fetch_public_activities()
+      |> ActivityPub.fetch_public_activities()
       |> Enum.reverse()
 
     inputs = %{

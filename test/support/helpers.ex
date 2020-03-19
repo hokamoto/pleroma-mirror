@@ -76,7 +76,7 @@ defmodule Pleroma.Tests.Helpers do
         do: refresh_record(model, %{id: id})
 
       def refresh_record(model, %{id: id} = _) do
-        Pleroma.Repo.get_by(model, id: id)
+        Pleroma.Storage.Repo.get_by(model, id: id)
       end
 
       # Used for comparing json rendering during tests.

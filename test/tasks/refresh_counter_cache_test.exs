@@ -4,9 +4,10 @@
 
 defmodule Mix.Tasks.Pleroma.RefreshCounterCacheTest do
   use Pleroma.DataCase
-  alias Pleroma.Web.CommonAPI
   import ExUnit.CaptureIO, only: [capture_io: 1]
   import Pleroma.Factory
+  alias Pleroma.Healthcheck.Stats
+  alias Pleroma.Web.CommonAPI
 
   test "counts statuses" do
     user = insert(:user)
@@ -37,7 +38,6 @@ defmodule Mix.Tasks.Pleroma.RefreshCounterCacheTest do
 
     assert capture_io(fn -> Mix.Tasks.Pleroma.RefreshCounterCache.run([]) end) =~ "Done\n"
 
-    assert %{direct: 3, private: 4, public: 1, unlisted: 2} =
-             Pleroma.Stats.get_status_visibility_count()
+    assert %{direct: 3, private: 4, public: 1, unlisted: 2} = Stats.get_status_visibility_count()
   end
 end

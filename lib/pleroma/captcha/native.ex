@@ -5,6 +5,7 @@
 defmodule Pleroma.Captcha.Native do
   import Pleroma.Web.Gettext
   alias Pleroma.Captcha.Service
+  alias Pleroma.Crypto
   @behaviour Service
 
   @impl Service
@@ -28,8 +29,6 @@ defmodule Pleroma.Captcha.Native do
   def validate(_token, _captcha, _answer), do: {:error, dgettext("errors", "Invalid CAPTCHA")}
 
   defp token do
-    10
-    |> :crypto.strong_rand_bytes()
-    |> Base.url_encode64(padding: false)
+    Crypto.random_string(10, padding: false)
   end
 end

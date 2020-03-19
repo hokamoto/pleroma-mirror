@@ -6,8 +6,9 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
   use Pleroma.DataCase
 
   alias Pleroma.Activity
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.Notification
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.CommonAPI.Utils
@@ -114,7 +115,7 @@ defmodule Pleroma.Web.MastodonAPI.NotificationViewTest do
     follower = insert(:user)
 
     User.follow(follower, old_user)
-    Pleroma.Web.ActivityPub.ActivityPub.move(old_user, new_user)
+    ActivityPub.move(old_user, new_user)
     Pleroma.Tests.ObanHelpers.perform_all()
 
     old_user = refresh_record(old_user)

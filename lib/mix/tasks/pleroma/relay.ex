@@ -5,7 +5,7 @@
 defmodule Mix.Tasks.Pleroma.Relay do
   use Mix.Task
   import Mix.Pleroma
-  alias Pleroma.Web.ActivityPub.Relay
+  alias Pleroma.Federation.ActivityPub.Relay
 
   @shortdoc "Manages remote relays"
   @moduledoc File.read!("docs/administration/CLI_tasks/relay.md")

@@ -4,8 +4,8 @@
 
 defmodule Pleroma.Web.MastodonAPI.ScheduledActivityViewTest do
   use Pleroma.DataCase
+  alias Pleroma.Federation.ActivityPub
   alias Pleroma.ScheduledActivity
-  alias Pleroma.Web.ActivityPub.ActivityPub
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.CommonAPI.Utils
   alias Pleroma.Web.MastodonAPI.ScheduledActivityView

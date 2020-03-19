@@ -6,6 +6,7 @@ defmodule Mix.Tasks.Pleroma.User do
   use Mix.Task
   import Mix.Pleroma
   alias Ecto.Changeset
+  alias Pleroma.Crypto
   alias Pleroma.User
   alias Pleroma.UserInviteToken
 
@@ -35,7 +36,7 @@ defmodule Mix.Tasks.Pleroma.User do
     {password, generated_password?} =
       case Keyword.get(options, :password) do
         nil ->
-          {:crypto.strong_rand_bytes(16) |> Base.encode64(), true}
+          {Crypto.random_string(16), true}
 
         password ->
           {password, false}
@@ -174,7 +175,7 @@ defmodule Mix.Tasks.Pleroma.User do
     start_pleroma()
 
     Pleroma.User.Query.build(%{nickname: "@#{instance}"})
-    |> Pleroma.RepoStreamer.chunk_stream(500)
+    |> Pleroma.Storage.Repo.Streamer.chunk_stream(500)
     |> Stream.each(fn users ->
       users
       |> Enum.each(fn user ->
@@ -272,7 +273,7 @@ defmodule Mix.Tasks.Pleroma.User do
       shell_info("Generated user invite token " <> String.replace(invite.invite_type, "_", " "))
 
       url =
-        Pleroma.Web.Router.Helpers.redirect_url(
+        Pleroma.Web.Router.Helpers.fallback_redirect_url(
           Pleroma.Web.Endpoint,
           :registration_page,
           invite.token
@@ -365,7 +366,7 @@ defmodule Mix.Tasks.Pleroma.User do
     start_pleroma()
 
     Pleroma.User.Query.build(%{local: true})
-    |> Pleroma.RepoStreamer.chunk_stream(500)
+    |> Pleroma.Storage.Repo.Streamer.chunk_stream(500)
     |> Stream.each(fn users ->
       users
       |> Enum.each(fn user ->

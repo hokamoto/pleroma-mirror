@@ -4,7 +4,7 @@
 
 defmodule Pleroma.Workers.Cron.NewUsersDigestWorker do
   alias Pleroma.Activity
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
 
   import Ecto.Query
@@ -22,10 +22,7 @@ defmodule Pleroma.Workers.Cron.NewUsersDigestWorker do
         |> Timex.beginning_of_day()
 
       users_and_statuses =
-        %{
-          local: true,
-          order_by: :inserted_at
-        }
+        %{local: true, order_by: :inserted_at}
         |> User.Query.build()
         |> where([u], u.inserted_at >= ^a_day_ago and u.inserted_at < ^today)
         |> Repo.all()

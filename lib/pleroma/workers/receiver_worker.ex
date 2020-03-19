@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 defmodule Pleroma.Workers.ReceiverWorker do
-  alias Pleroma.Web.Federator
+  alias Pleroma.Federation.ActivityPub.Federator
 
   use Pleroma.Workers.WorkerHelper, queue: "federator_incoming"
 

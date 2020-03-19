@@ -8,7 +8,7 @@ defmodule Pleroma.Web.PleromaAPI.PleromaAPIControllerTest do
   alias Pleroma.Conversation.Participation
   alias Pleroma.Notification
   alias Pleroma.Object
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
 

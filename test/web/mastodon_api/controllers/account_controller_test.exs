@@ -5,12 +5,14 @@
 defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
   use Pleroma.Web.ConnCase
 
-  alias Pleroma.Repo
+  alias Pleroma.Config
+  alias Pleroma.Federation.ActivityPub
+  alias Pleroma.Federation.ActivityPub.InternalFetchActor
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
-  alias Pleroma.Web.ActivityPub.ActivityPub
-  alias Pleroma.Web.ActivityPub.InternalFetchActor
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.OAuth.Token
+  # alias Pleroma.Web.RemoteIPPlug
 
   import Pleroma.Factory
 
@@ -46,7 +48,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     end
 
     test "works by nickname for remote users" do
-      Pleroma.Config.put([:instance, :limit_to_local_content], false)
+      Config.put([:instance, :limit_to_local_content], false)
       user = insert(:user, nickname: "user@example.com", local: false)
 
       conn =
@@ -58,7 +60,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     end
 
     test "respects limit_to_local_content == :all for remote user nicknames" do
-      Pleroma.Config.put([:instance, :limit_to_local_content], :all)
+      Config.put([:instance, :limit_to_local_content], :all)
 
       user = insert(:user, nickname: "user@example.com", local: false)
 
@@ -70,7 +72,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
     end
 
     test "respects limit_to_local_content == :unauthenticated for remote user nicknames" do
-      Pleroma.Config.put([:instance, :limit_to_local_content], :unauthenticated)
+      Config.put([:instance, :limit_to_local_content], :unauthenticated)
 
       user = insert(:user, nickname: "user@example.com", local: false)
       reading_user = insert(:user)
@@ -756,8 +758,12 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
   end
 
   describe "create account by app / rate limit" do
+    # clear_config([RemoteIPPlug, :enabled]) do
+    #   Config.put([RemoteIPPlug, :enabled], true)
+    # end
+
     clear_config([:rate_limit, :app_account_creation]) do
-      Pleroma.Config.put([:rate_limit, :app_account_creation], {10_000, 2})
+      Config.put([:rate_limit, :app_account_creation], {10_000, 2})
     end
 
     test "respects rate limit setting", %{conn: conn} do

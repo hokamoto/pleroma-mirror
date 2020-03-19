@@ -11,6 +11,7 @@ defmodule Pleroma.Workers.ScheduledActivityWorker do
 
   alias Pleroma.Config
   alias Pleroma.ScheduledActivity
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
 
@@ -19,7 +20,7 @@ defmodule Pleroma.Workers.ScheduledActivityWorker do
   @impl Oban.Worker
   def perform(%{"activity_id" => activity_id}, _job) do
     if Config.get([ScheduledActivity, :enabled]) do
-      case Pleroma.Repo.get(ScheduledActivity, activity_id) do
+      case Repo.get(ScheduledActivity, activity_id) do
         %ScheduledActivity{} = scheduled_activity ->
           post_activity(scheduled_activity)
 

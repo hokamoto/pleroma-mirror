@@ -11,7 +11,7 @@ defmodule Pleroma.Workers.Cron.DigestEmailsWorker do
 
   alias Pleroma.Config
   alias Pleroma.Emails
-  alias Pleroma.Repo
+  alias Pleroma.Storage.Repo
   alias Pleroma.User
 
   import Ecto.Query
