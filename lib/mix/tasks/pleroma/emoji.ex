@@ -14,8 +14,7 @@ defmodule Mix.Tasks.Pleroma.Emoji do
 
     {options, [], []} = parse_global_opts(args)
 
-    manifest =
-      fetch_manifest(if options[:manifest], do: options[:manifest], else: default_manifest())
+    manifest = fetch_json(if options[:manifest], do: options[:manifest], else: default_manifest())
 
     Enum.each(manifest, fn {name, info} ->
       to_print = [
@@ -43,7 +42,7 @@ defmodule Mix.Tasks.Pleroma.Emoji do
 
     manifest_url = if options[:manifest], do: options[:manifest], else: default_manifest()
 
-    manifest = fetch_manifest(manifest_url)
+    manifest = fetch_json(manifest_url)
 
     for pack_name <- pack_names do
       if Map.has_key?(manifest, pack_name) do
@@ -75,8 +74,8 @@ defmodule Mix.Tasks.Pleroma.Emoji do
           raise "Bad SHA256 for #{pack_name}"
         end
 
-        # The url specified in files should be in the same directory
-        files_url = Path.join(Path.dirname(manifest_url), pack["files"])
+        # The location specified in files should be in the same directory
+        files_loc = Path.join(Path.dirname(manifest_url), pack["files"])
 
         IO.puts(
           IO.ANSI.format([
@@ -86,11 +85,11 @@ defmodule Mix.Tasks.Pleroma.Emoji do
             :normal,
             " from ",
             :underline,
-            files_url
+            files_loc
           ])
         )
 
-        files = Tesla.get!(client(), files_url).body |> Jason.decode!()
+        files = fetch_json(files_loc)
 
         IO.puts(IO.ANSI.format(["Unpacking ", :bright, pack_name]))
 
@@ -220,7 +219,7 @@ defmodule Mix.Tasks.Pleroma.Emoji do
     end
   end
 
-  defp fetch_manifest(from) do
+  defp fetch_json(from) do
     Jason.decode!(
       if String.starts_with?(from, "http") do
         Tesla.get!(client(), from).body
