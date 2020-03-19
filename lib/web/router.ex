@@ -127,12 +127,14 @@ defmodule Pleroma.Web.Router do
     plug(:accepts, ["json", "xml"])
   end
 
+  # Server to Server (S2S) AP interactions
   pipeline :activitypub do
     plug(:accepts, ["activity+json", "json"])
     plug(Pleroma.Federation.HTTPSignatures.HTTPSignaturesPlug)
     plug(Pleroma.Federation.HTTPSignatures.MappedSignatureToIdentityPlug)
   end
 
+  # Client to Server (C2S) AP interactions
   pipeline :activitypub_client do
     plug(:accepts, ["activity+json", "json"])
     plug(:fetch_session)
@@ -198,8 +200,8 @@ defmodule Pleroma.Web.Router do
       post("/inbox", ActivityPubController, :inbox)
     end
 
-    get("/following", ActivityPubController, :following, assigns: %{relay: true})
-    get("/followers", ActivityPubController, :followers, assigns: %{relay: true})
+    get("/following", ActivityPubController, :relay_following)
+    get("/followers", ActivityPubController, :relay_followers)
   end
 
   scope "/internal/fetch", Pleroma.Federation.ActivityPub do

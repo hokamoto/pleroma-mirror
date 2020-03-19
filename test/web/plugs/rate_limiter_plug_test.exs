@@ -5,6 +5,7 @@
 defmodule Pleroma.Web.RateLimiterPlugTest do
   use ExUnit.Case, async: true
   use Plug.Test
+  use Pleroma.Web.ConnCase
 
   alias Pleroma.Config
   alias Pleroma.Web.Endpoint
@@ -38,63 +39,44 @@ defmodule Pleroma.Web.RateLimiterPlugTest do
         |> RateLimiterPlug.init()
         |> RateLimiterPlug.action_settings()
     end
+  end
 
-    test "it is disabled for localhost" do
-      Config.put([:rate_limit, @limiter_name], {1, 1})
-      Config.put([Endpoint, :http, :ip], {127, 0, 0, 1})
-      Config.put([RemoteIPPlug, :enabled], false)
+  test "it is disabled if it remote ip plug is enabled but no remote ip is found" do
+    Config.put([Endpoint, :http, :ip], {127, 0, 0, 1})
+    assert RateLimiterPlug.disabled?(Plug.Conn.assign(build_conn(), :remote_ip_found, false))
+  end
 
-      assert RateLimiterPlug.disabled?() == true
-    end
+  test "it restricts based on config values" do
+    limiter_name = :test_plug_opts
+    scale = 80
+    limit = 5
 
-    test "it is disabled for socket" do
-      Config.put([:rate_limit, @limiter_name], {1, 1})
-      Config.put([Endpoint, :http, :ip], {:local, "/path/to/pleroma.sock"})
-      Config.put([RemoteIPPlug, :enabled], false)
+    Config.put([Endpoint, :http, :ip], {8, 8, 8, 8})
+    Config.put([:rate_limit, limiter_name], {scale, limit})
 
-      assert RateLimiterPlug.disabled?() == true
-    end
+    plug_opts = RateLimiterPlug.init(name: limiter_name)
+    conn = build_conn(:get, "/")
 
-    test "it is enabled for socket when remote ip is enabled" do
-      Config.put([:rate_limit, @limiter_name], {1, 1})
-      Config.put([Endpoint, :http, :ip], {:local, "/path/to/pleroma.sock"})
-      Config.put([RemoteIPPlug, :enabled], true)
-
-      assert RateLimiterPlug.disabled?() == false
-    end
-
-    test "it restricts based on config values" do
-      limiter_name = :test_plug_opts
-      scale = 80
-      limit = 5
-
-      Config.put([Pleroma.Web.Endpoint, :http, :ip], {8, 8, 8, 8})
-      Config.put([:rate_limit, limiter_name], {scale, limit})
-
-      plug_opts = RateLimiterPlug.init(name: limiter_name)
-      conn = conn(:get, "/")
-
-      for i <- 1..5 do
-        conn = RateLimiterPlug.call(conn, plug_opts)
-        assert {^i, _} = RateLimiterPlug.inspect_bucket(conn, limiter_name, plug_opts)
-        Process.sleep(10)
-      end
-
+    for i <- 1..5 do
       conn = RateLimiterPlug.call(conn, plug_opts)
-      assert %{"error" => "Throttled"} = Phoenix.ConnTest.json_response(conn, :too_many_requests)
-      assert conn.halted
-
-      Process.sleep(50)
-
-      conn = conn(:get, "/")
-
-      conn = RateLimiterPlug.call(conn, plug_opts)
-      assert {1, 4} = RateLimiterPlug.inspect_bucket(conn, limiter_name, plug_opts)
-
-      refute conn.status == Plug.Conn.Status.code(:too_many_requests)
-      refute conn.resp_body
-      refute conn.halted
+      assert {^i, _} = RateLimiterPlug.inspect_bucket(conn, limiter_name, plug_opts)
+      Process.sleep(10)
     end
+
+    conn = RateLimiterPlug.call(conn, plug_opts)
+    assert %{"error" => "Throttled"} = Phoenix.ConnTest.json_response(conn, :too_many_requests)
+    assert conn.halted
+
+    Process.sleep(50)
+
+    conn = build_conn(:get, "/")
+
+    conn = RateLimiterPlug.call(conn, plug_opts)
+    assert {1, 4} = RateLimiterPlug.inspect_bucket(conn, limiter_name, plug_opts)
+
+    refute conn.status == Plug.Conn.Status.code(:too_many_requests)
+    refute conn.resp_body
+    refute conn.halted
   end
 
   describe "options" do
@@ -107,7 +89,7 @@ defmodule Pleroma.Web.RateLimiterPlugTest do
       base_bucket_name = "#{limiter_name}:group1"
       plug_opts = RateLimiterPlug.init(name: limiter_name, bucket_name: base_bucket_name)
 
-      conn = conn(:get, "/")
+      conn = build_conn(:get, "/")
 
       RateLimiterPlug.call(conn, plug_opts)
       assert {1, 4} = RateLimiterPlug.inspect_bucket(conn, base_bucket_name, plug_opts)
@@ -121,9 +103,9 @@ defmodule Pleroma.Web.RateLimiterPlugTest do
 
       plug_opts = RateLimiterPlug.init(name: limiter_name, params: ["id"])
 
-      conn = conn(:get, "/?id=1")
+      conn = build_conn(:get, "/?id=1")
       conn = Plug.Conn.fetch_query_params(conn)
-      conn_2 = conn(:get, "/?id=2")
+      conn_2 = build_conn(:get, "/?id=2")
 
       RateLimiterPlug.call(conn, plug_opts)
       assert {1, 4} = RateLimiterPlug.inspect_bucket(conn, limiter_name, plug_opts)
@@ -142,9 +124,9 @@ defmodule Pleroma.Web.RateLimiterPlugTest do
 
       id = "100"
 
-      conn = conn(:get, "/?id=#{id}")
+      conn = build_conn(:get, "/?id=#{id}")
       conn = Plug.Conn.fetch_query_params(conn)
-      conn_2 = conn(:get, "/?id=#{101}")
+      conn_2 = build_conn(:get, "/?id=#{101}")
 
       RateLimiterPlug.call(conn, plug_opts)
       assert {1, 4} = RateLimiterPlug.inspect_bucket(conn, base_bucket_name, plug_opts)
@@ -160,8 +142,8 @@ defmodule Pleroma.Web.RateLimiterPlugTest do
 
       plug_opts = RateLimiterPlug.init(name: limiter_name)
 
-      conn = %{conn(:get, "/") | remote_ip: {127, 0, 0, 2}}
-      conn_2 = %{conn(:get, "/") | remote_ip: {127, 0, 0, 3}}
+      conn = %{build_conn(:get, "/") | remote_ip: {127, 0, 0, 2}}
+      conn_2 = %{build_conn(:get, "/") | remote_ip: {127, 0, 0, 3}}
 
       for i <- 1..5 do
         conn = RateLimiterPlug.call(conn, plug_opts)
@@ -201,7 +183,7 @@ defmodule Pleroma.Web.RateLimiterPlugTest do
       plug_opts = RateLimiterPlug.init(name: limiter_name)
 
       user = insert(:user)
-      conn = conn(:get, "/") |> assign(:user, user)
+      conn = build_conn(:get, "/") |> assign(:user, user)
 
       for i <- 1..5 do
         conn = RateLimiterPlug.call(conn, plug_opts)
@@ -223,10 +205,10 @@ defmodule Pleroma.Web.RateLimiterPlugTest do
       plug_opts = RateLimiterPlug.init(name: limiter_name)
 
       user = insert(:user)
-      conn = conn(:get, "/") |> assign(:user, user)
+      conn = build_conn(:get, "/") |> assign(:user, user)
 
       user_2 = insert(:user)
-      conn_2 = conn(:get, "/") |> assign(:user, user_2)
+      conn_2 = build_conn(:get, "/") |> assign(:user, user_2)
 
       for i <- 1..5 do
         conn = RateLimiterPlug.call(conn, plug_opts)
@@ -252,8 +234,8 @@ defmodule Pleroma.Web.RateLimiterPlugTest do
 
     opts = RateLimiterPlug.init(name: limiter_name)
 
-    conn = conn(:get, "/")
-    conn_2 = conn(:get, "/")
+    conn = build_conn(:get, "/")
+    conn_2 = build_conn(:get, "/")
 
     %Task{pid: pid1} =
       task1 =

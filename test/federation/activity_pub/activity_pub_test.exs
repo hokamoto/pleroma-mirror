@@ -1962,11 +1962,9 @@ defmodule Pleroma.Federation.ActivityPubTest do
 
       activity = %Activity{activity | object: nil}
 
-      assert [%Notification{activity: ^activity}] =
-               Notification.for_user(follower, %{with_move: true})
+      assert [%Notification{activity: ^activity}] = Notification.for_user(follower)
 
-      assert [%Notification{activity: ^activity}] =
-               Notification.for_user(follower_move_opted_out, %{with_move: true})
+      assert [%Notification{activity: ^activity}] = Notification.for_user(follower_move_opted_out)
     end
 
     test "old user must be in the new user's `also_known_as` list" do

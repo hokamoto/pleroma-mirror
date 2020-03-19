@@ -8,7 +8,6 @@ defmodule Pleroma.Federation.ActivityPub.UserView do
   alias Pleroma.Crypto.Keys
   alias Pleroma.Federation.ActivityPub.Transmogrifier
   alias Pleroma.Federation.ActivityPub.Utils
-  alias Pleroma.HTML
   alias Pleroma.Storage.Repo
   alias Pleroma.User
   alias Pleroma.Web.Endpoint
@@ -74,6 +73,7 @@ defmodule Pleroma.Federation.ActivityPub.UserView do
     {:ok, _, public_key} = Keys.keys_from_pem(user.keys)
     public_key = :public_key.pem_entry_encode(:SubjectPublicKeyInfo, public_key)
     public_key = :public_key.pem_encode([public_key])
+    user = User.sanitize_html(user)
 
     endpoints = render("endpoints.json", %{user: user})
 
@@ -82,12 +82,6 @@ defmodule Pleroma.Federation.ActivityPub.UserView do
     fields =
       user
       |> User.fields()
-      |> Enum.map(fn %{"name" => name, "value" => value} ->
-        %{
-          "name" => HTML.strip_tags(name),
-          "value" => HTML.filter_tags(value, HTML.Scrubber.LinksOnly)
-        }
-      end)
       |> Enum.map(&Map.put(&1, "type", "PropertyValue"))
 
     %{

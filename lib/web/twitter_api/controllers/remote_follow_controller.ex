@@ -8,6 +8,7 @@ defmodule Pleroma.Web.TwitterAPI.RemoteFollowController do
   require Logger
 
   alias Pleroma.Activity
+  alias Pleroma.Federation.ActivityPub.FederatingPlug
   alias Pleroma.Object.Fetcher
   alias Pleroma.Web.OAuthScopesPlug
   alias Pleroma.User
@@ -15,6 +16,8 @@ defmodule Pleroma.Web.TwitterAPI.RemoteFollowController do
   alias Pleroma.Web.CommonAPI
 
   @status_types ["Article", "Event", "Note", "Video", "Page", "Question"]
+
+  plug(FederatingPlug)
 
   # Note: follower can submit the form (with password auth) not being signed in (having no token)
   plug(

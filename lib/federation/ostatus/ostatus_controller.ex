@@ -6,15 +6,19 @@ defmodule Pleroma.Federation.OStatus.OStatusController do
   use Pleroma.Web, :controller
 
   alias Pleroma.Activity
+  alias Pleroma.Federation.ActivityPub.FederatingPlug
   alias Pleroma.Federation.ActivityPub.Visibility
   alias Pleroma.Object
   alias Pleroma.User
   alias Pleroma.Federation.ActivityPub.ActivityPubController
   alias Pleroma.Web.Endpoint
+  alias Pleroma.Web.EnsureAuthenticatedPlug
   alias Pleroma.Web.FallbackRedirectController
   alias Pleroma.Web.Metadata.PlayerView
   alias Pleroma.Web.RateLimiterPlug
   alias Pleroma.Web.Router
+
+  plug(EnsureAuthenticatedPlug, unless_func: &FederatingPlug.federating?/0)
 
   plug(
     RateLimiterPlug,
@@ -135,13 +139,13 @@ defmodule Pleroma.Federation.OStatus.OStatusController do
     end
   end
 
-  def errors(conn, {:error, :not_found}) do
+  defp errors(conn, {:error, :not_found}) do
     render_error(conn, :not_found, "Not found")
   end
 
-  def errors(conn, {:fetch_user, nil}), do: errors(conn, {:error, :not_found})
+  defp errors(conn, {:fetch_user, nil}), do: errors(conn, {:error, :not_found})
 
-  def errors(conn, _) do
+  defp errors(conn, _) do
     render_error(conn, :internal_server_error, "Something went wrong")
   end
 end

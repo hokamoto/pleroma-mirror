@@ -12,7 +12,7 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
   alias Pleroma.User
   alias Pleroma.Web.CommonAPI
   alias Pleroma.Web.OAuth.Token
-  alias Pleroma.Web.RemoteIPPlug
+  # alias Pleroma.Web.RemoteIPPlug
 
   import Pleroma.Factory
 
@@ -758,9 +758,9 @@ defmodule Pleroma.Web.MastodonAPI.AccountControllerTest do
   end
 
   describe "create account by app / rate limit" do
-    clear_config([RemoteIPPlug, :enabled]) do
-      Config.put([RemoteIPPlug, :enabled], true)
-    end
+    # clear_config([RemoteIPPlug, :enabled]) do
+    #   Config.put([RemoteIPPlug, :enabled], true)
+    # end
 
     clear_config([:rate_limit, :app_account_creation]) do
       Config.put([:rate_limit, :app_account_creation], {10_000, 2})

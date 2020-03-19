@@ -6,8 +6,10 @@ defmodule Pleroma.Web.Feed.UserController do
   use Pleroma.Web, :controller
 
   alias Pleroma.Federation.ActivityPub
-  alias Pleroma.User
   alias Pleroma.Federation.ActivityPub.ActivityPubController
+  alias Pleroma.Federation.ActivityPub.FederatingPlug
+  alias Pleroma.User
+  alias Pleroma.Web.EnsureAuthenticatedPlug
   alias Pleroma.Web.FallbackRedirectController
   alias Pleroma.Web.Feed.FeedView
 
@@ -25,7 +27,12 @@ defmodule Pleroma.Web.Feed.UserController do
 
   def feed_redirect(%{assigns: %{format: format}} = conn, _params)
       when format in ["json", "activity+json"] do
-    ActivityPubController.call(conn, :user)
+    with %{halted: false} = conn <-
+           EnsureAuthenticatedPlug.call(conn,
+             unless_func: &FederatingPlug.federating?/0
+           ) do
+      ActivityPubController.call(conn, :user)
+    end
   end
 
   def feed_redirect(conn, %{"nickname" => nickname}) do
