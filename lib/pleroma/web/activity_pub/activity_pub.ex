@@ -710,6 +710,10 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> maybe_preload_bookmarks(opts)
     |> maybe_set_thread_muted_field(opts)
     |> restrict_blocked(opts)
+    |> restrict_since(opts)
+    |> restrict_min_id(opts)
+    |> restrict_max_id(opts)
+    |> restrict_limit(opts)
     |> restrict_recipients(recipients, opts["user"])
     |> where(
       [activity],
@@ -925,13 +929,33 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     end
   end
 
-  defp restrict_since(query, %{"since_id" => ""}), do: query
+  defguard non_empty_string?(item) when is_binary(item) and item != ""
 
-  defp restrict_since(query, %{"since_id" => since_id}) do
+  defp restrict_since(query, %{"since_id" => since_id}) when non_empty_string?(since_id) do
     from(activity in query, where: activity.id > ^since_id)
   end
 
   defp restrict_since(query, _), do: query
+
+  defp restrict_max_id(query, %{"max_id" => max_id}) when non_empty_string?(max_id) do
+    from(activity in query, where: activity.id <= ^max_id)
+  end
+
+  defp restrict_max_id(query, _), do: query
+
+  defp restrict_min_id(query, %{"min_id" => min_id}) when non_empty_string?(min_id) do
+    from(activity in query, where: activity.id >= ^min_id)
+  end
+
+  defp restrict_min_id(query, _), do: query
+
+  defp restrict_limit(query, %{"limit" => limit}) when non_empty_string?(limit) do
+    from(activity in query, limit: ^limit)
+  end
+
+  defp restrict_limit(query, _) do
+    from(activity in query, limit: 20)
+  end
 
   defp restrict_tag_reject(_query, %{"tag_reject" => _tag_reject, "skip_preload" => true}) do
     raise "Can't use the child object without preloading!"

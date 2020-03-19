@@ -502,18 +502,125 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
   end
 
   describe "fetch activities in context" do
-    test "retrieves activities that have a given context" do
+    setup do
       {:ok, activity} = ActivityBuilder.insert(%{"type" => "Create", "context" => "2hu"})
       {:ok, activity_two} = ActivityBuilder.insert(%{"type" => "Create", "context" => "2hu"})
-      {:ok, _activity_three} = ActivityBuilder.insert(%{"type" => "Create", "context" => "3hu"})
-      {:ok, _activity_four} = ActivityBuilder.insert(%{"type" => "Announce", "context" => "2hu"})
-      activity_five = insert(:note_activity)
+      {:ok, activity_three} = ActivityBuilder.insert(%{"type" => "Create", "context" => "2hu"})
+      {:ok, activity_four} = ActivityBuilder.insert(%{"type" => "Create", "context" => "2hu"})
+
+      {:ok, %{activity_ids: [activity_four.id, activity_three.id, activity_two.id, activity.id]}}
+    end
+
+    test "retrieves activities that have a given context", %{activity_ids: activity_ids} do
+      found_activity_ids =
+        ActivityPub.fetch_activities_for_context("2hu", %{})
+        |> Enum.map(& &1.id)
+
+      assert found_activity_ids == activity_ids
+    end
+
+    test "will not retrieve activites from a different context", %{activity_ids: activity_ids} do
+      {:ok, %Activity{id: out_of_context_id}} =
+        ActivityBuilder.insert(%{"type" => "Create", "context" => "3hu"})
+
+      found_activity_ids =
+        ActivityPub.fetch_activities_for_context("2hu", %{})
+        |> Enum.map(& &1.id)
+
+      refute Enum.member?(found_activity_ids, out_of_context_id)
+      assert found_activity_ids == activity_ids
+    end
+
+    test "will not retrieve announcements", %{activity_ids: activity_ids} do
+      {:ok, %Activity{id: announcement_id}} =
+        ActivityBuilder.insert(%{"type" => "Announce", "context" => "2hu"})
+
+      found_activity_ids =
+        ActivityPub.fetch_activities_for_context("2hu", %{})
+        |> Enum.map(& &1.id)
+
+      refute Enum.member?(found_activity_ids, announcement_id)
+      assert found_activity_ids == activity_ids
+    end
+
+    test "will not retrieve activites from blocked users", %{activity_ids: activity_ids} do
+      %Activity{id: note_id, data: %{"actor" => note_actor}} = insert(:note_activity)
       user = insert(:user)
 
-      {:ok, _user_relationship} = User.block(user, %{ap_id: activity_five.data["actor"]})
+      {:ok, _user_relationship} = User.block(user, %{ap_id: note_actor})
 
-      activities = ActivityPub.fetch_activities_for_context("2hu", %{"blocking_user" => user})
-      assert activities == [activity_two, activity]
+      found_activity_ids =
+        ActivityPub.fetch_activities_for_context("2hu", %{"blocking_user" => user})
+        |> Enum.map(& &1.id)
+
+      refute Enum.member?(found_activity_ids, note_id)
+      assert found_activity_ids == activity_ids
+    end
+
+    test "retrieves activities since the id passed in 'since_id' parameter", %{
+      activity_ids: [act_id_4, act_id_3, act_id_2, _]
+    } do
+      activities =
+        ActivityPub.fetch_activities_for_context("2hu", %{"since_id" => act_id_2})
+        |> Enum.map(& &1.id)
+
+      assert activities == [act_id_4, act_id_3]
+    end
+
+    test "retrieves activities on or after 'min_id' parameter", %{
+      activity_ids: [act_id_4, act_id_3, act_id_2, _]
+    } do
+      activities =
+        ActivityPub.fetch_activities_for_context("2hu", %{"min_id" => act_id_2})
+        |> Enum.map(& &1.id)
+
+      assert activities == [act_id_4, act_id_3, act_id_2]
+    end
+
+    test "retrieves activities on or before 'max_id' parameter", %{
+      activity_ids: [_, act_id_3, act_id_2, act_id_1]
+    } do
+      activities =
+        ActivityPub.fetch_activities_for_context("2hu", %{"max_id" => act_id_3})
+        |> Enum.map(& &1.id)
+
+      assert activities == [act_id_3, act_id_2, act_id_1]
+    end
+
+    test "returns 20 items by default" do
+      for _i <- 1..30 do
+        ActivityBuilder.insert(%{"type" => "Create", "context" => "2hu"})
+      end
+
+      activity_count =
+        ActivityPub.fetch_activities_for_context("2hu", %{})
+        |> Enum.count()
+
+      assert activity_count == 20
+    end
+
+    test "returned item count respects 'limit' parameter" do
+      for _i <- 1..40 do
+        ActivityBuilder.insert(%{"type" => "Create", "context" => "2hu"})
+      end
+
+      activity_count =
+        ActivityPub.fetch_activities_for_context("2hu", %{"limit" => "30"})
+        |> Enum.count()
+
+      assert activity_count == 30
+    end
+
+    test "empty string in 'limit' parameter is ignored" do
+      for _i <- 1..40 do
+        ActivityBuilder.insert(%{"type" => "Create", "context" => "2hu"})
+      end
+
+      activity_count =
+        ActivityPub.fetch_activities_for_context("2hu", %{"limit" => ""})
+        |> Enum.count()
+
+      assert activity_count == 20
     end
   end
 
