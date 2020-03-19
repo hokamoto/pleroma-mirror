@@ -90,6 +90,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - OAuth: admin scopes support (relevant setting: `[:auth, :enforce_oauth_admin_scope_usage]`).
 - Add an option `authorized_fetch_mode` to require HTTP signatures for AP fetches.
 - ActivityPub: support for `replies` collection (output for outgoing federation & fetching on incoming federation).
+- Local-only statuses
 - Mix task to refresh counter cache (`mix pleroma.refresh_counter_cache`)
 <details>
   <summary>API Changes</summary>

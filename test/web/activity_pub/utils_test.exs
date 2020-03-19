@@ -584,4 +584,57 @@ defmodule Pleroma.Web.ActivityPub.UtilsTest do
       assert Utils.get_cached_emoji_reactions(object) == []
     end
   end
+
+  describe "maybe_federate/1" do
+    import Mock
+    alias Pleroma.Web.Federator
+    clear_config([:instance, :federating])
+
+    test "federates local activities when enabled" do
+      Pleroma.Config.put([:instance, :federating], true)
+      activity = %Activity{local: true}
+
+      with_mock Federator, publish: fn _ -> :ok end do
+        Utils.maybe_federate(activity)
+        assert_called(Federator.publish(activity))
+      end
+
+      activity = %Activity{local: true, data: %{"local_only" => false}}
+
+      with_mock Federator, publish: fn _ -> :ok end do
+        Utils.maybe_federate(activity)
+        assert_called(Federator.publish(activity))
+      end
+    end
+
+    test "doesn't federate remote activities" do
+      Pleroma.Config.put([:instance, :federating], true)
+      activity = %Activity{local: false}
+
+      with_mock Federator, publish: fn _ -> :ok end do
+        Utils.maybe_federate(activity)
+        refute called(Federator.publish(activity))
+      end
+    end
+
+    test "doesn't federate local_only activities" do
+      Pleroma.Config.put([:instance, :federating], true)
+      activity = %Activity{local: true, data: %{"local_only" => true}}
+
+      with_mock Federator, publish: fn _ -> :ok end do
+        Utils.maybe_federate(activity)
+        refute called(Federator.publish(activity))
+      end
+    end
+
+    test "doesn't federate when :federating is disabled" do
+      Pleroma.Config.put([:instance, :federating], false)
+      activity = %Activity{local: true}
+
+      with_mock Federator, publish: fn _ -> :ok end do
+        Utils.maybe_federate(activity)
+        refute called(Federator.publish(activity))
+      end
+    end
+  end
 end

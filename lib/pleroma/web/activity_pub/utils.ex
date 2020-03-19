@@ -170,7 +170,7 @@ defmodule Pleroma.Web.ActivityPub.Utils do
   """
   @spec maybe_federate(any()) :: :ok
   def maybe_federate(%Activity{local: true} = activity) do
-    if Pleroma.Config.get!([:instance, :federating]) do
+    if Pleroma.Config.get!([:instance, :federating]) and not Activity.local_only?(activity) do
       Pleroma.Web.Federator.publish(activity)
     end
 

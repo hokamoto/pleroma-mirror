@@ -33,6 +33,7 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
             sensitive: false,
             object: nil,
             preview?: false,
+            local_only: false,
             changes: %{}
 
   def create(user, params) do
@@ -51,6 +52,7 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
     |> with_valid(&to_and_cc/1)
     |> with_valid(&context/1)
     |> sensitive()
+    |> local_only()
     |> with_valid(&object/1)
     |> preview?()
     |> with_valid(&changes/1)
@@ -191,6 +193,11 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
     %__MODULE__{draft | preview?: preview?}
   end
 
+  defp local_only(draft) do
+    local_only = Pleroma.Web.ControllerHelper.truthy_param?(draft.params["local_only"]) || false
+    %__MODULE__{draft | local_only: local_only}
+  end
+
   defp changes(draft) do
     direct? = draft.visibility == "direct"
 
@@ -200,7 +207,11 @@ defmodule Pleroma.Web.CommonAPI.ActivityDraft do
         actor: draft.user,
         context: draft.context,
         object: draft.object,
-        additional: %{"cc" => draft.cc, "directMessage" => direct?}
+        additional: %{
+          "cc" => draft.cc,
+          "directMessage" => direct?,
+          "local_only" => draft.local_only
+        }
       }
       |> Utils.maybe_add_list_data(draft.user, draft.visibility)
 

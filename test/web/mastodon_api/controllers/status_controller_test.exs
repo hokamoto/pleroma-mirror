@@ -122,6 +122,20 @@ defmodule Pleroma.Web.MastodonAPI.StatusControllerTest do
                NaiveDateTime.to_iso8601(expiration.scheduled_at)
     end
 
+    test "posting a local only status", %{conn: conn} do
+      conn_one =
+        conn
+        |> post("/api/v1/statuses", %{
+          "status" => "cofe",
+          "local_only" => "true"
+        })
+
+      assert %{"content" => "cofe", "id" => id, "pleroma" => %{"local_only" => true}} =
+               json_response(conn_one, 200)
+
+      assert %Activity{id: ^id, data: %{"local_only" => true}} = Activity.get_by_id(id)
+    end
+
     test "it fails to create a status if `expires_in` is less or equal than an hour", %{
       conn: conn
     } do

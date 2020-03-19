@@ -52,7 +52,7 @@ defmodule Pleroma.Web.ActivityPub.Relay do
   def publish(%Activity{data: %{"type" => "Create"}} = activity) do
     with %User{} = user <- get_actor(),
          %Object{} = object <- Object.normalize(activity) do
-      ActivityPub.announce(user, object, nil, true, false)
+      ActivityPub.announce(user, object, public: false)
     else
       error -> format_error(error)
     end

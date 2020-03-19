@@ -84,72 +84,72 @@ defmodule Pleroma.Web.CommonAPI do
   end
 
   def repeat(id_or_ap_id, user, params \\ %{}) do
-    with {_, %Activity{} = activity} <- {:find_activity, get_by_id_or_ap_id(id_or_ap_id)},
-         object <- Object.normalize(activity),
-         announce_activity <- Utils.get_existing_announce(user.ap_id, object),
-         public <- public_announce?(object, params) do
-      if announce_activity do
-        {:ok, announce_activity, object}
-      else
-        ActivityPub.announce(user, object, nil, true, public)
+    with %Activity{} = activity <- get_by_id_or_ap_id(id_or_ap_id) do
+      object = Object.normalize(activity)
+
+      case Utils.get_existing_announce(user.ap_id, object) do
+        %Activity{} = announce_activity ->
+          {:ok, announce_activity, object}
+
+        nil ->
+          public = public_announce?(object, params)
+          local_only = Activity.local_only?(activity)
+
+          ActivityPub.announce(user, object, public: public, local_only: local_only)
       end
     else
-      {:find_activity, _} -> {:error, :not_found}
-      _ -> {:error, dgettext("errors", "Could not repeat")}
+      _ -> {:error, :not_found}
     end
   end
 
   def unrepeat(id_or_ap_id, user) do
-    with {_, %Activity{} = activity} <- {:find_activity, get_by_id_or_ap_id(id_or_ap_id)} do
+    with %Activity{} = activity <- get_by_id_or_ap_id(id_or_ap_id) do
       object = Object.normalize(activity)
-      ActivityPub.unannounce(user, object)
+      local_only = Activity.local_only?(activity)
+      ActivityPub.unannounce(user, object, local_only: local_only)
     else
-      {:find_activity, _} -> {:error, :not_found}
-      _ -> {:error, dgettext("errors", "Could not unrepeat")}
+      _ -> {:error, :not_found}
     end
   end
 
   def favorite(id_or_ap_id, user) do
-    with {_, %Activity{} = activity} <- {:find_activity, get_by_id_or_ap_id(id_or_ap_id)},
-         object <- Object.normalize(activity),
-         like_activity <- Utils.get_existing_like(user.ap_id, object) do
-      if like_activity do
-        {:ok, like_activity, object}
-      else
-        ActivityPub.like(user, object)
+    with %Activity{} = activity <- get_by_id_or_ap_id(id_or_ap_id) do
+      object = Object.normalize(activity)
+
+      case Utils.get_existing_like(user.ap_id, object) do
+        %Activity{} = like_activity -> {:ok, like_activity, object}
+        nil -> ActivityPub.like(user, object, local_only: Activity.local_only?(activity))
       end
     else
-      {:find_activity, _} -> {:error, :not_found}
-      _ -> {:error, dgettext("errors", "Could not favorite")}
+      _ -> {:error, :not_found}
     end
   end
 
   def unfavorite(id_or_ap_id, user) do
-    with {_, %Activity{} = activity} <- {:find_activity, get_by_id_or_ap_id(id_or_ap_id)} do
+    with %Activity{} = activity <- get_by_id_or_ap_id(id_or_ap_id) do
       object = Object.normalize(activity)
-      ActivityPub.unlike(user, object)
+      ActivityPub.unlike(user, object, local_only: Activity.local_only?(activity))
     else
-      {:find_activity, _} -> {:error, :not_found}
-      _ -> {:error, dgettext("errors", "Could not unfavorite")}
+      _ -> {:error, :not_found}
     end
   end
 
   def react_with_emoji(id, user, emoji) do
-    with %Activity{} = activity <- Activity.get_by_id(id),
-         object <- Object.normalize(activity) do
-      ActivityPub.react_with_emoji(user, object, emoji)
+    with %Activity{} = activity <- Activity.get_by_id(id) do
+      object = Object.normalize(activity)
+      local_only = Activity.local_only?(activity)
+      ActivityPub.react_with_emoji(user, object, emoji, local_only: local_only)
     else
-      _ ->
-        {:error, dgettext("errors", "Could not add reaction emoji")}
+      _ -> {:error, dgettext("errors", "Could not add reaction emoji")}
     end
   end
 
   def unreact_with_emoji(id, user, emoji) do
     with %Activity{} = reaction_activity <- Utils.get_latest_reaction(id, user, emoji) do
-      ActivityPub.unreact_with_emoji(user, reaction_activity.data["id"])
+      local_only = Activity.local_only?(Activity.get_by_id(id))
+      ActivityPub.unreact_with_emoji(user, reaction_activity.data["id"], local_only: local_only)
     else
-      _ ->
-        {:error, dgettext("errors", "Could not remove reaction emoji")}
+      _ -> {:error, dgettext("errors", "Could not remove reaction emoji")}
     end
   end
 
@@ -157,6 +157,9 @@ defmodule Pleroma.Web.CommonAPI do
     with :ok <- validate_not_author(object, user),
          :ok <- validate_existing_votes(user, object),
          {:ok, options, choices} <- normalize_and_validate_choices(choices, object) do
+      local_only =
+        object.data["id"] |> Activity.get_create_by_object_ap_id() |> Activity.local_only?()
+
       answer_activities =
         Enum.map(choices, fn index ->
           answer_data = make_answer_data(user, object, Enum.at(options, index)["name"])
@@ -167,7 +170,7 @@ defmodule Pleroma.Web.CommonAPI do
               actor: user,
               context: object.data["context"],
               object: answer_data,
-              additional: %{"cc" => answer_data["cc"]}
+              additional: %{"cc" => answer_data["cc"], "local_only" => local_only}
             })
 
           activity

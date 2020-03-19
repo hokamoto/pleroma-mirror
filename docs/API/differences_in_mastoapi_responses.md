@@ -30,6 +30,7 @@ Has these additional fields under the `pleroma` object:
 - `expires_at`: a datetime (iso8601) that states when the post will expire (be deleted automatically), or empty if the post won't expire
 - `thread_muted`: true if the thread the post belongs to is muted
 - `emoji_reactions`: A list with emoji / reaction maps. The format is `{name: "☕", count: 1, me: true}`. Contains no information about the reacting users, for that use the `/statuses/:id/reactions` endpoint.
+- `local_only`: true for local-only, non-federated posts.
 
 ## Attachments
 
@@ -128,6 +129,7 @@ Additional parameters can be added to the JSON body/Form data:
 - `visibility`: string, besides standard MastoAPI values (`direct`, `private`, `unlisted` or `public`) it can be used to address a List by setting it to `list:LIST_ID`.
 - `expires_in`: The number of seconds the posted activity should expire in. When a posted activity expires it will be deleted from the server, and a delete request for it will be federated. This needs to be longer than an hour.
 - `in_reply_to_conversation_id`: Will reply to a given conversation, addressing only the people who are part of the recipient set of that conversation. Sets the visibility to `direct`.
+- `local_only`: boolean, if set to `true` the post won't be federated.
 
 ## GET `/api/v1/statuses`
 

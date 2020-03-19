@@ -929,7 +929,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       {:ok, activity} = CommonAPI.post(user, %{"status" => "Status"})
       object = Object.normalize(activity)
 
-      with_mock(Utils, [:passthrough], maybe_federate: fn _ -> {:error, :reverted} end) do
+      with_mock(Utils, [:passthrough],
+        add_emoji_reaction_to_object: fn _, _ -> {:error, :reverted} end
+      ) do
         assert {:error, :reverted} = ActivityPub.react_with_emoji(reactor, object, "😀")
       end
 
@@ -983,7 +985,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
 
       {:ok, reaction_activity, _object} = ActivityPub.react_with_emoji(reactor, object, "😀")
 
-      with_mock(Utils, [:passthrough], maybe_federate: fn _ -> {:error, :reverted} end) do
+      with_mock(Utils, [:passthrough],
+        remove_emoji_reaction_from_object: fn _, _ -> {:error, :reverted} end
+      ) do
         assert {:error, :reverted} =
                  ActivityPub.unreact_with_emoji(reactor, reaction_activity.data["id"])
       end
@@ -1024,7 +1028,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       object = Object.normalize(note_activity)
       user = insert(:user)
 
-      with_mock(Utils, [:passthrough], maybe_federate: fn _ -> {:error, :reverted} end) do
+      with_mock(Utils, [:passthrough], add_like_to_object: fn _, _ -> {:error, :reverted} end) do
         assert {:error, :reverted} = ActivityPub.like(user, object)
       end
 
@@ -1089,7 +1093,11 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       {:ok, like_activity, object} = ActivityPub.like(user, object)
       assert object.data["like_count"] == 1
 
-      with_mock(Utils, [:passthrough], maybe_federate: fn _ -> {:error, :reverted} end) do
+      with_mock(Utils, [:passthrough],
+        remove_like_from_object: fn _, _ ->
+          {:error, :reverted}
+        end
+      ) do
         assert {:error, :reverted} = ActivityPub.unlike(user, object)
       end
 
@@ -1143,7 +1151,11 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       object = Object.normalize(note_activity)
       user = insert(:user)
 
-      with_mock(Utils, [:passthrough], maybe_federate: fn _ -> {:error, :reverted} end) do
+      with_mock(Utils, [:passthrough],
+        add_announce_to_object: fn _, _ ->
+          {:error, :reverted}
+        end
+      ) do
         assert {:error, :reverted} = ActivityPub.announce(user, object)
       end
 
@@ -1160,7 +1172,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       {:ok, note_activity} = CommonAPI.post(user, %{"status" => ".", "visibility" => "private"})
       object = Object.normalize(note_activity)
 
-      {:ok, announce_activity, object} = ActivityPub.announce(user, object, nil, true, false)
+      {:ok, announce_activity, object} = ActivityPub.announce(user, object, public: false)
 
       assert announce_activity.data["to"] == [User.ap_followers(user)]
 
@@ -1174,7 +1186,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       {:ok, note_activity} = CommonAPI.post(user, %{"status" => ".", "visibility" => "private"})
       object = Object.normalize(note_activity)
 
-      assert {:error, _} = ActivityPub.announce(user, object, nil, true, true)
+      assert {:error, _} = ActivityPub.announce(user, object, public: true)
     end
 
     test "does not add an announce activity to the db if the announcer is not the author" do
@@ -1183,7 +1195,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       {:ok, note_activity} = CommonAPI.post(user, %{"status" => ".", "visibility" => "private"})
       object = Object.normalize(note_activity)
 
-      assert {:error, _} = ActivityPub.announce(announcer, object, nil, true, false)
+      assert {:error, _} = ActivityPub.announce(announcer, object, public: false)
     end
   end
 
@@ -1224,7 +1236,9 @@ defmodule Pleroma.Web.ActivityPub.ActivityPubTest do
       {:ok, _announce_activity, object} = ActivityPub.announce(user, object)
       assert object.data["announcement_count"] == 1
 
-      with_mock(Utils, [:passthrough], maybe_federate: fn _ -> {:error, :reverted} end) do
+      with_mock(Utils, [:passthrough],
+        remove_announce_from_object: fn _, _ -> {:error, :reverted} end
+      ) do
         assert {:error, :reverted} = ActivityPub.unannounce(user, object)
       end
 

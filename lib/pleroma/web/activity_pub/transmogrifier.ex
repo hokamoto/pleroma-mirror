@@ -615,7 +615,8 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     with actor <- Containment.get_actor(data),
          {:ok, %User{} = actor} <- User.get_or_fetch_by_ap_id(actor),
          {:ok, object} <- get_obj_helper(object_id),
-         {:ok, activity, _object} <- ActivityPub.like(actor, object, id, false) do
+         {:ok, activity, _object} <-
+           ActivityPub.like(actor, object, activity_id: id, local: false) do
       {:ok, activity}
     else
       _e -> :error
@@ -651,7 +652,8 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
          {:ok, %User{} = actor} <- User.get_or_fetch_by_ap_id(actor),
          {:ok, object} <- get_embedded_obj_helper(object_id, actor),
          public <- Visibility.is_public?(data),
-         {:ok, activity, _object} <- ActivityPub.announce(actor, object, id, false, public) do
+         {:ok, activity, _object} <-
+           ActivityPub.announce(actor, object, activity_id: id, local: false, public: public) do
       {:ok, activity}
     else
       _e -> :error
@@ -736,7 +738,8 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     with actor <- Containment.get_actor(data),
          {:ok, %User{} = actor} <- User.get_or_fetch_by_ap_id(actor),
          {:ok, object} <- get_obj_helper(object_id),
-         {:ok, activity, _} <- ActivityPub.unannounce(actor, object, id, false) do
+         {:ok, activity, _} <-
+           ActivityPub.unannounce(actor, object, activity_id: id, local: false) do
       {:ok, activity}
     else
       _e -> :error
@@ -830,7 +833,7 @@ defmodule Pleroma.Web.ActivityPub.Transmogrifier do
     with actor <- Containment.get_actor(data),
          {:ok, %User{} = actor} <- User.get_or_fetch_by_ap_id(actor),
          {:ok, object} <- get_obj_helper(object_id),
-         {:ok, activity, _, _} <- ActivityPub.unlike(actor, object, id, false) do
+         {:ok, activity, _, _} <- ActivityPub.unlike(actor, object, activity_id: id, local: false) do
       {:ok, activity}
     else
       _e -> :error
