@@ -6,6 +6,7 @@ defmodule Pleroma.Notification do
   use Ecto.Schema
 
   alias Pleroma.Activity
+  alias Pleroma.Filter
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Pagination
@@ -68,14 +69,16 @@ defmodule Pleroma.Notification do
     |> join(:left, [n, a], object in Object,
       on:
         fragment(
-          "(?->>'id') = COALESCE((? -> 'object'::text) ->> 'id'::text)",
+          "(?->>'id') = COALESCE(?->'object'->>'id', ?->>'object')",
           object.data,
+          a.data,
           a.data
         )
     )
     |> preload([n, a, o], activity: {a, object: o})
     |> exclude_notification_muted(user, exclude_notification_muted_opts)
     |> exclude_blocked(user, exclude_blocked_opts)
+    |> exclude_filtered(user)
     |> exclude_visibility(opts)
   end
 
@@ -104,6 +107,20 @@ defmodule Pleroma.Notification do
       on: tm.user_id == ^user.id and tm.context == fragment("?->>'context'", a.data)
     )
     |> where([n, a, o, tm], is_nil(tm.user_id))
+  end
+
+  defp exclude_filtered(query, user) do
+    case Filter.compose_regex(user) do
+      nil ->
+        query
+
+      regex ->
+        from([_n, a, o] in query,
+          where:
+            fragment("not(?->>'content' ~* ?)", o.data, ^regex) or
+              fragment("?->>'actor' = ?", o.data, ^user.ap_id)
+        )
+    end
   end
 
   @valid_visibilities ~w[direct unlisted public private]
@@ -272,12 +289,17 @@ defmodule Pleroma.Notification do
     end
   end
 
+  @spec create_notifications(Activity.t()) :: {:ok, [Notification.t()] | []}
   def create_notifications(%Activity{data: %{"to" => _, "type" => "Create"}} = activity) do
     object = Object.normalize(activity)
 
     unless object && object.data["type"] == "Answer" do
-      users = get_notified_from_activity(activity)
-      notifications = Enum.map(users, fn user -> create_notification(activity, user) end)
+      notifications =
+        activity
+        |> get_notified_from_activity()
+        |> Enum.map(&create_notification(activity, &1))
+        |> Enum.reject(&is_nil(&1))
+
       {:ok, notifications}
     else
       {:ok, []}
@@ -290,6 +312,7 @@ defmodule Pleroma.Notification do
       activity
       |> get_notified_from_activity()
       |> Enum.map(&create_notification(activity, &1))
+      |> Enum.reject(&is_nil(&1))
 
     {:ok, notifications}
   end
@@ -333,7 +356,8 @@ defmodule Pleroma.Notification do
       :follows,
       :non_followers,
       :non_follows,
-      :recently_followed
+      :recently_followed,
+      :filtered
     ]
     |> Enum.any?(&skip?(&1, activity, user))
   end
@@ -387,6 +411,26 @@ defmodule Pleroma.Notification do
       %{activity: %{data: %{"type" => "Follow", "actor" => ^actor}}} -> true
       _ -> false
     end)
+  end
+
+  def skip?(:filtered, %{data: %{"type" => type}}, _) when type in ["Follow", "Move"], do: false
+
+  def skip?(:filtered, activity, user) do
+    object = Object.normalize(activity)
+
+    cond do
+      is_nil(object) ->
+        false
+
+      object.data["actor"] == user.ap_id ->
+        false
+
+      not is_nil(regex = Filter.compose_regex(user, :re)) ->
+        Regex.match?(regex, object.data["content"])
+
+      true ->
+        false
+    end
   end
 
   def skip?(_, _, _), do: false

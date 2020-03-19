@@ -9,6 +9,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
   alias Pleroma.Constants
   alias Pleroma.Conversation
   alias Pleroma.Conversation.Participation
+  alias Pleroma.Filter
   alias Pleroma.Notification
   alias Pleroma.Object
   alias Pleroma.Object.Containment
@@ -710,6 +711,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> maybe_preload_bookmarks(opts)
     |> maybe_set_thread_muted_field(opts)
     |> restrict_blocked(opts)
+    |> restrict_filtered(opts)
     |> restrict_recipients(recipients, opts["user"])
     |> where(
       [activity],
@@ -1170,6 +1172,26 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
 
   defp restrict_instance(query, _), do: query
 
+  defp restrict_filtered(query, %{"user" => %User{} = user}) do
+    case Filter.compose_regex(user) do
+      nil ->
+        query
+
+      regex ->
+        from([activity, object] in query,
+          where:
+            fragment("not(?->>'content' ~* ?)", object.data, ^regex) or
+              activity.actor == ^user.ap_id
+        )
+    end
+  end
+
+  defp restrict_filtered(query, %{"blocking_user" => %User{} = user}) do
+    restrict_filtered(query, %{"user" => user})
+  end
+
+  defp restrict_filtered(query, _), do: query
+
   defp exclude_poll_votes(query, %{"include_poll_votes" => true}), do: query
 
   defp exclude_poll_votes(query, _) do
@@ -1277,6 +1299,7 @@ defmodule Pleroma.Web.ActivityPub.ActivityPub do
     |> restrict_favorited_by(opts)
     |> restrict_blocked(restrict_blocked_opts)
     |> restrict_muted(restrict_muted_opts)
+    |> restrict_filtered(opts)
     |> restrict_media(opts)
     |> restrict_visibility(opts)
     |> restrict_thread_visibility(opts, config)

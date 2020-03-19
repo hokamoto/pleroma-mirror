@@ -406,4 +406,25 @@ defmodule Pleroma.LoadTesting.Generator do
       CommonAPI.post(user, post)
     end)
   end
+
+  def generate_statuses_which_must_be_filtered(user, users) do
+    make_friends(user, users)
+
+    Task.async_stream(1..5000, fn _ -> do_generate_statuses_which_must_be_filtered(users) end,
+      max_concurrency: 30,
+      timeout: 30_000
+    )
+    |> Stream.run()
+  end
+
+  defp do_generate_statuses_which_must_be_filtered(users) do
+    content =
+      if Enum.random([true, false]) do
+        "status which would not filtered"
+      else
+        "status must be filtered"
+      end
+
+    CommonAPI.post(Enum.random(users), %{"status" => content})
+  end
 end

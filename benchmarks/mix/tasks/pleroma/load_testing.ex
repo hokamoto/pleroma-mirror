@@ -101,7 +101,8 @@ defmodule Mix.Tasks.Pleroma.LoadTesting do
     generate_remote_activities(user, remote_users)
 
     generate_like_activities(
-      user, Pleroma.Repo.all(Pleroma.Activity.Queries.by_type("Create"))
+      user,
+      Pleroma.Repo.all(Pleroma.Activity.Queries.by_type("Create"))
     )
 
     generate_dms(user, users, opts)
@@ -109,6 +110,8 @@ defmodule Mix.Tasks.Pleroma.LoadTesting do
     {:ok, activity} = generate_long_thread(user, users, opts)
 
     generate_non_visible_message(user, users)
+
+    generate_statuses_which_must_be_filtered(user, Enum.take(users, 2))
 
     IO.puts("Users in DB: #{Repo.aggregate(from(u in User), :count, :id)}")
 

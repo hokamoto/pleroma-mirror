@@ -1,7 +1,8 @@
 defmodule Mix.Tasks.Pleroma.Benchmarks.Tags do
   use Mix.Task
-  alias Pleroma.Repo
+
   alias Pleroma.LoadTesting.Generator
+  alias Pleroma.Repo
   import Ecto.Query
 
   def run(_args) do

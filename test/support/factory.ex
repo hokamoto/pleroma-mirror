@@ -421,4 +421,12 @@ defmodule Pleroma.Factory do
       last_read_id: "1"
     }
   end
+
+  def filter_factory do
+    %Pleroma.Filter{
+      user: build(:user),
+      filter_id: sequence(:filter_id, & &1),
+      phrase: "cofe"
+    }
+  end
 end
