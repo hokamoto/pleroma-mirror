@@ -88,6 +88,7 @@ defmodule Pleroma.Web.MastodonAPI.StatusView do
     reblogged_activity =
       Activity.create_by_object_ap_id(activity_object.data["id"])
       |> Activity.with_preloaded_bookmark(opts[:for])
+      |> Activity.with_preloaded_object()
       |> Activity.with_set_thread_muted_field(opts[:for])
       |> Repo.one()
 
