@@ -13,6 +13,7 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
   alias Pleroma.Plugs.RateLimiter
   alias Pleroma.User
   alias Pleroma.Web.ActivityPub.ActivityPub
+  alias Pleroma.Web.ActivityPub.Visibility
 
   # TODO: Replace with a macro when there is a Phoenix release with
   # https://github.com/phoenixframework/phoenix/commit/2e8c63c01fec4dde5467dbbbf9705ff9e780735e
@@ -45,6 +46,7 @@ defmodule Pleroma.Web.MastodonAPI.TimelineController do
     activities =
       recipients
       |> ActivityPub.fetch_activities(params)
+      |> Visibility.remove_half_conversations(user.ap_id, recipients)
       |> Enum.reverse()
 
     conn

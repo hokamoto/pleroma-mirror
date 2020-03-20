@@ -147,6 +147,7 @@ defmodule Pleroma.Web.Streamer.Worker do
          false <- Pleroma.Web.ActivityPub.MRF.subdomain_match?(domain_blocks, item_host),
          false <- Pleroma.Web.ActivityPub.MRF.subdomain_match?(domain_blocks, parent_host),
          true <- thread_containment(item, user),
+         false <- Visibility.half_conversation?(item, recipients, user, User.following(user)),
          false <- CommonAPI.thread_muted?(user, item) do
       true
     else
